@@ -1,6 +1,6 @@
 /** Admin - User Management Page. */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Users, UserPlus, Shield, Search, MoreVertical, Mail, Calendar, X, CheckCircle2 } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
@@ -23,7 +23,16 @@ const roleBadge: Record<string, string> = {
 };
 
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState(initialUsers);
+  const [users, setUsers] = useState(() => {
+    const saved = localStorage.getItem('df_users');
+    if (saved) return JSON.parse(saved);
+    return initialUsers;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('df_users', JSON.stringify(users));
+  }, [users]);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [newUser, setNewUser] = useState({ name: '', email: '', role: 'viewer' });
