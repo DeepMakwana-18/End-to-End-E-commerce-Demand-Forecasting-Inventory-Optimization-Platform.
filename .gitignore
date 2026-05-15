@@ -1,0 +1,62 @@
+# Environments
+.env
+.env.local
+.env.*.local
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Dependencies
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnpm-debug.log
+
+# Build & Compiled Output
+frontend/dist/
+frontend/build/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Data & ML Models (Avoid pushing large files)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+ml/models/*.pkl
+ml/models/*.joblib
+ml/models/*.h5
+ml/models/*.pt
+*.csv
+*.xlsx
+*.parquet
+
+# Database
+*.sqlite
+*.sqlite3
+*.db
+pgdata/
+docker/volumes/
+
+# Logs & Temp
+logs/
+*.log
+tmp/
+.temp/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Jupyter
+.ipynb_checkpoints
