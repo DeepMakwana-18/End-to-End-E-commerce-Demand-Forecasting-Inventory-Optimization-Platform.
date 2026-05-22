@@ -7,46 +7,47 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber, formatCurrency } from '@/lib/utils';
+import { useDataStore } from '@/stores/dataStore';
 
-const topProducts = [
-  { name: 'Wireless Headphones', sales: 4523, revenue: 316610, growth: 18.5, rating: 4.8, category: 'Electronics' },
-  { name: 'Smart Watch Pro', sales: 3891, revenue: 583650, growth: 12.3, rating: 4.6, category: 'Electronics' },
-  { name: 'USB-C Hub', sales: 3245, revenue: 129800, growth: 22.1, rating: 4.5, category: 'Electronics' },
-  { name: 'Laptop Stand', sales: 2876, revenue: 172560, growth: 8.7, rating: 4.7, category: 'Accessories' },
-  { name: 'Bluetooth Speaker', sales: 2543, revenue: 203440, growth: -3.2, rating: 4.3, category: 'Electronics' },
-  { name: 'Mechanical Keyboard', sales: 2210, revenue: 265200, growth: 15.6, rating: 4.9, category: 'Peripherals' },
-  { name: 'Webcam HD', sales: 1987, revenue: 119220, growth: -8.1, rating: 4.1, category: 'Peripherals' },
-  { name: 'Monitor Arm', sales: 1654, revenue: 132320, growth: 5.4, rating: 4.4, category: 'Accessories' },
-];
 
-const trendData = [
-  { month: 'Jul', 'Wireless Headphones': 320, 'Smart Watch Pro': 280, 'USB-C Hub': 240 },
-  { month: 'Aug', 'Wireless Headphones': 380, 'Smart Watch Pro': 310, 'USB-C Hub': 270 },
-  { month: 'Sep', 'Wireless Headphones': 350, 'Smart Watch Pro': 290, 'USB-C Hub': 310 },
-  { month: 'Oct', 'Wireless Headphones': 420, 'Smart Watch Pro': 350, 'USB-C Hub': 280 },
-  { month: 'Nov', 'Wireless Headphones': 480, 'Smart Watch Pro': 410, 'USB-C Hub': 350 },
-  { month: 'Dec', 'Wireless Headphones': 520, 'Smart Watch Pro': 450, 'USB-C Hub': 380 },
-];
-
-const riskClassification = [
-  { name: 'Low Risk', count: 42, color: '#10b981' },
-  { name: 'Medium Risk', count: 18, color: '#f59e0b' },
-  { name: 'High Risk', count: 5, color: '#ef4444' },
-];
-
-const categories = ['All', ...new Set(topProducts.map(p => p.category))];
+const CATEGORY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899'];
 
 export default function ProductsPage() {
+  const topProducts = useDataStore(s => s.topProducts);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+
+  const categories = useMemo(() => ['All', ...new Set(topProducts.map(p => p.category))], [topProducts]);
 
   const filteredProducts = useMemo(() => {
     return topProducts.filter(p =>
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
       (selectedCategory === 'All' || p.category === selectedCategory)
     );
-  }, [searchTerm, selectedCategory]);
+  }, [topProducts, searchTerm, selectedCategory]);
+
+  const riskClassification = useMemo(() => {
+    return [
+      { name: 'Low Risk', count: Math.round(topProducts.length * 0.7), color: '#10b981' },
+      { name: 'Medium Risk', count: Math.round(topProducts.length * 0.2), color: '#f59e0b' },
+      { name: 'High Risk', count: Math.max(1, Math.round(topProducts.length * 0.1)), color: '#ef4444' },
+    ];
+  }, [topProducts]);
+
+  const trendData = useMemo(() => {
+    const top3 = topProducts.slice(0, 3).map(p => p.name);
+    return ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => {
+      const data: any = { month };
+      top3.forEach(name => {
+        const base = topProducts.find(p => p.name === name)!.sales / 6;
+        data[name] = Math.round(base * (0.8 + Math.random() * 0.4));
+      });
+      return data;
+    });
+  }, [topProducts]);
+
+  const top3Names = useMemo(() => topProducts.slice(0, 3).map(p => p.name), [topProducts]);
 
   return (
     <div className="space-y-6">
@@ -176,9 +177,9 @@ export default function ProductsPage() {
             <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px', fontSize: '12px' }} />
             <Legend wrapperStyle={{ fontSize: '11px' }} />
-            <Line type="monotone" dataKey="Wireless Headphones" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="Smart Watch Pro" stroke="#10b981" strokeWidth={2.5} dot={{ r: 3 }} />
-            <Line type="monotone" dataKey="USB-C Hub" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} />
+            {top3Names.map((name, i) => (
+              <Line key={name} type="monotone" dataKey={name} stroke={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} strokeWidth={2.5} dot={{ r: 3 }} />
+            ))}
           </LineChart>
         </ResponsiveContainer>
       </ChartCard>

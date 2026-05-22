@@ -112,7 +112,7 @@ export function Header() {
             {showResults && filteredResults.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full mt-2 w-full glass-card py-2 z-50 max-h-64 overflow-y-auto">
+                className="absolute top-full mt-2 w-full glass-card !bg-surface-900/95 shadow-2xl border border-surface-700/80 py-2 z-50 max-h-64 overflow-y-auto">
                 {filteredResults.map((item, i) => (
                   <button key={i} onClick={() => handleSelect(item.path)}
                     className="w-full text-left px-4 py-2.5 text-sm text-surface-300 hover:bg-surface-800/60 hover:text-primary-400 transition flex items-center justify-between">
@@ -125,7 +125,7 @@ export function Header() {
             {showResults && searchQuery.trim().length > 0 && filteredResults.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full mt-2 w-full glass-card p-4 z-50 text-center">
+                className="absolute top-full mt-2 w-full glass-card !bg-surface-900/95 shadow-2xl border border-surface-700/80 p-4 z-50 text-center">
                 <p className="text-xs text-surface-500">No results found for "{searchQuery}"</p>
               </motion.div>
             )}

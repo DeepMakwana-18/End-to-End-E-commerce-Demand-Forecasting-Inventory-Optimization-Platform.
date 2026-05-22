@@ -135,25 +135,40 @@ export function Sidebar() {
                 className={({ isActive }) =>
                   cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    'hover:bg-surface-800/60 group',
+                    'hover:bg-surface-800/60 group relative',
                     isActive
-                      ? 'bg-primary-500/10 text-primary-400'
+                      ? 'bg-primary-500/10 text-primary-400 shadow-sm'
                       : 'text-surface-400 hover:text-surface-200'
                   )
                 }
               >
-                <item.icon className="w-5 h-5 flex-shrink-0 text-surface-500 group-hover:text-surface-300" />
-                <AnimatePresence>
-                  {!sidebarCollapsed && (
-                    <motion.span
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                    >
-                      {item.label}
-                    </motion.span>
-                  )}
-                </AnimatePresence>
+                {({ isActive }) => (
+                  <>
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeNav"
+                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary-500"
+                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      />
+                    )}
+                    <item.icon className={cn(
+                      'w-5 h-5 flex-shrink-0 transition-colors',
+                      isActive ? 'text-primary-400' : 'text-surface-500 group-hover:text-surface-300'
+                    )} />
+                    <AnimatePresence>
+                      {!sidebarCollapsed && (
+                        <motion.span
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.15 }}
+                        >
+                          {item.label}
+                        </motion.span>
+                      )}
+                    </AnimatePresence>
+                  </>
+                )}
               </NavLink>
             ))}
           </div>

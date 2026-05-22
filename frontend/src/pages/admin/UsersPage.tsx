@@ -16,14 +16,23 @@ const initialUsers = [
 ];
 
 const roleBadge: Record<string, string> = {
-  admin: 'bg-primary-500/10 text-primary-400 border-primary-500/20',
-  manager: 'bg-accent-500/10 text-accent-400 border-accent-500/20',
-  analyst: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
-  viewer: 'bg-surface-700/50 text-surface-400 border-surface-600/50',
+  admin: 'bg-primary-500/10 text-primary-400 border-primary-500/30',
+  editor: 'bg-accent-500/10 text-accent-400 border-accent-500/30',
+  viewer: 'bg-surface-500/10 text-surface-400 border-surface-500/30',
 };
 
+interface User {
+  id: number;
+  name: string;
+  email: string;
+  role: string;
+  status: string;
+  lastLogin: string;
+  created: string;
+}
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState(() => {
+  const [users, setUsers] = useState<User[]>(() => {
     const saved = localStorage.getItem('df_users');
     if (saved) return JSON.parse(saved);
     return initialUsers;

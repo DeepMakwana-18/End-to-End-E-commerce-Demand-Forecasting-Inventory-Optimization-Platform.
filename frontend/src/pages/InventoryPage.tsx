@@ -9,23 +9,13 @@ import {
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber } from '@/lib/utils';
+import { useDataStore } from '@/stores/dataStore';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from 'recharts';
 
 type StatusType = 'healthy' | 'low' | 'critical' | 'overstock';
-
-const inventoryItems = [
-  { id: 1, name: 'Wireless Headphones', sku: 'WH-001', category: 'Electronics', current_stock: 45, safety_stock: 80, reorder_point: 120, recommended_qty: 200, lead_time: 2, status: 'critical' as StatusType, health_score: 32 },
-  { id: 2, name: 'Smart Watch Pro', sku: 'SW-002', category: 'Electronics', current_stock: 580, safety_stock: 150, reorder_point: 200, recommended_qty: 0, lead_time: 3, status: 'overstock' as StatusType, health_score: 55 },
-  { id: 3, name: 'USB-C Hub', sku: 'UC-003', category: 'Electronics', current_stock: 12, safety_stock: 50, reorder_point: 80, recommended_qty: 150, lead_time: 1, status: 'critical' as StatusType, health_score: 15 },
-  { id: 4, name: 'Laptop Stand', sku: 'LS-004', category: 'Accessories', current_stock: 89, safety_stock: 60, reorder_point: 95, recommended_qty: 100, lead_time: 2, status: 'low' as StatusType, health_score: 68 },
-  { id: 5, name: 'Bluetooth Speaker', sku: 'BS-005', category: 'Electronics', current_stock: 3, safety_stock: 40, reorder_point: 65, recommended_qty: 180, lead_time: 2, status: 'critical' as StatusType, health_score: 5 },
-  { id: 6, name: 'Mechanical Keyboard', sku: 'MK-006', category: 'Peripherals', current_stock: 245, safety_stock: 80, reorder_point: 120, recommended_qty: 0, lead_time: 3, status: 'healthy' as StatusType, health_score: 92 },
-  { id: 7, name: 'Webcam HD', sku: 'WC-007', category: 'Peripherals', current_stock: 167, safety_stock: 50, reorder_point: 80, recommended_qty: 0, lead_time: 2, status: 'healthy' as StatusType, health_score: 88 },
-  { id: 8, name: 'Monitor Arm', sku: 'MA-008', category: 'Accessories', current_stock: 78, safety_stock: 40, reorder_point: 70, recommended_qty: 50, lead_time: 1, status: 'low' as StatusType, health_score: 72 },
-];
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   healthy: { label: 'Healthy', color: 'text-accent-400', bg: 'bg-accent-500/10 border-accent-500/20' },
@@ -44,6 +34,7 @@ const getHealthColor = (score: number) => {
 type SortKey = 'name' | 'current_stock' | 'health_score' | 'status';
 
 export default function InventoryPage() {
+  const inventoryItems = useDataStore(s => s.inventoryItems);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);

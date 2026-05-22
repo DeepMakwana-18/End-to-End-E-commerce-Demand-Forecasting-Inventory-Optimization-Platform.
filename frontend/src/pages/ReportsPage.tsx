@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Download, Calendar, Clock, CheckCircle2, Loader2, FileSpreadsheet, FileDown, FileBarChart } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { cn } from '@/lib/utils';
+import { jsPDF } from 'jspdf';
 
 const reportTypes = [
   { id: 'forecast', title: 'Demand Forecast Report', desc: 'Product-wise demand forecasts with confidence intervals', icon: FileBarChart, color: 'from-primary-500 to-primary-600' },
@@ -54,12 +55,34 @@ export default function ReportsPage() {
   };
 
   const handleDownload = (report: typeof recentReports[0]) => {
+    if (report.format === 'PDF') {
+      const doc = new jsPDF();
+      doc.setFontSize(22);
+      doc.text('Project Titan Report', 20, 20);
+      
+      doc.setFontSize(16);
+      doc.text(report.name, 20, 35);
+      
+      doc.setFontSize(12);
+      doc.text(`Type: ${report.type}`, 20, 45);
+      doc.text(`Format: ${report.format}`, 20, 52);
+      doc.text(`Generated Date: ${report.date}`, 20, 59);
+      
+      doc.setFontSize(10);
+      doc.text('This is a demo export file.', 20, 75);
+      doc.text('In production, this would be the actual report data.', 20, 82);
+      
+      doc.save(`${report.name.replace(/\s+/g, '_')}.pdf`);
+      showToast(`📥 Downloaded: ${report.name}`);
+      return;
+    }
+
     const content = `Report: ${report.name}\nType: ${report.type}\nFormat: ${report.format}\nGenerated: ${report.date}\n\nThis is a demo export file. In production, this would be the actual report data.`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    const ext = report.format === 'CSV' ? 'csv' : report.format === 'Excel' ? 'xlsx' : 'pdf';
+    const ext = report.format === 'CSV' ? 'csv' : report.format === 'Excel' ? 'xlsx' : 'txt';
     a.download = `${report.name.replace(/\s+/g, '_')}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);

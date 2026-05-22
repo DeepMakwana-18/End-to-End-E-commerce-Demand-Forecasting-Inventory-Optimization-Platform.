@@ -13,6 +13,7 @@ import {
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber } from '@/lib/utils';
+import { useDataStore } from '@/stores/dataStore';
 
 const forecastData = Array.from({ length: 24 }, (_, i) => ({
   week: `W${i + 1}`,
@@ -21,24 +22,6 @@ const forecastData = Array.from({ length: 24 }, (_, i) => ({
   lower: Math.round(700 + Math.random() * 400 + i * 20),
   upper: Math.round(1000 + Math.random() * 600 + i * 40),
 }));
-
-const categoryForecasts = [
-  { category: 'Electronics', current: 4520, predicted: 5230, change: 15.7 },
-  { category: 'Fashion', current: 3210, predicted: 3680, change: 14.6 },
-  { category: 'Home & Garden', current: 2100, predicted: 1980, change: -5.7 },
-  { category: 'Sports', current: 1560, predicted: 1820, change: 16.7 },
-  { category: 'Books', current: 890, predicted: 950, change: 6.7 },
-  { category: 'Toys', current: 1230, predicted: 1450, change: 17.9 },
-];
-
-const seasonalData = [
-  { month: 'Jan', demand: 1200 }, { month: 'Feb', demand: 1350 },
-  { month: 'Mar', demand: 1100 }, { month: 'Apr', demand: 1480 },
-  { month: 'May', demand: 1650 }, { month: 'Jun', demand: 1420 },
-  { month: 'Jul', demand: 1780 }, { month: 'Aug', demand: 1900 },
-  { month: 'Sep', demand: 1650 }, { month: 'Oct', demand: 2100 },
-  { month: 'Nov', demand: 2800 }, { month: 'Dec', demand: 3200 },
-];
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -56,6 +39,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function ForecastPage() {
+  const { categoryForecasts, demandTrend } = useDataStore();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [toast, setToast] = useState<string | null>(null);
@@ -63,7 +47,7 @@ export default function ForecastPage() {
   const filteredCategories = useMemo(() => {
     if (selectedCategory === 'all') return categoryForecasts;
     return categoryForecasts.filter(c => c.category === selectedCategory);
-  }, [selectedCategory]);
+  }, [selectedCategory, categoryForecasts]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -202,21 +186,15 @@ export default function ForecastPage() {
         {/* Seasonal Pattern */}
         <ChartCard title="Seasonal Demand Pattern" subtitle="Monthly demand seasonality analysis" delay={0.3}>
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={seasonalData}>
-              <defs>
-                <linearGradient id="seasonGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
-                </linearGradient>
-              </defs>
+            <LineChart data={demandTrend}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
-              <XAxis dataKey="month" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <XAxis dataKey="label" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Area type="monotone" dataKey="demand" name="Demand" stroke="#f59e0b" strokeWidth={2.5}
-                fill="url(#seasonGrad)" dot={{ fill: '#f59e0b', r: 3 }}
-                activeDot={{ r: 5, stroke: '#f59e0b', strokeWidth: 2, fill: '#1e1e22' }} />
-            </AreaChart>
+              <Line type="monotone" dataKey="actual" name="Actual Demand" stroke="#f59e0b" strokeWidth={3}
+                dot={{ fill: '#f59e0b', r: 4 }} activeDot={{ r: 6 }} />
+              <Line type="monotone" dataKey="predicted" name="Predicted Demand" stroke="#10b981" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+            </LineChart>
           </ResponsiveContainer>
         </ChartCard>
       </div>

@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Upload, FileText, CheckCircle2, Loader2, FileSpreadsheet, Database, Cpu, AlertTriangle, ArrowRight, Link } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDataStore } from '@/stores/dataStore';
 
 type UploadStatus = 'idle' | 'uploading' | 'validating' | 'mapping' | 'processing' | 'completed' | 'error';
 
@@ -15,7 +16,7 @@ interface UploadState {
   totalRows: number;
 }
 
-const recentUploads = [
+const initialUploads = [
   { id: 1, name: 'olist_orders_2024.csv', rows: 99441, status: 'completed', date: '2026-05-10', size: '12.4 MB' },
   { id: 2, name: 'product_catalog.csv', rows: 32951, status: 'completed', date: '2026-05-08', size: '4.2 MB' },
   { id: 3, name: 'sales_q1_2026.csv', rows: 45230, status: 'completed', date: '2026-04-15', size: '6.1 MB' },
@@ -36,31 +37,34 @@ const systemColumns = [
   { id: 'product_sku', label: 'Product SKU', required: true },
   { id: 'quantity_sold', label: 'Quantity Sold', required: true },
   { id: 'unit_price', label: 'Unit Price', required: true },
+  { id: 'category', label: 'Category', required: false },
 ];
 
 export default function UploadPage() {
   const [state, setState] = useState<UploadState>({ file: null, status: 'idle', progress: 0, rowsProcessed: 0, totalRows: 0 });
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
+  const [uploadsList, setUploadsList] = useState(initialUploads);
+  const [fullCsvText, setFullCsvText] = useState<string>('');
   const fileRef = useRef<HTMLInputElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const loadCsvData = useDataStore(s => s.loadCsvData);
 
   const processFileAndStart = (file: File) => {
-    // Read the first chunk of the file to extract headers
+    // Read the FULL file to extract headers and store content for later parsing
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (text) {
+        setFullCsvText(text);
         // Get first line, split by comma, and clean up headers
         const firstLine = text.split('\n')[0];
         const headers = firstLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-        
-        // If we found headers, use them. Otherwise fallback to some generic ones.
         setDetectedColumns(headers.length > 0 ? headers : ['column_1', 'column_2', 'column_3']);
         startPipeline(file);
       }
     };
-    reader.readAsText(file.slice(0, 4096)); // Read just the first 4KB
+    reader.readAsText(file); // Read full file
   };
 
   const startPipeline = (file: File) => {
@@ -88,11 +92,43 @@ export default function UploadPage() {
       if (progress <= 75) {
         setState(s => ({ ...s, progress, status: 'processing', rowsProcessed: Math.floor((progress / 100) * 50000) }));
       } else if (progress <= 95) {
-         // Fake ML retraining step internally mapped to processing for simplicity
         setState(s => ({ ...s, progress, status: 'processing', rowsProcessed: 50000 }));
       } else {
         if (intervalRef.current) clearInterval(intervalRef.current);
-        setState(s => ({ ...s, progress: 100, status: 'completed', rowsProcessed: 50000 }));
+        setState(s => {
+          // Add to recent uploads table
+          if (s.file) {
+            const newUpload = {
+              id: Date.now(),
+              name: s.file.name,
+              rows: 50000,
+              status: 'completed',
+              date: new Date().toISOString().split('T')[0],
+              size: `${(s.file.size / (1024 * 1024)).toFixed(1)} MB`
+            };
+            setUploadsList(prev => [newUpload, ...prev]);
+          }
+
+          // ── Parse CSV and push into global data store ──
+          if (fullCsvText && s.file) {
+            try {
+              const lines = fullCsvText.split('\n').filter(l => l.trim());
+              const headers = lines[0].split(',').map(h => h.trim().replace(/^["']|["']$/g, ''));
+              const rows: Record<string, string>[] = [];
+              for (let i = 1; i < lines.length; i++) {
+                const values = lines[i].split(',').map(v => v.trim().replace(/^["']|["']$/g, ''));
+                const row: Record<string, string> = {};
+                headers.forEach((h, idx) => { row[h] = values[idx] || ''; });
+                rows.push(row);
+              }
+              loadCsvData(s.file.name, rows, mappings);
+            } catch (err) {
+              console.error('CSV parsing error:', err);
+            }
+          }
+
+          return { ...s, progress: 100, status: 'completed', rowsProcessed: 50000 };
+        });
       }
     }, 400);
   };
@@ -284,7 +320,7 @@ export default function UploadPage() {
               </tr>
             </thead>
             <tbody>
-              {recentUploads.map((f, i) => (
+              {uploadsList.map((f, i) => (
                 <motion.tr key={f.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.03 }}
                   className="border-b border-surface-800/30 hover:bg-surface-800/20 transition-colors">
                   <td className="px-4 py-3 text-sm font-medium text-surface-200 flex items-center gap-2"><FileText className="w-4 h-4 text-surface-500" />{f.name}</td>

@@ -40,6 +40,13 @@ class Settings(BaseSettings):
     # ML
     ML_MODEL_PATH: str = "./ml/models"
 
+    # Email
+    SMTP_SERVER: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "deep241206@gmail.com"
+    SMTP_PASSWORD: str = "tupg iypn vzdo kwva"
+    ALERT_EMAIL_TO: str = "deepmakwana1308@gmail.com"
+
     @property
     def cors_origins_list(self) -> List[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]

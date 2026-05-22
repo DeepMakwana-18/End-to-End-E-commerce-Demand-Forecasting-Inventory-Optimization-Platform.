@@ -1,20 +1,11 @@
 /** Alert Center Page - Inventory alerts with real-time notifications. */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, AlertTriangle, AlertOctagon, Info, CheckCircle2, Filter, XCircle, X } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { cn, getSeverityBg } from '@/lib/utils';
-
-const initialAlerts = [
-  { id: 1, product: 'Bluetooth Speaker', type: 'stockout', severity: 'critical' as const, message: 'Stockout imminent. Current stock: 3 units, Daily demand: 15 units. Estimated stockout in 0.2 days.', created: '1 hour ago', resolved: false },
-  { id: 2, product: 'USB-C Hub', type: 'low_stock', severity: 'critical' as const, message: 'Critical stock level. Current: 12 units, Safety Stock: 50 units. Stock is 76% below safety threshold.', created: '3 hours ago', resolved: false },
-  { id: 3, product: 'Wireless Headphones', type: 'reorder', severity: 'high' as const, message: 'Below reorder point. Current: 45 units, Reorder Point: 120 units. Recommended order: 200 units.', created: '5 hours ago', resolved: false },
-  { id: 4, product: 'Laptop Stand', type: 'reorder', severity: 'medium' as const, message: 'Approaching reorder point. Current: 89 units, Reorder Point: 95 units. Monitor closely.', created: '8 hours ago', resolved: false },
-  { id: 5, product: 'Smart Watch Pro', type: 'overstock', severity: 'low' as const, message: 'Overstock detected. Current: 580 units, Maximum capacity: 400 units. Consider running promotions.', created: '1 day ago', resolved: false },
-  { id: 6, product: 'Monitor Arm', type: 'reorder', severity: 'medium' as const, message: 'Stock level near reorder point. Current: 78, ROP: 70. Order placed for 50 units.', created: '2 days ago', resolved: true },
-  { id: 7, product: 'Mechanical Keyboard', type: 'low_stock', severity: 'low' as const, message: 'Seasonal demand spike expected in Q4. Consider pre-ordering to avoid shortages.', created: '3 days ago', resolved: true },
-];
+import { useDataStore } from '@/stores/dataStore';
 
 const getAlertIcon = (type: string) => {
   switch (type) {
@@ -38,7 +29,14 @@ const getTypeLabel = (type: string) => {
 const severityLevels = ['all', 'critical', 'high', 'medium', 'low'] as const;
 
 export default function AlertsPage() {
-  const [alerts, setAlerts] = useState(initialAlerts);
+  const storeAlerts = useDataStore(s => s.recentAlerts);
+  const [alerts, setAlerts] = useState(storeAlerts);
+  
+  // Sync local alerts when global store changes (e.g. new CSV uploaded or reset)
+  useEffect(() => {
+    setAlerts(storeAlerts);
+  }, [storeAlerts]);
+
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [toast, setToast] = useState<string | null>(null);

@@ -7,31 +7,13 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber } from '@/lib/utils';
 
-const categoryData = [
-  { name: 'Electronics', value: 35, demand: 5230, growth: 15.7, color: '#6366f1' },
-  { name: 'Fashion', value: 25, demand: 3680, growth: 14.6, color: '#10b981' },
-  { name: 'Home & Garden', value: 18, demand: 1980, growth: -5.7, color: '#f59e0b' },
-  { name: 'Sports', value: 12, demand: 1820, growth: 16.7, color: '#06b6d4' },
-  { name: 'Books', value: 10, demand: 950, growth: 6.7, color: '#8b5cf6' },
-];
-
-const seasonalByCategory = [
-  { quarter: 'Q1', Electronics: 4200, Fashion: 3100, 'Home & Garden': 1800, Sports: 1200, Books: 800 },
-  { quarter: 'Q2', Electronics: 4800, Fashion: 3500, 'Home & Garden': 2200, Sports: 1600, Books: 750 },
-  { quarter: 'Q3', Electronics: 5100, Fashion: 2800, 'Home & Garden': 1900, Sports: 2100, Books: 900 },
-  { quarter: 'Q4', Electronics: 6500, Fashion: 4200, 'Home & Garden': 2500, Sports: 1500, Books: 1200 },
-];
-
-const radarData = [
-  { metric: 'Demand', Electronics: 95, Fashion: 78, Sports: 62 },
-  { metric: 'Growth', Electronics: 82, Fashion: 75, Sports: 88 },
-  { metric: 'Margin', Electronics: 70, Fashion: 85, Sports: 65 },
-  { metric: 'Velocity', Electronics: 88, Fashion: 72, Sports: 58 },
-  { metric: 'Forecast', Electronics: 92, Fashion: 80, Sports: 70 },
-  { metric: 'Health', Electronics: 78, Fashion: 82, Sports: 75 },
-];
+import { useDataStore } from '@/stores/dataStore';
 
 export default function CategoriesPage() {
+  const { categoryData, seasonalByCategory, radarData } = useDataStore();
+
+  const CATEGORY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899'];
+  const categoriesList = categoryData.map(c => c.name);
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -40,10 +22,10 @@ export default function CategoriesPage() {
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total Categories" value="5" icon={Layers} gradient="gradient-primary" delay={0} />
-        <KPICard title="Top Category" value="Electronics" icon={PieIcon} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Total Categories" value={categoryData.length.toString()} icon={Layers} gradient="gradient-primary" delay={0} />
+        <KPICard title="Top Category" value={categoryData.length ? categoryData[0].name : '-'} icon={PieIcon} gradient="gradient-accent" delay={0.05} />
         <KPICard title="Avg Growth" value="9.6%" change={4.2} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Total Demand" value={formatNumber(13660)} change={8.1} icon={BarChart3} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Total Demand" value={formatNumber(categoryData.reduce((acc, c) => acc + c.demand, 0))} change={8.1} icon={BarChart3} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -71,15 +53,15 @@ export default function CategoriesPage() {
         {/* Radar chart */}
         <ChartCard title="Category Performance Radar" subtitle="Multi-metric comparison" delay={0.25}>
           <ResponsiveContainer width="100%" height={310}>
-            <RadarChart data={radarData}>
-              <PolarGrid stroke="rgba(63,63,70,0.4)" />
+            <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
+              <PolarGrid stroke="rgba(63,63,70,0.5)" />
               <PolarAngleAxis dataKey="metric" tick={{ fill: '#a1a1aa', fontSize: 11 }} />
-              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={{ fill: '#71717a', fontSize: 10 }} />
-              <Radar name="Electronics" dataKey="Electronics" stroke="#6366f1" fill="#6366f1" fillOpacity={0.15} strokeWidth={2} />
-              <Radar name="Fashion" dataKey="Fashion" stroke="#10b981" fill="#10b981" fillOpacity={0.1} strokeWidth={2} />
-              <Radar name="Sports" dataKey="Sports" stroke="#f59e0b" fill="#f59e0b" fillOpacity={0.08} strokeWidth={2} />
-              <Legend wrapperStyle={{ fontSize: '11px' }} />
-              <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px', fontSize: '12px' }} />
+              <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
+              <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px' }} />
+              {categoriesList.slice(0, 3).map((cat, i) => (
+                <Radar key={cat} name={cat} dataKey={cat} stroke={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} fillOpacity={0.3} />
+              ))}
+              <Legend wrapperStyle={{ fontSize: '11px', color: '#a1a1aa' }} />
             </RadarChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -92,13 +74,11 @@ export default function CategoriesPage() {
             <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
             <XAxis dataKey="quarter" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
             <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px', fontSize: '12px' }} />
-            <Legend wrapperStyle={{ fontSize: '11px' }} />
-            <Bar dataKey="Electronics" stackId="a" fill="#6366f1" radius={[0,0,0,0]} />
-            <Bar dataKey="Fashion" stackId="a" fill="#10b981" />
-            <Bar dataKey="Home & Garden" stackId="a" fill="#f59e0b" />
-            <Bar dataKey="Sports" stackId="a" fill="#06b6d4" />
-            <Bar dataKey="Books" stackId="a" fill="#8b5cf6" radius={[6,6,0,0]} />
+            <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', color: '#a1a1aa' }} />
+            {categoriesList.map((cat, i) => (
+              <Bar key={cat} dataKey={cat} stackId="a" fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} radius={i === categoriesList.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+            ))}
           </BarChart>
         </ResponsiveContainer>
       </ChartCard>

@@ -3,80 +3,17 @@
 import { motion } from 'framer-motion';
 import {
   DollarSign, ShoppingCart, Target, HeartPulse,
-  AlertTriangle, ShieldAlert, RotateCcw, TrendingUp,
+  AlertTriangle, ShieldAlert, RotateCcw, TrendingUp, Database, RefreshCw,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
-  LineChart, Line, Legend,
+  Legend,
 } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { formatCurrency, formatNumber, formatPercent, getSeverityBg } from '@/lib/utils';
-
-// Demo data - in production this comes from API
-const kpiData = {
-  total_revenue: 2847563,
-  total_orders: 18432,
-  forecast_accuracy: 94.7,
-  inventory_health: 87.3,
-  active_alerts: 12,
-  products_at_risk: 5,
-  reorder_needed: 8,
-  avg_demand: 1243.5,
-};
-
-const demandTrendData = [
-  { label: 'Jan', actual: 1200, predicted: 1180 },
-  { label: 'Feb', actual: 1350, predicted: 1320 },
-  { label: 'Mar', actual: 1100, predicted: 1250 },
-  { label: 'Apr', actual: 1480, predicted: 1400 },
-  { label: 'May', actual: 1650, predicted: 1580 },
-  { label: 'Jun', actual: 1420, predicted: 1500 },
-  { label: 'Jul', actual: 1780, predicted: 1700 },
-  { label: 'Aug', actual: 1900, predicted: 1820 },
-  { label: 'Sep', actual: 1650, predicted: 1750 },
-  { label: 'Oct', actual: 2100, predicted: 1980 },
-  { label: 'Nov', actual: 2350, predicted: 2200 },
-  { label: 'Dec', actual: 2500, predicted: 2400 },
-];
-
-const revenueTrendData = [
-  { label: 'Jan', value: 380000 },
-  { label: 'Feb', value: 420000 },
-  { label: 'Mar', value: 395000 },
-  { label: 'Apr', value: 465000 },
-  { label: 'May', value: 520000 },
-  { label: 'Jun', value: 485000 },
-  { label: 'Jul', value: 560000 },
-  { label: 'Aug', value: 610000 },
-  { label: 'Sep', value: 575000 },
-  { label: 'Oct', value: 650000 },
-  { label: 'Nov', value: 720000 },
-  { label: 'Dec', value: 780000 },
-];
-
-const inventoryHealthData = [
-  { name: 'Healthy', value: 65, color: '#10b981' },
-  { name: 'Low Stock', value: 20, color: '#f59e0b' },
-  { name: 'Critical', value: 8, color: '#ef4444' },
-  { name: 'Overstock', value: 7, color: '#6366f1' },
-];
-
-const topProductsData = [
-  { name: 'Wireless Headphones', sales: 4523 },
-  { name: 'Smart Watch Pro', sales: 3891 },
-  { name: 'USB-C Hub', sales: 3245 },
-  { name: 'Laptop Stand', sales: 2876 },
-  { name: 'Bluetooth Speaker', sales: 2543 },
-];
-
-const recentAlerts = [
-  { id: 1, product: 'USB-C Hub', type: 'stockout', severity: 'critical', message: 'Stockout imminent. Current: 3, Daily Demand: 15', time: '1h ago' },
-  { id: 2, product: 'Wireless Headphones', type: 'reorder', severity: 'high', message: 'Below reorder point. Current: 45, ROP: 120', time: '2h ago' },
-  { id: 3, product: 'Laptop Stand', type: 'low_stock', severity: 'medium', message: 'Approaching reorder. Current: 89, ROP: 95', time: '5h ago' },
-  { id: 4, product: 'Smart Watch Pro', type: 'overstock', severity: 'low', message: 'Overstock detected. Current: 580, Max: 400', time: '1d ago' },
-];
+import { useDataStore } from '@/stores/dataStore';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -96,8 +33,32 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function DashboardPage() {
+  const { kpis, demandTrend, revenueTrend, inventoryHealth, topProducts, recentAlerts, isCustomDataset, datasetName, resetToDefault } = useDataStore();
+
   return (
     <div className="space-y-6">
+      {/* Custom Dataset Banner */}
+      {isCustomDataset && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between px-4 py-3 rounded-xl bg-primary-500/10 border border-primary-500/30 backdrop-blur-sm"
+        >
+          <div className="flex items-center gap-3">
+            <Database className="w-5 h-5 text-primary-400" />
+            <div>
+              <p className="text-sm font-semibold text-primary-400">Custom Dataset Active</p>
+              <p className="text-xs text-surface-400">Showing analytics derived from <strong className="text-surface-200">{datasetName}</strong></p>
+            </div>
+          </div>
+          <button
+            onClick={resetToDefault}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 hover:text-white transition border border-surface-700/50"
+          >
+            <RefreshCw className="w-3.5 h-3.5" /> Reset to Default
+          </button>
+        </motion.div>
+      )}
+
       {/* Page header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -121,7 +82,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Total Revenue"
-          value={formatCurrency(kpiData.total_revenue)}
+          value={formatCurrency(kpis.total_revenue)}
           change={12.5}
           icon={DollarSign}
           gradient="gradient-primary"
@@ -130,7 +91,7 @@ export default function DashboardPage() {
         />
         <KPICard
           title="Total Orders"
-          value={formatNumber(kpiData.total_orders)}
+          value={formatNumber(kpis.total_orders)}
           change={8.3}
           icon={ShoppingCart}
           gradient="gradient-accent"
@@ -139,7 +100,7 @@ export default function DashboardPage() {
         />
         <KPICard
           title="Forecast Accuracy"
-          value={formatPercent(kpiData.forecast_accuracy)}
+          value={formatPercent(kpis.forecast_accuracy)}
           change={2.1}
           icon={Target}
           gradient="gradient-warning"
@@ -148,7 +109,7 @@ export default function DashboardPage() {
         />
         <KPICard
           title="Inventory Health"
-          value={formatPercent(kpiData.inventory_health)}
+          value={formatPercent(kpis.inventory_health)}
           change={-1.8}
           icon={HeartPulse}
           gradient="gradient-danger"
@@ -161,28 +122,28 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard
           title="Active Alerts"
-          value={String(kpiData.active_alerts)}
+          value={String(kpis.active_alerts)}
           icon={AlertTriangle}
           gradient="bg-orange-500"
           delay={0.2}
         />
         <KPICard
           title="Products at Risk"
-          value={String(kpiData.products_at_risk)}
+          value={String(kpis.products_at_risk)}
           icon={ShieldAlert}
           gradient="bg-red-500"
           delay={0.25}
         />
         <KPICard
           title="Reorder Needed"
-          value={String(kpiData.reorder_needed)}
+          value={String(kpis.reorder_needed)}
           icon={RotateCcw}
           gradient="bg-amber-500"
           delay={0.3}
         />
         <KPICard
           title="Avg Weekly Demand"
-          value={formatNumber(kpiData.avg_demand)}
+          value={formatNumber(kpis.avg_demand)}
           change={5.2}
           icon={TrendingUp}
           gradient="bg-cyan-500"
@@ -198,7 +159,7 @@ export default function DashboardPage() {
           delay={0.2}
         >
           <ResponsiveContainer width="100%" height={280}>
-            <AreaChart data={demandTrendData}>
+            <AreaChart data={demandTrend}>
               <defs>
                 <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
@@ -247,7 +208,7 @@ export default function DashboardPage() {
           delay={0.25}
         >
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={revenueTrendData}>
+            <BarChart data={revenueTrend}>
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
@@ -280,7 +241,7 @@ export default function DashboardPage() {
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie
-                data={inventoryHealthData}
+                data={inventoryHealth}
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
@@ -289,7 +250,7 @@ export default function DashboardPage() {
                 dataKey="value"
                 strokeWidth={0}
               >
-                {inventoryHealthData.map((entry, index) => (
+                {inventoryHealth.map((entry, index) => (
                   <Cell key={index} fill={entry.color} />
                 ))}
               </Pie>
@@ -305,7 +266,7 @@ export default function DashboardPage() {
             </PieChart>
           </ResponsiveContainer>
           <div className="flex flex-wrap justify-center gap-3 -mt-2">
-            {inventoryHealthData.map((entry) => (
+            {inventoryHealth.map((entry) => (
               <div key={entry.name} className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: entry.color }} />
                 <span className="text-[11px] text-surface-400">{entry.name}</span>
@@ -320,7 +281,7 @@ export default function DashboardPage() {
           delay={0.35}
         >
           <div className="space-y-3">
-            {topProductsData.map((product, i) => (
+            {topProducts.slice(0, 5).map((product, i) => (
               <motion.div
                 key={product.name}
                 initial={{ opacity: 0, x: -10 }}
@@ -336,7 +297,7 @@ export default function DashboardPage() {
                   <div className="mt-1 h-1.5 w-full bg-surface-800/50 rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${(product.sales / topProductsData[0].sales) * 100}%` }}
+                      animate={{ width: `${(product.sales / (topProducts[0]?.sales || 1)) * 100}%` }}
                       transition={{ duration: 0.8, delay: 0.5 + i * 0.05, ease: 'easeOut' }}
                       className="h-full rounded-full gradient-primary"
                     />
@@ -356,7 +317,7 @@ export default function DashboardPage() {
           delay={0.4}
         >
           <div className="space-y-2.5">
-            {recentAlerts.map((alert, i) => (
+            {recentAlerts.slice(0, 4).map((alert, i) => (
               <motion.div
                 key={alert.id}
                 initial={{ opacity: 0, x: 10 }}
@@ -371,7 +332,7 @@ export default function DashboardPage() {
                   <p className="text-xs font-medium text-surface-200 truncate">{alert.product}</p>
                   <p className="text-[11px] text-surface-500 mt-0.5 line-clamp-1">{alert.message}</p>
                 </div>
-                <span className="text-[10px] text-surface-600 flex-shrink-0">{alert.time}</span>
+                <span className="text-[10px] text-surface-600 flex-shrink-0">{alert.created}</span>
               </motion.div>
             ))}
           </div>

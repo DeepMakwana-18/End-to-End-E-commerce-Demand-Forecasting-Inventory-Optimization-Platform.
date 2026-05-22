@@ -10,7 +10,7 @@ import logging
 
 from app.config import settings
 from app.database import init_db
-from app.routers import auth, dashboard, forecast, inventory, products, reports, upload, users
+from app.routers import auth, dashboard, forecast, inventory, products, reports, upload, users, alerts
 
 # Configure logging
 logging.basicConfig(
@@ -61,6 +61,7 @@ app.include_router(products.router, prefix="/api/v1")
 app.include_router(reports.router, prefix="/api/v1")
 app.include_router(upload.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
+app.include_router(alerts.router)
 
 
 @app.get("/api/health")
