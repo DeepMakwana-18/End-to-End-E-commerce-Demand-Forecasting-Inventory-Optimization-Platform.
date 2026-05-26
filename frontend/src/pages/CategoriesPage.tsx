@@ -17,7 +17,7 @@ export default function CategoriesPage() {
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Category Analytics</h1>
+        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Category Analytics</h1>
         <p className="text-sm text-surface-500 mt-1">Category demand distribution, growth & seasonal analysis</p>
       </motion.div>
 
@@ -92,7 +92,7 @@ export default function CategoriesPage() {
               <div className="w-3 h-3 rounded-full" style={{ background: cat.color }} />
               <h4 className="text-sm font-semibold text-surface-200">{cat.name}</h4>
             </div>
-            <p className="text-xl font-bold text-white">{formatNumber(cat.demand)}</p>
+            <p className="text-xl font-bold text-surface-50">{formatNumber(cat.demand)}</p>
             <p className="text-xs text-surface-500 mt-0.5">weekly demand</p>
             <div className={cn('mt-2 text-xs font-bold', cat.growth > 0 ? 'text-accent-400' : 'text-danger-400')}>
               {cat.growth > 0 ? '↑' : '↓'} {Math.abs(cat.growth)}% growth

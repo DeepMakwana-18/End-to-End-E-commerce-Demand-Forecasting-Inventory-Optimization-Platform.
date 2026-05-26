@@ -1,11 +1,14 @@
 /** Reports & Exports Page. */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileText, Download, Calendar, Clock, CheckCircle2, Loader2, FileSpreadsheet, FileDown, FileBarChart } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { cn } from '@/lib/utils';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
+import { useDataStore } from '@/stores/dataStore';
 
 const reportTypes = [
   { id: 'forecast', title: 'Demand Forecast Report', desc: 'Product-wise demand forecasts with confidence intervals', icon: FileBarChart, color: 'from-primary-500 to-primary-600' },
@@ -25,7 +28,21 @@ const initialRecentReports = [
 export default function ReportsPage() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [generatingFmt, setGeneratingFmt] = useState<string | null>(null);
-  const [recentReports, setRecentReports] = useState(initialRecentReports);
+  
+  const [recentReports, setRecentReports] = useState<typeof initialRecentReports>(() => {
+    try {
+      const saved = localStorage.getItem('titan_recent_reports');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.error('Failed to parse recent reports', e);
+    }
+    return initialRecentReports;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('titan_recent_reports', JSON.stringify(recentReports));
+  }, [recentReports]);
+
   const [toast, setToast] = useState<string | null>(null);
 
   const showToast = (msg: string) => {
@@ -54,39 +71,78 @@ export default function ReportsPage() {
     }, 2000);
   };
 
-  const handleDownload = (report: typeof recentReports[0]) => {
-    if (report.format === 'PDF') {
-      const doc = new jsPDF();
-      doc.setFontSize(22);
-      doc.text('Project Titan Report', 20, 20);
+  const handleDownload = async (report: typeof recentReports[0]) => {
+    try {
+      showToast(`⏳ Generating ${report.format} file...`);
       
-      doc.setFontSize(16);
-      doc.text(report.name, 20, 35);
-      
-      doc.setFontSize(12);
-      doc.text(`Type: ${report.type}`, 20, 45);
-      doc.text(`Format: ${report.format}`, 20, 52);
-      doc.text(`Generated Date: ${report.date}`, 20, 59);
-      
-      doc.setFontSize(10);
-      doc.text('This is a demo export file.', 20, 75);
-      doc.text('In production, this would be the actual report data.', 20, 82);
-      
-      doc.save(`${report.name.replace(/\s+/g, '_')}.pdf`);
-      showToast(`📥 Downloaded: ${report.name}`);
-      return;
-    }
+      let rawData: any[] = [];
+      let columns: string[] = [];
 
-    const content = `Report: ${report.name}\nType: ${report.type}\nFormat: ${report.format}\nGenerated: ${report.date}\n\nThis is a demo export file. In production, this would be the actual report data.`;
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    const ext = report.format === 'CSV' ? 'csv' : report.format === 'Excel' ? 'xlsx' : 'txt';
-    a.download = `${report.name.replace(/\s+/g, '_')}.${ext}`;
-    a.click();
-    URL.revokeObjectURL(url);
-    showToast(`📥 Downloaded: ${report.name}`);
+      const storeState = useDataStore.getState();
+
+      if (report.type === 'forecast') {
+        rawData = storeState.demandTrend;
+        columns = ['Month', 'Actual Demand', 'Predicted Demand'];
+        rawData = rawData.map((d: any) => [d.label, d.actual, d.predicted]);
+      } else if (report.type === 'inventory') {
+        rawData = storeState.inventoryItems;
+        columns = ['SKU', 'Name', 'Category', 'Current Stock', 'Safety Stock', 'Reorder Point', 'Status'];
+        rawData = rawData.map((d: any) => [d.sku, d.name, d.category, d.current_stock, d.safety_stock, d.reorder_point, d.status]);
+      } else if (report.type === 'sales') {
+        rawData = storeState.revenueTrend;
+        columns = ['Month', 'Revenue'];
+        rawData = rawData.map((d: any) => [d.label, d.value]);
+      } else if (report.type === 'category') {
+        rawData = storeState.categoryForecasts;
+        columns = ['Category', 'Current Demand', 'Predicted Demand', 'Growth %'];
+        rawData = rawData.map((d: any) => [d.category, d.current, d.predicted, d.change]);
+      }
+
+      if (report.format === 'PDF') {
+        const doc = new jsPDF();
+        doc.setFontSize(22);
+        doc.text('Project Titan Analytics', 14, 20);
+        
+        doc.setFontSize(16);
+        doc.text(report.name, 14, 30);
+        
+        doc.setFontSize(10);
+        doc.text(`Generated Date: ${new Date().toLocaleString()}`, 14, 38);
+        
+        autoTable(doc, {
+          startY: 45,
+          head: [columns],
+          body: rawData,
+          theme: 'striped',
+          headStyles: { fillColor: [79, 70, 229] }
+        });
+        
+        doc.save(`${report.name.replace(/\s+/g, '_')}.pdf`);
+        showToast(`✅ Downloaded: ${report.name}`);
+        return;
+      }
+
+      const wsData = [columns, ...rawData];
+      const ws = XLSX.utils.aoa_to_sheet(wsData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Report Data');
+      
+      if (report.format === 'Excel') {
+        XLSX.writeFile(wb, `${report.name.replace(/\s+/g, '_')}.xlsx`);
+      } else {
+        XLSX.writeFile(wb, `${report.name.replace(/\s+/g, '_')}.csv`);
+      }
+      showToast(`✅ Downloaded: ${report.name}`);
+    } catch (error: any) {
+      console.error('Download error:', error);
+      let errMsg = error?.message || 'Unknown error';
+      if (error?.response?.data?.detail) {
+        errMsg = typeof error.response.data.detail === 'string' 
+          ? error.response.data.detail 
+          : JSON.stringify(error.response.data.detail);
+      }
+      showToast(`❌ Error: ${errMsg}`);
+    }
   };
 
   return (
@@ -102,7 +158,7 @@ export default function ReportsPage() {
       </AnimatePresence>
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Reports & Exports</h1>
+        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Reports & Exports</h1>
         <p className="text-sm text-surface-500 mt-1">Generate and download analytics reports in CSV, Excel, or PDF</p>
       </motion.div>
 

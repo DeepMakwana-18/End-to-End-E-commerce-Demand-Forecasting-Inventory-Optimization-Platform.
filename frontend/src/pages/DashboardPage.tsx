@@ -66,7 +66,7 @@ export default function DashboardPage() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Executive Dashboard</h1>
+          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Executive Dashboard</h1>
           <p className="text-sm text-surface-500 mt-1">
             AI-powered demand forecasting & inventory intelligence
           </p>

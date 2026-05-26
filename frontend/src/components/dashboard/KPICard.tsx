@@ -50,7 +50,7 @@ export function KPICard({
           <p className="text-xs font-medium text-surface-500 uppercase tracking-wider mb-2">
             {title}
           </p>
-          <p className="text-2xl font-bold text-white tracking-tight">
+          <p className="text-2xl font-bold text-surface-50 tracking-tight">
             {value}
           </p>
 

@@ -161,7 +161,7 @@ export default function UploadPage() {
   return (
     <div className="space-y-6 max-w-5xl">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Upload Sales Data</h1>
+        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Upload Sales Data</h1>
         <p className="text-sm text-surface-500 mt-1">Upload CSV files to feed the demand forecasting pipeline</p>
       </motion.div>
 

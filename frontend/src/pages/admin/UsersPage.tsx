@@ -116,7 +116,7 @@ export default function AdminUsersPage() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="glass-card p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-semibold text-white">Add New User</h3>
+                <h3 className="text-lg font-semibold text-surface-50">Add New User</h3>
                 <button onClick={() => setShowAddModal(false)} className="text-surface-500 hover:text-surface-300"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
@@ -152,7 +152,7 @@ export default function AdminUsersPage() {
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">User Management</h1>
+          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">User Management</h1>
           <p className="text-sm text-surface-500 mt-1">Manage users, roles, and permissions</p>
         </div>
         <button onClick={() => setShowAddModal(true)}

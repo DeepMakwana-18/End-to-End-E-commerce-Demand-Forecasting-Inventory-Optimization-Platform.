@@ -58,7 +58,7 @@ export function Sidebar() {
                 transition={{ duration: 0.2 }}
                 className="whitespace-nowrap"
               >
-                <h1 className="text-sm font-bold text-white tracking-tight">DemandForecaster</h1>
+                <h1 className="text-sm font-bold text-surface-50 tracking-tight">DemandForecaster</h1>
                 <p className="text-[10px] text-surface-500 font-medium">AI-Powered Platform</p>
               </motion.div>
             )}

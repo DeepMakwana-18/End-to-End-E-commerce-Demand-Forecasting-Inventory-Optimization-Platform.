@@ -10,17 +10,30 @@ import type { ThemeMode } from '@/types';
 export default function SettingsPage() {
   const { theme, setTheme } = useAppStore();
   const [toast, setToast] = useState<string | null>(null);
-  const [toggles, setToggles] = useState<Record<string, boolean>>({
-    sidebarCollapsed: false,
-    emailAlerts: true,
-    lowStockAlerts: true,
-    forecastAlerts: false,
-    autoBackup: true,
-    autoRetrain: false,
+  const [toggles, setToggles] = useState<Record<string, boolean>>(() => {
+    try {
+      const saved = localStorage.getItem('titan_settings_toggles');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      sidebarCollapsed: false,
+      emailAlerts: true,
+      lowStockAlerts: true,
+      forecastAlerts: false,
+      autoBackup: true,
+      autoRetrain: false,
+    };
   });
-  const [selects, setSelects] = useState<Record<string, string>>({
-    dataRetention: '1 year',
-    confidenceLevel: '95%',
+  
+  const [selects, setSelects] = useState<Record<string, string>>(() => {
+    try {
+      const saved = localStorage.getItem('titan_settings_selects');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return {
+      dataRetention: '1 year',
+      confidenceLevel: '95%',
+    };
   });
 
   const showToast = (msg: string) => {
@@ -33,6 +46,13 @@ export default function SettingsPage() {
   };
 
   const handleSave = () => {
+    localStorage.setItem('titan_settings_toggles', JSON.stringify(toggles));
+    localStorage.setItem('titan_settings_selects', JSON.stringify(selects));
+    
+    if (toggles.sidebarCollapsed !== undefined) {
+      useAppStore.getState().setSidebarCollapsed(toggles.sidebarCollapsed);
+    }
+    
     showToast('✅ Settings saved successfully');
   };
 
@@ -77,7 +97,7 @@ export default function SettingsPage() {
       </AnimatePresence>
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Settings</h1>
+        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Settings</h1>
         <p className="text-sm text-surface-500 mt-1">Platform configuration and preferences</p>
       </motion.div>
 

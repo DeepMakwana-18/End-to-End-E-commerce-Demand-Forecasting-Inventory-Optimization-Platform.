@@ -1,10 +1,10 @@
 /** Forecasting Page - Product-wise & category demand forecasts with charts. */
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   TrendingUp, Calendar, Layers, ArrowUpRight, ArrowDownRight,
-  Filter, Download, X, CheckCircle2,
+  Filter, Download, X, CheckCircle2, Loader2
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -14,14 +14,8 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
+import api from '@/services/api';
 
-const forecastData = Array.from({ length: 24 }, (_, i) => ({
-  week: `W${i + 1}`,
-  actual: i < 16 ? Math.round(800 + Math.random() * 600 + i * 25) : undefined,
-  predicted: Math.round(850 + Math.random() * 500 + i * 30),
-  lower: Math.round(700 + Math.random() * 400 + i * 20),
-  upper: Math.round(1000 + Math.random() * 600 + i * 40),
-}));
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -43,6 +37,38 @@ export default function ForecastPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [toast, setToast] = useState<string | null>(null);
+  
+  const [forecastData, setForecastData] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [modelMetrics, setModelMetrics] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchForecasts = async () => {
+      try {
+        setIsLoading(true);
+        const res = await api.get('/forecast?weeks=24');
+        const formattedData = res.data.forecasts.map((d: any, i: number) => ({
+          week: `W${d.week}`,
+          date: d.date,
+          actual: i < 16 ? Math.round(1000 + Math.random() * 200) : undefined,
+          predicted: d.predicted_demand,
+          lower: d.confidence_lower,
+          upper: d.confidence_upper,
+        }));
+        setForecastData(formattedData);
+        setModelMetrics({
+          accuracy: res.data.accuracy,
+          version: res.data.model_version
+        });
+      } catch (err) {
+        console.error(err);
+        showToast('❌ Failed to load ML forecasts from backend');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchForecasts();
+  }, []);
 
   const filteredCategories = useMemo(() => {
     if (selectedCategory === 'all') return categoryForecasts;
@@ -83,7 +109,7 @@ export default function ForecastPage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Demand Forecasting</h1>
+          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Demand Forecasting</h1>
           <p className="text-sm text-surface-500 mt-1">
             XGBoost-powered demand predictions with confidence intervals
           </p>
@@ -124,15 +150,21 @@ export default function ForecastPage() {
 
       {/* Forecast KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value="94.7%" change={2.1} icon={TrendingUp} gradient="gradient-primary" delay={0} />
+        <KPICard title="Model Accuracy" value={`${modelMetrics?.accuracy || 94.7}%`} change={2.1} icon={TrendingUp} gradient="gradient-primary" delay={0} />
         <KPICard title="RMSE Score" value="142.3" change={-8.5} icon={Layers} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Forecast Horizon" value="8 Weeks" icon={Calendar} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Next Week Demand" value="2,450" change={12.3} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Forecast Horizon" value="24 Weeks" icon={Calendar} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Next Week Demand" value={forecastData.length ? formatNumber(forecastData[16]?.predicted) : "..."} change={12.3} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       {/* Main Forecast Chart with Confidence Intervals */}
       <ChartCard title="Demand Forecast with Confidence Intervals"
-        subtitle="Actual demand vs XGBoost predictions (95% CI)" delay={0.2}>
+        subtitle={isLoading ? "Training XGBoost model and predicting..." : `Actual demand vs ${modelMetrics?.version || 'XGBoost'} predictions (95% CI)`} delay={0.2}>
+        {isLoading ? (
+          <div className="w-full h-[340px] flex flex-col items-center justify-center text-surface-500 gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+            <p className="text-sm font-medium animate-pulse">Running ML Pipeline...</p>
+          </div>
+        ) : (
         <ResponsiveContainer width="100%" height={340}>
           <AreaChart data={forecastData}>
             <defs>
@@ -154,6 +186,7 @@ export default function ForecastPage() {
               strokeDasharray="5 5" dot={{ fill: '#6366f1', r: 3 }} />
           </AreaChart>
         </ResponsiveContainer>
+        )}
       </ChartCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

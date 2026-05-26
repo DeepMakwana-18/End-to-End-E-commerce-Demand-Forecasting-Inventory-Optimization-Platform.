@@ -53,7 +53,7 @@ export default function ProductsPage() {
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Product Analytics</h1>
+          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Product Analytics</h1>
           <p className="text-sm text-surface-500 mt-1">Product performance, trends & risk classification</p>
         </div>
         <div className="flex items-center gap-2">

@@ -83,16 +83,29 @@
   .light {
     color-scheme: light;
 
+    --color-surface-50: #09090b;
+    --color-surface-100: #18181b;
+    --color-surface-200: #27272a;
+    --color-surface-300: #3f3f46;
+    --color-surface-400: #52525b;
+    --color-surface-500: #71717a;
+    --color-surface-600: #a1a1aa;
+    --color-surface-700: #d4d4d8;
+    --color-surface-800: #e4e4e7;
+    --color-surface-850: #f4f4f5;
+    --color-surface-900: #fafafa;
+    --color-surface-950: #ffffff;
+
     & body, & {
-      @apply bg-surface-50 text-surface-900;
+      @apply bg-surface-950 text-surface-100;
     }
 
     & * {
-      @apply border-surface-200;
+      @apply border-surface-800;
     }
 
     & ::-webkit-scrollbar-thumb {
-      @apply bg-surface-300;
+      @apply bg-surface-700;
     }
   }
 }

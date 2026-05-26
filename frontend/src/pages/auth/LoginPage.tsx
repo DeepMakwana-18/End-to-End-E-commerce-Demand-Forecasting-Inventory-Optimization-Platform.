@@ -83,7 +83,7 @@ export default function LoginPage() {
 
         {/* Login card */}
         <div className="glass-card p-8">
-          <h2 className="text-lg font-semibold text-white mb-1">Welcome back</h2>
+          <h2 className="text-lg font-semibold text-surface-50 mb-1">Welcome back</h2>
           <p className="text-sm text-surface-500 mb-6">Sign in to your account to continue</p>
 
           {error && (

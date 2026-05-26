@@ -81,7 +81,7 @@ export default function AlertsPage() {
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Alert Center</h1>
+          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Alert Center</h1>
           <p className="text-sm text-surface-500 mt-1">Real-time inventory alerts & notification management</p>
         </div>
         <div className="relative">

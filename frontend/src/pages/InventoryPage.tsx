@@ -105,7 +105,7 @@ export default function InventoryPage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Inventory Optimization</h1>
+          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Inventory Optimization</h1>
           <p className="text-sm text-surface-500 mt-1">Safety stock, reorder points & inventory health monitoring</p>
         </div>
         <div className="flex items-center gap-2">
