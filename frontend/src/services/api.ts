@@ -8,7 +8,9 @@ const API_BASE = '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,
-  headers: { 'Content-Type': 'application/json' },
+  // Do NOT set a default Content-Type here.
+  // JSON requests will work fine without it (axios auto-sets it).
+  // FormData uploads NEED axios to auto-generate the multipart boundary.
 });
 
 // Request interceptor to add auth token

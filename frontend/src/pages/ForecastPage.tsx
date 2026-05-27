@@ -33,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function ForecastPage() {
-  const { categoryForecasts, demandTrend } = useDataStore();
+  const { categoryForecasts, demandTrend, rawCsvText, isCustomDataset, datasetName } = useDataStore();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [toast, setToast] = useState<string | null>(null);
@@ -42,24 +42,68 @@ export default function ForecastPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [modelMetrics, setModelMetrics] = useState<any>(null);
 
+  // Helper to format the API response into chart data
+  const formatResponse = (data: any) => {
+    const historical = (data.historical || []).map((h: any, i: number) => ({
+      week: `H${i + 1}`,
+      date: h.date,
+      actual: h.demand,
+      predicted: undefined as number | undefined,
+      lower: undefined as number | undefined,
+      upper: undefined as number | undefined,
+    }));
+    
+    const forecasts = (data.forecasts || []).map((d: any) => ({
+      week: `F${d.week}`,
+      date: d.date,
+      actual: undefined as number | undefined,
+      predicted: d.predicted_demand,
+      lower: d.confidence_lower,
+      upper: d.confidence_upper,
+    }));
+    
+    // Connect the two lines at the junction point
+    if (historical.length > 0 && forecasts.length > 0) {
+      historical[historical.length - 1].predicted = historical[historical.length - 1].actual;
+    }
+    
+    setForecastData([...historical, ...forecasts]);
+    setModelMetrics({
+      accuracy: data.accuracy,
+      rmse: data.rmse,
+      version: data.model_version,
+      dataSource: data.data_source,
+      trainingId: data.training_id,
+      trainingSamples: data.training_samples,
+    });
+  };
+
   useEffect(() => {
-    const fetchForecasts = async () => {
+    const loadForecasts = async () => {
       try {
         setIsLoading(true);
-        const res = await api.get('/forecast?weeks=24');
-        const formattedData = res.data.forecasts.map((d: any, i: number) => ({
-          week: `W${d.week}`,
-          date: d.date,
-          actual: i < 16 ? Math.round(1000 + Math.random() * 200) : undefined,
-          predicted: d.predicted_demand,
-          lower: d.confidence_lower,
-          upper: d.confidence_upper,
-        }));
-        setForecastData(formattedData);
-        setModelMetrics({
-          accuracy: res.data.accuracy,
-          version: res.data.model_version
-        });
+        
+        if (isCustomDataset && rawCsvText) {
+          // User uploaded a CSV — send it as JSON to retrain the model
+          console.log(`📊 Retraining model on uploaded data: ${datasetName}`);
+          const res = await api.post('/forecast/retrain', {
+            csv_text: rawCsvText,
+            filename: datasetName || 'uploaded.csv',
+          });
+          if (res.data.error) {
+            showToast(`❌ ML Error: ${res.data.error}`);
+            // Fall back to default
+            const fallback = await api.get(`/forecast?weeks=12&_t=${Date.now()}`);
+            formatResponse(fallback.data);
+          } else {
+            formatResponse(res.data);
+          }
+        } else {
+          // Default dataset — reset model to synthetic and get predictions
+          console.log('📊 Loading default (synthetic) forecasts');
+          const res = await api.post('/forecast/reset');
+          formatResponse(res.data);
+        }
       } catch (err) {
         console.error(err);
         showToast('❌ Failed to load ML forecasts from backend');
@@ -67,8 +111,8 @@ export default function ForecastPage() {
         setIsLoading(false);
       }
     };
-    fetchForecasts();
-  }, []);
+    loadForecasts();
+  }, [isCustomDataset, rawCsvText]);
 
   const filteredCategories = useMemo(() => {
     if (selectedCategory === 'all') return categoryForecasts;
@@ -150,15 +194,15 @@ export default function ForecastPage() {
 
       {/* Forecast KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={`${modelMetrics?.accuracy || 94.7}%`} change={2.1} icon={TrendingUp} gradient="gradient-primary" delay={0} />
-        <KPICard title="RMSE Score" value="142.3" change={-8.5} icon={Layers} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Forecast Horizon" value="24 Weeks" icon={Calendar} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Next Week Demand" value={forecastData.length ? formatNumber(forecastData[16]?.predicted) : "..."} change={12.3} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Model Accuracy" value={`${modelMetrics?.accuracy || 0}%`} change={2.1} icon={TrendingUp} gradient="gradient-primary" delay={0} />
+        <KPICard title="RMSE Score" value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "..."} change={-8.5} icon={Layers} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Forecast Horizon" value="12 Weeks" icon={Calendar} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Next Week Demand" value={(() => { const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null); return f ? formatNumber(f.predicted) : "..."; })()} change={12.3} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       {/* Main Forecast Chart with Confidence Intervals */}
       <ChartCard title="Demand Forecast with Confidence Intervals"
-        subtitle={isLoading ? "Training XGBoost model and predicting..." : `Actual demand vs ${modelMetrics?.version || 'XGBoost'} predictions (95% CI)`} delay={0.2}>
+        subtitle={isLoading ? "Training XGBoost model and predicting..." : `Trained on: ${modelMetrics?.dataSource || 'synthetic'} (${modelMetrics?.trainingSamples || '?'} samples) | ${modelMetrics?.version || 'XGBoost'} predictions (95% CI)`} delay={0.2}>
         {isLoading ? (
           <div className="w-full h-[340px] flex flex-col items-center justify-center text-surface-500 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />

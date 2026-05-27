@@ -148,6 +148,8 @@ interface DatasetState {
   seasonalByCategory: SeasonalCategory[];
   radarData: RadarMetric[];
 
+  rawCsvText: string | null;
+  setRawCsvText: (text: string | null) => void;
   loadCsvData: (fileName: string, rows: Record<string, string>[], columnMap: Record<string, string>) => void;
   resetToDefault: () => void;
 }
@@ -413,6 +415,8 @@ export const useDataStore = create<DatasetState>()((set) => ({
   seasonalByCategory: defaultSeasonalByCategory,
   radarData: defaultRadarData,
 
+  rawCsvText: null,
+  setRawCsvText: (text) => set({ rawCsvText: text }),
   loadCsvData: (fileName, rows, columnMap) => {
     const derived = deriveFromCsv(rows, columnMap);
     set({
@@ -425,6 +429,7 @@ export const useDataStore = create<DatasetState>()((set) => ({
   resetToDefault: () => set({
     isCustomDataset: false,
     datasetName: null,
+    rawCsvText: null,
     kpis: defaultKPIs,
     demandTrend: defaultDemandTrend,
     revenueTrend: defaultRevenueTrend,

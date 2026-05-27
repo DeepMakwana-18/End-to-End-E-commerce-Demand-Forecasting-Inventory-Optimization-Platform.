@@ -1,6 +1,7 @@
 /** Admin - ML Pipeline Page. */
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '@/services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Activity, Brain, Cpu, Clock, CheckCircle2, Loader2, Play, RefreshCw, Zap } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -8,7 +9,7 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn } from '@/lib/utils';
 
-const modelMetrics = [
+const defaultModelMetrics = [
   { epoch: '1', mae: 245, rmse: 312 }, { epoch: '2', mae: 198, rmse: 267 }, { epoch: '3', mae: 176, rmse: 234 },
   { epoch: '4', mae: 165, rmse: 218 }, { epoch: '5', mae: 158, rmse: 205 }, { epoch: '6', mae: 150, rmse: 198 },
   { epoch: '7', mae: 148, rmse: 192 }, { epoch: '8', mae: 145, rmse: 188 }, { epoch: '9', mae: 143, rmse: 185 },
@@ -22,7 +23,7 @@ const initialTrainingHistory = [
   { id: 4, version: 'v1.3.9', accuracy: 91.5, mae: 162.4, rmse: 210.8, duration: '4m 58s', date: '2026-04-21', status: 'archived' },
 ];
 
-const featureImportance = [
+const defaultFeatureImportance = [
   { name: 'price', importance: 0.24 }, { name: 'month', importance: 0.18 }, { name: 'day_of_week', importance: 0.15 },
   { name: 'category_encoded', importance: 0.12 }, { name: 'review_score', importance: 0.10 }, { name: 'freight_value', importance: 0.08 },
   { name: 'payment_installments', importance: 0.07 }, { name: 'product_weight', importance: 0.06 },
@@ -30,9 +31,49 @@ const featureImportance = [
 
 export default function PipelinePage() {
   const [trainingHistory, setTrainingHistory] = useState(initialTrainingHistory);
+  const [featureImportance, setFeatureImportance] = useState(defaultFeatureImportance);
+  const [modelMetrics, setModelMetrics] = useState(defaultModelMetrics);
   const [isTraining, setIsTraining] = useState(false);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchModelInfo = async () => {
+      try {
+        const res = await api.get('/forecast/model-info');
+        const data = res.data;
+        
+        // Map backend features to UI format
+        const features = Object.entries(data.feature_importance || {}).map(([name, importance]) => ({
+          name,
+          importance: importance as number
+        })).sort((a, b) => b.importance - a.importance);
+        
+        setFeatureImportance(features.length > 0 ? features : defaultFeatureImportance);
+        
+        if (data.convergence && data.convergence.length > 0) {
+          setModelMetrics(data.convergence);
+        }
+        
+        // Update the active training history entry with real metrics
+        setTrainingHistory(prev => {
+          const newHistory = [...prev];
+          newHistory[0] = {
+            ...newHistory[0],
+            accuracy: data.accuracy,
+            mae: data.mae,
+            rmse: data.rmse,
+            version: data.version,
+            date: data.last_trained ? data.last_trained.split('T')[0] : newHistory[0].date,
+          };
+          return newHistory;
+        });
+      } catch (err) {
+        console.error("Failed to load ML model info", err);
+      }
+    };
+    fetchModelInfo();
+  }, []);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -129,7 +170,7 @@ export default function PipelinePage() {
                 className="flex items-center gap-3">
                 <span className="w-40 text-xs font-medium text-surface-300 font-mono truncate">{f.name}</span>
                 <div className="flex-1 h-2 bg-surface-800/50 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${f.importance * 100 / 0.24 * 100 / 100}%` }}
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${(f.importance / (featureImportance[0]?.importance || 1)) * 100}%` }}
                     transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
                     className="h-full rounded-full gradient-primary" />
                 </div>

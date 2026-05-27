@@ -50,21 +50,26 @@ export default function UploadPage() {
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const loadCsvData = useDataStore(s => s.loadCsvData);
 
+  const setRawCsvText = useDataStore(s => s.setRawCsvText);
+
+  const [mlStatus, setMlStatus] = useState<string>('');
+
   const processFileAndStart = (file: File) => {
-    // Read the FULL file to extract headers and store content for later parsing
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
       if (text) {
         setFullCsvText(text);
-        // Get first line, split by comma, and clean up headers
+        // Store raw CSV in Zustand so ForecastPage can send it to backend
+        setRawCsvText(text);
         const firstLine = text.split('\n')[0];
         const headers = firstLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
         setDetectedColumns(headers.length > 0 ? headers : ['column_1', 'column_2', 'column_3']);
         startPipeline(file);
       }
     };
-    reader.readAsText(file); // Read full file
+    reader.readAsText(file);
+    setMlStatus('📦 CSV stored — ML model will retrain when you visit Forecasting page');
   };
 
   const startPipeline = (file: File) => {
@@ -219,6 +224,11 @@ export default function UploadPage() {
                 <CheckCircle2 className="w-12 h-12 text-accent-400 mx-auto mb-3" />
                 <p className="text-sm font-semibold text-accent-400">Pipeline Complete!</p>
                 <p className="text-xs text-surface-400 mt-1">{state.rowsProcessed.toLocaleString()} rows processed, models retrained.</p>
+                {mlStatus && (
+                  <p className={`text-xs mt-2 font-medium ${mlStatus.includes('✅') ? 'text-accent-400' : mlStatus.includes('❌') ? 'text-danger-400' : 'text-warning-400'}`}>
+                    {mlStatus}
+                  </p>
+                )}
                 <button onClick={() => setState({ file: null, status: 'idle', progress: 0, rowsProcessed: 0, totalRows: 0 })}
                   className="mt-6 px-4 py-2 rounded-lg text-xs font-medium border border-surface-700 text-surface-300 hover:bg-surface-800">
                   Upload Another File
