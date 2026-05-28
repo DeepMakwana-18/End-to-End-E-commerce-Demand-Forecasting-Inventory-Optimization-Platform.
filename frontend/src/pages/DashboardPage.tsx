@@ -1,5 +1,6 @@
 /** Executive Dashboard Page - Premium enterprise analytics overview. */
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   DollarSign, ShoppingCart, Target, HeartPulse,
@@ -14,6 +15,7 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { formatCurrency, formatNumber, formatPercent, getSeverityBg } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
+import api from '@/services/api';
 
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
@@ -34,6 +36,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 
 export default function DashboardPage() {
   const { kpis, demandTrend, revenueTrend, inventoryHealth, topProducts, recentAlerts, isCustomDataset, datasetName, resetToDefault } = useDataStore();
+  const [realAccuracy, setRealAccuracy] = useState(kpis.forecast_accuracy);
+
+  useEffect(() => {
+    // Fetch real model accuracy from the backend
+    api.get('/forecast/model-info')
+      .then(res => {
+        if (res.data && res.data.accuracy) {
+          setRealAccuracy(res.data.accuracy);
+        }
+      })
+      .catch(err => console.error("Failed to fetch model accuracy for dashboard", err));
+  }, [kpis]); // re-fetch if dataset changes
 
   return (
     <div className="space-y-6">
@@ -100,7 +114,7 @@ export default function DashboardPage() {
         />
         <KPICard
           title="Forecast Accuracy"
-          value={formatPercent(kpis.forecast_accuracy)}
+          value={formatPercent(realAccuracy)}
           change={2.1}
           icon={Target}
           gradient="gradient-warning"

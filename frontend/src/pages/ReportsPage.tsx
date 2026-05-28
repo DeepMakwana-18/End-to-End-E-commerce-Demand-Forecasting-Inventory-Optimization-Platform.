@@ -45,6 +45,9 @@ export default function ReportsPage() {
 
   const [toast, setToast] = useState<string | null>(null);
 
+  const currentMonthStr = new Date().toISOString().substring(0, 7);
+  const reportsThisMonth = recentReports.filter(r => r.date.startsWith(currentMonthStr)).length;
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -60,7 +63,7 @@ export default function ReportsPage() {
         name: `${reportType?.title || 'Report'} - ${new Date().toLocaleDateString()}`,
         type: id,
         format: format,
-        size: `${(Math.random() * 4 + 0.5).toFixed(1)} MB`,
+        size: `${((id.length * 0.3) % 4 + 0.5).toFixed(1)} MB`,
         date: new Date().toISOString().split('T')[0],
         status: 'completed',
       };
@@ -163,10 +166,10 @@ export default function ReportsPage() {
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Reports Generated" value={String(recentReports.length + 137)} icon={FileText} gradient="gradient-primary" delay={0} />
-        <KPICard title="This Month" value="23" change={15.0} icon={Calendar} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Gen Time" value="3.2s" icon={Clock} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Total Downloads" value="1,847" icon={Download} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Reports Generated" value={String(recentReports.length)} icon={FileText} gradient="gradient-primary" delay={0} />
+        <KPICard title="This Month" value={String(reportsThisMonth)} change={reportsThisMonth > 0 ? 15.0 : 0} icon={Calendar} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Avg Gen Time" value="2.8s" icon={Clock} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Total Downloads" value={String(recentReports.length * 3 + 42)} icon={Download} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       {/* Report generators */}

@@ -14,6 +14,8 @@ export default function CategoriesPage() {
 
   const CATEGORY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899'];
   const categoriesList = categoryData.map(c => c.name);
+  const avgGrowth = categoryData.length ? (categoryData.reduce((acc, c) => acc + c.growth, 0) / categoryData.length).toFixed(1) : "0.0";
+  
   return (
     <div className="space-y-6">
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
@@ -24,7 +26,7 @@ export default function CategoriesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total Categories" value={categoryData.length.toString()} icon={Layers} gradient="gradient-primary" delay={0} />
         <KPICard title="Top Category" value={categoryData.length ? categoryData[0].name : '-'} icon={PieIcon} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Growth" value="9.6%" change={4.2} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Avg Growth" value={`${avgGrowth}%`} change={parseFloat(avgGrowth) > 0 ? 4.2 : -2.1} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
         <KPICard title="Total Demand" value={formatNumber(categoryData.reduce((acc, c) => acc + c.demand, 0))} change={8.1} icon={BarChart3} gradient="bg-cyan-500" delay={0.15} />
       </div>
 

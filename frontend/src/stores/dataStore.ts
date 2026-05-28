@@ -14,6 +14,7 @@ export interface DatasetKPIs {
   products_at_risk: number;
   reorder_needed: number;
   avg_demand: number;
+  total_products: number;
 }
 
 export interface TrendPoint { label: string; actual: number; predicted: number }
@@ -43,8 +44,8 @@ export interface Alert {
 // ─── Default baseline data ────────────────────────────────────────
 const defaultKPIs: DatasetKPIs = {
   total_revenue: 2847563, total_orders: 18432, forecast_accuracy: 94.7,
-  inventory_health: 87.3, active_alerts: 12, products_at_risk: 5,
-  reorder_needed: 8, avg_demand: 1243.5,
+  inventory_health: 87.3, active_alerts: 5, products_at_risk: 5,
+  reorder_needed: 5, avg_demand: 1243.5, total_products: 8,
 };
 
 const defaultDemandTrend: TrendPoint[] = [
@@ -74,6 +75,9 @@ const defaultTopProducts: ProductSales[] = [
   { name: 'USB-C Hub', sales: 3245, revenue: 129800, growth: 22.1, rating: 4.5, category: 'Electronics' },
   { name: 'Laptop Stand', sales: 2876, revenue: 172560, growth: 8.7, rating: 4.7, category: 'Accessories' },
   { name: 'Bluetooth Speaker', sales: 2543, revenue: 203440, growth: -3.2, rating: 4.3, category: 'Electronics' },
+  { name: 'Mechanical Keyboard', sales: 1890, revenue: 283500, growth: 15.4, rating: 4.9, category: 'Peripherals' },
+  { name: 'Webcam HD', sales: 1432, revenue: 114560, growth: 5.2, rating: 4.2, category: 'Peripherals' },
+  { name: 'Monitor Arm', sales: 980, revenue: 78400, growth: 10.1, rating: 4.6, category: 'Accessories' },
 ];
 
 const defaultInventoryItems: InventoryItem[] = [
@@ -90,7 +94,7 @@ const defaultInventoryItems: InventoryItem[] = [
 const defaultAlerts: Alert[] = [
   { id: 1, product: 'Bluetooth Speaker', type: 'stockout', severity: 'critical', message: 'Stockout imminent. Current stock: 3 units, Daily demand: 15 units. Estimated stockout in 0.2 days.', created: '1 hour ago', resolved: false },
   { id: 2, product: 'USB-C Hub', type: 'low_stock', severity: 'critical', message: 'Critical stock level. Current: 12 units, Safety Stock: 50 units. Stock is 76% below safety threshold.', created: '3 hours ago', resolved: false },
-  { id: 3, product: 'Wireless Headphones', type: 'reorder', severity: 'high', message: 'Below reorder point. Current: 45 units, Reorder Point: 120 units. Recommended order: 200 units.', created: '5 hours ago', resolved: false },
+  { id: 3, product: 'Wireless Headphones', type: 'reorder', severity: 'critical', message: 'Below reorder point. Current: 45 units, Reorder Point: 120 units. Recommended order: 200 units.', created: '5 hours ago', resolved: false },
   { id: 4, product: 'Laptop Stand', type: 'reorder', severity: 'medium', message: 'Approaching reorder point. Current: 89 units, Reorder Point: 95 units. Monitor closely.', created: '8 hours ago', resolved: false },
   { id: 5, product: 'Smart Watch Pro', type: 'overstock', severity: 'low', message: 'Overstock detected. Current: 580 units, Maximum capacity: 400 units. Consider running promotions.', created: '1 day ago', resolved: false },
   { id: 6, product: 'Monitor Arm', type: 'reorder', severity: 'medium', message: 'Stock level near reorder point. Current: 78, ROP: 70. Order placed for 50 units.', created: '2 days ago', resolved: true },
@@ -107,27 +111,28 @@ const defaultCategoryForecasts: CategoryForecast[] = [
 ];
 
 const defaultCategoryData: CategoryPie[] = [
-  { name: 'Electronics', value: 35, demand: 5230, growth: 15.7, color: '#6366f1' },
-  { name: 'Fashion', value: 25, demand: 3680, growth: 14.6, color: '#10b981' },
-  { name: 'Home & Garden', value: 18, demand: 1980, growth: -5.7, color: '#f59e0b' },
-  { name: 'Sports', value: 12, demand: 1820, growth: 16.7, color: '#06b6d4' },
-  { name: 'Books', value: 10, demand: 950, growth: 6.7, color: '#8b5cf6' },
+  { name: 'Electronics', value: 33, demand: 4520, growth: 15.7, color: '#6366f1' },
+  { name: 'Fashion', value: 24, demand: 3210, growth: 14.6, color: '#10b981' },
+  { name: 'Home & Garden', value: 16, demand: 2100, growth: -5.7, color: '#f59e0b' },
+  { name: 'Sports', value: 12, demand: 1560, growth: 16.7, color: '#06b6d4' },
+  { name: 'Toys', value: 9, demand: 1230, growth: 17.9, color: '#ec4899' },
+  { name: 'Books', value: 6, demand: 890, growth: 6.7, color: '#8b5cf6' },
 ];
 
 const defaultSeasonalByCategory: SeasonalCategory[] = [
-  { quarter: 'Q1', Electronics: 4200, Fashion: 3100, 'Home & Garden': 1800, Sports: 1200, Books: 800 },
-  { quarter: 'Q2', Electronics: 4800, Fashion: 3500, 'Home & Garden': 2200, Sports: 1600, Books: 750 },
-  { quarter: 'Q3', Electronics: 5100, Fashion: 2800, 'Home & Garden': 1900, Sports: 2100, Books: 900 },
-  { quarter: 'Q4', Electronics: 6500, Fashion: 4200, 'Home & Garden': 2500, Sports: 1500, Books: 1200 },
+  { quarter: 'Q1', Electronics: 4200, Fashion: 3100, 'Home & Garden': 1800, Sports: 1200, Toys: 900, Books: 800 },
+  { quarter: 'Q2', Electronics: 4800, Fashion: 3500, 'Home & Garden': 2200, Sports: 1600, Toys: 1100, Books: 750 },
+  { quarter: 'Q3', Electronics: 5100, Fashion: 2800, 'Home & Garden': 1900, Sports: 2100, Toys: 1200, Books: 900 },
+  { quarter: 'Q4', Electronics: 6500, Fashion: 4200, 'Home & Garden': 2500, Sports: 1500, Toys: 2100, Books: 1200 },
 ];
 
 const defaultRadarData: RadarMetric[] = [
-  { metric: 'Demand', Electronics: 95, Fashion: 78, Sports: 62 },
-  { metric: 'Growth', Electronics: 82, Fashion: 75, Sports: 88 },
-  { metric: 'Margin', Electronics: 70, Fashion: 85, Sports: 65 },
-  { metric: 'Velocity', Electronics: 88, Fashion: 72, Sports: 58 },
-  { metric: 'Forecast', Electronics: 92, Fashion: 80, Sports: 70 },
-  { metric: 'Health', Electronics: 78, Fashion: 82, Sports: 75 },
+  { metric: 'Demand', Electronics: 95, Fashion: 78, 'Home & Garden': 65, Sports: 62, Toys: 55, Books: 40 },
+  { metric: 'Growth', Electronics: 82, Fashion: 75, 'Home & Garden': 40, Sports: 88, Toys: 90, Books: 55 },
+  { metric: 'Margin', Electronics: 65, Fashion: 85, 'Home & Garden': 70, Sports: 55, Toys: 45, Books: 60 },
+  { metric: 'Velocity', Electronics: 90, Fashion: 72, 'Home & Garden': 50, Sports: 85, Toys: 80, Books: 45 },
+  { metric: 'Forecast', Electronics: 88, Fashion: 80, 'Home & Garden': 60, Sports: 75, Toys: 70, Books: 50 },
+  { metric: 'Health', Electronics: 75, Fashion: 82, 'Home & Garden': 78, Sports: 68, Toys: 65, Books: 70 },
 ];
 
 // ─── Store Interface ──────────────────────────────────────────────
@@ -152,6 +157,8 @@ interface DatasetState {
   setRawCsvText: (text: string | null) => void;
   loadCsvData: (fileName: string, rows: Record<string, string>[], columnMap: Record<string, string>) => void;
   resetToDefault: () => void;
+  resolveAlert: (id: number) => void;
+  dismissAlert: (id: number) => void;
 }
 
 // ─── Helpers: derive analytics from raw CSV rows ──────────────────
@@ -212,18 +219,9 @@ function deriveFromCsv(
   }
 
   // KPIs
+  // KPIs partial extraction
   const uniqueProducts = productMap.size;
   const avgDemand = totalOrders > 0 ? Math.round(totalRevenue / uniqueProducts) : 0;
-  const kpis: DatasetKPIs = {
-    total_revenue: Math.round(totalRevenue),
-    total_orders: totalOrders,
-    forecast_accuracy: +(92 + Math.random() * 6).toFixed(1),
-    inventory_health: +(75 + Math.random() * 20).toFixed(1),
-    active_alerts: Math.min(Math.floor(uniqueProducts * 0.15), 20),
-    products_at_risk: Math.min(Math.floor(uniqueProducts * 0.08), 10),
-    reorder_needed: Math.min(Math.floor(uniqueProducts * 0.12), 15),
-    avg_demand: avgDemand,
-  };
 
   // Revenue trend
   const revenueTrend: RevenuePoint[] = MONTHS.map(m => ({
@@ -391,6 +389,18 @@ function deriveFromCsv(
     return r;
   });
 
+  const kpis: DatasetKPIs = {
+    total_revenue: Math.round(totalRevenue),
+    total_orders: totalOrders,
+    forecast_accuracy: +(92 + Math.random() * 6).toFixed(1),
+    inventory_health: +(75 + Math.random() * 20).toFixed(1),
+    active_alerts: recentAlerts.filter(a => !a.resolved).length,
+    products_at_risk: inventoryItems.filter(i => i.status === 'critical' || i.status === 'low').length,
+    reorder_needed: inventoryItems.filter(i => i.recommended_qty > 0).length,
+    avg_demand: avgDemand,
+    total_products: uniqueProducts,
+  };
+
   return { 
     kpis, demandTrend, revenueTrend, inventoryHealth, topProducts, 
     inventoryItems, recentAlerts,
@@ -442,4 +452,24 @@ export const useDataStore = create<DatasetState>()((set) => ({
     seasonalByCategory: defaultSeasonalByCategory,
     radarData: defaultRadarData,
   }),
+
+  resolveAlert: (id: number) => {
+    set(state => {
+      const updatedAlerts = state.recentAlerts.map(a => a.id === id ? { ...a, resolved: true } : a);
+      return {
+        recentAlerts: updatedAlerts,
+        kpis: { ...state.kpis, active_alerts: updatedAlerts.filter(a => !a.resolved).length }
+      };
+    });
+  },
+
+  dismissAlert: (id: number) => {
+    set(state => {
+      const updatedAlerts = state.recentAlerts.filter(a => a.id !== id);
+      return {
+        recentAlerts: updatedAlerts,
+        kpis: { ...state.kpis, active_alerts: updatedAlerts.filter(a => !a.resolved).length }
+      };
+    });
+  }
 }));

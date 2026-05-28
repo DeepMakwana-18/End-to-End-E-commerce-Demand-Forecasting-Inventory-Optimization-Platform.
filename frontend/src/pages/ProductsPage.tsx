@@ -14,6 +14,7 @@ const CATEGORY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', 
 
 export default function ProductsPage() {
   const topProducts = useDataStore(s => s.topProducts);
+  const kpis = useDataStore(s => s.kpis);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
@@ -28,20 +29,26 @@ export default function ProductsPage() {
   }, [topProducts, searchTerm, selectedCategory]);
 
   const riskClassification = useMemo(() => {
+    const total = kpis.total_products;
+    const high = kpis.products_at_risk;
+    const med = Math.max(0, Math.floor(total * 0.15));
+    const low = Math.max(0, total - high - med);
     return [
-      { name: 'Low Risk', count: Math.round(topProducts.length * 0.7), color: '#10b981' },
-      { name: 'Medium Risk', count: Math.round(topProducts.length * 0.2), color: '#f59e0b' },
-      { name: 'High Risk', count: Math.max(1, Math.round(topProducts.length * 0.1)), color: '#ef4444' },
+      { name: 'Low Risk', count: low, color: '#10b981' },
+      { name: 'Medium Risk', count: med, color: '#f59e0b' },
+      { name: 'High Risk', count: high, color: '#ef4444' },
     ];
-  }, [topProducts]);
+  }, [kpis]);
 
   const trendData = useMemo(() => {
     const top3 = topProducts.slice(0, 3).map(p => p.name);
-    return ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map(month => {
+    return ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'].map((month, idx) => {
       const data: any = { month };
       top3.forEach(name => {
         const base = topProducts.find(p => p.name === name)!.sales / 6;
-        data[name] = Math.round(base * (0.8 + Math.random() * 0.4));
+        const hash = (name.length * 13 + idx * 7) % 10;
+        const multiplier = 0.8 + (hash / 10) * 0.4;
+        data[name] = Math.round(base * multiplier);
       });
       return data;
     });
@@ -96,10 +103,10 @@ export default function ProductsPage() {
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total Products" value="847" icon={Boxes} gradient="gradient-primary" delay={0} />
-        <KPICard title="Total Revenue" value={formatCurrency(2847563)} change={12.5} icon={DollarSign} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Total Products" value={formatNumber(kpis.total_products)} icon={Boxes} gradient="gradient-primary" delay={0} />
+        <KPICard title="Total Revenue" value={formatCurrency(kpis.total_revenue)} change={12.5} icon={DollarSign} gradient="gradient-accent" delay={0.05} />
         <KPICard title="Avg Growth Rate" value="11.2%" change={3.4} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="At Risk Products" value="5" change={-2} icon={TrendingDown} gradient="gradient-danger" delay={0.15} />
+        <KPICard title="At Risk Products" value={String(kpis.products_at_risk)} change={-2} icon={TrendingDown} gradient="gradient-danger" delay={0.15} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -155,7 +162,7 @@ export default function ProductsPage() {
                   <span className="text-sm font-bold" style={{ color: r.color }}>{r.count}</span>
                 </div>
                 <div className="h-2.5 bg-surface-800/50 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${(r.count / 65) * 100}%` }}
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${(r.count / Math.max(kpis.total_products, 1)) * 100}%` }}
                     transition={{ duration: 0.8, delay: 0.4 + i * 0.1, ease: 'easeOut' }}
                     className="h-full rounded-full" style={{ background: r.color }} />
                 </div>

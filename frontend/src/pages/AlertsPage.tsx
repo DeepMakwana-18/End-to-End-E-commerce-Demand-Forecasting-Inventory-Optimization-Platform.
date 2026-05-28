@@ -1,6 +1,6 @@
 /** Alert Center Page - Inventory alerts with real-time notifications. */
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bell, AlertTriangle, AlertOctagon, Info, CheckCircle2, Filter, XCircle, X } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
@@ -29,14 +29,10 @@ const getTypeLabel = (type: string) => {
 const severityLevels = ['all', 'critical', 'high', 'medium', 'low'] as const;
 
 export default function AlertsPage() {
-  const storeAlerts = useDataStore(s => s.recentAlerts);
-  const [alerts, setAlerts] = useState(storeAlerts);
+  const alerts = useDataStore(s => s.recentAlerts);
+  const resolveAlert = useDataStore(s => s.resolveAlert);
+  const dismissAlert = useDataStore(s => s.dismissAlert);
   
-  // Sync local alerts when global store changes (e.g. new CSV uploaded or reset)
-  useEffect(() => {
-    setAlerts(storeAlerts);
-  }, [storeAlerts]);
-
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
@@ -47,14 +43,14 @@ export default function AlertsPage() {
   };
 
   const handleResolve = (id: number) => {
-    setAlerts(alerts.map(a => a.id === id ? { ...a, resolved: true } : a));
     const alert = alerts.find(a => a.id === id);
+    resolveAlert(id);
     showToast(`✅ Action taken on alert: ${alert?.product}`);
   };
 
   const handleDismiss = (id: number) => {
     const alert = alerts.find(a => a.id === id);
-    setAlerts(alerts.filter(a => a.id !== id));
+    dismissAlert(id);
     showToast(`🗑️ Alert dismissed: ${alert?.product}`);
   };
 

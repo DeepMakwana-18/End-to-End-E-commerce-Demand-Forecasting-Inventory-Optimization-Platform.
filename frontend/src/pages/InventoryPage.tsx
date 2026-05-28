@@ -42,6 +42,12 @@ export default function InventoryPage() {
   const [sortAsc, setSortAsc] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
+  const totalSKUs = inventoryItems.length;
+  const healthyStockCount = inventoryItems.filter(i => i.status === 'healthy').length;
+  const healthyStockPercent = totalSKUs > 0 ? Math.round((healthyStockCount / totalSKUs) * 100) : 0;
+  const reorderNeededCount = inventoryItems.filter(i => i.recommended_qty > 0).length;
+  const criticalItemsCount = inventoryItems.filter(i => i.status === 'critical').length;
+
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
@@ -144,10 +150,10 @@ export default function InventoryPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total SKUs" value="847" icon={Package} gradient="gradient-primary" delay={0} />
-        <KPICard title="Healthy Stock" value="65%" change={3.2} icon={ShieldCheck} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Reorder Needed" value="8" icon={RotateCcw} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Critical Items" value="3" change={-2} icon={AlertTriangle} gradient="gradient-danger" delay={0.15} />
+        <KPICard title="Total SKUs" value={formatNumber(totalSKUs)} icon={Package} gradient="gradient-primary" delay={0} />
+        <KPICard title="Healthy Stock" value={`${healthyStockPercent}%`} change={healthyStockPercent >= 50 ? 3.2 : -1.5} icon={ShieldCheck} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Reorder Needed" value={String(reorderNeededCount)} icon={RotateCcw} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Critical Items" value={String(criticalItemsCount)} change={criticalItemsCount > 0 ? -2.0 : 0} icon={AlertTriangle} gradient="gradient-danger" delay={0.15} />
       </div>
 
       {/* Health Score Chart */}
