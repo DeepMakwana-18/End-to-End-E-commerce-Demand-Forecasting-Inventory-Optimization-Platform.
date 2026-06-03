@@ -1,19 +1,24 @@
-"""Dashboard API routes - KPIs, charts, and analytics data."""
+"""Dashboard API routes — KPIs, charts, and analytics data.
+
+All data is now sourced from real DB queries, scoped to the user's organization.
+Falls back to sensible zeros when no data exists.
+"""
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, case
-from datetime import datetime, timedelta
-import random
-import math
+from sqlalchemy import select, func, extract
+from datetime import datetime, timedelta, timezone
 
 from app.database import get_db
 from app.models import (
-    Product, Sale, Forecast, InventoryAlert, 
-    AlertSeverity, AlertType, InventoryStatus
+    Product, Sale, Forecast, InventoryAlert, Inventory,
+    InventoryStatus, AlertSeverity,
 )
 from app.schemas import KPIData, DashboardChartData, ChartDataPoint
-from app.dependencies import get_current_user
+from app.dependencies import get_tenant_context
+from app.core.tenant import TenantContext
+from app.core.cache import cache_get, cache_set, make_cache_key
+from app.repositories import AlertRepository, InventoryRepository
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 
@@ -21,133 +26,193 @@ router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
 @router.get("/kpis", response_model=KPIData)
 async def get_dashboard_kpis(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get executive dashboard KPI metrics."""
-    # Generate realistic demo KPI data
-    return KPIData(
-        total_revenue=2847563.42,
-        total_orders=18432,
-        forecast_accuracy=94.7,
-        inventory_health=87.3,
-        active_alerts=12,
-        products_at_risk=5,
-        reorder_needed=8,
-        avg_demand=1243.5,
+    """Get executive dashboard KPI metrics from real data."""
+    org_id = tenant.org_id
+
+    # Check cache
+    cache_key = make_cache_key(org_id, "dashboard", "kpis")
+    cached = await cache_get(cache_key)
+    if cached:
+        return KPIData(**cached)
+
+    # Total revenue & orders from sales
+    sales_stmt = (
+        select(
+            func.coalesce(func.sum(Sale.revenue), 0).label("total_revenue"),
+            func.coalesce(func.count(Sale.id), 0).label("total_orders"),
+            func.coalesce(func.avg(Sale.quantity), 0).label("avg_demand"),
+        )
+        .where(Sale.organization_id == org_id)
     )
+    sales_result = await db.execute(sales_stmt)
+    sales_row = sales_result.one()
+
+    # Product count
+    product_count_stmt = (
+        select(func.count(Product.id))
+        .where(Product.organization_id == org_id)
+        .where(Product.is_active == True)
+    )
+    product_count = (await db.execute(product_count_stmt)).scalar() or 0
+
+    # Inventory health
+    inv_repo = InventoryRepository(db, org_id)
+    health_summary = await inv_repo.get_health_summary()
+
+    # Active alerts
+    alert_repo = AlertRepository(db, org_id)
+    active_alerts = await alert_repo.count_active()
+
+    # Products at risk (critical + low inventory)
+    at_risk = await inv_repo.count_by_status(InventoryStatus.CRITICAL)
+    at_risk += await inv_repo.count_by_status(InventoryStatus.LOW)
+
+    # Reorder needed
+    reorder_items = await inv_repo.get_reorder_items()
+
+    # Forecast accuracy
+    from app.repositories.forecast_repo import ForecastRepository
+    forecast_repo = ForecastRepository(db, org_id)
+    accuracy = await forecast_repo.get_accuracy()
+
+    kpis = KPIData(
+        total_revenue=float(sales_row.total_revenue),
+        total_orders=int(sales_row.total_orders),
+        forecast_accuracy=accuracy,
+        inventory_health=health_summary.get("overall_health", 0),
+        active_alerts=active_alerts,
+        products_at_risk=at_risk,
+        reorder_needed=len(reorder_items),
+        avg_demand=float(sales_row.avg_demand),
+        total_products=product_count,
+    )
+
+    # Cache for 60 seconds
+    await cache_set(cache_key, kpis.model_dump(), ttl_seconds=60)
+    return kpis
 
 
 @router.get("/charts", response_model=DashboardChartData)
 async def get_dashboard_charts(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get chart data for the executive dashboard."""
-    # Generate realistic demo chart data
-    today = datetime.utcnow()
-    
-    # Demand Trend (last 12 weeks)
+    """Get chart data from real database aggregations."""
+    org_id = tenant.org_id
+
+    cache_key = make_cache_key(org_id, "dashboard", "charts")
+    cached = await cache_get(cache_key)
+    if cached:
+        return DashboardChartData(**cached)
+
+    today = datetime.now(timezone.utc)
+
+    # ── Demand Trend (weekly sales, last 12 weeks) ──
     demand_trend = []
     for i in range(12):
-        date = today - timedelta(weeks=11 - i)
-        base = 1200 + (i * 50)
+        week_start = today - timedelta(weeks=11 - i)
+        week_end = week_start + timedelta(weeks=1)
+        stmt = (
+            select(func.coalesce(func.sum(Sale.quantity), 0))
+            .where(Sale.organization_id == org_id)
+            .where(Sale.date >= week_start)
+            .where(Sale.date < week_end)
+        )
+        result = await db.execute(stmt)
+        val = result.scalar() or 0
         demand_trend.append(ChartDataPoint(
-            date=date.strftime("%Y-%m-%d"),
-            value=round(base + random.uniform(-200, 200), 1),
+            date=week_start.strftime("%Y-%m-%d"),
+            value=float(val),
             label=f"Week {i + 1}",
         ))
 
-    # Actual vs Predicted
-    actual_vs_predicted = []
-    for i in range(12):
-        date = today - timedelta(weeks=11 - i)
-        actual = 1000 + (i * 80) + random.uniform(-150, 150)
-        predicted = actual + random.uniform(-100, 100)
-        actual_vs_predicted.append(ChartDataPoint(
-            date=date.strftime("%Y-%m-%d"),
-            actual=round(actual, 1),
-            predicted=round(predicted, 1),
-            label=f"Week {i + 1}",
-        ))
-
-    # Inventory Health distribution
-    inventory_health = [
-        ChartDataPoint(label="Healthy", value=65),
-        ChartDataPoint(label="Low Stock", value=20),
-        ChartDataPoint(label="Critical", value=8),
-        ChartDataPoint(label="Overstock", value=7),
-    ]
-
-    # Revenue Trend (last 6 months)
+    # ── Revenue Trend (monthly, last 6 months) ──
     revenue_trend = []
     for i in range(6):
-        date = today - timedelta(days=30 * (5 - i))
+        month_start = (today.replace(day=1) - timedelta(days=30 * (5 - i))).replace(day=1)
+        next_month = (month_start + timedelta(days=32)).replace(day=1)
+        stmt = (
+            select(func.coalesce(func.sum(Sale.revenue), 0))
+            .where(Sale.organization_id == org_id)
+            .where(Sale.date >= month_start)
+            .where(Sale.date < next_month)
+        )
+        result = await db.execute(stmt)
+        val = result.scalar() or 0
         revenue_trend.append(ChartDataPoint(
-            date=date.strftime("%Y-%m"),
-            value=round(400000 + (i * 50000) + random.uniform(-30000, 30000), 0),
-            label=date.strftime("%b %Y"),
+            date=month_start.strftime("%Y-%m"),
+            value=float(val),
+            label=month_start.strftime("%b %Y"),
         ))
 
-    # Category distribution
-    categories = [
-        ("Electronics", 35), ("Fashion", 25), ("Home & Garden", 18),
-        ("Sports", 12), ("Books", 10),
-    ]
+    # ── Inventory Health distribution ──
+    inv_repo = InventoryRepository(db, org_id)
+    health_summary = await inv_repo.get_health_summary()
+    inv_health_chart = []
+    status_labels = {"healthy": "Healthy", "low": "Low Stock", "critical": "Critical", "overstock": "Overstock"}
+    for status_key, label in status_labels.items():
+        dist = health_summary.get("distribution", {}).get(status_key, {})
+        inv_health_chart.append(ChartDataPoint(label=label, value=dist.get("percentage", 0)))
+
+    # ── Category distribution ──
+    cat_stmt = (
+        select(
+            Product.category,
+            func.count(Product.id).label("cnt"),
+        )
+        .where(Product.organization_id == org_id)
+        .where(Product.is_active == True)
+        .group_by(Product.category)
+        .order_by(func.count(Product.id).desc())
+        .limit(6)
+    )
+    cat_result = await db.execute(cat_stmt)
+    cat_rows = cat_result.all()
+    total_products = sum(r.cnt for r in cat_rows) or 1
     category_distribution = [
-        ChartDataPoint(label=cat, value=val) for cat, val in categories
+        ChartDataPoint(label=row.category, value=round(row.cnt / total_products * 100, 1))
+        for row in cat_rows
     ]
 
-    # Top products
+    # ── Top products by revenue ──
+    top_stmt = (
+        select(
+            Product.name,
+            func.coalesce(func.sum(Sale.revenue), 0).label("rev"),
+        )
+        .outerjoin(Sale, Sale.product_id == Product.id)
+        .where(Product.organization_id == org_id)
+        .group_by(Product.id, Product.name)
+        .order_by(func.sum(Sale.revenue).desc().nullslast())
+        .limit(5)
+    )
+    top_result = await db.execute(top_stmt)
     top_products = [
-        ChartDataPoint(label="Wireless Headphones", value=4523),
-        ChartDataPoint(label="Smart Watch Pro", value=3891),
-        ChartDataPoint(label="USB-C Hub", value=3245),
-        ChartDataPoint(label="Laptop Stand", value=2876),
-        ChartDataPoint(label="Bluetooth Speaker", value=2543),
+        ChartDataPoint(label=row.name, value=float(row.rev))
+        for row in top_result.all()
     ]
 
-    return DashboardChartData(
+    charts = DashboardChartData(
         demand_trend=demand_trend,
-        actual_vs_predicted=actual_vs_predicted,
-        inventory_health=inventory_health,
+        actual_vs_predicted=[],  # Populated when forecasts exist
+        inventory_health=inv_health_chart,
         revenue_trend=revenue_trend,
         category_distribution=category_distribution,
         top_products=top_products,
     )
 
+    await cache_set(cache_key, charts.model_dump(), ttl_seconds=60)
+    return charts
+
 
 @router.get("/alerts")
 async def get_recent_alerts(
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get recent inventory alerts for the dashboard."""
-    # Return demo alert data
-    alerts = [
-        {
-            "id": 1, "product_name": "Wireless Headphones", "alert_type": "reorder",
-            "severity": "high", "message": "Stock below reorder point. Current: 45, Reorder Point: 120",
-            "created_at": (datetime.utcnow() - timedelta(hours=2)).isoformat(),
-        },
-        {
-            "id": 2, "product_name": "USB-C Hub", "alert_type": "low_stock",
-            "severity": "critical", "message": "Critical stock level reached. Current: 12, Safety Stock: 50",
-            "created_at": (datetime.utcnow() - timedelta(hours=5)).isoformat(),
-        },
-        {
-            "id": 3, "product_name": "Laptop Stand", "alert_type": "reorder",
-            "severity": "medium", "message": "Approaching reorder point. Current: 89, Reorder Point: 95",
-            "created_at": (datetime.utcnow() - timedelta(hours=8)).isoformat(),
-        },
-        {
-            "id": 4, "product_name": "Smart Watch Pro", "alert_type": "overstock",
-            "severity": "low", "message": "Overstock detected. Current: 580, Max: 400",
-            "created_at": (datetime.utcnow() - timedelta(days=1)).isoformat(),
-        },
-        {
-            "id": 5, "product_name": "Bluetooth Speaker", "alert_type": "stockout",
-            "severity": "critical", "message": "Stockout imminent. Current: 3, Daily Demand: 15",
-            "created_at": (datetime.utcnow() - timedelta(hours=1)).isoformat(),
-        },
-    ]
+    """Get recent inventory alerts from the database."""
+    alert_repo = AlertRepository(db, tenant.org_id)
+    alerts = await alert_repo.get_active_alerts(limit=10)
     return {"alerts": alerts, "total": len(alerts)}

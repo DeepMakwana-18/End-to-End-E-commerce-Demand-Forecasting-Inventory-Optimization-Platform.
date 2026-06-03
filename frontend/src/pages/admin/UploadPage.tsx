@@ -69,7 +69,7 @@ export default function UploadPage() {
       }
     };
     reader.readAsText(file);
-    setMlStatus('📦 CSV stored — ML model will retrain when you visit Forecasting page');
+    setMlStatus('📦 CSV stored — ML model is retraining in the background...');
   };
 
   const startPipeline = (file: File) => {
@@ -127,6 +127,19 @@ export default function UploadPage() {
                 rows.push(row);
               }
               loadCsvData(s.file.name, rows, mappings);
+              
+              // Trigger background ML retraining
+              import('@/services/api').then(({ default: api }) => {
+                api.post('/forecast/retrain', {
+                  csv_text: fullCsvText,
+                  filename: s.file!.name,
+                }).then(() => {
+                  setMlStatus('✅ ML model retrained and active');
+                }).catch(() => {
+                  setMlStatus('❌ ML model retraining failed');
+                });
+              });
+
             } catch (err) {
               console.error('CSV parsing error:', err);
             }

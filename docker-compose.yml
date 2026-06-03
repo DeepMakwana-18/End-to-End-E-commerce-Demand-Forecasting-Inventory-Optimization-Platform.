@@ -25,6 +25,8 @@ services:
   redis:
     image: redis:7-alpine
     container_name: df-redis
+    ports:
+      - "6379:6379"
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -44,6 +46,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       JWT_SECRET_KEY: production-secret-key-change-this
       CORS_ORIGINS: http://localhost:3000,http://localhost:5173,http://localhost
+      SENTRY_DSN: ""
+      LOG_JSON: "true"
+      LOG_LEVEL: INFO
     ports:
       - "8001:8000"
     depends_on:
@@ -53,6 +58,42 @@ services:
         condition: service_healthy
     volumes:
       - ./ml/models:/app/ml/models
+    networks:
+      - df-network
+
+  # ---- Celery Worker ----
+  celery_worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: df-celery-worker
+    command: celery -A app.celery_app worker --loglevel=info --concurrency=2
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/demandforecaster
+      REDIS_URL: redis://redis:6379/0
+      JWT_SECRET_KEY: production-secret-key-change-this
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./ml/models:/app/ml/models
+    networks:
+      - df-network
+
+  # ---- Celery Beat (Scheduler) ----
+  celery_beat:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: df-celery-beat
+    command: celery -A app.celery_app beat --loglevel=info
+    environment:
+      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/demandforecaster
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - celery_worker
     networks:
       - df-network
 
@@ -89,3 +130,4 @@ volumes:
 networks:
   df-network:
     driver: bridge
+

@@ -1,75 +1,137 @@
-"""Products API routes."""
+"""Products API routes — full CRUD with tenant isolation."""
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from typing import Optional
 
 from app.database import get_db
-from app.dependencies import get_current_user
+from app.models import Product
+from app.schemas import ProductCreate, ProductUpdate, ProductResponse
+from app.dependencies import get_tenant_context, require_admin
+from app.core.tenant import TenantContext
+from app.repositories.product_repo import ProductRepository
+from app.core.cache import cache_delete_pattern, make_cache_key
 
 router = APIRouter(prefix="/products", tags=["Products"])
-
-DEMO_PRODUCTS = [
-    {"id": 1, "name": "Wireless Headphones", "category": "Electronics", "sku": "WH-001", "price": 69.99, "sales": 4523, "revenue": 316610, "growth": 18.5, "rating": 4.8, "is_active": True},
-    {"id": 2, "name": "Smart Watch Pro", "category": "Electronics", "sku": "SW-002", "price": 149.99, "sales": 3891, "revenue": 583650, "growth": 12.3, "rating": 4.6, "is_active": True},
-    {"id": 3, "name": "USB-C Hub", "category": "Electronics", "sku": "UC-003", "price": 39.99, "sales": 3245, "revenue": 129800, "growth": 22.1, "rating": 4.5, "is_active": True},
-    {"id": 4, "name": "Laptop Stand", "category": "Accessories", "sku": "LS-004", "price": 59.99, "sales": 2876, "revenue": 172560, "growth": 8.7, "rating": 4.7, "is_active": True},
-    {"id": 5, "name": "Bluetooth Speaker", "category": "Electronics", "sku": "BS-005", "price": 79.99, "sales": 2543, "revenue": 203440, "growth": -3.2, "rating": 4.3, "is_active": True},
-    {"id": 6, "name": "Mechanical Keyboard", "category": "Peripherals", "sku": "MK-006", "price": 119.99, "sales": 2210, "revenue": 265200, "growth": 15.6, "rating": 4.9, "is_active": True},
-    {"id": 7, "name": "Webcam HD", "category": "Peripherals", "sku": "WC-007", "price": 59.99, "sales": 1987, "revenue": 119220, "growth": -8.1, "rating": 4.1, "is_active": True},
-    {"id": 8, "name": "Monitor Arm", "category": "Accessories", "sku": "MA-008", "price": 79.99, "sales": 1654, "revenue": 132320, "growth": 5.4, "rating": 4.4, "is_active": True},
-]
 
 
 @router.get("")
 async def get_products(
-    category: str = Query(default=None),
-    sort_by: str = Query(default="sales"),
+    category: Optional[str] = Query(default=None),
+    sort_by: str = Query(default="total_revenue"),
     page: int = Query(default=1, ge=1),
     per_page: int = Query(default=20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get all products with analytics."""
-    products = DEMO_PRODUCTS
-    if category:
-        products = [p for p in products if p["category"].lower() == category.lower()]
-    return {"products": products, "total": len(products), "page": page, "per_page": per_page}
+    """Get all products with sales analytics, scoped to organization."""
+    repo = ProductRepository(db, tenant.org_id)
+    offset = (page - 1) * per_page
+
+    products = await repo.get_with_analytics(
+        category=category, offset=offset, limit=per_page, sort_by=sort_by,
+    )
+    total = await repo.count(filters={"is_active": True})
+
+    return {"products": products, "total": total, "page": page, "per_page": per_page}
 
 
 @router.get("/top")
 async def get_top_products(
     limit: int = Query(default=10, ge=1, le=50),
-    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get top-performing products by sales."""
-    sorted_products = sorted(DEMO_PRODUCTS, key=lambda x: x["sales"], reverse=True)[:limit]
-    return {"products": sorted_products}
+    """Get top-performing products by revenue."""
+    repo = ProductRepository(db, tenant.org_id)
+    products = await repo.get_top_products(limit=limit)
+    return {"products": products}
 
 
 @router.get("/categories")
 async def get_categories(
-    user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """Get product categories with analytics."""
-    cats = {}
-    for p in DEMO_PRODUCTS:
-        c = p["category"]
-        if c not in cats:
-            cats[c] = {"category": c, "product_count": 0, "total_sales": 0, "total_revenue": 0}
-        cats[c]["product_count"] += 1
-        cats[c]["total_sales"] += p["sales"]
-        cats[c]["total_revenue"] += p["revenue"]
-    return {"categories": list(cats.values())}
+    repo = ProductRepository(db, tenant.org_id)
+    categories = await repo.get_categories()
+    return {"categories": categories}
 
 
-@router.get("/{product_id}")
+@router.post("", response_model=ProductResponse, status_code=status.HTTP_201_CREATED)
+async def create_product(
+    product_in: ProductCreate,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Create a new product (analyst+ only)."""
+    if not tenant.can_write:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    repo = ProductRepository(db, tenant.org_id)
+
+    # Check SKU uniqueness within org
+    existing = await repo.get_by_sku(product_in.sku)
+    if existing:
+        raise HTTPException(status_code=409, detail=f"SKU '{product_in.sku}' already exists")
+
+    product = Product(
+        organization_id=tenant.org_id,
+        **product_in.model_dump(),
+    )
+    product = await repo.create(product)
+
+    await cache_delete_pattern(make_cache_key(tenant.org_id, "dashboard", "*"))
+    return ProductResponse.model_validate(product)
+
+
+@router.get("/{product_id}", response_model=ProductResponse)
 async def get_product(
     product_id: int,
     db: AsyncSession = Depends(get_db),
-    user=Depends(get_current_user),
+    tenant: TenantContext = Depends(get_tenant_context),
 ):
     """Get a single product by ID."""
-    for p in DEMO_PRODUCTS:
-        if p["id"] == product_id:
-            return p
-    return {"error": "Product not found"}, 404
+    repo = ProductRepository(db, tenant.org_id)
+    product = await repo.get_by_id(product_id)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return ProductResponse.model_validate(product)
+
+
+@router.patch("/{product_id}", response_model=ProductResponse)
+async def update_product(
+    product_id: int,
+    product_in: ProductUpdate,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Update a product (analyst+ only)."""
+    if not tenant.can_write:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    repo = ProductRepository(db, tenant.org_id)
+    updates = product_in.model_dump(exclude_unset=True)
+    product = await repo.update(product_id, **updates)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    await cache_delete_pattern(make_cache_key(tenant.org_id, "dashboard", "*"))
+    return ProductResponse.model_validate(product)
+
+
+@router.delete("/{product_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_product(
+    product_id: int,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Soft-delete a product (admin only)."""
+    if not tenant.is_org_admin:
+        raise HTTPException(status_code=403, detail="Admin access required")
+
+    repo = ProductRepository(db, tenant.org_id)
+    product = await repo.update(product_id, is_active=False)
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")

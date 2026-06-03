@@ -7,19 +7,21 @@ from alembic import context
 import os
 import sys
 
-# Add parent directory to path
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# Add project root to path so we can import app modules
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(__file__))))
 
 from app.database import Base
 from app.models import *  # noqa: F401,F403 - Import all models for autogenerate
 
 config = context.config
 
-# Override sqlalchemy.url from environment
+# Override sqlalchemy.url from environment variable
 database_url = os.getenv(
     "DATABASE_URL",
     "postgresql://postgres:postgres@localhost:5432/demandforecaster"
 )
+# Ensure we use sync driver for Alembic
+database_url = database_url.replace("+asyncpg", "")
 config.set_main_option("sqlalchemy.url", database_url)
 
 if config.config_file_name is not None:

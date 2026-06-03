@@ -2,14 +2,16 @@
 
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { User, ThemeMode } from '@/types';
+import type { User, Organization, ThemeMode } from '@/types';
 
 interface AppState {
   // Auth
   user: User | null;
+  organization: Organization | null;
   accessToken: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User, organization: Organization, accessToken: string, refreshToken: string) => void;
   logout: () => void;
 
   // Theme
@@ -27,18 +29,19 @@ export const useAppStore = create<AppState>()(
     (set) => ({
       // Auth state
       user: null,
+      organization: null,
       accessToken: null,
+      refreshToken: null,
       isAuthenticated: false,
-      setAuth: (user, token) =>
-        set({ user, accessToken: token, isAuthenticated: true }),
+      setAuth: (user, organization, accessToken, refreshToken) =>
+        set({ user, organization, accessToken, refreshToken, isAuthenticated: true }),
       logout: () =>
-        set({ user: null, accessToken: null, isAuthenticated: false }),
+        set({ user: null, organization: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
 
       // Theme state
       theme: 'dark',
       setTheme: (theme) => {
         set({ theme });
-        // Apply theme to document
         const root = document.documentElement;
         root.classList.remove('light', 'dark');
         if (theme === 'system') {
@@ -55,10 +58,12 @@ export const useAppStore = create<AppState>()(
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
     }),
     {
-      name: 'demandforecaster-storage',
+      name: 'titan-scai-storage',
       partialize: (state) => ({
         accessToken: state.accessToken,
+        refreshToken: state.refreshToken,
         user: state.user,
+        organization: state.organization,
         isAuthenticated: state.isAuthenticated,
         theme: state.theme,
         sidebarCollapsed: state.sidebarCollapsed,

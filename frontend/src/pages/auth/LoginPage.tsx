@@ -1,42 +1,53 @@
-/** Premium login page with glassmorphism card and gradient background. */
+/** Premium login/signup page with glassmorphism card and gradient background. */
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { BarChart3, Mail, Lock, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { BarChart3, Mail, Lock, Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
+import { authApi } from '@/services/api';
 import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('admin@demandforecaster.com');
-  const [password, setPassword] = useState('admin123');
+  const [isSignup, setIsSignup] = useState(false);
+  const [email, setEmail] = useState('admin@titan.demo');
+  const [password, setPassword] = useState('admin123!');
+  const [name, setName] = useState('');
+  const [orgName, setOrgName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { setAuth } = useAppStore();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError('');
 
-    // Demo login - in production this calls the API
-    setTimeout(() => {
-      setAuth(
-        {
-          id: 1,
-          email,
-          name: 'Admin User',
-          role: 'admin',
-          is_active: true,
-          created_at: new Date().toISOString(),
-        },
-        'demo-jwt-token-for-development'
-      );
+    try {
+      let response;
+      if (isSignup) {
+        response = await authApi.signup(email, password, name, orgName);
+      } else {
+        response = await authApi.login(email, password);
+      }
+
+      const data = response.data;
+      setAuth(data.user, data.organization, data.access_token, data.refresh_token);
       navigate('/');
+    } catch (err: any) {
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string') {
+        setError(detail);
+      } else if (detail?.message) {
+        setError(detail.message);
+      } else {
+        setError(isSignup ? 'Signup failed. Please try again.' : 'Invalid email or password.');
+      }
+    } finally {
       setIsLoading(false);
-    }, 800);
+    }
   };
 
   return (
@@ -74,25 +85,89 @@ export default function LoginPage() {
             <BarChart3 className="w-8 h-8 text-white" />
           </motion.div>
           <h1 className="mt-5 text-2xl font-bold text-white tracking-tight">
-            DemandForecaster
+            Titan Supply Chain AI
           </h1>
           <p className="mt-1.5 text-sm text-surface-500">
-            AI-Powered Inventory Intelligence Platform
+            Enterprise AI-Powered Demand Forecasting Platform
           </p>
         </div>
 
-        {/* Login card */}
+        {/* Login/Signup card */}
         <div className="glass-card p-8">
-          <h2 className="text-lg font-semibold text-surface-50 mb-1">Welcome back</h2>
-          <p className="text-sm text-surface-500 mb-6">Sign in to your account to continue</p>
+          <h2 className="text-lg font-semibold text-surface-50 mb-1">
+            {isSignup ? 'Create your account' : 'Welcome back'}
+          </h2>
+          <p className="text-sm text-surface-500 mb-6">
+            {isSignup ? 'Start your 14-day free trial' : 'Sign in to your account to continue'}
+          </p>
 
           {error && (
-            <div className="mb-4 p-3 rounded-xl bg-danger-500/10 border border-danger-500/20 text-danger-400 text-sm">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-4 p-3 rounded-xl bg-danger-500/10 border border-danger-500/20 text-danger-400 text-sm"
+            >
               {error}
-            </div>
+            </motion.div>
           )}
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <AnimatePresence mode="wait">
+              {isSignup && (
+                <motion.div
+                  key="signup-fields"
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: 'auto' }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="space-y-4 overflow-hidden"
+                >
+                  {/* Full Name */}
+                  <div>
+                    <label className="block text-xs font-medium text-surface-400 mb-1.5">Full Name</label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Jane Smith"
+                        required={isSignup}
+                        className={cn(
+                          'w-full pl-11 pr-4 py-3 rounded-xl text-sm',
+                          'bg-surface-800/50 border border-surface-700/50',
+                          'text-white placeholder:text-surface-600',
+                          'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+                          'transition-all duration-200'
+                        )}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Organization Name */}
+                  <div>
+                    <label className="block text-xs font-medium text-surface-400 mb-1.5">Organization Name</label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                      <input
+                        type="text"
+                        value={orgName}
+                        onChange={(e) => setOrgName(e.target.value)}
+                        placeholder="Acme Corporation"
+                        required={isSignup}
+                        className={cn(
+                          'w-full pl-11 pr-4 py-3 rounded-xl text-sm',
+                          'bg-surface-800/50 border border-surface-700/50',
+                          'text-white placeholder:text-surface-600',
+                          'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+                          'transition-all duration-200'
+                        )}
+                      />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {/* Email */}
             <div>
               <label className="block text-xs font-medium text-surface-400 mb-1.5">Email Address</label>
@@ -162,19 +237,31 @@ export default function LoginPage() {
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               ) : (
                 <>
-                  Sign In <ArrowRight className="w-4 h-4" />
+                  {isSignup ? 'Create Account' : 'Sign In'} <ArrowRight className="w-4 h-4" />
                 </>
               )}
             </motion.button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-surface-600">
-            Demo: Use any email and password to login
+          {/* Toggle login/signup */}
+          <p className="mt-6 text-center text-sm text-surface-500">
+            {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
+            <button
+              type="button"
+              onClick={() => { setIsSignup(!isSignup); setError(''); }}
+              className="text-primary-400 hover:text-primary-300 font-medium transition-colors"
+            >
+              {isSignup ? 'Sign In' : 'Sign Up'}
+            </button>
+          </p>
+
+          <p className="mt-3 text-center text-xs text-surface-600">
+            Demo: admin@titan.demo / admin123!
           </p>
         </div>
 
         <p className="mt-6 text-center text-xs text-surface-600">
-          © 2026 DemandForecaster. Enterprise-Grade AI Platform.
+          © 2026 Titan Supply Chain AI. Enterprise-Grade Platform.
         </p>
       </motion.div>
     </div>

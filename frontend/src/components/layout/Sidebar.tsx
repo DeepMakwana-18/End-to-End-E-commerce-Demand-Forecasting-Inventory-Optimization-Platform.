@@ -58,8 +58,8 @@ export function Sidebar() {
                 transition={{ duration: 0.2 }}
                 className="whitespace-nowrap"
               >
-                <h1 className="text-sm font-bold text-surface-50 tracking-tight">DemandForecaster</h1>
-                <p className="text-[10px] text-surface-500 font-medium">AI-Powered Platform</p>
+                <h1 className="text-sm font-bold text-surface-50 tracking-tight">Titan AI</h1>
+                <p className="text-[10px] text-surface-500 font-medium">Supply Chain Intelligence</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -121,7 +121,7 @@ export function Sidebar() {
         </div>
 
         {/* Admin section */}
-        {user?.role === 'admin' && (
+        {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst') && (
           <div>
             {!sidebarCollapsed && (
               <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-surface-500">

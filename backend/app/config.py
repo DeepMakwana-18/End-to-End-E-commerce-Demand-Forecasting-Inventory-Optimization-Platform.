@@ -1,5 +1,5 @@
 """
-AI-Powered E-commerce Demand Forecasting & Inventory Optimization Platform
+Titan Supply Chain AI — Enterprise Platform
 Backend Configuration Module
 """
 
@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
     # Application
-    APP_NAME: str = "DemandForecaster"
+    APP_NAME: str = "Titan Supply Chain AI"
     APP_ENV: str = "development"
     APP_DEBUG: bool = True
     APP_PORT: int = 8000
@@ -28,10 +28,19 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # Celery
+    CELERY_BROKER_URL: str = ""  # defaults to REDIS_URL if empty
+
+    # Observability
+    SENTRY_DSN: str = ""  # Set in production
+    SENTRY_TRACES_SAMPLE_RATE: float = 0.2
+    LOG_JSON: bool = False  # True in production
+    LOG_LEVEL: str = "INFO"
+
     # JWT
     JWT_SECRET_KEY: str = "your-jwt-secret-key-change-in-production"
     JWT_ALGORITHM: str = "HS256"
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS
@@ -43,9 +52,14 @@ class Settings(BaseSettings):
     # Email
     SMTP_SERVER: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
-    SMTP_USER: str = "deep241206@gmail.com"
-    SMTP_PASSWORD: str = "tupg iypn vzdo kwva"
-    ALERT_EMAIL_TO: str = "deepmakwana1308@gmail.com"
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    ALERT_EMAIL_TO: str = ""
+
+    # LLM (pluggable interface — configured later)
+    LLM_PROVIDER: str = "none"  # none | openai | gemini | ollama
+    LLM_API_KEY: str = ""
+    LLM_MODEL: str = "gpt-4o-mini"
 
     @property
     def cors_origins_list(self) -> List[str]:

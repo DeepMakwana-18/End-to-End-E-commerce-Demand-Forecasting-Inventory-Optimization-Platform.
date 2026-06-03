@@ -1,6 +1,8 @@
 /**
  * AI-Powered E-commerce Demand Forecasting & Inventory Optimization Platform
  * Main Application Entry with React Router
+ *
+ * Phase 2.5: ErrorBoundary, ToastProvider, WebSocket realtime, React Query
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -8,9 +10,25 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useEffect, lazy, Suspense } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAppStore } from '@/stores/appStore';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+import { ToastProvider } from '@/components/ui/ToastProvider';
+import { useRealtimeKPIs } from '@/hooks/useRealtimeKPIs';
+import { toast } from '@/hooks/useToast';
 
 const queryClient = new QueryClient({
-  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+  defaultOptions: {
+    queries: {
+      staleTime: 30_000,
+      retry: 2,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      onError: (error: unknown) => {
+        const message = (error as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+        toast.error('Operation failed', typeof message === 'string' ? message : 'An unexpected error occurred');
+      },
+    },
+  },
 });
 
 // Lazy-loaded pages for code splitting
@@ -46,6 +64,18 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Realtime data synchronization (only when authenticated) */
+function RealtimeProvider({ children }: { children: React.ReactNode }) {
+  const { isAuthenticated } = useAppStore();
+
+  // Initialize WebSocket + React Query cache sync
+  if (isAuthenticated) {
+    useRealtimeKPIs();
+  }
+
+  return <>{children}</>;
+}
+
 function AppContent() {
   const { theme, setTheme } = useAppStore();
 
@@ -54,43 +84,48 @@ function AppContent() {
   }, []);
 
   return (
-    <Suspense fallback={<PageLoader />}>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
+    <RealtimeProvider>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
 
-        <Route
-          path="/"
-          element={
-            <ProtectedRoute>
-              <MainLayout />
-            </ProtectedRoute>
-          }
-        >
-          <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
-          <Route path="forecasting" element={<Suspense fallback={<PageLoader />}><ForecastPage /></Suspense>} />
-          <Route path="inventory" element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
-          <Route path="products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
-          <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
-          <Route path="reports" element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
-          <Route path="alerts" element={<Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>} />
-          <Route path="admin/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
-          <Route path="admin/upload" element={<Suspense fallback={<PageLoader />}><UploadPage /></Suspense>} />
-          <Route path="admin/pipeline" element={<Suspense fallback={<PageLoader />}><PipelinePage /></Suspense>} />
-          <Route path="admin/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
-        </Route>
+          <Route
+            path="/"
+            element={
+              <ProtectedRoute>
+                <MainLayout />
+              </ProtectedRoute>
+            }
+          >
+            <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
+            <Route path="forecasting" element={<Suspense fallback={<PageLoader />}><ForecastPage /></Suspense>} />
+            <Route path="inventory" element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
+            <Route path="products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
+            <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
+            <Route path="reports" element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
+            <Route path="alerts" element={<Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>} />
+            <Route path="admin/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
+            <Route path="admin/upload" element={<Suspense fallback={<PageLoader />}><UploadPage /></Suspense>} />
+            <Route path="admin/pipeline" element={<Suspense fallback={<PageLoader />}><PipelinePage /></Suspense>} />
+            <Route path="admin/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
+          </Route>
 
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Suspense>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
+    </RealtimeProvider>
   );
 }
 
 export default function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <BrowserRouter>
+          <AppContent />
+          <ToastProvider />
+        </BrowserRouter>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 }

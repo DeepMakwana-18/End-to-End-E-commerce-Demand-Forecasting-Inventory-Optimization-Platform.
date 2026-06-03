@@ -1,28 +1,109 @@
-from fastapi import APIRouter, BackgroundTasks, HTTPException
+"""Alerts API routes — DB-backed with email integration."""
+
+from fastapi import APIRouter, BackgroundTasks, HTTPException, Depends
 from pydantic import BaseModel
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.database import get_db
+from app.dependencies import get_tenant_context
+from app.core.tenant import TenantContext
+from app.repositories.alert_repo import AlertRepository
 from app.utils.email import send_alert_email
 
 router = APIRouter(prefix="/api/alerts", tags=["Alerts"])
+
 
 class AlertPayload(BaseModel):
     sku: str
     message: str
     date: str
 
+
 @router.post("/send-email")
 async def trigger_email_alert(payload: AlertPayload, background_tasks: BackgroundTasks):
-    """
-    Triggers a background task to send an email alert.
-    Returns immediately so the frontend UI doesn't freeze.
-    """
+    """Triggers a background task to send an email alert."""
     try:
-        # Schedule the email to be sent in the background
         background_tasks.add_task(
             send_alert_email,
             sku=payload.sku,
             message=payload.message,
-            date=payload.date
+            date=payload.date,
         )
         return {"status": "success", "message": "Email alert queued for background dispatch."}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("")
+async def get_all_alerts(
+    severity: str = None,
+    resolved: bool = False,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Get all alerts for the organization."""
+    repo = AlertRepository(db, tenant.org_id)
+    if resolved:
+        alerts = await repo.get_all(filters={"is_resolved": True}, limit=50)
+        return {"alerts": [_serialize_alert(a) for a in alerts], "total": len(alerts)}
+
+    alerts = await repo.get_active_alerts(severity=severity)
+    return {"alerts": alerts, "total": len(alerts)}
+
+
+@router.post("/{alert_id}/resolve")
+async def resolve_alert(
+    alert_id: int,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Resolve an alert."""
+    if not tenant.can_write:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    repo = AlertRepository(db, tenant.org_id)
+    success = await repo.resolve(alert_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"status": "resolved", "id": alert_id}
+
+
+@router.delete("/{alert_id}")
+async def dismiss_alert(
+    alert_id: int,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Dismiss (delete) an alert."""
+    if not tenant.can_write:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    repo = AlertRepository(db, tenant.org_id)
+    success = await repo.delete(alert_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Alert not found")
+    return {"status": "dismissed", "id": alert_id}
+
+
+@router.get("/stats")
+async def get_alert_stats(
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Get alert statistics by severity."""
+    repo = AlertRepository(db, tenant.org_id)
+    by_severity = await repo.count_by_severity()
+    total = await repo.count_active()
+    return {"total_active": total, "by_severity": by_severity}
+
+
+def _serialize_alert(alert):
+    return {
+        "id": alert.id,
+        "product_id": alert.product_id,
+        "alert_type": alert.alert_type.value if alert.alert_type else "",
+        "severity": alert.severity.value if alert.severity else "",
+        "message": alert.message,
+        "is_resolved": alert.is_resolved,
+        "created_at": alert.created_at.isoformat() if alert.created_at else None,
+    }
