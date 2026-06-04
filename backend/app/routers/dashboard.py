@@ -73,9 +73,10 @@ async def get_dashboard_kpis(
     reorder_items = await inv_repo.get_reorder_items()
 
     # Forecast accuracy
-    from app.repositories.forecast_repo import ForecastRepository
-    forecast_repo = ForecastRepository(db, org_id)
-    accuracy = await forecast_repo.get_accuracy()
+    from app.repositories.forecast_repo import ModelVersionRepository
+    mv_repo = ModelVersionRepository(db, org_id)
+    active_mv = await mv_repo.get_active()
+    accuracy = active_mv.accuracy if active_mv and active_mv.accuracy else 0.0
 
     kpis = KPIData(
         total_revenue=float(sales_row.total_revenue),

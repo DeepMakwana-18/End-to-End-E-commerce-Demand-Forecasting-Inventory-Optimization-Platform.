@@ -129,6 +129,12 @@ def retrain_model_async(
 
         version_tag = f"v{forecast_model.training_id}.0"
 
+        from app.config import settings
+        import os
+        model_filename = f"model_org_{org_id}_{version_tag}.pkl".replace(" ", "_")
+        model_path = os.path.join(settings.ML_MODEL_PATH, model_filename)
+        forecast_model.save(model_path)
+
         from app.database import async_session
         from app.repositories.forecast_repo import ModelVersionRepository
         from app.models import ModelVersion
@@ -148,7 +154,8 @@ def retrain_model_async(
                     training_samples=metrics["training_samples"],
                     data_source=f"uploaded:{filename}",
                     feature_importance=metrics.get("feature_importance", {}),
-                    is_active=True
+                    is_active=True,
+                    model_path=model_path
                 )
                 db.add(mv)
                 await db.commit()

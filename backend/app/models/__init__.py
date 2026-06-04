@@ -13,6 +13,9 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 import enum
 
+# Scenario models imported so init_db() creates their tables
+from app.models.scenario import Scenario, ScenarioResult, ScenarioStatus, ScenarioType  # noqa: F401
+
 
 def utcnow():
     return datetime.now(timezone.utc)

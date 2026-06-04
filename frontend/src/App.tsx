@@ -35,6 +35,7 @@ const queryClient = new QueryClient({
 const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
 const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
 const ForecastPage = lazy(() => import('@/pages/ForecastPage'));
+const ScenariosPage = lazy(() => import('@/pages/ScenariosPage'));
 const InventoryPage = lazy(() => import('@/pages/InventoryPage'));
 const ProductsPage = lazy(() => import('@/pages/ProductsPage'));
 const CategoriesPage = lazy(() => import('@/pages/CategoriesPage'));
@@ -99,6 +100,7 @@ function AppContent() {
           >
             <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
             <Route path="forecasting" element={<Suspense fallback={<PageLoader />}><ForecastPage /></Suspense>} />
+            <Route path="scenarios" element={<Suspense fallback={<PageLoader />}><ScenariosPage /></Suspense>} />
             <Route path="inventory" element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
             <Route path="products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
             <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />

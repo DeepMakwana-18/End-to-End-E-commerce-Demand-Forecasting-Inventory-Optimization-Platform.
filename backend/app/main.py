@@ -124,6 +124,7 @@ app.add_middleware(
 # ── Routers ─────────────────────────────────────────────────────────
 
 from app.routers import auth, dashboard, forecast, inventory, products, reports, upload, users, alerts
+from app.routers.scenarios import router as scenarios_router
 from app.websocket.routes import router as ws_router
 
 app.include_router(auth.router, prefix="/api/v1")
@@ -135,6 +136,7 @@ app.include_router(reports.router, prefix="/api/v1")
 app.include_router(upload.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(alerts.router)  # alerts already has /api/alerts prefix
+app.include_router(scenarios_router, prefix="/api/v1")  # Scenario Engine
 app.include_router(ws_router)  # WebSocket at /ws
 
 

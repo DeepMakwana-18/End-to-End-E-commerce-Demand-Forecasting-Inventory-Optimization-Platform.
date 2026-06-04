@@ -220,5 +220,53 @@ class XGBoostForecastModel:
             
         return predictions
 
+    def save(self, filepath: str):
+        """Save the model and state to a pickle file."""
+        import pickle
+        import os
+        os.makedirs(os.path.dirname(filepath), exist_ok=True)
+        state = {
+            "model": self.model,
+            "is_trained": self.is_trained,
+            "training_id": self.training_id,
+            "data_source": self.data_source,
+            "metrics": self.metrics,
+            "std_dev": self.std_dev,
+            "last_date": self.last_date,
+            "last_demand": self.last_demand,
+            "last_4_demand": self.last_4_demand,
+            "last_demands": self.last_demands,
+            "seasonal_amplitude": self.seasonal_amplitude,
+            "historical_data": self.historical_data
+        }
+        with open(filepath, 'wb') as f:
+            pickle.dump(state, f)
+            
+    def load(self, filepath: str) -> bool:
+        """Load the model and state from a pickle file."""
+        import pickle
+        import os
+        if not os.path.exists(filepath):
+            return False
+        try:
+            with open(filepath, 'rb') as f:
+                state = pickle.load(f)
+            self.model = state["model"]
+            self.is_trained = state["is_trained"]
+            self.training_id = state["training_id"]
+            self.data_source = state["data_source"]
+            self.metrics = state["metrics"]
+            self.std_dev = state["std_dev"]
+            self.last_date = state["last_date"]
+            self.last_demand = state["last_demand"]
+            self.last_4_demand = state["last_4_demand"]
+            self.last_demands = state["last_demands"]
+            self.seasonal_amplitude = state["seasonal_amplitude"]
+            self.historical_data = state.get("historical_data", [])
+            return True
+        except Exception as e:
+            logger.error(f"Failed to load model from {filepath}: {e}")
+            return False
+
 # Singleton instance
 forecast_model = XGBoostForecastModel()

@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, TrendingUp, Package, BarChart3, PieChart,
   FileText, Settings, ChevronLeft, ChevronRight, Bell,
-  Upload, Users, Activity, Boxes, LogOut,
+  Upload, Users, Activity, Boxes, LogOut, FlaskConical,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { cn } from '@/lib/utils';
@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
   { label: 'Forecasting', icon: TrendingUp, path: '/forecasting' },
+  { label: 'Scenarios', icon: FlaskConical, path: '/scenarios' },
   { label: 'Inventory', icon: Package, path: '/inventory' },
   { label: 'Products', icon: Boxes, path: '/products' },
   { label: 'Categories', icon: PieChart, path: '/categories' },

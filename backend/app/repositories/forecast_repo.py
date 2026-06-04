@@ -85,6 +85,22 @@ class ModelVersionRepository(BaseRepository[ModelVersion]):
             mv.is_active = False
         await self.session.flush()
 
+    async def get_active_with_artifact(self) -> tuple[Optional[ModelVersion], Optional[str]]:
+        """Get the active model version and verify its artifact path exists on disk.
+
+        Returns (ModelVersion, artifact_path) if both are present.
+        Returns (ModelVersion, None) if the version exists but has no artifact on disk.
+        Returns (None, None) if no active version exists.
+        """
+        import os
+        mv = await self.get_active()
+        if mv is None:
+            return None, None
+        path = mv.model_path
+        if path and os.path.exists(path):
+            return mv, path
+        return mv, None
+
     async def get_training_history(self, limit: int = 20) -> Sequence[ModelVersion]:
         stmt = (
             self._scoped_query()

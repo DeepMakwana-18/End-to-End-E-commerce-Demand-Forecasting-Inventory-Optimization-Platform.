@@ -30,7 +30,13 @@ async def get_forecasts(
     tenant: TenantContext = Depends(get_tenant_context),
 ):
     """Get demand forecasts with confidence intervals."""
-    if not forecast_model.is_trained:
+    mv_repo = ModelVersionRepository(db, tenant.org_id)
+    active_model = await mv_repo.get_active()
+
+    if active_model and active_model.model_path:
+        # Load from disk if available
+        forecast_model.load(active_model.model_path)
+    elif not forecast_model.is_trained:
         forecast_model.train()
 
     forecasts = forecast_model.predict(weeks_ahead=weeks)
@@ -38,7 +44,7 @@ async def get_forecasts(
     return {
         "forecasts": forecasts,
         "historical": forecast_model.historical_data,
-        "model_version": "v2.0 (XGBoost)",
+        "model_version": active_model.version_tag if active_model else f"v{forecast_model.training_id}.0 (XGBoost)",
         "accuracy": forecast_model.metrics["accuracy"],
         "rmse": forecast_model.metrics["rmse"],
         "training_samples": forecast_model.metrics["training_samples"],
@@ -206,11 +212,37 @@ async def reset_model(
     forecast_model.train(source_name="synthetic")
     forecasts = forecast_model.predict(weeks_ahead=12)
 
+    version_tag = f"v{forecast_model.training_id}.0"
+    
+    from app.config import settings
+    import os
+    model_filename = f"model_org_{tenant.org_id}_{version_tag}.pkl".replace(" ", "_")
+    model_path = os.path.join(settings.ML_MODEL_PATH, model_filename)
+    forecast_model.save(model_path)
+
+    mv_repo = ModelVersionRepository(db, tenant.org_id)
+    await mv_repo.deactivate_all()
+    mv = ModelVersion(
+        organization_id=tenant.org_id,
+        version_tag=version_tag,
+        model_type="XGBRegressor",
+        accuracy=forecast_model.metrics["accuracy"],
+        mae=forecast_model.metrics["mae"],
+        rmse=forecast_model.metrics["rmse"],
+        training_samples=forecast_model.metrics["training_samples"],
+        data_source=forecast_model.data_source,
+        feature_importance=forecast_model.metrics.get("feature_importance", {}),
+        is_active=True,
+        model_path=model_path
+    )
+    db.add(mv)
+    await db.commit()
+
     return {
         "status": "reset",
         "forecasts": forecasts,
         "historical": forecast_model.historical_data,
-        "model_version": "v2.0 (XGBoost)",
+        "model_version": version_tag,
         "accuracy": forecast_model.metrics["accuracy"],
         "rmse": forecast_model.metrics["rmse"],
         "training_samples": forecast_model.metrics["training_samples"],
