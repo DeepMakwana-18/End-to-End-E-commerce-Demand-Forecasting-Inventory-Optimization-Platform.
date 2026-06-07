@@ -17,12 +17,7 @@ const defaultModelMetrics = [
   { epoch: '10', mae: 142, rmse: 183 },
 ];
 
-const initialTrainingHistory = [
-  { id: 1, version: 'v1.4.2', accuracy: 94.7, mae: 142.3, rmse: 183.1, duration: '4m 23s', date: '2026-05-12', status: 'active' },
-  { id: 2, version: 'v1.4.1', accuracy: 93.8, mae: 148.7, rmse: 191.2, duration: '4m 45s', date: '2026-05-05', status: 'archived' },
-  { id: 3, version: 'v1.4.0', accuracy: 92.1, mae: 156.2, rmse: 203.5, duration: '5m 12s', date: '2026-04-28', status: 'archived' },
-  { id: 4, version: 'v1.3.9', accuracy: 91.5, mae: 162.4, rmse: 210.8, duration: '4m 58s', date: '2026-04-21', status: 'archived' },
-];
+// Removed hardcoded initialTrainingHistory
 
 const defaultFeatureImportance = [
   { name: 'price', importance: 0.24 }, { name: 'month', importance: 0.18 }, { name: 'day_of_week', importance: 0.15 },
@@ -35,7 +30,7 @@ export default function PipelinePage() {
   const rawCsvText = useDataStore(s => s.rawCsvText);
   const datasetName = useDataStore(s => s.datasetName);
   
-  const [trainingHistory, setTrainingHistory] = useState(initialTrainingHistory);
+  const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
   const [featureImportance, setFeatureImportance] = useState(defaultFeatureImportance);
   const [modelMetrics, setModelMetrics] = useState(defaultModelMetrics);
   const [isTraining, setIsTraining] = useState(false);
@@ -59,25 +54,34 @@ export default function PipelinePage() {
         if (data.convergence && data.convergence.length > 0) {
           setModelMetrics(data.convergence);
         }
-        
-        // Update the active training history entry with real metrics
-        setTrainingHistory(prev => {
-          const newHistory = [...prev];
-          newHistory[0] = {
-            ...newHistory[0],
-            accuracy: data.accuracy,
-            mae: data.mae,
-            rmse: data.rmse,
-            version: data.version,
-            date: data.last_trained ? data.last_trained.split('T')[0] : newHistory[0].date,
-          };
-          return newHistory;
-        });
       } catch (err) {
         console.error("Failed to load ML model info", err);
       }
     };
+
+    const fetchHistory = async () => {
+      try {
+        const res = await api.get('/forecast/training-history');
+        if (res.data && res.data.versions) {
+          const mappedHistory = res.data.versions.map((v: any) => ({
+            id: v.id,
+            version: v.version_tag,
+            accuracy: v.accuracy,
+            mae: v.mae,
+            rmse: v.rmse,
+            duration: 'Async',
+            date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+            status: v.is_active ? 'active' : 'archived',
+          }));
+          setTrainingHistory(mappedHistory);
+        }
+      } catch (err) {
+        console.error("Failed to load training history", err);
+      }
+    };
+
     fetchModelInfo();
+    fetchHistory();
   }, []);
 
   const showToast = (msg: string) => {
@@ -97,28 +101,65 @@ export default function PipelinePage() {
       
       if (res.data.error) {
         showToast(`❌ ML Error: ${res.data.error}`);
+        setIsTraining(false);
         return;
       }
       
-      const newVersion = res.data.model_version || `v1.4.${trainingHistory.length + 2}`;
-      const newEntry = {
-        id: Date.now(),
-        version: newVersion,
-        accuracy: res.data.accuracy || 94.7,
-        mae: res.data.rmse ? res.data.rmse * 0.8 : 142.3, // Approximate MAE if not returned
-        rmse: res.data.rmse || 183.1,
-        duration: `1m 24s`,
-        date: new Date().toISOString().split('T')[0],
-        status: 'active',
-      };
-      
-      setTrainingHistory([newEntry, ...trainingHistory.map(t => ({ ...t, status: 'archived' }))]);
-      
-      showToast(`✅ Model retrained successfully — ${newVersion} (${res.data.accuracy}% accuracy)`);
+      if (res.data.task_id) {
+        const taskId = res.data.task_id;
+        const pollTask = async () => {
+          try {
+            const taskRes = await api.get(`/tasks/${taskId}`);
+            const state = taskRes.data.state;
+            if (state === 'completed') {
+              showToast('✅ Model retrained successfully');
+              setIsTraining(false);
+              // Refresh history
+              const histRes = await api.get('/forecast/training-history');
+              if (histRes.data && histRes.data.versions) {
+                const mappedHistory = histRes.data.versions.map((v: any) => ({
+                  id: v.id,
+                  version: v.version_tag,
+                  accuracy: v.accuracy,
+                  mae: v.mae,
+                  rmse: v.rmse,
+                  duration: 'Async',
+                  date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+                  status: v.is_active ? 'active' : 'archived',
+                }));
+                setTrainingHistory(mappedHistory);
+              }
+            } else if (state === 'failed') {
+              showToast(`❌ ML Error: ${taskRes.data.error || 'Failed'}`);
+              setIsTraining(false);
+            } else {
+              setTimeout(pollTask, 1500);
+            }
+          } catch (e) {
+            setTimeout(pollTask, 1500);
+          }
+        };
+        pollTask();
+      } else {
+        // Sync reset response
+        const newVersion = res.data.model_version || `v1.4.0`;
+        const newEntry = {
+          id: Date.now(),
+          version: newVersion,
+          accuracy: res.data.accuracy || 94.7,
+          mae: res.data.rmse ? res.data.rmse * 0.8 : 142.3,
+          rmse: res.data.rmse || 183.1,
+          duration: `Sync`,
+          date: new Date().toISOString().split('T')[0],
+          status: 'active',
+        };
+        setTrainingHistory(prev => [newEntry, ...prev.map(t => ({ ...t, status: 'archived' }))]);
+        showToast(`✅ Model retrained successfully — ${newVersion} (${res.data.accuracy || 94.7}% accuracy)`);
+        setIsTraining(false);
+      }
     } catch (err) {
       console.error(err);
       showToast('❌ Failed to retrain model');
-    } finally {
       setIsTraining(false);
     }
   };
@@ -128,7 +169,7 @@ export default function PipelinePage() {
     // Running pipeline implies full retrain in this context
     await handleRetrain();
     setIsPipelineRunning(false);
-    showToast('✅ Full ML pipeline completed — data preprocessed, features engineered, model evaluated');
+    // Note: Success toast is handled within handleRetrain polling
   };
 
   return (

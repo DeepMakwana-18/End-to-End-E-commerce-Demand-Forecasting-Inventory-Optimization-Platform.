@@ -100,7 +100,12 @@ async def get_dashboard_charts(
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get chart data from real database aggregations."""
+    """Get chart data from real database aggregations.
+
+    Demand trend is sourced from the Forecasts table, anchored to the
+    dataset's own date range (not datetime.now()), so uploaded historical
+    datasets are always visible regardless of when the app is running.
+    """
     org_id = tenant.org_id
 
     cache_key = make_cache_key(org_id, "dashboard", "charts")
@@ -108,18 +113,38 @@ async def get_dashboard_charts(
     if cached:
         return DashboardChartData(**cached)
 
-    today = datetime.now(timezone.utc)
+    # ── Determine dataset anchor date from Forecasts table ──────────
+    # Use MAX(forecast_date) where actual_demand IS NOT NULL so we anchor
+    # to real data, not future predicted rows.
+    from sqlalchemy import text
+    anchor_stmt = (
+        select(func.max(Forecast.forecast_date))
+        .where(Forecast.organization_id == org_id)
+        .where(Forecast.actual_demand.isnot(None))
+    )
+    anchor_result = await db.execute(anchor_stmt)
+    anchor_date = anchor_result.scalar()
 
-    # ── Demand Trend (weekly sales, last 12 weeks) ──
+    # Fallback: if no forecast data, use current time
+    if anchor_date is None:
+        anchor_date = datetime.now(timezone.utc)
+
+    # Make timezone-aware if it is not
+    if hasattr(anchor_date, 'tzinfo') and anchor_date.tzinfo is None:
+        from datetime import timezone as _tz
+        anchor_date = anchor_date.replace(tzinfo=_tz.utc)
+
+    # ── Demand Trend (weekly, last 12 weeks anchored to dataset end) ──
     demand_trend = []
     for i in range(12):
-        week_start = today - timedelta(weeks=11 - i)
+        week_start = anchor_date - timedelta(weeks=11 - i)
         week_end = week_start + timedelta(weeks=1)
         stmt = (
-            select(func.coalesce(func.sum(Sale.quantity), 0))
-            .where(Sale.organization_id == org_id)
-            .where(Sale.date >= week_start)
-            .where(Sale.date < week_end)
+            select(func.coalesce(func.sum(Forecast.actual_demand), 0))
+            .where(Forecast.organization_id == org_id)
+            .where(Forecast.actual_demand.isnot(None))
+            .where(Forecast.forecast_date >= week_start)
+            .where(Forecast.forecast_date < week_end)
         )
         result = await db.execute(stmt)
         val = result.scalar() or 0
@@ -129,10 +154,12 @@ async def get_dashboard_charts(
             label=f"Week {i + 1}",
         ))
 
-    # ── Revenue Trend (monthly, last 6 months) ──
+    # ── Revenue Trend (monthly, last 6 months from anchor) ──────────
+    # Revenue comes from the Sales table. Use the same anchor so
+    # the window aligns with the dataset's period.
     revenue_trend = []
     for i in range(6):
-        month_start = (today.replace(day=1) - timedelta(days=30 * (5 - i))).replace(day=1)
+        month_start = (anchor_date.replace(day=1) - timedelta(days=30 * (5 - i))).replace(day=1)
         next_month = (month_start + timedelta(days=32)).replace(day=1)
         stmt = (
             select(func.coalesce(func.sum(Sale.revenue), 0))
@@ -148,7 +175,33 @@ async def get_dashboard_charts(
             label=month_start.strftime("%b %Y"),
         ))
 
-    # ── Inventory Health distribution ──
+    # ── Actual vs Predicted (from Forecasts table, last 12 weeks) ───
+    avp_stmt = (
+        select(
+            Forecast.forecast_date,
+            func.sum(Forecast.actual_demand).label("actual"),
+            func.sum(Forecast.predicted_demand).label("predicted"),
+        )
+        .where(Forecast.organization_id == org_id)
+        .where(Forecast.actual_demand.isnot(None))
+        .where(Forecast.predicted_demand.isnot(None))
+        .where(Forecast.forecast_date >= anchor_date - timedelta(weeks=12))
+        .group_by(Forecast.forecast_date)
+        .order_by(Forecast.forecast_date.asc())
+        .limit(12)
+    )
+    avp_result = await db.execute(avp_stmt)
+    avp_rows = avp_result.all()
+    actual_vs_predicted = [
+        ChartDataPoint(
+            date=row.forecast_date.strftime("%Y-%m-%d") if hasattr(row.forecast_date, 'strftime') else str(row.forecast_date),
+            value=round(float(row.actual or 0), 1),
+            label=str(round(float(row.predicted or 0), 1)),  # predicted stored in label field
+        )
+        for row in avp_rows
+    ]
+
+    # ── Inventory Health distribution ────────────────────────────────
     inv_repo = InventoryRepository(db, org_id)
     health_summary = await inv_repo.get_health_summary()
     inv_health_chart = []
@@ -157,7 +210,7 @@ async def get_dashboard_charts(
         dist = health_summary.get("distribution", {}).get(status_key, {})
         inv_health_chart.append(ChartDataPoint(label=label, value=dist.get("percentage", 0)))
 
-    # ── Category distribution ──
+    # ── Category distribution ────────────────────────────────────────
     cat_stmt = (
         select(
             Product.category,
@@ -177,7 +230,7 @@ async def get_dashboard_charts(
         for row in cat_rows
     ]
 
-    # ── Top products by revenue ──
+    # ── Top products by revenue ──────────────────────────────────────
     top_stmt = (
         select(
             Product.name,
@@ -197,7 +250,7 @@ async def get_dashboard_charts(
 
     charts = DashboardChartData(
         demand_trend=demand_trend,
-        actual_vs_predicted=[],  # Populated when forecasts exist
+        actual_vs_predicted=actual_vs_predicted,
         inventory_health=inv_health_chart,
         revenue_trend=revenue_trend,
         category_distribution=category_distribution,

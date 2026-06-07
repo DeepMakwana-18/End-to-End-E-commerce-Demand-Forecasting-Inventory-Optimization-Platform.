@@ -55,8 +55,47 @@ async def _run_simulation(
     mv_repo = ModelVersionRepository(db, org_id)
     active_mv, artifact_path = await mv_repo.get_active_with_artifact()
 
-    params = scenario.parameters or {}
+    params = dict(scenario.parameters or {})
     weeks = scenario.horizon_weeks or 12
+
+    # ── Resolve avg_unit_value from DB if caller did not provide one ──
+    # The frontend defaults to $50 which is meaningless for most datasets.
+    # We look up the org-wide weighted average unit price from Product.price.
+    # A caller-supplied value > 0 always takes precedence (explicit override).
+    from sqlalchemy import select, func
+    from app.models import Product
+
+    caller_unit_value = float(params.get("avg_unit_value", 0) or 0)
+    if caller_unit_value <= 0:
+        price_stmt = (
+            select(func.avg(Product.price))
+            .where(Product.organization_id == org_id)
+            .where(Product.is_active == True)
+            .where(Product.price.isnot(None))
+            .where(Product.price > 0)
+        )
+        avg_price = (await db.execute(price_stmt)).scalar()
+        if avg_price and float(avg_price) > 0:
+            params["avg_unit_value"] = round(float(avg_price), 4)
+            logger.info(
+                "[org:%d] avg_unit_value resolved from Product.price: %.2f",
+                org_id, params["avg_unit_value"],
+            )
+        else:
+            # Ultimate fallback: weighted avg from Sale table
+            from app.models import Sale
+            sale_stmt = select(
+                func.sum(Sale.revenue).label("total_rev"),
+                func.sum(Sale.quantity).label("total_qty"),
+            ).where(Sale.organization_id == org_id)
+            sale_row = (await db.execute(sale_stmt)).first()
+            total_rev = float(sale_row.total_rev or 0) if sale_row else 0.0
+            total_qty = float(sale_row.total_qty or 0) if sale_row else 0.0
+            params["avg_unit_value"] = round(total_rev / total_qty, 4) if total_qty > 0 else 50.0
+            logger.info(
+                "[org:%d] avg_unit_value resolved from Sale revenue/qty: %.2f",
+                org_id, params["avg_unit_value"],
+            )
 
     if active_mv is None:
         raise RuntimeError(
@@ -101,6 +140,7 @@ async def _run_simulation(
     price_change_pct = float(params.get("price_change_pct", 0.0))
     lead_time_days = float(params.get("lead_time_days", 14.0))
     safety_stock_multiplier = float(params.get("safety_stock_multiplier", 1.0))
+    # avg_unit_value is already resolved above from DB; use it directly
     avg_unit_value = float(params.get("avg_unit_value", 50.0))
 
     marketing_effect = 1.0 + (marketing_spend_pct / 100) * MARKETING_ELASTICITY

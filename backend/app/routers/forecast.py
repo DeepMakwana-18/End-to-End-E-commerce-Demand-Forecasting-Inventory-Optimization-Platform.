@@ -83,21 +83,145 @@ async def get_category_forecasts(
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get forecasts aggregated by category."""
-    from app.repositories.product_repo import ProductRepository
-    product_repo = ProductRepository(db, tenant.org_id)
-    categories = await product_repo.get_categories()
+    """Get demand forecasts aggregated by category.
+
+    When forecasts are linked to products (seeded dataset), returns real
+    per-category breakdowns. When forecasts have no product_id (uploaded
+    CSV datasets), returns an org-level aggregate row.
+    No hardcoded values are used in either path.
+    """
+    from app.models import Forecast, Product
+    from sqlalchemy import select, func
+
+    org_id = tenant.org_id
+
+    # Step 1: find the latest actual date
+    latest_date = (await db.execute(
+        select(func.max(Forecast.forecast_date))
+        .where(Forecast.organization_id == org_id)
+        .where(Forecast.actual_demand.isnot(None))
+    )).scalar()
+
+    if latest_date is None:
+        return {"categories": [], "note": "No historical forecast data available"}
+
+    # Step 2: find the earliest future predicted date
+    future_date = (await db.execute(
+        select(func.min(Forecast.forecast_date))
+        .where(Forecast.organization_id == org_id)
+        .where(Forecast.actual_demand.is_(None))
+        .where(Forecast.predicted_demand.isnot(None))
+    )).scalar()
+
+    # Step 3: check whether forecasts are product-linked
+    has_product_id = (await db.execute(
+        select(func.count(Forecast.id))
+        .where(Forecast.organization_id == org_id)
+        .where(Forecast.product_id.isnot(None))
+        .where(Forecast.actual_demand.isnot(None))
+    )).scalar() or 0
 
     result = []
-    for cat in categories:
-        result.append({
-            "category": cat["category"],
-            "current_demand": cat["total_sales"],
-            "predicted_demand": int(cat["total_sales"] * 1.1),  # Placeholder until per-category ML
-            "change_pct": 10.0,
-        })
 
-    return {"categories": result}
+    if has_product_id > 0:
+        # ── Product-linked forecasts: per-category breakdown ──────────────
+        # Current demand: latest actual date, grouped by product category
+        current_rows = (await db.execute(
+            select(
+                Product.category,
+                func.coalesce(func.sum(Forecast.actual_demand), 0).label("current_demand"),
+            )
+            .join(Product, Forecast.product_id == Product.id)
+            .where(Forecast.organization_id == org_id)
+            .where(Forecast.actual_demand.isnot(None))
+            .where(Forecast.forecast_date == latest_date)
+            .group_by(Product.category)
+        )).all()
+        current_by_cat = {row.category: float(row.current_demand) for row in current_rows}
+
+        # Predicted demand: next forecast date grouped by category
+        lookup_date = future_date if future_date is not None else latest_date
+        is_future = future_date is not None
+        pred_stmt = (
+            select(
+                Product.category,
+                func.coalesce(func.sum(Forecast.predicted_demand), 0).label("predicted_demand"),
+            )
+            .join(Product, Forecast.product_id == Product.id)
+            .where(Forecast.organization_id == org_id)
+            .where(Forecast.forecast_date == lookup_date)
+            .group_by(Product.category)
+        )
+        if is_future:
+            pred_stmt = pred_stmt.where(Forecast.actual_demand.is_(None))
+        pred_by_cat = {row.category: float(row.predicted_demand) for row in (await db.execute(pred_stmt)).all()}
+
+        all_categories = sorted(set(list(current_by_cat) + list(pred_by_cat)))
+        for cat in all_categories:
+            current = current_by_cat.get(cat, 0.0)
+            predicted = pred_by_cat.get(cat, 0.0)
+            if current <= 0 and predicted <= 0:
+                continue
+            change_pct = round((predicted - current) / current * 100, 1) if current > 0 else 100.0
+            result.append({
+                "category": cat,
+                "current_demand": round(current, 1),
+                "predicted_demand": round(predicted, 1),
+                "change_pct": change_pct,
+            })
+
+    else:
+        # ── Org-level forecasts (uploaded CSV, no product_id) ──────────
+        # Compute org-wide aggregate using the last 4 actual weeks vs next 4 predicted weeks
+        from datetime import timedelta
+
+        # Last 4 weeks of actuals
+        w4_start = latest_date - timedelta(weeks=4)
+        current_sum = (await db.execute(
+            select(func.coalesce(func.sum(Forecast.actual_demand), 0))
+            .where(Forecast.organization_id == org_id)
+            .where(Forecast.actual_demand.isnot(None))
+            .where(Forecast.forecast_date > w4_start)
+            .where(Forecast.forecast_date <= latest_date)
+        )).scalar() or 0.0
+
+        # Next 4 weeks of predictions
+        if future_date is not None:
+            w4_future_end = future_date + timedelta(weeks=4)
+            predicted_sum = (await db.execute(
+                select(func.coalesce(func.sum(Forecast.predicted_demand), 0))
+                .where(Forecast.organization_id == org_id)
+                .where(Forecast.actual_demand.is_(None))
+                .where(Forecast.predicted_demand.isnot(None))
+                .where(Forecast.forecast_date >= future_date)
+                .where(Forecast.forecast_date < w4_future_end)
+            )).scalar() or 0.0
+        else:
+            # No future rows: use predicted_demand from the latest actual rows
+            predicted_sum = (await db.execute(
+                select(func.coalesce(func.sum(Forecast.predicted_demand), 0))
+                .where(Forecast.organization_id == org_id)
+                .where(Forecast.forecast_date > w4_start)
+                .where(Forecast.forecast_date <= latest_date)
+            )).scalar() or 0.0
+
+        current = float(current_sum)
+        predicted = float(predicted_sum)
+        if current > 0 or predicted > 0:
+            change_pct = round((predicted - current) / current * 100, 1) if current > 0 else 0.0
+            result.append({
+                "category": "All Products (Org-Level)",
+                "current_demand": round(current, 1),
+                "predicted_demand": round(predicted, 1),
+                "change_pct": change_pct,
+            })
+
+    return {
+        "categories": result,
+        "data_date": str(latest_date)[:10] if latest_date else None,
+        "forecast_date": str(future_date)[:10] if future_date else None,
+        "product_linked": has_product_id > 0,
+    }
 
 
 @router.get("/model-info")

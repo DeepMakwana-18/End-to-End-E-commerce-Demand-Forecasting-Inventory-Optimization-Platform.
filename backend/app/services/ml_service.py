@@ -90,13 +90,20 @@ class XGBoostForecastModel:
         print(f"Demand range: {df['demand'].min():.1f} - {df['demand'].max():.1f}")
         print(f"Demand mean: {df['demand'].mean():.1f}")
         
-        # Store REAL historical data for charting (last 24 weeks max)
-        hist_df = df.tail(24).copy()
+        # Store REAL historical data for charting and anomaly scanning (keep entire dataset)
+        hist_df = df.copy()
+        
+        # Prevent NaN values from causing JSON serialization crashes (HTTP 500)
+        # We fill missing demand values with 0 so the UI charts remain intact.
+        if "demand" in hist_df.columns:
+            hist_df["demand"] = hist_df["demand"].fillna(0)
+            
         self.historical_data = []
         for _, row in hist_df.iterrows():
+            val = row["demand"]
             self.historical_data.append({
                 "date": row["date"].strftime("%Y-%m-%d"),
-                "demand": round(float(row["demand"]), 1)
+                "demand": round(float(val), 1) if pd.notna(val) else 0.0
             })
             
         df_features = self._create_features(df)

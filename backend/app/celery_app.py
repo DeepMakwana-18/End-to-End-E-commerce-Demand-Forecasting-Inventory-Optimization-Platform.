@@ -46,5 +46,19 @@ celery.conf.update(
         "app.tasks.retraining_tasks",
         "app.tasks.report_tasks",
         "app.tasks.notification_tasks",
+        "app.tasks.anomaly_tasks",       # Phase 4C: Anomaly detection pipeline
     ]
 )
+
+# ── Celery Beat Schedule (nightly tasks) ─────────────────────────────
+
+from celery.schedules import crontab  # noqa: E402
+
+celery.conf.beat_schedule = {
+    # Nightly anomaly scan: 02:00 UTC every day
+    "nightly-anomaly-scan": {
+        "task": "titan.anomaly.nightly_scan",
+        "schedule": crontab(hour=2, minute=0),
+        "options": {"expires": 3600},  # expire after 1h if not consumed
+    },
+}

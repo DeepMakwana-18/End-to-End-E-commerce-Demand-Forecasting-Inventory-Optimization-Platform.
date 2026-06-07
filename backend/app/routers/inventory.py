@@ -59,14 +59,45 @@ async def get_reorder_recommendations(
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Get products that need reordering."""
+    """Get products that need reordering with real product pricing."""
+    from sqlalchemy import select, func
+    from app.models import Product
+
     repo = InventoryRepository(db, tenant.org_id)
     items = await repo.get_reorder_items()
-    total_value = sum(item.get("recommended_qty", 0) * 25 for item in items)
+
+    if not items:
+        return {"recommendations": [], "total": 0, "total_order_value": 0}
+
+    # Fetch real product prices for the SKUs that need reordering
+    product_ids = [i["id"] for i in items if i.get("id")]  # inventory id
+    # get_reorder_items returns inventory rows joined with product — re-query
+    # product prices using SKU as the join key
+    skus = [i["sku"] for i in items if i.get("sku")]
+    price_by_sku: dict[str, float] = {}
+    if skus:
+        price_stmt = (
+            select(Product.sku, Product.price)
+            .where(Product.organization_id == tenant.org_id)
+            .where(Product.sku.in_(skus))
+        )
+        price_rows = (await db.execute(price_stmt)).all()
+        price_by_sku = {
+            row.sku: float(row.price)
+            for row in price_rows
+            if row.price is not None and float(row.price) > 0
+        }
+
+    # Compute total order value using real product prices
+    total_value = sum(
+        item.get("recommended_qty", 0) * price_by_sku.get(item.get("sku", ""), 0.0)
+        for item in items
+    )
+
     return {
         "recommendations": items,
         "total": len(items),
-        "total_order_value": total_value,
+        "total_order_value": round(total_value, 2),
     }
 
 

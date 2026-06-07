@@ -75,6 +75,11 @@ class EventType:
     # Notifications
     NOTIFICATION_SENT = "notification.sent"
 
+    # Anomaly Detection
+    ANOMALY_SCAN_STARTED = "anomaly.scan.started"
+    ANOMALY_SCAN_COMPLETED = "anomaly.scan.completed"
+    ANOMALY_DETECTED = "anomaly.detected"
+
 
 # ── Domain Event ────────────────────────────────────────────────────
 

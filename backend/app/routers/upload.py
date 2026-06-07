@@ -129,6 +129,22 @@ async def upload_sales_data(
             f"RMSE: {forecast_model.metrics['rmse']}"
         )
 
+        # Phase 4C: Auto-trigger anomaly scan after successful upload
+        try:
+            from app.tasks.anomaly_tasks import run_anomaly_scan
+            run_anomaly_scan.apply_async(
+                kwargs={
+                    "org_id": tenant.org_id,
+                    "user_id": tenant.user_id,
+                    "trigger": "upload",
+                    "lookback_weeks": 12,
+                },
+                countdown=3,  # 3s delay to let model settle
+            )
+        except Exception:
+            import traceback as _tb
+            _tb.print_exc()
+
     except Exception as e:
         traceback.print_exc()
         upload_record.status = "failed"

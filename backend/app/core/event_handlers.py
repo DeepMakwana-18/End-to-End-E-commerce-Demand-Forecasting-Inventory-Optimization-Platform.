@@ -130,6 +130,46 @@ async def on_user_action(event: DomainEvent) -> None:
     )
 
 
+async def on_anomaly_scan_started(event: DomainEvent) -> None:
+    """Log anomaly scan start."""
+    logger.info(
+        "[org:%s] Anomaly scan started (trigger=%s, lookback=%dw)",
+        event.org_id,
+        event.payload.get("trigger", "unknown"),
+        event.payload.get("lookback_weeks", 12),
+    )
+    await _broadcast_to_org(event)
+
+
+async def on_anomaly_scan_completed(event: DomainEvent) -> None:
+    """Log anomaly scan completion and broadcast summary to UI."""
+    payload = event.payload
+    logger.info(
+        "[org:%s] Anomaly scan complete (trigger=%s): %d found "
+        "[critical=%d medium=%d low=%d] in %.2fs",
+        event.org_id,
+        payload.get("trigger", "unknown"),
+        payload.get("detected", 0),
+        payload.get("critical", 0),
+        payload.get("medium", 0),
+        payload.get("low", 0),
+        payload.get("computation_seconds", 0.0),
+    )
+    await _broadcast_to_org(event)
+
+
+async def on_anomaly_detected(event: DomainEvent) -> None:
+    """Log that anomalies were found — broadcast for UI refresh."""
+    logger.warning(
+        "[org:%s] ANOMALY DETECTED: count=%d critical=%d (trigger=%s)",
+        event.org_id,
+        event.payload.get("count", 0),
+        event.payload.get("critical_count", 0),
+        event.payload.get("trigger", "unknown"),
+    )
+    await _broadcast_to_org(event)
+
+
 # ── Registration ────────────────────────────────────────────────────
 
 
@@ -151,5 +191,9 @@ def register_event_handlers() -> None:
     event_bus.subscribe(EventType.REPORT_GENERATED, on_report_generated)
     event_bus.subscribe(EventType.USER_ACTION, on_user_action)
     event_bus.subscribe(EventType.USER_LOGIN, on_user_action)
+    # Anomaly events
+    event_bus.subscribe(EventType.ANOMALY_SCAN_STARTED, on_anomaly_scan_started)
+    event_bus.subscribe(EventType.ANOMALY_SCAN_COMPLETED, on_anomaly_scan_completed)
+    event_bus.subscribe(EventType.ANOMALY_DETECTED, on_anomaly_detected)
 
     logger.info("✅ Event handlers registered (%d types)", len(event_bus._handlers))

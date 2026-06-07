@@ -210,8 +210,7 @@ class ForecastResponse(BaseModel):
     confidence_upper: Optional[float] = None
     model_version: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"protected_namespaces": (), "from_attributes": True}
 
 
 class ForecastPoint(BaseModel):
@@ -234,6 +233,8 @@ class ForecastResultResponse(BaseModel):
     training_id: int
     data_source: str
     last_trained: Optional[str] = None
+
+    model_config = {"protected_namespaces": ()}
 
 
 # ── Alert Schemas ─────────────────────────────────────────────────────
@@ -347,8 +348,7 @@ class ModelVersionResponse(BaseModel):
     is_active: bool
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"protected_namespaces": (), "from_attributes": True}
 
 
 # ── Audit Log Schema ─────────────────────────────────────────────────

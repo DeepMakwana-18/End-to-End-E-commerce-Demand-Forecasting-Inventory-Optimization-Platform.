@@ -130,11 +130,32 @@ export default function UploadPage() {
               
               // Trigger background ML retraining
               import('@/services/api').then(({ default: api }) => {
+                setMlStatus('⏳ ML model retraining in progress...');
                 api.post('/forecast/retrain', {
                   csv_text: fullCsvText,
                   filename: s.file!.name,
-                }).then(() => {
-                  setMlStatus('✅ ML model retrained and active');
+                }).then((res) => {
+                  if (res.data.task_id) {
+                    const taskId = res.data.task_id;
+                    const pollTask = async () => {
+                      try {
+                        const taskRes = await api.get(`/tasks/${taskId}`);
+                        const state = taskRes.data.state;
+                        if (state === 'completed') {
+                          setMlStatus('✅ ML model retrained and active');
+                        } else if (state === 'failed') {
+                          setMlStatus('❌ ML model retraining failed');
+                        } else {
+                          setTimeout(pollTask, 1500);
+                        }
+                      } catch (e) {
+                        setTimeout(pollTask, 1500);
+                      }
+                    };
+                    pollTask();
+                  } else {
+                    setMlStatus('✅ ML model retrained and active');
+                  }
                 }).catch(() => {
                   setMlStatus('❌ ML model retraining failed');
                 });

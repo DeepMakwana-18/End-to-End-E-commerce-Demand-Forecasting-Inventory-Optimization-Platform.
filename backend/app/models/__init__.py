@@ -16,6 +16,9 @@ import enum
 # Scenario models imported so init_db() creates their tables
 from app.models.scenario import Scenario, ScenarioResult, ScenarioStatus, ScenarioType  # noqa: F401
 
+# Anomaly model imported so init_db() creates its table
+from app.models.anomaly import Anomaly, AnomalyType, AnomalySeverity  # noqa: F401
+
 
 def utcnow():
     return datetime.now(timezone.utc)
@@ -232,7 +235,7 @@ class Forecast(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=True, index=True)
     forecast_date = Column(DateTime(timezone=True), nullable=False)
     predicted_demand = Column(Float, nullable=False)
     actual_demand = Column(Float, nullable=True)

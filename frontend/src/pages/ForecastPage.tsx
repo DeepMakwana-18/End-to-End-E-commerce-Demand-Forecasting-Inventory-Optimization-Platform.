@@ -82,59 +82,12 @@ export default function ForecastPage() {
     const loadForecasts = async () => {
       try {
         setIsLoading(true);
-        
-        if (isCustomDataset && rawCsvText) {
-          // User uploaded a CSV — send it as JSON to retrain the model
-          console.log(`📊 Retraining model on uploaded data: ${datasetName}`);
-          const res = await api.post('/forecast/retrain', {
-            csv_text: rawCsvText,
-            filename: datasetName || 'uploaded.csv',
-          });
-          if (res.data.error) {
-            showToast(`❌ ML Error: ${res.data.error}`);
-            // Fall back to default
-            const fallback = await api.get(`/forecast?weeks=12&_t=${Date.now()}`);
-            formatResponse(fallback.data);
-            setIsLoading(false);
-          } else if (res.data.task_id) {
-            // Async background task — poll for completion
-            const taskId = res.data.task_id;
-            const pollTask = async () => {
-              try {
-                const taskRes = await api.get(`/tasks/${taskId}`);
-                const state = taskRes.data.state;
-                if (state === 'completed') {
-                  formatResponse(taskRes.data.result);
-                  showToast('✅ Model retrained successfully');
-                  setIsLoading(false);
-                } else if (state === 'failed') {
-                  showToast(`❌ ML Error: ${taskRes.data.error || 'Failed'}`);
-                  const fallback = await api.get(`/forecast?weeks=12&_t=${Date.now()}`);
-                  formatResponse(fallback.data);
-                  setIsLoading(false);
-                } else {
-                  setTimeout(pollTask, 1500);
-                }
-              } catch (e) {
-                setTimeout(pollTask, 1500);
-              }
-            };
-            pollTask();
-            return; // Exit early, let polling finish
-          } else {
-            formatResponse(res.data);
-            setIsLoading(false);
-          }
-        } else {
-          // Default dataset — reset model to synthetic and get predictions
-          console.log('📊 Loading default (synthetic) forecasts');
-          const res = await api.post('/forecast/reset');
-          formatResponse(res.data);
-          setIsLoading(false);
-        }
+        const res = await api.get(`/forecast?weeks=12&_t=${Date.now()}`);
+        formatResponse(res.data);
       } catch (err) {
         console.error(err);
         showToast('❌ Failed to load ML forecasts from backend');
+      } finally {
         setIsLoading(false);
       }
     };

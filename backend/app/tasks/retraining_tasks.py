@@ -158,6 +158,46 @@ def retrain_model_async(
                     model_path=model_path
                 )
                 db.add(mv)
+                await db.flush()
+
+                # Clear old org-level forecasts
+                from sqlalchemy import delete
+                from app.models import Forecast
+                from dateutil import parser
+                await db.execute(delete(Forecast).where(Forecast.organization_id == org_id, Forecast.product_id == None))
+
+                # Insert historical actuals
+                hist_records = []
+                for row in forecast_model.historical_data:
+                    dt = parser.parse(row["date"])
+                    hist_records.append(Forecast(
+                        organization_id=org_id,
+                        product_id=None,
+                        forecast_date=dt,
+                        predicted_demand=0.0,  # Required by schema
+                        actual_demand=float(row["demand"]),
+                        model_version_id=mv.id,
+                        model_version=version_tag,
+                    ))
+
+                # Insert future predictions
+                for row in forecasts:
+                    dt = parser.parse(row["date"])
+                    hist_records.append(Forecast(
+                        organization_id=org_id,
+                        product_id=None,
+                        forecast_date=dt,
+                        predicted_demand=float(row["predicted_demand"]),
+                        actual_demand=None,
+                        confidence_lower=float(row.get("lower_bound", 0.0)),
+                        confidence_upper=float(row.get("upper_bound", 0.0)),
+                        model_version_id=mv.id,
+                        model_version=version_tag,
+                    ))
+
+                if hist_records:
+                    db.add_all(hist_records)
+
                 await db.commit()
 
         try:
@@ -195,6 +235,23 @@ def retrain_model_async(
             version_tag,
             metrics["accuracy"] * 100,
         )
+
+        # Phase 4C: Auto-trigger anomaly scan after successful retrain
+        try:
+            from app.tasks.anomaly_tasks import run_anomaly_scan
+            run_anomaly_scan.apply_async(
+                kwargs={
+                    "org_id": org_id,
+                    "user_id": user_id,
+                    "trigger": "retrain",
+                    "lookback_weeks": 12,
+                },
+                countdown=5,  # 5s delay to let DB writes settle
+            )
+            logger.info("[org:%s] Anomaly scan queued after retrain", org_id)
+        except Exception:
+            logger.warning("[org:%s] Could not queue post-retrain anomaly scan", org_id, exc_info=True)
+
         return result
 
     except Exception as exc:

@@ -12,6 +12,7 @@ from app.repositories.forecast_repo import ForecastRepository
 from app.repositories.alert_repo import AlertRepository
 from app.repositories.upload_repo import UploadRepository
 from app.repositories.scenario_repository import ScenarioRepository, ScenarioResultRepository
+from app.repositories.anomaly_repository import AnomalyRepository
 
 __all__ = [
     "OrganizationRepository",
@@ -23,4 +24,5 @@ __all__ = [
     "UploadRepository",
     "ScenarioRepository",
     "ScenarioResultRepository",
+    "AnomalyRepository",
 ]
