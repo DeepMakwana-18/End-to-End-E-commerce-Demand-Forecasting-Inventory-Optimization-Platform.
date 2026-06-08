@@ -54,6 +54,115 @@ async def get_forecasts(
     }
 
 
+@router.get("/explain")
+async def explain_forecast(
+    weeks: int = Query(default=12, ge=1, le=52),
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Generate per-week SHAP explanations for the upcoming forecast.
+
+    Returns one explanation object per requested week containing:
+      - prediction     : model output (before seasonal adjustment)
+      - base_value     : SHAP expected value (model mean prediction)
+      - feature_vector : the exact input features for that week
+      - shap_values    : per-feature SHAP contributions
+      - top_drivers    : contributors sorted by absolute magnitude
+    """
+    import numpy as np
+    from datetime import timedelta
+    from app.services.ml_service import FEATURE_NAMES
+    from app.services.shap_service import ShapService
+
+    # ── Ensure model is loaded ────────────────────────────────────────
+    mv_repo = ModelVersionRepository(db, tenant.org_id)
+    active_model = await mv_repo.get_active()
+
+    if active_model and active_model.model_path:
+        forecast_model.load(active_model.model_path)
+    elif not forecast_model.is_trained:
+        forecast_model.train()
+
+    if not forecast_model.is_trained:
+        return {"error": "Model not ready", "weeks": [], "explainer_ready": False}
+
+    # ── Build feature vectors for each forecast week ──────────────────
+    # Mirrors the predict() logic so feature values are identical
+    feature_vectors: list[dict] = []
+    raw_predictions: list[float] = []
+
+    current_date = forecast_model.last_date
+    recent = list(forecast_model.last_demands)
+
+    for i in range(weeks):
+        current_date += timedelta(weeks=1)
+        week = current_date.isocalendar()[1]
+        month = current_date.month
+        year = current_date.year
+
+        lag_1 = float(recent[-1]) if len(recent) >= 1 else float(forecast_model.last_demand)
+        lag_4 = float(recent[-4]) if len(recent) >= 4 else float(forecast_model.last_4_demand)
+
+        fvec = {
+            "week": int(week),
+            "month": int(month),
+            "year": int(year),
+            "lag_1": round(lag_1, 4),
+            "lag_4": round(lag_4, 4),
+            "date": current_date.strftime("%Y-%m-%d"),
+        }
+        feature_vectors.append(fvec)
+
+        # Replicate raw model prediction (no seasonal offset)
+        X_pred = pd.DataFrame([{k: fvec[k] for k in FEATURE_NAMES}])
+        raw_pred = float(forecast_model.model.predict(X_pred)[0])
+        raw_predictions.append(raw_pred)
+
+        # Advance the lag window exactly as predict() does
+        seasonal_factor = forecast_model.seasonal_amplitude * float(
+            np.sin(2 * np.pi * week / 52)
+        )
+        adjusted = max(0.0, raw_pred + seasonal_factor)
+        recent.append(adjusted)
+
+    # ── Run SHAP explainer ────────────────────────────────────────────
+    try:
+        explanations = ShapService.explain_forecast(
+            model=forecast_model.model,
+            historical_data=forecast_model.historical_data,
+            feature_vectors=feature_vectors,
+            predictions=raw_predictions,
+            feature_names=FEATURE_NAMES,
+        )
+        explainer_ready = True
+    except Exception as exc:
+        import logging
+        logging.getLogger("titan.routers.forecast").error(
+            "SHAP explain failed: %s", exc, exc_info=True
+        )
+        # Return predictions without SHAP rather than a hard 500
+        explanations = [
+            {
+                "week": i + 1,
+                "date": fv["date"],
+                "prediction": round(raw_predictions[i], 2),
+                "base_value": None,
+                "feature_vector": {k: fv[k] for k in FEATURE_NAMES},
+                "shap_values": {},
+                "top_drivers": [],
+            }
+            for i, fv in enumerate(feature_vectors)
+        ]
+        explainer_ready = False
+
+    return {
+        "weeks": explanations,
+        "model_type": type(forecast_model.model).__name__,
+        "feature_names": FEATURE_NAMES,
+        "explainer_ready": explainer_ready,
+        "data_source": forecast_model.data_source,
+    }
+
 @router.get("/product/{product_id}")
 async def get_product_forecast(
     product_id: int,
@@ -332,45 +441,28 @@ async def reset_model(
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Reset model to synthetic/default data."""
-    forecast_model.train(source_name="synthetic")
-    forecasts = forecast_model.predict(weeks_ahead=12)
+    """Reset model to synthetic/default data (async via Celery).
 
-    version_tag = f"v{forecast_model.training_id}.0"
-    
-    from app.config import settings
-    import os
-    model_filename = f"model_org_{tenant.org_id}_{version_tag}.pkl".replace(" ", "_")
-    model_path = os.path.join(settings.ML_MODEL_PATH, model_filename)
-    forecast_model.save(model_path)
+    Returns immediately with a task_id. Poll GET /api/v1/tasks/{task_id}
+    for progress. The worker will train on synthetic data, persist a new
+    ModelVersion, write Forecast rows, and trigger an anomaly scan.
+    """
+    if not tenant.can_manage_ml:
+        from fastapi import HTTPException as _HTTPException
+        raise _HTTPException(status_code=403, detail="Insufficient permissions to reset model")
 
-    mv_repo = ModelVersionRepository(db, tenant.org_id)
-    await mv_repo.deactivate_all()
-    mv = ModelVersion(
-        organization_id=tenant.org_id,
-        version_tag=version_tag,
-        model_type="XGBRegressor",
-        accuracy=forecast_model.metrics["accuracy"],
-        mae=forecast_model.metrics["mae"],
-        rmse=forecast_model.metrics["rmse"],
-        training_samples=forecast_model.metrics["training_samples"],
-        data_source=forecast_model.data_source,
-        feature_importance=forecast_model.metrics.get("feature_importance", {}),
-        is_active=True,
-        model_path=model_path
+    from app.tasks.retraining_tasks import reset_model_async
+
+    task = reset_model_async.delay(
+        org_id=tenant.org_id,
+        user_id=tenant.user_id,
     )
-    db.add(mv)
-    await db.commit()
 
     return {
-        "status": "reset",
-        "forecasts": forecasts,
-        "historical": forecast_model.historical_data,
-        "model_version": version_tag,
-        "accuracy": forecast_model.metrics["accuracy"],
-        "rmse": forecast_model.metrics["rmse"],
-        "training_samples": forecast_model.metrics["training_samples"],
-        "training_id": forecast_model.training_id,
-        "data_source": forecast_model.data_source,
-        "last_trained": forecast_model.metrics["last_trained"],
+        "status": "queued",
+        "task_id": task.id,
+        "message": (
+            "Model reset to synthetic baseline queued \u2014 "
+            f"poll GET /api/v1/tasks/{task.id} for progress."
+        ),
     }

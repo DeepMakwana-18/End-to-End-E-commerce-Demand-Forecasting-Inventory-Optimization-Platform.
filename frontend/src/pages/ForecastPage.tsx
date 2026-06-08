@@ -12,9 +12,10 @@ import {
 } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
+import { ForecastExplainPanel } from '@/components/forecast/ForecastExplainPanel';
 import { cn, formatNumber } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
-import api from '@/services/api';
+import { forecastApi, type ForecastExplainResponse } from '@/services/api';
 
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -41,6 +42,11 @@ export default function ForecastPage() {
   const [forecastData, setForecastData] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modelMetrics, setModelMetrics] = useState<any>(null);
+
+  // ── SHAP Explain state ──────────────────────────────────────────
+  const [explainData, setExplainData] = useState<ForecastExplainResponse | null>(null);
+  const [isExplainLoading, setIsExplainLoading] = useState(false);
+  const [explainError, setExplainError] = useState<string | null>(null);
 
   // Helper to format the API response into chart data
   const formatResponse = (data: any) => {
@@ -78,11 +84,14 @@ export default function ForecastPage() {
     });
   };
 
+  // ── Load forecasts and then explanations ────────────────────────
   useEffect(() => {
     const loadForecasts = async () => {
       try {
         setIsLoading(true);
-        const res = await api.get(`/forecast?weeks=12&_t=${Date.now()}`);
+        setExplainData(null);
+        setExplainError(null);
+        const res = await forecastApi.get(12);
         formatResponse(res.data);
       } catch (err) {
         console.error(err);
@@ -93,6 +102,28 @@ export default function ForecastPage() {
     };
     loadForecasts();
   }, [isCustomDataset, rawCsvText]);
+
+  // Fetch explanations after forecast data is ready
+  useEffect(() => {
+    if (isLoading || forecastData.length === 0) return;
+
+    const loadExplain = async () => {
+      try {
+        setIsExplainLoading(true);
+        setExplainError(null);
+        const res = await forecastApi.getExplain(12);
+        setExplainData(res.data);
+      } catch (err: any) {
+        console.error('SHAP explain error:', err);
+        setExplainError(
+          err?.response?.data?.detail ?? 'Could not load SHAP explanations.'
+        );
+      } finally {
+        setIsExplainLoading(false);
+      }
+    };
+    loadExplain();
+  }, [isLoading, forecastData.length]);
 
   const filteredCategories = useMemo(() => {
     if (selectedCategory === 'all') return categoryForecasts;
@@ -135,7 +166,7 @@ export default function ForecastPage() {
         <div>
           <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Demand Forecasting</h1>
           <p className="text-sm text-surface-500 mt-1">
-            XGBoost-powered demand predictions with confidence intervals
+            ML-powered demand predictions with SHAP explainability
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -182,7 +213,7 @@ export default function ForecastPage() {
 
       {/* Main Forecast Chart with Confidence Intervals */}
       <ChartCard title="Demand Forecast with Confidence Intervals"
-        subtitle={isLoading ? "Training XGBoost model and predicting..." : `Trained on: ${modelMetrics?.dataSource || 'synthetic'} (${modelMetrics?.trainingSamples || '?'} samples) | ${modelMetrics?.version || 'XGBoost'} predictions (95% CI)`} delay={0.2}>
+        subtitle={isLoading ? "Training ML model and predicting..." : `Trained on: ${modelMetrics?.dataSource || 'synthetic'} (${modelMetrics?.trainingSamples || '?'} samples) | ${modelMetrics?.version || 'ML'} predictions (95% CI)`} delay={0.2}>
         {isLoading ? (
           <div className="w-full h-[340px] flex flex-col items-center justify-center text-surface-500 gap-3">
             <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
@@ -212,6 +243,17 @@ export default function ForecastPage() {
         </ResponsiveContainer>
         )}
       </ChartCard>
+
+      {/* ── SHAP Forecast Explainability Panel ──────────────────────── */}
+      <ForecastExplainPanel
+        weeks={explainData?.weeks ?? []}
+        featureNames={explainData?.feature_names ?? []}
+        modelType={explainData?.model_type ?? ''}
+        dataSource={explainData?.data_source ?? modelMetrics?.dataSource ?? ''}
+        explainerReady={explainData?.explainer_ready ?? false}
+        isLoading={isExplainLoading}
+        error={explainError}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Category Forecasts */}

@@ -155,6 +155,39 @@ def _run_rolling_detection(
 
 # ── Service ───────────────────────────────────────────────────────────
 
+# ── Module-level Anomaly Explain Cache (Phase 5D) ─────────────────────
+# Key: (anomaly_id, model_version_tag)  Value: serialisable dict of AnomalyExplainResponse
+# Lives for the process lifetime. Evicted when max size reached (LRU).
+from collections import OrderedDict as _OrderedDict
+
+_EXPLAIN_CACHE: _OrderedDict = _OrderedDict()
+_EXPLAIN_CACHE_MAX = 128
+
+
+def _explain_cache_get(key: tuple) -> dict | None:
+    if key in _EXPLAIN_CACHE:
+        _EXPLAIN_CACHE.move_to_end(key)
+        return dict(_EXPLAIN_CACHE[key])  # shallow copy so callers can mutate 'cached' key
+    return None
+
+
+def _explain_cache_put(key: tuple, value: dict) -> None:
+    _EXPLAIN_CACHE[key] = value
+    _EXPLAIN_CACHE.move_to_end(key)
+    if len(_EXPLAIN_CACHE) > _EXPLAIN_CACHE_MAX:
+        _EXPLAIN_CACHE.popitem(last=False)
+
+
+# Feature names and human-readable labels used by the forecast model
+_FEATURE_NAMES: list[str] = ["week", "month", "year", "lag_1", "lag_4"]
+_FEATURE_LABELS: dict[str, str] = {
+    "week":  "Week of year",
+    "month": "Month",
+    "year":  "Year trend",
+    "lag_1": "Last-week demand",
+    "lag_4": "4-week-ago demand",
+}
+
 
 class AnomalyService:
     """Orchestrates anomaly detection and result management.
@@ -737,3 +770,343 @@ class AnomalyService:
             unit_price_used=unit_price_used,
         )
 
+    async def get_explain(self, anomaly_id: int):
+        """Generate SHAP root-cause explanation for a single anomaly.
+
+        Reconstructs the forecast feature vector at the anomaly event date
+        from the Forecast table, then calls ShapService.explain_forecast().
+
+        Returns AnomalyExplainResponse (never persisted).
+        Returns explainer_ready=False gracefully on any failure — no 500.
+        """
+        from app.schemas.anomaly import AnomalyExplainResponse, AnomalyDriverItem
+        from app.repositories.forecast_repo import ModelVersionRepository
+        from app.models.anomaly import AnomalyType as AType
+        from app.models import Forecast
+        from app.services.shap_service import ShapService
+        import pickle
+
+        # ── 1. Load anomaly record ────────────────────────────────────
+        anomaly = await self.repo.get_by_id(anomaly_id)
+        if anomaly is None:
+            return None  # caller converts to 404
+
+        # ── 2. Load active model version + artifact ───────────────────
+        mv_repo = ModelVersionRepository(self.db, self.org_id)
+        active_mv, artifact_path = await mv_repo.get_active_with_artifact()
+
+        if active_mv is None:
+            return AnomalyExplainResponse(
+                explainer_ready=False,
+                anomaly_id=anomaly_id,
+                reason="No active model version. Run training first.",
+                reconstruction_quality="minimal",
+            )
+
+        if not artifact_path:
+            return AnomalyExplainResponse(
+                explainer_ready=False,
+                anomaly_id=anomaly_id,
+                model_version_tag=active_mv.version_tag,
+                reason="Model artifact not found on disk. Re-run training.",
+                reconstruction_quality="minimal",
+            )
+
+        version_tag = active_mv.version_tag
+
+        # ── 3. Check in-process cache ─────────────────────────────────
+        cache_key = (anomaly_id, version_tag)
+        cached_result = _explain_cache_get(cache_key)
+        if cached_result is not None:
+            cached_result["cached"] = True
+            return AnomalyExplainResponse(**cached_result)
+
+        # ── 4. Load pkl state ─────────────────────────────────────────
+        try:
+            with open(artifact_path, "rb") as fh:
+                state = pickle.load(fh)
+        except Exception as exc:
+            logger.error("[org:%d] Explain: failed to load pkl: %s", self.org_id, exc)
+            return AnomalyExplainResponse(
+                explainer_ready=False,
+                anomaly_id=anomaly_id,
+                model_version_tag=version_tag,
+                reason=f"Model artifact could not be loaded: {exc}",
+                reconstruction_quality="minimal",
+            )
+
+        model = state.get("model")
+        historical_data = state.get("historical_data", [])
+        if model is None:
+            return AnomalyExplainResponse(
+                explainer_ready=False,
+                anomaly_id=anomaly_id,
+                model_version_tag=version_tag,
+                reason="Pickle state missing 'model' key.",
+                reconstruction_quality="minimal",
+            )
+
+        # ── 5. Parse event date ───────────────────────────────────────
+        from datetime import timedelta
+
+        event_date_obj = None
+        if anomaly.event_date:
+            try:
+                from datetime import datetime as _dt
+                event_date_obj = _dt.strptime(anomaly.event_date, "%Y-%m-%d").date()
+            except ValueError:
+                pass
+
+        # ── 6. Reconstruct feature vector at anomaly date ─────────────
+        used_fallbacks: list[str] = []
+
+        if event_date_obj:
+            week  = int(event_date_obj.isocalendar()[1])
+            month = event_date_obj.month
+            year  = event_date_obj.year
+        else:
+            # No event date — use today's calendar values
+            from datetime import date as _date
+            today = _date.today()
+            week  = int(today.isocalendar()[1])
+            month = today.month
+            year  = today.year
+            used_fallbacks.append("week")
+            used_fallbacks.append("month")
+            used_fallbacks.append("year")
+
+        # Look up lag_1 and lag_4 from Forecast table around event_date
+        # lag_1 = actual_demand 1 week before event_date
+        # lag_4 = actual_demand 4 weeks before event_date
+        expected_val = float(anomaly.expected_value or 0)
+
+        async def _fetch_lag(weeks_back: int) -> tuple[float, bool]:
+            """Return (value, used_fallback). True = fell back to expected_value."""
+            if not event_date_obj:
+                return expected_val, True
+            target = event_date_obj - timedelta(weeks=weeks_back)
+            # Allow ±3 days tolerance
+            lo = datetime(target.year, target.month, target.day, tzinfo=timezone.utc) - timedelta(days=3)
+            hi = datetime(target.year, target.month, target.day, tzinfo=timezone.utc) + timedelta(days=3)
+            stmt = (
+                select(Forecast)
+                .where(Forecast.organization_id == self.org_id)
+                .where(Forecast.forecast_date >= lo)
+                .where(Forecast.forecast_date <= hi)
+                .where(Forecast.actual_demand.isnot(None))
+                .order_by(func.abs(
+                    func.extract("epoch", Forecast.forecast_date) -
+                    func.extract("epoch", datetime(target.year, target.month, target.day, tzinfo=timezone.utc))
+                ))
+                .limit(1)
+            )
+            if anomaly.product_id:
+                stmt = stmt.where(Forecast.product_id == anomaly.product_id)
+            res = await self.db.execute(stmt)
+            row = res.scalars().first()
+            if row and row.actual_demand:
+                return float(row.actual_demand), False
+            return expected_val, True
+
+        lag_1_val, lag_1_fallback = await _fetch_lag(1)
+        lag_4_val, lag_4_fallback = await _fetch_lag(4)
+
+        if lag_1_fallback:
+            used_fallbacks.append("lag_1")
+        if lag_4_fallback:
+            used_fallbacks.append("lag_4")
+
+        # Reconstruction quality
+        total_features = 5  # week, month, year, lag_1, lag_4
+        n_fallbacks = len(used_fallbacks)
+        if n_fallbacks == 0:
+            reconstruction_quality = "full"
+        elif n_fallbacks <= 2:
+            reconstruction_quality = "partial"
+        else:
+            reconstruction_quality = "minimal"
+
+        feature_vec = {
+            "week":  float(week),
+            "month": float(month),
+            "year":  float(year),
+            "lag_1": lag_1_val,
+            "lag_4": lag_4_val,
+            "date":  anomaly.event_date or "",
+        }
+
+        # ── 7. Run SHAP ───────────────────────────────────────────────
+        actual_val = float(anomaly.actual_value or 0)
+        try:
+            shap_results = ShapService.explain_forecast(
+                model=model,
+                historical_data=historical_data,
+                feature_vectors=[feature_vec],
+                predictions=[actual_val],
+                feature_names=_FEATURE_NAMES,
+            )
+        except Exception as exc:
+            logger.error("[org:%d] Anomaly explain SHAP failed: %s", self.org_id, exc)
+            return AnomalyExplainResponse(
+                explainer_ready=False,
+                anomaly_id=anomaly_id,
+                model_version_tag=version_tag,
+                event_date=anomaly.event_date,
+                feature_vector=feature_vec,
+                reason=f"SHAP computation failed: {exc}",
+                reconstruction_quality=reconstruction_quality,
+                used_fallbacks=used_fallbacks,
+            )
+
+        if not shap_results:
+            return AnomalyExplainResponse(
+                explainer_ready=False,
+                anomaly_id=anomaly_id,
+                model_version_tag=version_tag,
+                reason="SHAP returned empty results.",
+                reconstruction_quality=reconstruction_quality,
+                used_fallbacks=used_fallbacks,
+            )
+
+        result = shap_results[0]
+        base_value = result["base_value"]
+        predicted_at_anomaly = result["prediction"]
+        shap_dict: dict[str, float] = result["shap_values"]
+
+        # ── 8. Build drivers and suppressors ──────────────────────────
+        all_items = sorted(
+            [
+                AnomalyDriverItem(
+                    feature=name,
+                    label=_FEATURE_LABELS.get(name, name),
+                    shap_value=round(sv, 4),
+                    feature_value=round(float(feature_vec.get(name, 0)), 4),
+                    direction="positive" if sv >= 0 else "negative",
+                    abs_shap=round(abs(sv), 4),
+                )
+                for name, sv in shap_dict.items()
+            ],
+            key=lambda d: d.abs_shap,
+            reverse=True,
+        )
+        drivers    = [d for d in all_items if d.direction == "positive"]
+        suppressors = [d for d in all_items if d.direction == "negative"]
+
+        # ── 9. SHAP-enhanced confidence ───────────────────────────────
+        abs_z = abs(anomaly.z_score or 0)
+        if abs_z >= 5:
+            base_confidence = 98.0
+        elif abs_z >= 4:
+            base_confidence = 92.0
+        elif abs_z >= 3:
+            base_confidence = 84.0
+        elif abs_z >= 2:
+            base_confidence = 72.0
+        else:
+            base_confidence = 55.0
+
+        top_abs = max((d.abs_shap for d in all_items), default=0.0)
+        total_abs = sum(d.abs_shap for d in all_items) or 1.0
+        top_driver_ratio = top_abs / total_abs  # 0-1: how dominant the top feature is
+
+        # SHAP boost: up to +8% when one feature dominates (ratio > 0.7)
+        shap_boost = min(8.0, top_driver_ratio * 12.0)
+        confidence_shap = round(min(99.0, base_confidence + shap_boost), 1)
+        confidence_source = "shap_enhanced" if shap_boost > 0.5 else "z_score"
+
+        # ── 10. Backend narrative summary ────────────────────────────
+        def _narrative() -> str:
+            if not all_items:
+                return (
+                    f"Anomaly on {anomaly.event_date}: actual {actual_val:.0f} "
+                    f"vs expected {expected_val:.0f} "
+                    f"(z={anomaly.z_score:.2f})."
+                )
+            primary = all_items[0]
+            direction_word = "above" if (anomaly.deviation_pct or 0) > 0 else "below"
+
+            lines = [
+                f"On {anomaly.event_date}, demand of {actual_val:,.0f} units was "
+                f"{abs(anomaly.deviation_pct or 0):.1f}% {direction_word} the "
+                f"expected {expected_val:,.0f} (z={anomaly.z_score:.2f})."
+            ]
+
+            if primary.abs_shap > 0.1:
+                lines.append(
+                    f"The primary driver was {primary.label} "
+                    f"({primary.feature_value:,.0f} units), "
+                    f"contributing {'+' if primary.shap_value >= 0 else ''}"
+                    f"{primary.shap_value:,.1f} to the model's prediction "
+                    f"above the SHAP baseline of {base_value:,.1f}."
+                )
+
+            if len(all_items) >= 2:
+                second = all_items[1]
+                if second.abs_shap > 0.1:
+                    lines.append(
+                        f"{second.label} was the secondary "
+                        f"{'driver' if second.direction == 'positive' else 'suppressor'} "
+                        f"({'+' if second.shap_value >= 0 else ''}{second.shap_value:,.1f})."
+                    )
+
+            if reconstruction_quality == "partial":
+                lines.append(
+                    f"Note: {', '.join(_FEATURE_LABELS.get(f, f) for f in used_fallbacks if f in ('lag_1','lag_4'))} "
+                    f"{'was' if len([f for f in used_fallbacks if f in ('lag_1','lag_4')]) == 1 else 'were'} "
+                    f"estimated from the rolling baseline (no exact Forecast row found)."
+                )
+            elif reconstruction_quality == "minimal":
+                lines.append(
+                    "Feature reconstruction was minimal — most values estimated from the rolling baseline."
+                )
+
+            return " ".join(lines)
+
+        narrative = _narrative()
+
+        # ── 11. Anomaly type note ────────────────────────────────────
+        anomaly_type_note = None
+        if anomaly.anomaly_type == AType.INVENTORY_SHOCK:
+            anomaly_type_note = (
+                "This is an inventory-level anomaly. SHAP explains the "
+                "demand-signal component from the forecast model; "
+                "actual inventory discrepancy may have different direct causes."
+            )
+        elif anomaly.anomaly_type == AType.FORECAST_MISS:
+            anomaly_type_note = (
+                "This anomaly reflects a forecast miss. "
+                "SHAP shows which features contributed most to the model's "
+                "incorrect prediction on this date."
+            )
+
+        # ── 12. Build and cache response ──────────────────────────────
+        resp_dict = dict(
+            explainer_ready=True,
+            anomaly_id=anomaly_id,
+            model_version_tag=version_tag,
+            event_date=anomaly.event_date,
+            base_value=round(base_value, 4),
+            predicted_at_anomaly=round(predicted_at_anomaly, 2),
+            feature_vector={
+                k: round(float(v), 4) if isinstance(v, (int, float)) else v
+                for k, v in feature_vec.items()
+                if k != "date"
+            },
+            drivers=[d.model_dump() for d in drivers],
+            suppressors=[d.model_dump() for d in suppressors],
+            all_shap={k: round(v, 4) for k, v in shap_dict.items()},
+            narrative_summary=narrative,
+            confidence_shap=confidence_shap,
+            confidence_source=confidence_source,
+            reconstruction_quality=reconstruction_quality,
+            used_fallbacks=used_fallbacks,
+            anomaly_type_note=anomaly_type_note,
+            cached=False,
+        )
+
+        _explain_cache_put(cache_key, resp_dict)
+        logger.info(
+            "[org:%d] Anomaly %d explain: ready=True quality=%s fallbacks=%s cached->key=%s",
+            self.org_id, anomaly_id, reconstruction_quality, used_fallbacks, cache_key,
+        )
+        return AnomalyExplainResponse(**resp_dict)

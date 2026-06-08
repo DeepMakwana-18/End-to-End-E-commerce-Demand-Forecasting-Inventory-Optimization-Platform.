@@ -257,3 +257,98 @@ async def get_scenario_result(
         error=result.error,
         created_at=result.created_at,
     )
+
+
+@router.get("/{scenario_id}/explain")
+async def explain_scenario(
+    scenario_id: int,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Return SHAP-based delta explainability for a completed scenario.
+
+    Runs both baseline and modified inference with feature capture enabled,
+    computes per-feature delta-SHAP values (simulated − baseline) for each
+    forecast week, and returns backend-computed driver_summary aggregates.
+
+    The response is idempotent — no state is written to the database.
+
+    Returns
+    -------
+    200  explainer_ready=true  — full week-by-week and aggregate SHAP data
+    200  explainer_ready=false — SHAP computation failed (graceful, no 500)
+    400  Scenario not completed yet
+    404  Scenario not found
+    """
+    from app.repositories.scenario_repository import ScenarioRepository
+    from app.repositories.forecast_repo import ModelVersionRepository
+    from app.ml.scenario_engine import ScenarioEngine
+    from app.models.scenario import ScenarioStatus
+
+    scenario_repo = ScenarioRepository(db, tenant.org_id)
+    scenario = await scenario_repo.get_by_id(scenario_id)
+
+    if scenario is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Scenario {scenario_id} not found",
+        )
+
+    if scenario.status != ScenarioStatus.COMPLETED:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=(
+                f"Scenario {scenario_id} is not completed (status={scenario.status.value}). "
+                "Run the simulation first."
+            ),
+        )
+
+    mv_repo = ModelVersionRepository(db, tenant.org_id)
+    active_mv, artifact_path = await mv_repo.get_active_with_artifact()
+
+    if active_mv is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active model version found. Run training first.",
+        )
+
+    if artifact_path is None:
+        return {
+            "explainer_ready": False,
+            "reason": "No model artifact on disk. Re-run training to generate the artifact.",
+        }
+
+    engine = ScenarioEngine(active_mv, artifact_path)
+    if not engine.load():
+        return {
+            "explainer_ready": False,
+            "reason": f"Failed to load model artifact at {artifact_path}.",
+        }
+
+    params = dict(scenario.parameters or {})
+    horizon = scenario.horizon_weeks or 12
+
+    # Resolve avg_unit_value from DB (same logic as _run_simulation)
+    from sqlalchemy import select, func
+    from app.models import Product
+    caller_unit_value = float(params.get("avg_unit_value", 0) or 0)
+    if caller_unit_value <= 0:
+        price_stmt = (
+            select(func.avg(Product.price))
+            .where(Product.organization_id == tenant.org_id)
+            .where(Product.is_active == True)
+            .where(Product.price.isnot(None))
+            .where(Product.price > 0)
+        )
+        avg_price = (await db.execute(price_stmt)).scalar()
+        if avg_price and float(avg_price) > 0:
+            params["avg_unit_value"] = round(float(avg_price), 4)
+
+    logger.info(
+        "[org:%d] Scenario %d explain requested (horizon=%dw model=%s)",
+        tenant.org_id, scenario_id, horizon, active_mv.version_tag,
+    )
+
+    explain_result = engine.explain(params, horizon)
+    return explain_result
+

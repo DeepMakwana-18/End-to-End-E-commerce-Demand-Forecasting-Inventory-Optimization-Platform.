@@ -11,14 +11,18 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useWebSocket } from './useWebSocket';
 
 const EVENT_TO_QUERY_KEYS: Record<string, string[][]> = {
-  'forecast.generated': [['forecast'], ['dashboard']],
-  'model.retrained': [['forecast'], ['dashboard'], ['model-info']],
-  'inventory.critical': [['inventory'], ['dashboard'], ['alerts']],
-  'inventory.updated': [['inventory'], ['dashboard']],
-  'alert.triggered': [['alerts'], ['dashboard']],
-  'alert.resolved': [['alerts'], ['dashboard']],
-  'report.generated': [['reports']],
+  'forecast.generated':       [['forecast'], ['dashboard']],
+  'model.retrained':          [['forecast'], ['dashboard'], ['model-info'], ['training-history']],
+  'model.reset':              [['forecast'], ['dashboard'], ['model-info'], ['training-history']],
+  'inventory.critical':       [['inventory'], ['dashboard'], ['alerts']],
+  'inventory.updated':        [['inventory'], ['dashboard']],
+  'alert.triggered':          [['alerts'], ['dashboard']],
+  'alert.resolved':           [['alerts'], ['dashboard']],
+  'report.generated':         [['reports']],
+  'anomaly.scan.completed':   [['anomalies'], ['dashboard']],
+  'anomaly.detected':         [['anomalies'], ['dashboard'], ['alerts']],
 };
+
 
 export function useRealtimeKPIs() {
   const { subscribe } = useWebSocket();

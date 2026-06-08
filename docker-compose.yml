@@ -97,6 +97,24 @@ services:
     networks:
       - df-network
 
+  # ---- Flower (Celery Monitoring) ----
+  flower:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    container_name: df-flower
+    command: celery -A app.celery_app flower --port=5555 --broker=redis://redis:6379/0
+    environment:
+      REDIS_URL: redis://redis:6379/0
+      FLOWER_UNAUTHENTICATED_API: "true"
+    ports:
+      - "5555:5555"
+    depends_on:
+      - celery_worker
+      - redis
+    networks:
+      - df-network
+
   # ---- Frontend (React + Nginx) ----
   frontend:
     build:

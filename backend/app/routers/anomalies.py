@@ -29,6 +29,7 @@ from app.schemas.anomaly import (
     AnomalyResolveRequest,
     AnomalySummary,
     AnomalyContextResponse,
+    AnomalyExplainResponse,
 )
 from app.services.anomaly_service import AnomalyService
 
@@ -181,3 +182,34 @@ async def get_anomaly_context(
         )
     return ctx
 
+
+# ── Explain (Phase 5D — SHAP Root-Cause) ─────────────────────────────
+
+
+@router.get(
+    "/{anomaly_id}/explain",
+    response_model=AnomalyExplainResponse,
+    summary="SHAP root-cause explanation for an anomaly",
+)
+async def explain_anomaly(
+    anomaly_id: int,
+    svc: AnomalyService = Depends(_service),
+) -> AnomalyExplainResponse:
+    """Generate a SHAP-based root-cause explanation for a detected anomaly.
+
+    Reconstructs the forecast feature vector at the anomaly event date from
+    the Forecast table, runs ShapService, and returns ranked feature drivers,
+    suppressors, a backend-generated narrative, and SHAP-enhanced confidence.
+
+    Returns explainer_ready=false (HTTP 200) if SHAP cannot be computed —
+    never returns HTTP 500 for SHAP-related failures.
+
+    Returns 404 if the anomaly_id is not found in the tenant scope.
+    """
+    result = await svc.get_explain(anomaly_id)
+    if result is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Anomaly {anomaly_id} not found",
+        )
+    return result

@@ -187,6 +187,24 @@ export const inventoryApi = {
 
 // ── Forecast API ──────────────────────────────────────────────────
 
+export interface ShapWeekExplanation {
+  week: number;
+  date: string;
+  prediction: number;
+  base_value: number | null;
+  feature_vector: Record<string, number>;
+  shap_values: Record<string, number>;
+  top_drivers: { feature: string; value: number; direction: 'positive' | 'negative' }[];
+}
+
+export interface ForecastExplainResponse {
+  weeks: ShapWeekExplanation[];
+  model_type: string;
+  feature_names: string[];
+  explainer_ready: boolean;
+  data_source: string;
+}
+
 export const forecastApi = {
   get: (weeks = 12) =>
     api.get<{
@@ -225,6 +243,9 @@ export const forecastApi = {
 
   getCategories: () =>
     api.get<{ categories: { category: string; current_demand: number; predicted_demand: number; change_pct: number }[] }>('/forecast/categories'),
+
+  getExplain: (weeks = 12) =>
+    api.get<ForecastExplainResponse>('/forecast/explain', { params: { weeks } }),
 };
 
 // ── Alerts API ────────────────────────────────────────────────────

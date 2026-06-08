@@ -167,3 +167,70 @@ class AnomalyContextResponse(BaseModel):
     # The unit price used for the impact calculation (exact product price or org weighted avg)
     unit_price_used: Optional[float] = None
 
+
+# ── Anomaly SHAP Explain Schemas (Phase 5D) ──────────────────────────
+
+
+class AnomalyDriverItem(BaseModel):
+    """A single SHAP feature contribution for an anomaly explanation."""
+
+    feature: str                   # e.g. "lag_1"
+    label: str                     # e.g. "Last-week demand"
+    shap_value: float              # raw SHAP contribution (positive or negative)
+    feature_value: float           # actual feature value reconstructed at anomaly date
+    direction: str                 # "positive" or "negative"
+    abs_shap: float                # |shap_value| for sorting/bar width
+
+
+class AnomalyExplainResponse(BaseModel):
+    """SHAP-based root-cause explanation for a single anomaly.
+
+    Computed on-demand from the active model + Forecast table feature
+    reconstruction. Never persisted to the database.
+
+    Fields
+    ------
+    explainer_ready          Whether SHAP succeeded (False = graceful failure).
+    reason                   Human-readable failure reason when not ready.
+    anomaly_id               ID of the explained anomaly.
+    model_version_tag        Version tag of the model used for explanation.
+    event_date               ISO date of the anomaly event.
+    base_value               SHAP expected value (E[f(x)]).
+    predicted_at_anomaly     Model raw prediction at the anomaly feature vector.
+    feature_vector           Reconstructed feature dict at anomaly date.
+    drivers                  Top positive SHAP contributions (sorted by abs desc).
+    suppressors              Top negative SHAP contributions (sorted by abs desc).
+    all_shap                 Full feature → SHAP value mapping.
+    narrative_summary        Backend-generated plain-English explanation.
+    confidence_shap          SHAP-enhanced detection confidence (0-100).
+    confidence_source        "z_score" | "shap_enhanced".
+    reconstruction_quality   "full" | "partial" | "minimal" — how many features
+                             were reconstructed from real data vs fallback.
+    used_fallbacks           List of feature names that fell back to expected_value.
+    anomaly_type_note        Optional caveat (e.g. for INVENTORY_SHOCK).
+    cached                   True if response came from the in-process cache.
+    """
+
+    explainer_ready: bool
+    reason: Optional[str] = None
+    anomaly_id: int
+    model_version_tag: Optional[str] = None
+    event_date: Optional[str] = None
+    base_value: Optional[float] = None
+    predicted_at_anomaly: Optional[float] = None
+    feature_vector: Optional[dict] = None
+    drivers: List[AnomalyDriverItem] = []
+    suppressors: List[AnomalyDriverItem] = []
+    all_shap: Optional[dict] = None
+    narrative_summary: Optional[str] = None
+    confidence_shap: Optional[float] = None
+    confidence_source: str = "z_score"
+    reconstruction_quality: str = "unknown"   # "full" | "partial" | "minimal"
+    used_fallbacks: List[str] = []
+    anomaly_type_note: Optional[str] = None
+    cached: bool = False
+
+    model_config = {"protected_namespaces": ()}
+
+
+

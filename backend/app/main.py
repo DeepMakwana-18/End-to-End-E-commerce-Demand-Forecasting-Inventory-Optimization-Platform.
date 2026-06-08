@@ -74,8 +74,59 @@ async def lifespan(app: FastAPI):
     register_event_handlers()
     set_ws_manager(ws_manager)
 
+    # 4. Model integrity check — verify active ModelVersion artifact exists on disk
+    try:
+        from app.database import async_session
+        from app.models import ModelVersion
+        from sqlalchemy import select
+        import os
+
+        async with async_session() as _db:
+            result = await _db.execute(
+                select(ModelVersion)
+                .where(ModelVersion.is_active == True)
+                .order_by(ModelVersion.created_at.desc())
+                .limit(1)
+            )
+            active_mv = result.scalar_one_or_none()
+
+        if active_mv is None:
+            logger.warning(
+                "⚠️ No active ModelVersion found in DB. "
+                "First forecast request will train on synthetic data."
+            )
+        elif not active_mv.model_path:
+            logger.warning(
+                "⚠️ Active ModelVersion (id=%d, tag=%s) has no model_path set.",
+                active_mv.id, active_mv.version_tag,
+            )
+        elif not os.path.exists(active_mv.model_path):
+            logger.warning(
+                "⚠️ Active ModelVersion (id=%d, tag=%s) artifact NOT FOUND on disk: %s. "
+                "Forecast requests will fall back to in-memory model.",
+                active_mv.id, active_mv.version_tag, active_mv.model_path,
+            )
+        else:
+            logger.info(
+                "✅ Active model: id=%d  tag=%s  type=%s  source=%s  artifact=%s",
+                active_mv.id,
+                active_mv.version_tag,
+                active_mv.model_type,
+                active_mv.data_source,
+                active_mv.model_path,
+            )
+            # Warn if feature metadata is missing (pre-5A artifact)
+            if not active_mv.feature_schema:
+                logger.warning(
+                    "⚠️ Active model has no feature_schema (pre-Phase 5A artifact). "
+                    "Retrain or reset to populate metadata."
+                )
+    except Exception as _e:
+        logger.warning("⚠️ Model integrity check skipped: %s", str(_e))
+
     yield
     logger.info("🛑 Shutting down %s...", settings.APP_NAME)
+
 
 
 # ── App ─────────────────────────────────────────────────────────────

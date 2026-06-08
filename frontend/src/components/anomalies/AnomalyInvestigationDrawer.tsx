@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { cn, formatNumber, formatCurrency } from '@/lib/utils';
 import { SeverityBadge, TypeBadge, SEVERITY_CONFIG } from './AnomalyBadges';
+import { AnomalyExplainPanel } from './AnomalyExplainPanel';
 import anomalyApi from '@/services/anomalyApi';
 import type { Anomaly, AnomalyType, AnomalySeverity, AnomalyContextResponse, AnomalyContextPoint } from '@/types/anomaly';
 
@@ -517,6 +518,14 @@ export function AnomalyInvestigationDrawer({ anomaly, onClose, onResolve }: Prop
                 </div>
               ) : (
                 <BaselineViz series={ctx?.series ?? []} anomaly={anomaly} />
+              )}
+
+              {/* SHAP Root-Cause Explanation — Phase 5D */}
+              {anomaly && !loading && (
+                <AnomalyExplainPanel
+                  anomalyId={anomaly.id}
+                  zScore={ctx?.z_score ?? anomaly.z_score}
+                />
               )}
 
               {/* Business Impact — Real product pricing */}

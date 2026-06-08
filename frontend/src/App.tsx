@@ -2,7 +2,7 @@
  * AI-Powered E-commerce Demand Forecasting & Inventory Optimization Platform
  * Main Application Entry with React Router
  *
- * Phase 2.5: ErrorBoundary, ToastProvider, WebSocket realtime, React Query
+ * Phase 5E-B: Global WebSocket singleton, realtime notifications, task progress
  */
 
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
@@ -12,6 +12,9 @@ import { MainLayout } from '@/components/layout/MainLayout';
 import { useAppStore } from '@/stores/appStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider } from '@/components/ui/ToastProvider';
+import { WSProvider } from '@/contexts/WSContext';
+import { WSNotifications } from '@/components/ui/WSNotifications';
+import { GlobalTaskProgress } from '@/components/ui/GlobalTaskProgress';
 import { useRealtimeKPIs } from '@/hooks/useRealtimeKPIs';
 import { toast } from '@/hooks/useToast';
 
@@ -32,20 +35,20 @@ const queryClient = new QueryClient({
 });
 
 // Lazy-loaded pages for code splitting
-const LoginPage = lazy(() => import('@/pages/auth/LoginPage'));
-const DashboardPage = lazy(() => import('@/pages/DashboardPage'));
-const ForecastPage = lazy(() => import('@/pages/ForecastPage'));
-const ScenariosPage = lazy(() => import('@/pages/ScenariosPage'));
-const AnomaliesPage = lazy(() => import('@/pages/AnomaliesPage'));
-const InventoryPage = lazy(() => import('@/pages/InventoryPage'));
-const ProductsPage = lazy(() => import('@/pages/ProductsPage'));
-const CategoriesPage = lazy(() => import('@/pages/CategoriesPage'));
-const ReportsPage = lazy(() => import('@/pages/ReportsPage'));
-const AlertsPage = lazy(() => import('@/pages/AlertsPage'));
-const AdminUsersPage = lazy(() => import('@/pages/admin/UsersPage'));
-const UploadPage = lazy(() => import('@/pages/admin/UploadPage'));
-const PipelinePage = lazy(() => import('@/pages/admin/PipelinePage'));
-const SettingsPage = lazy(() => import('@/pages/admin/SettingsPage'));
+const LoginPage       = lazy(() => import('@/pages/auth/LoginPage'));
+const DashboardPage   = lazy(() => import('@/pages/DashboardPage'));
+const ForecastPage    = lazy(() => import('@/pages/ForecastPage'));
+const ScenariosPage   = lazy(() => import('@/pages/ScenariosPage'));
+const AnomaliesPage   = lazy(() => import('@/pages/AnomaliesPage'));
+const InventoryPage   = lazy(() => import('@/pages/InventoryPage'));
+const ProductsPage    = lazy(() => import('@/pages/ProductsPage'));
+const CategoriesPage  = lazy(() => import('@/pages/CategoriesPage'));
+const ReportsPage     = lazy(() => import('@/pages/ReportsPage'));
+const AlertsPage      = lazy(() => import('@/pages/AlertsPage'));
+const AdminUsersPage  = lazy(() => import('@/pages/admin/UsersPage'));
+const UploadPage      = lazy(() => import('@/pages/admin/UploadPage'));
+const PipelinePage    = lazy(() => import('@/pages/admin/PipelinePage'));
+const SettingsPage    = lazy(() => import('@/pages/admin/SettingsPage'));
 
 /** Fullscreen loading fallback */
 function PageLoader() {
@@ -66,16 +69,21 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-/** Realtime data synchronization (only when authenticated) */
-function RealtimeProvider({ children }: { children: React.ReactNode }) {
-  const { isAuthenticated } = useAppStore();
-
-  // Initialize WebSocket + React Query cache sync
-  if (isAuthenticated) {
-    useRealtimeKPIs();
-  }
-
-  return <>{children}</>;
+/**
+ * Realtime data synchronization — always mounted (hooks are always called).
+ * The hooks themselves guard on isAuthenticated internally.
+ */
+function RealtimeServices() {
+  // Always call hooks unconditionally — they guard internally
+  useRealtimeKPIs();
+  return (
+    <>
+      {/* WS → Toast bridge */}
+      <WSNotifications />
+      {/* Floating task progress pill */}
+      <GlobalTaskProgress />
+    </>
+  );
 }
 
 function AppContent() {
@@ -83,10 +91,13 @@ function AppContent() {
 
   useEffect(() => {
     setTheme(theme);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <RealtimeProvider>
+    <>
+      {/* Realtime services mounted once, always */}
+      <RealtimeServices />
+
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<LoginPage />} />
@@ -99,17 +110,17 @@ function AppContent() {
               </ProtectedRoute>
             }
           >
-            <Route index element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
-            <Route path="forecasting" element={<Suspense fallback={<PageLoader />}><ForecastPage /></Suspense>} />
-            <Route path="scenarios" element={<Suspense fallback={<PageLoader />}><ScenariosPage /></Suspense>} />
-            <Route path="anomalies" element={<Suspense fallback={<PageLoader />}><AnomaliesPage /></Suspense>} />
-            <Route path="inventory" element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
-            <Route path="products" element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
-            <Route path="categories" element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
-            <Route path="reports" element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
-            <Route path="alerts" element={<Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>} />
-            <Route path="admin/users" element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
-            <Route path="admin/upload" element={<Suspense fallback={<PageLoader />}><UploadPage /></Suspense>} />
+            <Route index                element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
+            <Route path="forecasting"   element={<Suspense fallback={<PageLoader />}><ForecastPage /></Suspense>} />
+            <Route path="scenarios"     element={<Suspense fallback={<PageLoader />}><ScenariosPage /></Suspense>} />
+            <Route path="anomalies"     element={<Suspense fallback={<PageLoader />}><AnomaliesPage /></Suspense>} />
+            <Route path="inventory"     element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
+            <Route path="products"      element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
+            <Route path="categories"    element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
+            <Route path="reports"       element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
+            <Route path="alerts"        element={<Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>} />
+            <Route path="admin/users"   element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
+            <Route path="admin/upload"  element={<Suspense fallback={<PageLoader />}><UploadPage /></Suspense>} />
             <Route path="admin/pipeline" element={<Suspense fallback={<PageLoader />}><PipelinePage /></Suspense>} />
             <Route path="admin/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
           </Route>
@@ -117,7 +128,7 @@ function AppContent() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>
-    </RealtimeProvider>
+    </>
   );
 }
 
@@ -126,8 +137,11 @@ export default function App() {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <BrowserRouter>
-          <AppContent />
-          <ToastProvider />
+          {/* WSProvider wraps everything — single WS connection for whole app */}
+          <WSProvider>
+            <AppContent />
+            <ToastProvider />
+          </WSProvider>
         </BrowserRouter>
       </QueryClientProvider>
     </ErrorBoundary>

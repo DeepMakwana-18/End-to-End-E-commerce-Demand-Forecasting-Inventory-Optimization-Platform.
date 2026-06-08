@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import hashlib
 from datetime import datetime, timedelta
 import os
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -12,7 +13,26 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+# ── Model identity constant ────────────────────────────────────────
+# Reflects the ACTUAL estimator class. The class was previously mislabelled
+# "XGBRegressor" in the DB but is scikit-learn's HistGradientBoostingRegressor.
+MODEL_TYPE = "HistGradientBoostingRegressor"
+
+# Feature column order MUST stay in sync with _create_features and predict
+FEATURE_NAMES = ["week", "month", "year", "lag_1", "lag_4"]
+LAG_WINDOWS = [1, 4]          # as used in _create_features
+RESAMPLE_FREQUENCY = "W"      # weekly
+TRAIN_VAL_SPLIT = 0.8         # fraction used for training
+
+
 class XGBoostForecastModel:
+    """Demand forecasting model using HistGradientBoostingRegressor.
+
+    Despite the legacy class name, the underlying estimator is sklearn's
+    HistGradientBoostingRegressor (compatible with shap.TreeExplainer >= 0.41).
+    The class name is kept for backwards compatibility with existing pickle files.
+    """
+
     def __init__(self):
         self.model = HistGradientBoostingRegressor(
             learning_rate=0.1,
@@ -37,6 +57,8 @@ class XGBoostForecastModel:
         self.seasonal_amplitude = 0.0
         # Store actual historical weekly data for charting
         self.historical_data = []
+        # Feature engineering metadata (populated during train)
+        self.metadata: dict = {}
 
     def _generate_synthetic_history(self) -> pd.DataFrame:
         """Generate 3 years of weekly historical data if DB is empty."""
@@ -170,6 +192,37 @@ class XGBoostForecastModel:
             "convergence": convergence
         }
         self.is_trained = True
+
+        # ── Build feature engineering metadata ─────────────────────────────
+        demand_vals = df["demand"].tolist()
+        raw_bytes = ",".join(str(round(v, 4)) for v in demand_vals).encode()
+        self.metadata = {
+            "feature_schema": {
+                "feature_names": FEATURE_NAMES,
+                "lag_windows": LAG_WINDOWS,
+                "resample_frequency": RESAMPLE_FREQUENCY,
+                "train_val_split": TRAIN_VAL_SPLIT,
+                "demand_stats": {
+                    "mean": round(float(df["demand"].mean()), 4),
+                    "std": round(float(df["demand"].std()), 4),
+                    "min": round(float(df["demand"].min()), 4),
+                    "max": round(float(df["demand"].max()), 4),
+                    "n_weeks": len(df),
+                },
+                "date_range": {
+                    "start": df["date"].min().strftime("%Y-%m-%d"),
+                    "end": df["date"].max().strftime("%Y-%m-%d"),
+                },
+            },
+            "hyperparameters": {
+                "model_type": MODEL_TYPE,
+                "learning_rate": self.model.learning_rate,
+                "max_depth": self.model.max_depth,
+                "random_state": self.model.random_state,
+                "max_iter": getattr(self.model, "max_iter", 100),
+            },
+            "dataset_hash": hashlib.sha256(raw_bytes).hexdigest(),
+        }
         
         print(f"=== ML TRAINING COMPLETE ===")
         print(f"  Accuracy: {self.metrics['accuracy']}%, RMSE: {self.metrics['rmse']}")
@@ -234,6 +287,7 @@ class XGBoostForecastModel:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         state = {
             "model": self.model,
+            "model_type": MODEL_TYPE,          # ← explicit class name stored in artifact
             "is_trained": self.is_trained,
             "training_id": self.training_id,
             "data_source": self.data_source,
@@ -244,7 +298,8 @@ class XGBoostForecastModel:
             "last_4_demand": self.last_4_demand,
             "last_demands": self.last_demands,
             "seasonal_amplitude": self.seasonal_amplitude,
-            "historical_data": self.historical_data
+            "historical_data": self.historical_data,
+            "metadata": self.metadata,         # ← feature_schema + hyperparams + dataset_hash
         }
         with open(filepath, 'wb') as f:
             pickle.dump(state, f)
@@ -270,6 +325,7 @@ class XGBoostForecastModel:
             self.last_demands = state["last_demands"]
             self.seasonal_amplitude = state["seasonal_amplitude"]
             self.historical_data = state.get("historical_data", [])
+            self.metadata = state.get("metadata", {})  # ← restore feature metadata
             return True
         except Exception as e:
             logger.error(f"Failed to load model from {filepath}: {e}")

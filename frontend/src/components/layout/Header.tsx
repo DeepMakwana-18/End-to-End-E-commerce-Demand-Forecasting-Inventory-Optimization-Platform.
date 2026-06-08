@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, Sun, Moon, Monitor, X } from 'lucide-react';
+import { Bell, Search, Sun, Moon, Monitor, X, Wifi, WifiOff } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/stores/appStore';
+import { useWebSocket } from '@/hooks/useWebSocket';
 import { cn } from '@/lib/utils';
 import type { ThemeMode } from '@/types';
 
@@ -35,6 +36,7 @@ const searchableItems = [
 
 export function Header() {
   const { user, theme, setTheme } = useAppStore();
+  const { isConnected } = useWebSocket();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
@@ -146,16 +148,46 @@ export function Header() {
           <ThemeIcon className="w-5 h-5" />
         </motion.button>
 
-        {/* Notifications */}
+        {/* WS status + Notifications */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate('/alerts')}
           className="relative p-2.5 rounded-xl text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
+          title={isConnected ? 'Realtime: Connected' : 'Realtime: Disconnected'}
         >
           <Bell className="w-5 h-5" />
+          {/* Notification dot */}
           <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-danger-500 border-2 border-surface-950 animate-pulse" />
         </motion.button>
+
+        {/* WS live indicator */}
+        <motion.div
+          title={isConnected ? 'Realtime connected' : 'Realtime disconnected — reconnecting…'}
+          className={cn(
+            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-colors cursor-default select-none',
+            isConnected
+              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+              : 'bg-surface-800/60 text-surface-500 border border-surface-700/40',
+          )}
+        >
+          {isConnected ? (
+            <>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <Wifi className="w-3 h-3" />
+              <span className="hidden sm:inline">Live</span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-surface-600" />
+              <WifiOff className="w-3 h-3" />
+              <span className="hidden sm:inline">Offline</span>
+            </>
+          )}
+        </motion.div>
 
         {/* User avatar */}
         <div className="flex items-center gap-3 ml-2 pl-3 border-l border-surface-800/50">

@@ -13,17 +13,21 @@ import { FlaskConical, Lightbulb, RefreshCw } from 'lucide-react';
 import { ScenarioBuilder } from '@/components/scenarios/ScenarioBuilder';
 import { ScenarioResultPanel } from '@/components/scenarios/ScenarioResultPanel';
 import { ScenarioHistory } from '@/components/scenarios/ScenarioHistory';
+import { ScenarioExplainPanel } from '@/components/scenarios/ScenarioExplainPanel';
 import scenarioApi from '@/services/scenarioApi';
 import { toast } from '@/hooks/useToast';
 import type { Scenario, ScenarioResultDetail, ScenarioParameters, ScenarioType } from '@/types/scenario';
 
 export default function ScenariosPage() {
-  const [scenarios, setScenarios] = useState<Scenario[]>([]);
-  const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
-  const [activeResult, setActiveResult] = useState<ScenarioResultDetail | null>(null);
-  const [isLoadingList, setIsLoadingList] = useState(true);
-  const [isRunning, setIsRunning] = useState(false);
-  const [lastRunName, setLastRunName] = useState<string>('');
+  const [scenarios, setScenarios]               = useState<Scenario[]>([]);
+  const [activeScenario, setActiveScenario]     = useState<Scenario | null>(null);
+  const [activeResult, setActiveResult]         = useState<ScenarioResultDetail | null>(null);
+  const [isLoadingList, setIsLoadingList]       = useState(true);
+  const [isRunning, setIsRunning]               = useState(false);
+  const [lastRunName, setLastRunName]           = useState<string>('');
+  // Track the completed scenario whose explain panel should be shown
+  const [completedScenarioId, setCompletedScenarioId] = useState<number | null>(null);
+  const [explainHorizonWeeks, setExplainHorizonWeeks] = useState<number>(12);
 
   // ── Load list ────────────────────────────────────────────────────────
   const loadScenarios = useCallback(async () => {
@@ -45,11 +49,14 @@ export default function ScenariosPage() {
   const handleSelect = useCallback(async (s: Scenario) => {
     setActiveScenario(s);
     setActiveResult(null);
+    setCompletedScenarioId(null);
     if (s.status === 'completed' && s.latest_result) {
       try {
         const { data } = await scenarioApi.getResultByVersion(s.id, s.latest_result.version);
         setActiveResult(data);
         setLastRunName(s.name);
+        setCompletedScenarioId(s.id);
+        setExplainHorizonWeeks(s.horizon_weeks ?? 12);
       } catch {
         // Result details unavailable — show summary only
       }
@@ -65,6 +72,7 @@ export default function ScenariosPage() {
   ) => {
     setIsRunning(true);
     setActiveResult(null);
+    setCompletedScenarioId(null);
     setLastRunName(name);
     try {
       // 1. Create scenario
@@ -78,6 +86,8 @@ export default function ScenariosPage() {
       // 2. Run simulation
       const { data: result } = await scenarioApi.run(created.id);
       setActiveResult(result);
+      setCompletedScenarioId(created.id);
+      setExplainHorizonWeeks(horizonWeeks);
 
       // 3. Refresh history
       await loadScenarios();
@@ -97,11 +107,14 @@ export default function ScenariosPage() {
     if (!s) return;
     setIsRunning(true);
     setActiveResult(null);
+    setCompletedScenarioId(null);
     setLastRunName(s.name);
     setActiveScenario(s);
     try {
       const { data: result } = await scenarioApi.run(id);
       setActiveResult(result);
+      setCompletedScenarioId(id);
+      setExplainHorizonWeeks(s.horizon_weeks ?? 12);
       await loadScenarios();
       toast.success('Simulation complete', `${s.name} finished`);
     } catch (err: any) {
@@ -207,13 +220,21 @@ export default function ScenariosPage() {
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 }}
-          className="flex-1 min-w-0 flex flex-col p-4 overflow-y-auto"
+          className="flex-1 min-w-0 flex flex-col gap-4 p-4 overflow-y-auto"
         >
           <ScenarioResultPanel
             result={activeResult}
             isRunning={isRunning}
             scenarioName={lastRunName || activeScenario?.name}
           />
+
+          {/* SHAP Explain Panel — lazy, only when scenario is completed */}
+          {completedScenarioId !== null && activeResult && !isRunning && (
+            <ScenarioExplainPanel
+              scenarioId={completedScenarioId}
+              horizonWeeks={explainHorizonWeeks}
+            />
+          )}
         </motion.div>
       </div>
     </div>

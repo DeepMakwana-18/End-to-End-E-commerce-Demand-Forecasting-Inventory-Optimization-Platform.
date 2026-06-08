@@ -12,6 +12,48 @@ import type {
 
 const BASE = '/scenarios';
 
+// ── Scenario Explain Types ─────────────────────────────────────────────
+
+export interface ScenarioWeekDriver {
+  feature: string;
+  delta: number;
+  direction: 'positive' | 'negative';
+}
+
+export interface ScenarioWeekExplanation {
+  week: number;
+  date: string;
+  baseline_prediction: number;
+  simulated_prediction: number;
+  base_value: number;
+  baseline_shap: Record<string, number>;
+  simulated_shap: Record<string, number>;
+  delta_shap: Record<string, number>;
+  week_drivers: ScenarioWeekDriver[];
+}
+
+export interface ScenarioDriverSummaryItem {
+  feature: string;
+  mean_delta: number;
+  mean_abs_delta: number;
+  direction: 'positive' | 'negative';
+  weeks_positive: number;
+  weeks_negative: number;
+  weeks_neutral: number;
+}
+
+export interface ScenarioExplainResponse {
+  explainer_ready: boolean;
+  reason?: string;
+  feature_names?: string[];
+  base_value_baseline?: number;
+  base_value_simulated?: number;
+  weeks?: ScenarioWeekExplanation[];
+  driver_summary?: ScenarioDriverSummaryItem[];
+}
+
+// ── Scenario API ───────────────────────────────────────────────────────
+
 export const scenarioApi = {
   // ── CRUD ──────────────────────────────────────────────────────────
 
@@ -43,6 +85,15 @@ export const scenarioApi = {
 
   getResultByVersion: (id: number, version: number) =>
     api.get<ScenarioResultDetail>(`${BASE}/${id}/results/${version}`),
+
+  // ── SHAP Explainability ───────────────────────────────────────────
+
+  /** Fetch delta-SHAP explainability for a completed scenario.
+   *  Returns explainer_ready=false (not a 500) on SHAP failure.
+   */
+  getExplain: (id: number) =>
+    api.get<ScenarioExplainResponse>(`${BASE}/${id}/explain`),
 };
 
 export default scenarioApi;
+

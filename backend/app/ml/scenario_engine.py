@@ -69,15 +69,27 @@ def _load_model_state(artifact_path: str) -> dict[str, Any] | None:
 
 # ── Inference Helpers ─────────────────────────────────────────────────
 
-def _run_baseline(state: dict[str, Any], weeks: int) -> list[dict[str, Any]]:
-    """Run the model in its unmodified state to produce baseline forecast."""
+def _run_baseline(
+    state: dict[str, Any],
+    weeks: int,
+    capture_features: bool = False,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Run the model in its unmodified state to produce baseline forecast.
+
+    Returns
+    -------
+    (predictions, feature_rows)
+      predictions   — standard list of weekly result dicts
+      feature_rows  — list of raw feature dicts (populated when capture_features=True)
+    """
     model = state["model"]
     last_date = state["last_date"]
     recent = list(state["last_demands"])
     std_dev = state["std_dev"]
     seasonal_amplitude = state["seasonal_amplitude"]
 
-    predictions = []
+    predictions: list[dict[str, Any]] = []
+    feature_rows: list[dict[str, Any]] = []
     current_date = last_date
 
     for i in range(weeks):
@@ -97,9 +109,9 @@ def _run_baseline(state: dict[str, Any], weeks: int) -> list[dict[str, Any]]:
             "lag_4": [lag_4],
         })
 
-        pred_value = float(model.predict(X_pred)[0])
+        raw_value = float(model.predict(X_pred)[0])
         seasonal_factor = seasonal_amplitude * np.sin(2 * np.pi * week / 52)
-        pred_value = max(0.0, pred_value + seasonal_factor)
+        pred_value = max(0.0, raw_value + seasonal_factor)
 
         horizon_factor = 1 + (i * 0.04)
         ci = 1.96 * std_dev * horizon_factor
@@ -110,10 +122,18 @@ def _run_baseline(state: dict[str, Any], weeks: int) -> list[dict[str, Any]]:
             "predicted_demand": round(pred_value, 1),
             "confidence_lower": round(max(0.0, pred_value - ci), 1),
             "confidence_upper": round(pred_value + ci, 1),
+            # raw model output before seasonal adjustment (used for SHAP math)
+            "_raw": raw_value,
         })
+        if capture_features:
+            feature_rows.append({
+                "week": week, "month": month, "year": year,
+                "lag_1": lag_1, "lag_4": lag_4,
+                "date": current_date.strftime("%Y-%m-%d"),
+            })
         recent.append(pred_value)
 
-    return predictions
+    return predictions, feature_rows
 
 
 def _run_modified(
@@ -121,11 +141,18 @@ def _run_modified(
     weeks: int,
     demand_multiplier: float,
     lead_time_adjustment: float,
-) -> list[dict[str, Any]]:
+    capture_features: bool = False,
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Re-run inference with modified lag inputs (feedback loop).
 
     Modified lag values propagate demand changes into future lags,
     giving a more realistic counterfactual than simply scaling outputs.
+
+    Returns
+    -------
+    (predictions, feature_rows)
+      predictions   — standard list of weekly result dicts
+      feature_rows  — list of raw feature dicts (populated when capture_features=True)
     """
     model = state["model"]
     last_date = state["last_date"]
@@ -133,7 +160,8 @@ def _run_modified(
     std_dev = state["std_dev"]
     seasonal_amplitude = state["seasonal_amplitude"]
 
-    predictions = []
+    predictions: list[dict[str, Any]] = []
+    feature_rows: list[dict[str, Any]] = []
     current_date = last_date
 
     for i in range(weeks):
@@ -153,9 +181,9 @@ def _run_modified(
             "lag_4": [lag_4],
         })
 
-        pred_value = float(model.predict(X_pred)[0])
+        raw_value = float(model.predict(X_pred)[0])
         seasonal_factor = seasonal_amplitude * np.sin(2 * np.pi * week / 52)
-        pred_value = max(0.0, pred_value + seasonal_factor)
+        pred_value = max(0.0, raw_value + seasonal_factor)
 
         # Lead time increase → model doesn't directly use it, but it widens CI
         lt_ci_factor = 1 + max(0, lead_time_adjustment / 14)  # each 2 weeks → +1.0 factor
@@ -168,10 +196,18 @@ def _run_modified(
             "demand": round(pred_value, 1),
             "confidence_lower": round(max(0.0, pred_value - ci), 1),
             "confidence_upper": round(pred_value + ci, 1),
+            # raw model output before seasonal adjustment (used for SHAP math)
+            "_raw": raw_value,
         })
+        if capture_features:
+            feature_rows.append({
+                "week": week, "month": month, "year": year,
+                "lag_1": lag_1, "lag_4": lag_4,
+                "date": current_date.strftime("%Y-%m-%d"),
+            })
         recent.append(pred_value)
 
-    return predictions
+    return predictions, feature_rows
 
 
 # ── Stockout Risk ─────────────────────────────────────────────────────
@@ -305,11 +341,11 @@ class ScenarioEngine:
         )
 
         # ── Baseline Inference ────────────────────────────────────────
-        baseline_points = _run_baseline(self._state, weeks)
+        baseline_points, _ = _run_baseline(self._state, weeks)
         baseline_demand = sum(p["predicted_demand"] for p in baseline_points)
 
         # ── Modified Inference ────────────────────────────────────────
-        simulated_points = _run_modified(
+        simulated_points, _ = _run_modified(
             self._state,
             weeks,
             demand_multiplier=demand_multiplier,
@@ -408,7 +444,10 @@ class ScenarioEngine:
                 }
                 for p in baseline_points
             ],
-            "simulated": simulated_points,
+            "simulated": [
+                {k: v for k, v in p.items() if k != "_raw"}
+                for p in simulated_points
+            ],
             "recommendations": recommendations,
             "params_applied": {
                 "marketing_spend_pct": marketing_spend_pct,
@@ -421,3 +460,70 @@ class ScenarioEngine:
             },
             "model_info": model_info,
         }
+
+    def explain(
+        self,
+        parameters: dict[str, Any],
+        horizon_weeks: int,
+    ) -> dict[str, Any]:
+        """Run SHAP-based delta explainability for a scenario simulation.
+
+        Executes both baseline and modified inference with feature capture
+        enabled, then delegates to ShapService.explain_scenario().
+
+        Returns the full explain dict (or explainer_ready=False on failure).
+        Does NOT persist any state to the database.
+        """
+        if self._state is None:
+            return {"explainer_ready": False, "reason": "Model artifact not loaded"}
+
+        FEATURE_NAMES = ["week", "month", "year", "lag_1", "lag_4"]
+
+        params = parameters or {}
+        weeks = max(1, horizon_weeks)
+
+        marketing_spend_pct = float(params.get("marketing_spend_pct", 0.0))
+        price_change_pct    = float(params.get("price_change_pct", 0.0))
+        lead_time_days      = float(params.get("lead_time_days", 14.0))
+        lead_time_adjustment = lead_time_days - 14.0
+
+        marketing_effect = 1.0 + (marketing_spend_pct / 100) * MARKETING_ELASTICITY
+        price_effect     = 1.0 + (price_change_pct / 100) * PRICE_ELASTICITY
+        demand_multiplier = max(0.05, marketing_effect * price_effect)
+
+        try:
+            baseline_points, baseline_features = _run_baseline(
+                self._state, weeks, capture_features=True
+            )
+            simulated_points, simulated_features = _run_modified(
+                self._state, weeks,
+                demand_multiplier=demand_multiplier,
+                lead_time_adjustment=lead_time_adjustment,
+                capture_features=True,
+            )
+        except Exception as exc:
+            logger.error("ScenarioEngine.explain(): inference failed: %s", exc)
+            return {"explainer_ready": False, "reason": str(exc)}
+
+        # Raw pre-seasonal predictions for SHAP math accuracy
+        baseline_preds  = [p["_raw"] for p in baseline_points]
+        simulated_preds = [p["_raw"] for p in simulated_points]
+
+        historical_data = self._state.get("historical_data", [])
+
+        try:
+            from app.services.shap_service import ShapService
+            result = ShapService.explain_scenario(
+                model=self._state["model"],
+                historical_data=historical_data,
+                baseline_features=baseline_features,
+                simulated_features=simulated_features,
+                baseline_predictions=baseline_preds,
+                simulated_predictions=simulated_preds,
+                feature_names=FEATURE_NAMES,
+            )
+        except Exception as exc:
+            logger.error("ScenarioEngine.explain(): ShapService failed: %s", exc)
+            return {"explainer_ready": False, "reason": str(exc)}
+
+        return result

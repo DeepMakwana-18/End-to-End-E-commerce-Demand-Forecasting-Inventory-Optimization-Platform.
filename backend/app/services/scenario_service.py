@@ -148,8 +148,8 @@ async def _run_simulation(
     demand_multiplier = max(0.05, marketing_effect * price_effect)
     lead_time_adjustment = lead_time_days - 14.0
 
-    baseline_points = _run_baseline(state, weeks)
-    simulated_points = _run_modified(state, weeks, demand_multiplier, lead_time_adjustment)
+    baseline_points, _ = _run_baseline(state, weeks)
+    simulated_points, _ = _run_modified(state, weeks, demand_multiplier, lead_time_adjustment)
     baseline_demand = sum(p["predicted_demand"] for p in baseline_points)
     simulated_demand = sum(p["demand"] for p in simulated_points)
     demand_delta = simulated_demand - baseline_demand
@@ -189,7 +189,10 @@ async def _run_simulation(
             }
             for p in baseline_points
         ],
-        "simulated": simulated_points,
+        "simulated": [
+            {k: v for k, v in p.items() if k != "_raw"}
+            for p in simulated_points
+        ],
         "recommendations": recommendations,
         "params_applied": {
             "marketing_spend_pct": marketing_spend_pct,
