@@ -47,6 +47,7 @@ celery.conf.update(
         "app.tasks.report_tasks",
         "app.tasks.notification_tasks",
         "app.tasks.anomaly_tasks",       # Phase 4C: Anomaly detection pipeline
+        "app.tasks.alert_tasks",         # Phase 5E-C: Alert rule engine
     ]
 )
 
@@ -59,6 +60,13 @@ celery.conf.beat_schedule = {
     "nightly-anomaly-scan": {
         "task": "titan.anomaly.nightly_scan",
         "schedule": crontab(hour=2, minute=0),
-        "options": {"expires": 3600},  # expire after 1h if not consumed
+        "options": {"expires": 3600},
+    },
+    # Inventory alert sweep: every 30 minutes
+    "inventory-alert-sweep": {
+        "task": "titan.alerts.inventory_sweep",
+        "schedule": crontab(minute="*/30"),
+        "kwargs": {"org_id": 1},           # org_id=1 is the default seeded org
+        "options": {"expires": 1800},
     },
 }

@@ -60,3 +60,49 @@ Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints
+
+# Verification / audit scripts
+verify_*.py
+validate_*.py
+investigate_*.py
+debug_*.py
+check_*.py
+fix_*.py
+live_*.py
+restore_*.py
+
+# Local testing artifacts
+test.pkl
+
+# Reports generated during development
+*_CHECKPOINT.md
+db_snapshot.py
+p6_health.py
+p6_smoke.py
+p6_supplemental.py
+
+# Python cache
+.pytest_cache/
+.mypy_cache/
+
+# Coverage
+.coverage
+htmlcov/
+
+# OS files
+Desktop.ini
+
+# Verification / audit scripts
+verify_*.py
+validate_*.py
+investigate_*.py
+
+check_model_consistency.py
+db_snapshot.py
+find_db_pwd.py
+live_retrain_trace.py
+restore_uploaded_model.py
+
+p6_health.py
+p6_smoke.py
+p6_supplemental.py

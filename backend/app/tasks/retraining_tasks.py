@@ -136,6 +136,20 @@ def retrain_model_async(
         model_path = os.path.join(settings.ML_MODEL_PATH, model_filename)
         forecast_model.save(model_path)
 
+        # Persist the raw CSV alongside the pkl so future Retrain calls can
+        # reload from disk without the browser needing to re-send the file.
+        csv_disk_path = None
+        try:
+            csv_filename = f"model_org_{org_id}_{version_tag}_dataset.csv".replace(" ", "_")
+            csv_disk_path = os.path.join(settings.ML_MODEL_PATH, csv_filename)
+            os.makedirs(os.path.dirname(os.path.abspath(csv_disk_path)), exist_ok=True)
+            with open(csv_disk_path, "w", encoding="utf-8") as _csv_f:
+                _csv_f.write(csv_text)
+            logger.info("[org:%s] CSV persisted to %s", org_id, csv_disk_path)
+        except Exception as _csv_exc:
+            logger.warning("[org:%s] Could not persist CSV to disk: %s", org_id, _csv_exc)
+            csv_disk_path = None
+
         from app.database import async_session
         from app.repositories.forecast_repo import ModelVersionRepository
         from app.models import ModelVersion
@@ -149,6 +163,10 @@ def retrain_model_async(
                 # Pull feature metadata populated by train()
                 from app.services.ml_service import MODEL_TYPE
                 meta = forecast_model.metadata or {}
+                hyper = dict(meta.get("hyperparameters") or {})
+                # Store CSV path so POST /forecast/retrain can reload without browser resend
+                hyper["csv_path"] = csv_disk_path
+                hyper["csv_filename"] = filename
 
                 mv = ModelVersion(
                     organization_id=org_id,
@@ -161,7 +179,7 @@ def retrain_model_async(
                     data_source=f"uploaded:{filename}",
                     feature_importance=metrics.get("feature_importance", {}),
                     feature_schema=meta.get("feature_schema"),        # populated
-                    hyperparameters=meta.get("hyperparameters"),      # populated
+                    hyperparameters=hyper,                            # includes csv_path
                     dataset_hash=meta.get("dataset_hash"),            # SHA-256
                     is_active=True,
                     model_path=model_path
@@ -260,6 +278,29 @@ def retrain_model_async(
             version_tag,
             metrics["accuracy"] * 100,
         )
+
+        # Phase 5E-D: Publish model.retrained via Redis so FastAPI WS bridge picks it up
+        try:
+            from app.core.redis_pubsub import publish_event
+            from app.core.events import EventType
+            publish_event(
+                EventType.MODEL_RETRAINED,
+                org_id=org_id,
+                payload={
+                    "version_tag": version_tag,
+                    "accuracy": metrics["accuracy"],
+                    "rmse": metrics["rmse"],
+                    "data_source": f"uploaded:{filename}",
+                    "task_id": task_id,
+                },
+            )
+            publish_event(
+                EventType.TASK_COMPLETED,
+                org_id=org_id,
+                payload={"task_id": task_id, "status": "completed", "message": f"Model retrained: {version_tag}"},
+            )
+        except Exception:
+            logger.warning("[org:%s] Could not publish retrain events to Redis", org_id, exc_info=True)
 
         # Phase 4C: Auto-trigger anomaly scan after successful retrain
         try:
@@ -479,6 +520,29 @@ def reset_model_async(
             version_tag,
             metrics["accuracy"] * 100,
         )
+
+        # Phase 5E-D: Publish model.retrained via Redis for WS clients
+        try:
+            from app.core.redis_pubsub import publish_event
+            from app.core.events import EventType
+            publish_event(
+                EventType.MODEL_RETRAINED,
+                org_id=org_id,
+                payload={
+                    "version_tag": version_tag,
+                    "accuracy": metrics["accuracy"],
+                    "rmse": metrics["rmse"],
+                    "data_source": "synthetic",
+                    "task_id": task_id,
+                },
+            )
+            publish_event(
+                EventType.TASK_COMPLETED,
+                org_id=org_id,
+                payload={"task_id": task_id, "status": "completed", "message": f"Model reset: {version_tag}"},
+            )
+        except Exception:
+            logger.warning("[org:%s] Could not publish reset events to Redis", org_id, exc_info=True)
 
         # Auto-trigger anomaly scan after reset
         try:

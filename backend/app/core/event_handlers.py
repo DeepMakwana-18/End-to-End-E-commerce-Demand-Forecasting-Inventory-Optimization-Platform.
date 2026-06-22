@@ -170,6 +170,113 @@ async def on_anomaly_detected(event: DomainEvent) -> None:
     await _broadcast_to_org(event)
 
 
+async def on_anomaly_scan_completed_alerts(event: DomainEvent) -> None:
+    """Phase 5E-C: Run anomaly alert rules after every scan completion.
+
+    Only fires when anomalies were actually found (detected > 0).
+    Publishes alert.triggered for each new alert created.
+    """
+    detected = event.payload.get("detected", 0)
+    if not detected:
+        return
+
+    org_id = event.org_id
+    source_event_id = event.event_id
+
+    try:
+        from app.database import async_session
+        from app.services.alert_engine import AlertRuleEngine
+
+        async with async_session() as db:
+            engine = AlertRuleEngine(db, org_id)
+            new_alerts = await engine.run_anomaly_rules(
+                source_event_id=source_event_id,
+            )
+            await db.commit()
+
+        for alert in new_alerts:
+            await event_bus.publish(
+                DomainEvent(
+                    event_type=EventType.ALERT_TRIGGERED,
+                    org_id=org_id,
+                    user_id=event.user_id,
+                    payload={
+                        "alert_id": alert.id,
+                        "alert_type": alert.alert_type.value,
+                        "severity": alert.severity.value,
+                        "message": alert.message,
+                        "product_id": alert.product_id,
+                        "rule_key": alert.rule_key,
+                        "source": "anomaly_scan",
+                    },
+                    correlation_id=source_event_id,
+                )
+            )
+
+        logger.info(
+            "[org:%s] Anomaly alert rules produced %d new alert(s)",
+            org_id, len(new_alerts),
+        )
+    except Exception:
+        logger.exception(
+            "[org:%s] Failed to run anomaly alert rules (event_id=%s)",
+            org_id, source_event_id,
+        )
+
+
+async def on_model_retrained_alerts(event: DomainEvent) -> None:
+    """Phase 5E-C: Run model accuracy alert rule after every retrain.
+
+    Creates a critical/high alert if model accuracy degraded.
+    """
+    accuracy = event.payload.get("accuracy", 1.0)
+    version_tag = event.payload.get("version_tag", "unknown")
+    org_id = event.org_id
+    source_event_id = event.event_id
+
+    try:
+        from app.database import async_session
+        from app.services.alert_engine import AlertRuleEngine
+
+        async with async_session() as db:
+            engine = AlertRuleEngine(db, org_id)
+            alert = await engine.run_model_accuracy_rule(
+                accuracy=accuracy,
+                version_tag=version_tag,
+                source_event_id=source_event_id,
+            )
+            await db.commit()
+
+        if alert:
+            await event_bus.publish(
+                DomainEvent(
+                    event_type=EventType.ALERT_TRIGGERED,
+                    org_id=org_id,
+                    user_id=event.user_id,
+                    payload={
+                        "alert_id": alert.id,
+                        "alert_type": alert.alert_type.value,
+                        "severity": alert.severity.value,
+                        "message": alert.message,
+                        "rule_key": alert.rule_key,
+                        "accuracy": accuracy,
+                        "version_tag": version_tag,
+                        "source": "model_retrain",
+                    },
+                    correlation_id=source_event_id,
+                )
+            )
+            logger.warning(
+                "[org:%s] Model accuracy alert raised: %s accuracy=%.1f%%",
+                org_id, version_tag, accuracy * 100,
+            )
+    except Exception:
+        logger.exception(
+            "[org:%s] Failed to run model accuracy alert rule (event_id=%s)",
+            org_id, source_event_id,
+        )
+
+
 # ── Registration ────────────────────────────────────────────────────
 
 
@@ -180,6 +287,7 @@ def register_event_handlers() -> None:
     """
     event_bus.subscribe(EventType.ALERT_TRIGGERED, on_alert_triggered)
     event_bus.subscribe(EventType.ALERT_RESOLVED, _broadcast_to_org)
+    event_bus.subscribe(EventType.ALERT_ACKNOWLEDGED, _broadcast_to_org)
     event_bus.subscribe(EventType.MODEL_RETRAINED, on_model_retrained)
     event_bus.subscribe(EventType.MODEL_RETRAIN_STARTED, _broadcast_to_org)
     event_bus.subscribe(EventType.MODEL_RETRAIN_PROGRESS, on_task_progress)
@@ -195,5 +303,8 @@ def register_event_handlers() -> None:
     event_bus.subscribe(EventType.ANOMALY_SCAN_STARTED, on_anomaly_scan_started)
     event_bus.subscribe(EventType.ANOMALY_SCAN_COMPLETED, on_anomaly_scan_completed)
     event_bus.subscribe(EventType.ANOMALY_DETECTED, on_anomaly_detected)
+    # Phase 5E-C: Alert rule engine hooks
+    event_bus.subscribe(EventType.ANOMALY_SCAN_COMPLETED, on_anomaly_scan_completed_alerts)
+    event_bus.subscribe(EventType.MODEL_RETRAINED, on_model_retrained_alerts)
 
     logger.info("✅ Event handlers registered (%d types)", len(event_bus._handlers))

@@ -15,6 +15,7 @@ import { ToastProvider } from '@/components/ui/ToastProvider';
 import { WSProvider } from '@/contexts/WSContext';
 import { WSNotifications } from '@/components/ui/WSNotifications';
 import { GlobalTaskProgress } from '@/components/ui/GlobalTaskProgress';
+import { AICopilotDrawer } from '@/components/ui/AICopilotDrawer';
 import { useRealtimeKPIs } from '@/hooks/useRealtimeKPIs';
 import { toast } from '@/hooks/useToast';
 
@@ -141,6 +142,8 @@ export default function App() {
           <WSProvider>
             <AppContent />
             <ToastProvider />
+            {/* AI Copilot — floating on all authenticated pages */}
+            <AICopilotDrawer />
           </WSProvider>
         </BrowserRouter>
       </QueryClientProvider>

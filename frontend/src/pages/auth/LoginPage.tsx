@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 export default function LoginPage() {
   const [isSignup, setIsSignup] = useState(false);
   const [email, setEmail] = useState('admin@titan.demo');
-  const [password, setPassword] = useState('admin123!');
+  const [password, setPassword] = useState('admin123');
   const [name, setName] = useState('');
   const [orgName, setOrgName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -256,7 +256,7 @@ export default function LoginPage() {
           </p>
 
           <p className="mt-3 text-center text-xs text-surface-600">
-            Demo: admin@titan.demo / admin123!
+            Demo: admin@titan.demo / admin123
           </p>
         </div>
 

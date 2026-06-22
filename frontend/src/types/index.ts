@@ -102,12 +102,26 @@ export interface InventoryItem {
 export interface Alert {
   id: number;
   product_name: string;
-  product_id?: number;
-  alert_type: 'low_stock' | 'reorder' | 'overstock' | 'stockout';
+  product_id?: number | null;
+  alert_type:
+    | 'low_stock'
+    | 'reorder'
+    | 'overstock'
+    | 'stockout'
+    | 'anomaly_detected'
+    | 'model_accuracy_degraded'
+    | 'forecast_miss';
   severity: 'low' | 'medium' | 'high' | 'critical';
   message: string;
   is_resolved?: boolean;
+  lifecycle: 'active' | 'acknowledged' | 'resolved';
   created_at: string;
+  resolved_at?: string | null;
+  acknowledged_at?: string | null;
+  acknowledged_by?: number | null;
+  rule_key?: string | null;
+  source_event_id?: string | null;
+  extra_data?: Record<string, unknown>;
 }
 
 // ── Forecast Types ────────────────────────────────────────────────

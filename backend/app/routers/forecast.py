@@ -18,7 +18,7 @@ router = APIRouter(prefix="/forecast", tags=["Forecasting"])
 
 
 class RetrainRequest(BaseModel):
-    csv_text: str
+    csv_text: str | None = None   # Optional — if absent, backend reloads from disk
     filename: str = "uploaded.csv"
 
 
@@ -34,8 +34,11 @@ async def get_forecasts(
     active_model = await mv_repo.get_active()
 
     if active_model and active_model.model_path:
-        # Load from disk if available
-        forecast_model.load(active_model.model_path)
+        # Only reload from disk if the singleton is blank or holds a different version.
+        # Avoids deserializing the full pkl on every HTTP request.
+        singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
+        if not forecast_model.is_trained or singleton_tag != active_model.version_tag:
+            forecast_model.load(active_model.model_path)
     elif not forecast_model.is_trained:
         forecast_model.train()
 
@@ -63,11 +66,17 @@ async def explain_forecast(
     """Generate per-week SHAP explanations for the upcoming forecast.
 
     Returns one explanation object per requested week containing:
-      - prediction     : model output (before seasonal adjustment)
-      - base_value     : SHAP expected value (model mean prediction)
-      - feature_vector : the exact input features for that week
-      - shap_values    : per-feature SHAP contributions
-      - top_drivers    : contributors sorted by absolute magnitude
+      - prediction            : seasonally-adjusted model output (matches /forecast)
+      - prediction_raw        : raw model output before seasonal adjustment (SHAP basis)
+      - seasonal_adjustment   : seasonal component applied (raw → prediction)
+      - base_value            : SHAP expected value (E[f(x)])
+      - feature_vector        : the exact input features for that week
+      - shap_values           : per-feature SHAP contributions
+      - top_drivers           : contributors sorted by absolute magnitude
+
+    Also returns:
+      - model_version         : active model version tag
+      - driver_summary        : per-feature aggregate SHAP impact across all weeks
     """
     import numpy as np
     from datetime import timedelta
@@ -79,17 +88,23 @@ async def explain_forecast(
     active_model = await mv_repo.get_active()
 
     if active_model and active_model.model_path:
-        forecast_model.load(active_model.model_path)
+        # Only reload from disk when version changed or singleton is blank.
+        singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
+        if not forecast_model.is_trained or singleton_tag != active_model.version_tag:
+            forecast_model.load(active_model.model_path)
     elif not forecast_model.is_trained:
         forecast_model.train()
 
     if not forecast_model.is_trained:
         return {"error": "Model not ready", "weeks": [], "explainer_ready": False}
 
+    model_version = active_model.version_tag if active_model else f"v{forecast_model.training_id}.0"
+
     # ── Build feature vectors for each forecast week ──────────────────
     # Mirrors the predict() logic so feature values are identical
     feature_vectors: list[dict] = []
     raw_predictions: list[float] = []
+    seasonal_adjustments: list[float] = []
 
     current_date = forecast_model.last_date
     recent = list(forecast_model.last_demands)
@@ -113,15 +128,18 @@ async def explain_forecast(
         }
         feature_vectors.append(fvec)
 
-        # Replicate raw model prediction (no seasonal offset)
+        # Replicate raw model prediction (no seasonal offset) — SHAP basis
         X_pred = pd.DataFrame([{k: fvec[k] for k in FEATURE_NAMES}])
         raw_pred = float(forecast_model.model.predict(X_pred)[0])
         raw_predictions.append(raw_pred)
 
-        # Advance the lag window exactly as predict() does
+        # Seasonal component (same formula as predict())
         seasonal_factor = forecast_model.seasonal_amplitude * float(
             np.sin(2 * np.pi * week / 52)
         )
+        seasonal_adjustments.append(round(seasonal_factor, 4))
+
+        # Advance the lag window with seasonally-adjusted value (same as predict())
         adjusted = max(0.0, raw_pred + seasonal_factor)
         recent.append(adjusted)
 
@@ -134,6 +152,13 @@ async def explain_forecast(
             predictions=raw_predictions,
             feature_names=FEATURE_NAMES,
         )
+        # Enrich each week with seasonal-adjusted prediction and seasonal_adjustment delta
+        for i, exp in enumerate(explanations):
+            raw = exp["prediction"]
+            adj = seasonal_adjustments[i]
+            exp["prediction"] = round(max(0.0, raw + adj), 2)  # matches /forecast
+            exp["prediction_raw"] = round(raw, 2)
+            exp["seasonal_adjustment"] = adj
         explainer_ready = True
     except Exception as exc:
         import logging
@@ -145,7 +170,9 @@ async def explain_forecast(
             {
                 "week": i + 1,
                 "date": fv["date"],
-                "prediction": round(raw_predictions[i], 2),
+                "prediction": round(max(0.0, raw_predictions[i] + seasonal_adjustments[i]), 2),
+                "prediction_raw": round(raw_predictions[i], 2),
+                "seasonal_adjustment": seasonal_adjustments[i],
                 "base_value": None,
                 "feature_vector": {k: fv[k] for k in FEATURE_NAMES},
                 "shap_values": {},
@@ -155,13 +182,41 @@ async def explain_forecast(
         ]
         explainer_ready = False
 
+    # ── Build driver_summary aggregation (matches scenario explain shape) ──
+    driver_summary = []
+    if explainer_ready and explanations:
+        from collections import defaultdict
+        feature_deltas: dict[str, list[float]] = defaultdict(list)
+        for exp in explanations:
+            for feat, val in (exp.get("shap_values") or {}).items():
+                feature_deltas[feat].append(float(val))
+        for feat in FEATURE_NAMES:
+            deltas = feature_deltas.get(feat, [])
+            if not deltas:
+                continue
+            mean_delta = sum(deltas) / len(deltas)
+            mean_abs = sum(abs(d) for d in deltas) / len(deltas)
+            driver_summary.append({
+                "feature": feat,
+                "mean_shap": round(mean_delta, 4),
+                "mean_abs_shap": round(mean_abs, 4),
+                "direction": "positive" if mean_delta >= 0 else "negative",
+                "weeks_positive": sum(1 for d in deltas if d > 0),
+                "weeks_negative": sum(1 for d in deltas if d < 0),
+                "weeks_neutral": sum(1 for d in deltas if d == 0),
+            })
+        driver_summary.sort(key=lambda x: x["mean_abs_shap"], reverse=True)
+
     return {
         "weeks": explanations,
+        "model_version": model_version,
         "model_type": type(forecast_model.model).__name__,
         "feature_names": FEATURE_NAMES,
         "explainer_ready": explainer_ready,
         "data_source": forecast_model.data_source,
+        "driver_summary": driver_summary,
     }
+
 
 @router.get("/product/{product_id}")
 async def get_product_forecast(
@@ -413,20 +468,71 @@ async def retrain_model(
 ):
     """Retrain the ML model asynchronously via Celery.
 
-    Returns a task_id immediately.  Poll GET /api/v1/tasks/{task_id}
-    for progress, or subscribe to WebSocket events for live updates.
+    If csv_text is provided in the body, retrains on that data.
+    If csv_text is absent/null, reloads the CSV stored on disk from the last upload
+    (path stored in ModelVersion.hyperparameters["csv_path"]).
+    Returns a task_id — poll GET /api/v1/tasks/{task_id} for progress.
     """
     if not tenant.can_manage_ml:
         from fastapi import HTTPException
         raise HTTPException(status_code=403, detail="Insufficient permissions to retrain model")
+
+    csv_text = req.csv_text
+    filename = req.filename
+
+    if not csv_text:
+        import os
+        mv_repo = ModelVersionRepository(db, tenant.org_id)
+        active_mv = await mv_repo.get_active()
+
+        if active_mv and active_mv.hyperparameters:
+            stored_csv_path = active_mv.hyperparameters.get("csv_path")
+            stored_filename = active_mv.hyperparameters.get("csv_filename", "uploaded.csv")
+
+            if stored_csv_path and os.path.exists(stored_csv_path):
+                try:
+                    with open(stored_csv_path, "r", encoding="utf-8") as _f:
+                        csv_text = _f.read()
+                    filename = stored_filename
+                except Exception as _exc:
+                    from fastapi import HTTPException
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Could not read stored dataset ({stored_csv_path}): {_exc}",
+                    )
+            elif active_mv.data_source and active_mv.data_source.startswith("uploaded:"):
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"The active model ({active_mv.version_tag}) was trained on "
+                        f"{active_mv.data_source} but the dataset file is not on disk. "
+                        "Please re-upload the original CSV to retrain."
+                    ),
+                )
+            else:
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        "The active model is a synthetic baseline. "
+                        "Upload a CSV file first, or use Reset to regenerate the synthetic baseline."
+                    ),
+                )
+        else:
+            from fastapi import HTTPException
+            raise HTTPException(
+                status_code=400,
+                detail="No active model or stored dataset found. Upload a CSV file to retrain.",
+            )
 
     from app.tasks.retraining_tasks import retrain_model_async
 
     task = retrain_model_async.delay(
         org_id=tenant.org_id,
         user_id=tenant.user_id,
-        csv_text=req.csv_text,
-        filename=req.filename,
+        csv_text=csv_text,
+        filename=filename,
     )
 
     return {

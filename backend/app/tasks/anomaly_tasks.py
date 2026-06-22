@@ -28,7 +28,7 @@ from app.core.task_status import (
     TASK_STATE_COMPLETED,
     TASK_STATE_FAILED,
 )
-from app.core.events import EventType, DomainEvent
+from app.core.events import EventType
 
 logger = logging.getLogger("titan.tasks.anomaly")
 
@@ -75,13 +75,18 @@ async def _run_detection(
     }
 
 
-async def _publish_events(org_id: int, result: dict, trigger: str) -> None:
-    """Publish domain events for the anomaly scan lifecycle."""
-    from app.core.events import event_bus
+def _publish_events(org_id: int, result: dict, trigger: str) -> None:
+    """Publish domain events for the anomaly scan lifecycle via Redis Pub/Sub.
 
-    # anomaly.scan.completed
-    await event_bus.publish(DomainEvent(
-        event_type=EventType.ANOMALY_SCAN_COMPLETED,
+    Uses Redis so the event crosses the Celery↔FastAPI process boundary and
+    reaches the FastAPI event_bus / ws_manager running in the web process.
+    Falls back silently if Redis is unavailable.
+    """
+    from app.core.redis_pubsub import publish_event
+    from app.core.events import EventType
+
+    publish_event(
+        EventType.ANOMALY_SCAN_COMPLETED,
         org_id=org_id,
         payload={
             "trigger": trigger,
@@ -95,19 +100,19 @@ async def _publish_events(org_id: int, result: dict, trigger: str) -> None:
             "forecast_misses": result["forecast_misses"],
             "computation_seconds": result["computation_seconds"],
         },
-    ))
+    )
 
-    # anomaly.detected — only if any were found
     if result["detected"] > 0:
-        await event_bus.publish(DomainEvent(
-            event_type=EventType.ANOMALY_DETECTED,
+        publish_event(
+            EventType.ANOMALY_DETECTED,
             org_id=org_id,
             payload={
                 "count": result["detected"],
                 "critical_count": result["critical"],
                 "trigger": trigger,
             },
-        ))
+        )
+
 
 
 # ── On-demand / Triggered Task ────────────────────────────────────────
@@ -157,18 +162,14 @@ def run_anomaly_scan(
         user_id=user_id,
     )
 
-    # Publish scan.started event (fire-and-forget via new loop)
+    # Publish scan.started via Redis so FastAPI WS bridge picks it up
     try:
-        from app.core.events import event_bus
-
-        async def _started():
-            await event_bus.publish(DomainEvent(
-                event_type=EventType.ANOMALY_SCAN_STARTED,
-                org_id=org_id,
-                payload={"trigger": trigger, "lookback_weeks": lookback_weeks},
-            ))
-
-        asyncio.run(_started())
+        from app.core.redis_pubsub import publish_event
+        publish_event(
+            EventType.ANOMALY_SCAN_STARTED,
+            org_id=org_id,
+            payload={"trigger": trigger, "lookback_weeks": lookback_weeks},
+        )
     except Exception:
         logger.warning("[org:%d] Could not publish anomaly.scan.started", org_id, exc_info=True)
 
@@ -185,9 +186,10 @@ def run_anomaly_scan(
 
         # Publish completion events
         try:
-            asyncio.run(_publish_events(org_id=org_id, result=result, trigger=trigger))
+            _publish_events(org_id=org_id, result=result, trigger=trigger)
         except Exception:
             logger.warning("[org:%d] Could not publish anomaly completion events", org_id, exc_info=True)
+
 
         # Mark Celery task complete
         msg = (

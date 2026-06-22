@@ -29,7 +29,7 @@ export default function PipelinePage() {
   const isCustomDataset = useDataStore(s => s.isCustomDataset);
   const rawCsvText = useDataStore(s => s.rawCsvText);
   const datasetName = useDataStore(s => s.datasetName);
-  
+
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
   const [featureImportance, setFeatureImportance] = useState(defaultFeatureImportance);
   const [modelMetrics, setModelMetrics] = useState(defaultModelMetrics);
@@ -42,15 +42,15 @@ export default function PipelinePage() {
       try {
         const res = await api.get('/forecast/model-info');
         const data = res.data;
-        
+
         // Map backend features to UI format
         const features = Object.entries(data.feature_importance || {}).map(([name, importance]) => ({
           name,
           importance: importance as number
         })).sort((a, b) => b.importance - a.importance);
-        
+
         setFeatureImportance(features.length > 0 ? features : defaultFeatureImportance);
-        
+
         if (data.convergence && data.convergence.length > 0) {
           setModelMetrics(data.convergence);
         }
@@ -92,19 +92,22 @@ export default function PipelinePage() {
   const handleRetrain = async () => {
     setIsTraining(true);
     try {
-      let res;
+      // Always POST /forecast/retrain — NEVER /forecast/reset.
+      // Send csv_text if available in the Zustand store (just uploaded this session).
+      // If not (page refresh / new session), the backend reloads from the stored CSV on disk.
+      const body: { csv_text?: string; filename?: string } = {};
       if (isCustomDataset && rawCsvText) {
-        res = await api.post('/forecast/retrain', { csv_text: rawCsvText, filename: datasetName || 'uploaded.csv' });
-      } else {
-        res = await api.post('/forecast/reset');
+        body.csv_text = rawCsvText;
+        body.filename = datasetName || 'uploaded.csv';
       }
-      
+      const res = await api.post('/forecast/retrain', body);
+
       if (res.data.error) {
         showToast(`❌ ML Error: ${res.data.error}`);
         setIsTraining(false);
         return;
       }
-      
+
       if (res.data.task_id) {
         const taskId = res.data.task_id;
         const pollTask = async () => {
@@ -141,25 +144,26 @@ export default function PipelinePage() {
         };
         pollTask();
       } else {
-        // Sync reset response
-        const newVersion = res.data.model_version || `v1.4.0`;
+        // Sync response fallback (should not occur with async Celery tasks)
+        const newVersion = res.data.model_version || 'v?.0';
         const newEntry = {
           id: Date.now(),
           version: newVersion,
-          accuracy: res.data.accuracy || 94.7,
-          mae: res.data.rmse ? res.data.rmse * 0.8 : 142.3,
-          rmse: res.data.rmse || 183.1,
-          duration: `Sync`,
+          accuracy: res.data.accuracy || 0,
+          mae: res.data.rmse ? res.data.rmse * 0.8 : 0,
+          rmse: res.data.rmse || 0,
+          duration: 'Sync',
           date: new Date().toISOString().split('T')[0],
           status: 'active',
         };
         setTrainingHistory(prev => [newEntry, ...prev.map(t => ({ ...t, status: 'archived' }))]);
-        showToast(`✅ Model retrained successfully — ${newVersion} (${res.data.accuracy || 94.7}% accuracy)`);
+        showToast(`✅ Model retrained — ${newVersion} (${res.data.accuracy || 0}% accuracy)`);
         setIsTraining(false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      showToast('❌ Failed to retrain model');
+      const detail = err?.response?.data?.detail || 'Failed to retrain model';
+      showToast(`❌ ${detail}`);
       setIsTraining(false);
     }
   };

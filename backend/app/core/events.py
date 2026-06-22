@@ -57,6 +57,7 @@ class EventType:
     # Alerts
     ALERT_TRIGGERED = "alert.triggered"
     ALERT_RESOLVED = "alert.resolved"
+    ALERT_ACKNOWLEDGED = "alert.acknowledged"
 
     # Tasks
     TASK_STARTED = "task.started"

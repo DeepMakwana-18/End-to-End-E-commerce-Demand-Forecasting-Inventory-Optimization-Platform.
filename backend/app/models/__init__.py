@@ -35,17 +35,22 @@ class UserRole(str, enum.Enum):
 
 
 class AlertSeverity(str, enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
 
 
 class AlertType(str, enum.Enum):
-    LOW_STOCK = "low_stock"
-    REORDER = "reorder"
-    OVERSTOCK = "overstock"
-    STOCKOUT = "stockout"
+    # Original alert types (uppercase in DB)
+    LOW_STOCK = "LOW_STOCK"
+    REORDER = "REORDER"
+    OVERSTOCK = "OVERSTOCK"
+    STOCKOUT = "STOCKOUT"
+    # Rule-engine generated types (Phase 5E-C — lowercase in DB)
+    ANOMALY_DETECTED = "anomaly_detected"
+    MODEL_ACCURACY_DEGRADED = "model_accuracy_degraded"
+    FORECAST_MISS = "forecast_miss"
 
 
 class InventoryStatus(str, enum.Enum):
@@ -261,7 +266,7 @@ class InventoryAlert(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     organization_id = Column(Integer, ForeignKey("organizations.id", ondelete="CASCADE"), nullable=False, index=True)
-    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=False, index=True)
+    product_id = Column(Integer, ForeignKey("products.id", ondelete="CASCADE"), nullable=True, index=True)
     warehouse_id = Column(Integer, ForeignKey("warehouses.id", ondelete="SET NULL"), nullable=True)
     alert_type = Column(SQLEnum(AlertType), nullable=False)
     severity = Column(SQLEnum(AlertSeverity), nullable=False)
@@ -269,6 +274,13 @@ class InventoryAlert(Base):
     is_resolved = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
     resolved_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Phase 5E-C: Alert lifecycle & rule engine fields (all nullable — no migration)
+    acknowledged_at = Column(DateTime(timezone=True), nullable=True)
+    acknowledged_by = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    rule_key = Column(String(192), nullable=True, index=True)   # dedup key
+    source_event_id = Column(String(32), nullable=True)          # originating event_id
+    extra_data = Column(JSON, nullable=True)                     # arbitrary context
 
     product = relationship("Product", back_populates="inventory_alerts")
     warehouse = relationship("Warehouse", back_populates="inventory_alerts")

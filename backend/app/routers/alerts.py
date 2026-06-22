@@ -1,7 +1,10 @@
-"""Alerts API routes — DB-backed with email integration.
+"""Alerts API routes — Rule-driven with full lifecycle management.
 
-Phase 5: Secured under /api/v1/alerts with full tenant context
-and per-organisation rate limiting on the send-email endpoint.
+Phase 5E-C additions:
+  POST /alerts/{id}/acknowledge — active → acknowledged lifecycle
+  POST /alerts/scan-inventory  — manually trigger inventory rule sweep
+  Updated GET /alerts          — includes lifecycle, acknowledged_at, extra_data
+  Updated _serialize_alert     — full Phase 5E-C fields
 """
 
 import time
@@ -14,23 +17,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_tenant_context
 from app.core.tenant import TenantContext
-from app.repositories.alert_repo import AlertRepository
+from app.repositories.alert_repo import AlertRepository, _serialize_alert
 from app.utils.email import send_alert_email
 
 # ── Rate limiting (in-memory, per org_id) ───────────────────────────
-# Allows at most EMAIL_RATE_LIMIT calls per EMAIL_RATE_WINDOW seconds.
-EMAIL_RATE_LIMIT = 5        # max emails
-EMAIL_RATE_WINDOW = 300     # per 5 minutes
+EMAIL_RATE_LIMIT = 5
+EMAIL_RATE_WINDOW = 300
 
 _email_rate_store: dict[int, list[float]] = {}
 
 
 def _check_email_rate(org_id: int) -> None:
-    """Raise 429 if the org has exceeded the email rate limit."""
     now = time.monotonic()
     window_start = now - EMAIL_RATE_WINDOW
     calls = _email_rate_store.get(org_id, [])
-    # Prune old entries
     calls = [t for t in calls if t > window_start]
     if len(calls) >= EMAIL_RATE_LIMIT:
         raise HTTPException(
@@ -45,7 +45,6 @@ def _check_email_rate(org_id: int) -> None:
 
 
 # ── Router ─────────────────────────────────────────────────────────
-# prefix is /alerts — registered in main.py under /api/v1
 router = APIRouter(prefix="/alerts", tags=["Alerts"])
 
 
@@ -54,6 +53,8 @@ class AlertPayload(BaseModel):
     message: str
     date: str
 
+
+# ── Email alert (unchanged) ─────────────────────────────────────────
 
 @router.post("/send-email")
 async def trigger_email_alert(
@@ -64,7 +65,6 @@ async def trigger_email_alert(
 ):
     """Trigger a background email alert.
 
-    Requires authentication and tenant context.
     Rate-limited to 5 emails per 5 minutes per organisation.
     """
     if not tenant.can_write:
@@ -88,22 +88,116 @@ async def trigger_email_alert(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ── Manual inventory rule scan ──────────────────────────────────────
+
+@router.post("/scan-inventory")
+async def scan_inventory_alerts(
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Manually trigger inventory alert rule scan for the organisation.
+
+    Runs R1 (critical inventory) and R2 (low inventory) rules immediately.
+    Publishes alert.triggered events for each new alert created.
+    Returns newly created alerts.
+    """
+    if not tenant.can_write:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    from app.services.alert_engine import AlertRuleEngine
+    from app.core.events import event_bus, DomainEvent, EventType
+
+    engine = AlertRuleEngine(db, tenant.org_id)
+    new_alerts = await engine.run_inventory_rules()
+    await db.commit()
+
+    # Publish alert.triggered events
+    for alert in new_alerts:
+        await event_bus.publish(
+            DomainEvent(
+                event_type=EventType.ALERT_TRIGGERED,
+                org_id=tenant.org_id,
+                user_id=tenant.user_id,
+                payload={
+                    "alert_id": alert.id,
+                    "alert_type": alert.alert_type.value,
+                    "severity": alert.severity.value,
+                    "message": alert.message,
+                    "product_id": alert.product_id,
+                    "rule_key": alert.rule_key,
+                    "source": "manual_scan",
+                },
+            )
+        )
+
+    return {
+        "status": "scan_complete",
+        "new_alerts": len(new_alerts),
+        "alerts": [_serialize_alert(a) for a in new_alerts],
+    }
+
+
+# ── List alerts ─────────────────────────────────────────────────────
+
 @router.get("")
 async def get_all_alerts(
     severity: Optional[str] = None,
     resolved: bool = False,
+    offset: int = 0,
+    limit: int = 50,
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
     """Get all alerts for the organisation (tenant-scoped)."""
     repo = AlertRepository(db, tenant.org_id)
     if resolved:
-        alerts = await repo.get_all(filters={"is_resolved": True}, limit=50)
-        return {"alerts": [_serialize_alert(a) for a in alerts], "total": len(alerts)}
+        alerts_raw = await repo.get_all(filters={"is_resolved": True}, limit=limit)
+        return {
+            "alerts": [_serialize_alert(a) for a in alerts_raw],
+            "total": len(alerts_raw),
+        }
 
-    alerts = await repo.get_active_alerts(severity=severity)
+    alerts = await repo.get_active_alerts(severity=severity, offset=offset, limit=limit)
     return {"alerts": alerts, "total": len(alerts)}
 
+
+# ── Acknowledge ─────────────────────────────────────────────────────
+
+@router.post("/{alert_id}/acknowledge")
+async def acknowledge_alert(
+    alert_id: int,
+    db: AsyncSession = Depends(get_db),
+    tenant: TenantContext = Depends(get_tenant_context),
+):
+    """Acknowledge an alert — transitions from active → acknowledged.
+
+    Publishes alert.acknowledged WS event.
+    """
+    if not tenant.can_write:
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+
+    repo = AlertRepository(db, tenant.org_id)
+    success = await repo.acknowledge(alert_id, user_id=tenant.user_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Alert not found or already resolved")
+
+    await db.commit()
+
+    # Publish WS event
+    from app.core.events import event_bus, DomainEvent, EventType
+    await event_bus.publish(
+        DomainEvent(
+            event_type=EventType.ALERT_ACKNOWLEDGED,
+            org_id=tenant.org_id,
+            user_id=tenant.user_id,
+            payload={"alert_id": alert_id, "acknowledged_by": tenant.user_id},
+        )
+    )
+
+    return {"status": "acknowledged", "id": alert_id}
+
+
+# ── Resolve ─────────────────────────────────────────────────────────
 
 @router.post("/{alert_id}/resolve")
 async def resolve_alert(
@@ -111,7 +205,7 @@ async def resolve_alert(
     db: AsyncSession = Depends(get_db),
     tenant: TenantContext = Depends(get_tenant_context),
 ):
-    """Resolve an alert (tenant-scoped)."""
+    """Resolve an alert (tenant-scoped). Publishes alert.resolved WS event."""
     if not tenant.can_write:
         raise HTTPException(status_code=403, detail="Insufficient permissions")
 
@@ -119,8 +213,24 @@ async def resolve_alert(
     success = await repo.resolve(alert_id)
     if not success:
         raise HTTPException(status_code=404, detail="Alert not found")
+
+    await db.commit()
+
+    # Publish WS event
+    from app.core.events import event_bus, DomainEvent, EventType
+    await event_bus.publish(
+        DomainEvent(
+            event_type=EventType.ALERT_RESOLVED,
+            org_id=tenant.org_id,
+            user_id=tenant.user_id,
+            payload={"alert_id": alert_id},
+        )
+    )
+
     return {"status": "resolved", "id": alert_id}
 
+
+# ── Dismiss ─────────────────────────────────────────────────────────
 
 @router.delete("/{alert_id}")
 async def dismiss_alert(
@@ -136,8 +246,11 @@ async def dismiss_alert(
     success = await repo.delete(alert_id)
     if not success:
         raise HTTPException(status_code=404, detail="Alert not found")
+    await db.commit()
     return {"status": "dismissed", "id": alert_id}
 
+
+# ── Stats ───────────────────────────────────────────────────────────
 
 @router.get("/stats")
 async def get_alert_stats(
@@ -149,15 +262,3 @@ async def get_alert_stats(
     by_severity = await repo.count_by_severity()
     total = await repo.count_active()
     return {"total_active": total, "by_severity": by_severity}
-
-
-def _serialize_alert(alert):
-    return {
-        "id": alert.id,
-        "product_id": alert.product_id,
-        "alert_type": alert.alert_type.value if alert.alert_type else "",
-        "severity": alert.severity.value if alert.severity else "",
-        "message": alert.message,
-        "is_resolved": alert.is_resolved,
-        "created_at": alert.created_at.isoformat() if alert.created_at else None,
-    }

@@ -5,6 +5,8 @@ Main FastAPI Application Entry Point
 Phase 2.5: Event bus, structured logging, Sentry, middleware, Celery task status.
 """
 
+import asyncio
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -74,7 +76,19 @@ async def lifespan(app: FastAPI):
     register_event_handlers()
     set_ws_manager(ws_manager)
 
-    # 4. Model integrity check — verify active ModelVersion artifact exists on disk
+    # 3b. Start Redis Pub/Sub subscriber — bridges Celery→FastAPI WS events
+    _redis_sub_task = None
+    try:
+        from app.core.redis_pubsub import start_redis_subscriber
+        _redis_sub_task = asyncio.create_task(
+            start_redis_subscriber(),
+            name="redis_pubsub_subscriber",
+        )
+        logger.info("✅ Redis Pub/Sub subscriber task started")
+    except Exception as e:
+        logger.warning("⚠️ Could not start Redis Pub/Sub subscriber: %s", str(e))
+
+    # 4. Model integrity check + pre-load — verify active ModelVersion and load into singleton
     try:
         from app.database import async_session
         from app.models import ModelVersion
@@ -103,7 +117,8 @@ async def lifespan(app: FastAPI):
         elif not os.path.exists(active_mv.model_path):
             logger.warning(
                 "⚠️ Active ModelVersion (id=%d, tag=%s) artifact NOT FOUND on disk: %s. "
-                "Forecast requests will fall back to in-memory model.",
+                "Forecast requests will fall back to in-memory model or synthetic training. "
+                "Run Retrain to rebuild the artifact.",
                 active_mv.id, active_mv.version_tag, active_mv.model_path,
             )
         else:
@@ -121,10 +136,45 @@ async def lifespan(app: FastAPI):
                     "⚠️ Active model has no feature_schema (pre-Phase 5A artifact). "
                     "Retrain or reset to populate metadata."
                 )
+
+            # FIX: Pre-load active model into the singleton at startup so that all
+            # modules (Forecast page, Copilot, SHAP) start with correct in-memory state.
+            # Without this, forecast_model.metrics.accuracy = 0.0 until the first
+            # GET /forecast request triggers a lazy load.
+            try:
+                from app.services.ml_service import forecast_model
+                loaded = forecast_model.load(active_mv.model_path)
+                if loaded:
+                    logger.info(
+                        "✅ forecast_model pre-loaded at startup: tag=%s  accuracy=%.1f%%  source=%s",
+                        active_mv.version_tag,
+                        forecast_model.metrics.get("accuracy", 0.0),
+                        forecast_model.data_source,
+                    )
+                else:
+                    logger.warning(
+                        "⚠️ forecast_model.load() returned False for artifact=%s — "
+                        "file may be corrupt. First /forecast request will fall back to synthetic.",
+                        active_mv.model_path,
+                    )
+            except Exception as _load_exc:
+                logger.warning(
+                    "⚠️ Could not pre-load forecast_model at startup: %s. "
+                    "The model will be loaded lazily on first request.",
+                    str(_load_exc),
+                )
     except Exception as _e:
         logger.warning("⚠️ Model integrity check skipped: %s", str(_e))
 
     yield
+
+    # Shutdown: cancel Redis subscriber
+    if _redis_sub_task and not _redis_sub_task.done():
+        _redis_sub_task.cancel()
+        try:
+            await _redis_sub_task
+        except Exception:
+            pass
     logger.info("🛑 Shutting down %s...", settings.APP_NAME)
 
 
@@ -177,6 +227,7 @@ app.add_middleware(
 from app.routers import auth, dashboard, forecast, inventory, products, reports, upload, users, alerts
 from app.routers.scenarios import router as scenarios_router
 from app.routers.anomalies import router as anomalies_router
+from app.routers.copilot import router as copilot_router
 from app.websocket.routes import router as ws_router
 
 app.include_router(auth.router, prefix="/api/v1")
@@ -190,6 +241,7 @@ app.include_router(users.router, prefix="/api/v1")
 app.include_router(alerts.router, prefix="/api/v1")  # Alerts — secured under /api/v1
 app.include_router(scenarios_router, prefix="/api/v1")  # Scenario Engine
 app.include_router(anomalies_router, prefix="/api/v1")  # Anomaly Detection
+app.include_router(copilot_router, prefix="/api/v1")  # AI Copilot
 app.include_router(ws_router)  # WebSocket at /ws
 
 

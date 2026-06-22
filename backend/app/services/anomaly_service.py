@@ -212,16 +212,6 @@ class AnomalyService:
         t0 = time.perf_counter()
         run_types = set(req.types) if req.types else set(AnomalyType)
 
-        # Delete existing unresolved anomalies for this org so the new thresholds take full effect
-        from sqlalchemy import delete
-        del_stmt = delete(Anomaly).where(
-            Anomaly.organization_id == self.org_id,
-            Anomaly.is_resolved == False,
-            Anomaly.anomaly_type.in_(run_types)
-        )
-        await self.db.execute(del_stmt)
-        await self.db.commit()
-
         original_lookback = req.lookback_weeks
         sweep_windows = [4, 8, 12, 24, 52, 104, 260, 520] if req.comprehensive_sweep else [original_lookback]
 
@@ -245,7 +235,7 @@ class AnomalyService:
             if AnomalyType.FORECAST_MISS in run_types:
                 miss_anomalies = await self._detect_forecast_miss(forecasts, req)
                 all_detected.extend(miss_anomalies)
-        
+
         req.lookback_weeks = original_lookback
 
         if all_detected:
@@ -261,10 +251,72 @@ class AnomalyService:
                         unique_anomalies[key] = a
             all_detected = list(unique_anomalies.values())
 
-        # Persist ALL new anomalies for the dataset
+        # ── Upsert: preserve detected_at for existing anomalies ───────────
+        # Load existing UNRESOLVED anomalies for this org/type so we can diff.
+        # Resolved anomalies are never re-opened — lifecycle data is preserved.
         if all_detected:
-            await self.repo.bulk_create(all_detected)
+            from sqlalchemy import select as _sel
+            ex_stmt = _sel(Anomaly).where(
+                Anomaly.organization_id == self.org_id,
+                Anomaly.is_resolved == False,  # noqa: E712
+                Anomaly.anomaly_type.in_(run_types),
+            )
+            ex_result = await self.db.execute(ex_stmt)
+            existing_anomalies = list(ex_result.scalars().all())
+
+            # Index existing by natural key
+            existing_map: dict[tuple, Anomaly] = {
+                (a.anomaly_type, a.product_id, a.event_date): a
+                for a in existing_anomalies
+            }
+
+            to_insert: list[Anomaly] = []
+            to_update: list[Anomaly] = []
+
+            for new_a in all_detected:
+                key = (new_a.anomaly_type, new_a.product_id, new_a.event_date)
+                if key in existing_map:
+                    # Refresh stats but preserve detected_at and is_resolved
+                    ex = existing_map[key]
+                    ex.z_score = new_a.z_score
+                    ex.deviation_pct = new_a.deviation_pct
+                    ex.expected_value = new_a.expected_value
+                    ex.actual_value = new_a.actual_value
+                    ex.explanation = new_a.explanation
+                    ex.severity = new_a.severity
+                    # detected_at intentionally NOT updated — preserves history
+                    to_update.append(ex)
+                else:
+                    to_insert.append(new_a)
+
+            # Delete stale anomaly records that the new scan no longer finds
+            new_keys = {
+                (a.anomaly_type, a.product_id, a.event_date) for a in all_detected
+            }
+            stale = [a for a in existing_anomalies if
+                     (a.anomaly_type, a.product_id, a.event_date) not in new_keys]
+            for stale_a in stale:
+                await self.db.delete(stale_a)
+
+            if to_insert:
+                self.db.add_all(to_insert)
+            # to_update objects are already tracked by SQLAlchemy — flush handles them
             await self.db.commit()
+
+            # all_detected should reflect what's now in the DB
+            all_detected = to_update + to_insert
+        else:
+            # No anomalies found: clear all existing unresolved anomalies of these types
+            from sqlalchemy import delete as _del
+            del_stmt = _del(Anomaly).where(
+                Anomaly.organization_id == self.org_id,
+                Anomaly.is_resolved == False,  # noqa: E712
+                Anomaly.anomaly_type.in_(run_types),
+            )
+            await self.db.execute(del_stmt)
+            await self.db.commit()
+
+
 
         elapsed = round(time.perf_counter() - t0, 3)
 
@@ -329,53 +381,69 @@ class AnomalyService:
     async def _detect_demand(
         self, forecasts: list, req: AnomalyDetectRequest
     ) -> list[Anomaly]:
-        """Detect demand spikes and drops using rolling z-score on actual demand."""
-        if not forecasts:
-            return []
+        """Detect demand spikes and drops using rolling z-score on actual demand.
 
-        # Group by product_id for per-product rolling stats
-        by_product: dict[int | None, list] = defaultdict(list)
-        for f in forecasts:
-            by_product[f.product_id].append(f)
-
-        # Also run on aggregated weekly demand (org-level)
-        by_date: dict[str, float] = defaultdict(float)
-        for f in forecasts:
-            date_key = f.forecast_date.strftime("%Y-%m-%d") if f.forecast_date else "unknown"
-            by_date[date_key] += f.actual_demand or 0
+        Two detection sweeps:
+        1. Per-product sweep over the Sales table — produces anomalies with
+           product_id set so they can be linked to specific products.
+        2. Org-level aggregate sweep over the Forecasts table (product_id=None)
+           for the historical org-wide time-series view.
+        """
+        from app.models import Sale
 
         window = min(req.lookback_weeks // 2, 6)  # rolling window = half lookback, max 6
         detected: list[Anomaly] = []
 
-        # Per-product detection
-        for pid, rows in by_product.items():
-            rows_sorted = sorted(rows, key=lambda r: r.forecast_date or datetime.min)
-            values = [float(r.actual_demand or 0) for r in rows_sorted]
-            dates = [
-                r.forecast_date.strftime("%Y-%m-%d") if r.forecast_date else None
-                for r in rows_sorted
-            ]
-            detected.extend(_run_rolling_detection(
-                values, dates, window, req, pid, self.org_id,
-                AnomalyType.DEMAND_SPIKE, AnomalyType.DEMAND_DROP
-            ))
+        # ── 1. Per-product detection via Sales table ──────────────────────────────
+        sales_stmt = (
+            select(Sale)
+            .where(Sale.organization_id == self.org_id)
+            .order_by(Sale.product_id.asc(), Sale.date.asc())
+        )
+        sales_result = await self.db.execute(sales_stmt)
+        sales_rows = list(sales_result.scalars().all())
 
-        # Org-level aggregated demand detection (product_id=None)
-        # Only run when multiple products exist in the dataset.
-        # For single-product orgs the aggregated series is identical to the
-        # per-product series and would produce duplicate anomaly records
-        # with product_id=None alongside the product-specific ones.
-        agg_sorted = sorted(by_date.items())
-        n_distinct_products = len(by_product)
-        if n_distinct_products != 1 and len(agg_sorted) > window:
-            agg_values = [v for _, v in agg_sorted]
-            agg_dates = [d for d, _ in agg_sorted]
-            detected.extend(_run_rolling_detection(
-                agg_values, agg_dates, window, req, None, self.org_id,
-                AnomalyType.DEMAND_SPIKE, AnomalyType.DEMAND_DROP
-            ))
+        if sales_rows:
+            by_product_weekly: dict[int, list[tuple[str, float]]] = defaultdict(list)
+            for s in sales_rows:
+                if s.product_id is None:
+                    continue
+                week_key = s.date.strftime("%Y-%m-%d") if s.date else "unknown"
+                by_product_weekly[s.product_id].append((week_key, float(s.quantity or 0)))
+
+            for pid, entries in by_product_weekly.items():
+                # Aggregate multiple sales on the same date
+                date_agg: dict[str, float] = defaultdict(float)
+                for dk, qty in entries:
+                    date_agg[dk] += qty
+                sorted_entries = sorted(date_agg.items())
+                if len(sorted_entries) <= window:
+                    continue
+                values = [v for _, v in sorted_entries]
+                dates = [d for d, _ in sorted_entries]
+                detected.extend(_run_rolling_detection(
+                    values, dates, window, req, pid, self.org_id,
+                    AnomalyType.DEMAND_SPIKE, AnomalyType.DEMAND_DROP
+                ))
+
+        # ── 2. Org-level aggregate detection via Forecasts table ───────────────
+        if forecasts:
+            by_date: dict[str, float] = defaultdict(float)
+            for f in forecasts:
+                date_key = f.forecast_date.strftime("%Y-%m-%d") if f.forecast_date else "unknown"
+                by_date[date_key] += f.actual_demand or 0
+
+            agg_sorted = sorted(by_date.items())
+            if len(agg_sorted) > window:
+                agg_values = [v for _, v in agg_sorted]
+                agg_dates = [d for d, _ in agg_sorted]
+                detected.extend(_run_rolling_detection(
+                    agg_values, agg_dates, window, req, None, self.org_id,
+                    AnomalyType.DEMAND_SPIKE, AnomalyType.DEMAND_DROP
+                ))
 
         return detected
+
 
     async def _detect_inventory_shock(self, req: AnomalyDetectRequest) -> list[Anomaly]:
         """Detect sharp inventory level changes using rolling z-score."""

@@ -57,6 +57,11 @@ api.interceptors.response.use(
 
     // ── Auto token refresh on 401 ────────────────────────────────
     if (error.response?.status === 401 && !originalRequest._retry) {
+      // Allow components to handle their own auth errors for login/signup
+      if (originalRequest.url?.includes('/auth/login') || originalRequest.url?.includes('/auth/signup')) {
+        return Promise.reject(error);
+      }
+
       const refreshToken = useAppStore.getState().refreshToken;
 
       if (!refreshToken) {
@@ -251,16 +256,20 @@ export const forecastApi = {
 // ── Alerts API ────────────────────────────────────────────────────
 
 export const alertsApi = {
-  getAll: (params?: { severity?: string; resolved?: boolean }) =>
-    api.get<{ alerts: Alert[]; total: number }>('/api/alerts', { params }),  // Note: alerts uses /api/alerts prefix
 
-  resolve: (id: number) => api.post(`/api/alerts/${id}/resolve`),
-  dismiss: (id: number) => api.delete(`/api/alerts/${id}`),
-  getStats: () => api.get<{ total_active: number; by_severity: Record<string, number> }>('/api/alerts/stats'),
+  getAll: (params?: { severity?: string; resolved?: boolean; limit?: number }) =>
+    api.get<{ alerts: Alert[]; total: number }>('/alerts', { params }),
+
+  resolve: (id: number) => api.post(`/alerts/${id}/resolve`),
+  acknowledge: (id: number) => api.post(`/alerts/${id}/acknowledge`),
+  dismiss: (id: number) => api.delete(`/alerts/${id}`),
+  getStats: () => api.get<{ total_active: number; by_severity: Record<string, number> }>('/alerts/stats'),
+  scanInventory: () => api.post<{ status: string; new_alerts: number; alerts: Alert[] }>('/alerts/scan-inventory'),
 
   sendEmail: (sku: string, message: string, date: string) =>
-    api.post('/api/alerts/send-email', { sku, message, date }),
+    api.post('/alerts/send-email', { sku, message, date }),
 };
+
 
 // ── Reports API ───────────────────────────────────────────────────
 
