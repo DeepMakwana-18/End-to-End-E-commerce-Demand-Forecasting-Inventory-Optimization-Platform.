@@ -1,4 +1,4 @@
-<![CDATA[<div align="center">
+<div align="center">
 
 # 🏭 Project Titan
 ### End-to-End E-Commerce Demand Forecasting & Inventory Optimization Platform
@@ -854,8 +854,11 @@ The following capabilities are not yet implemented and represent natural next st
 ## 👥 Contributors
 
 | Name | Role |
-|------|------|
-| **Deep Makwana** | Full-stack Developer — Architecture, ML Pipeline, Backend, Frontend, AI Copilot, Infrastructure |
+|--------|--------|
+| Deep Makwana | Project Lead, Backend, ML Pipeline, AI Copilot |
+| Trupesh Hingrajiya | Frontend Development, UI/UX |
+| Smit Kansagara | Testing, Documentation, Validation |
+| Manav Limbani | Research, Analysis, Support |
 
 ---
 
@@ -868,4 +871,4 @@ The following capabilities are not yet implemented and represent natural next st
 [![GitHub](https://img.shields.io/badge/GitHub-DeepMakwana--18-181717?style=flat-square&logo=github)](https://github.com/DeepMakwana-18)
 
 </div>
-]]>
+
