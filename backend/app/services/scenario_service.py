@@ -113,99 +113,10 @@ async def _run_simulation(
             )
         return engine.run(params, weeks)
 
-    # ── Fallback: in-memory singleton ────────────────────────────────
-    logger.warning(
-        "[org:%d] Model v%s has no artifact on disk (path=%r). "
-        "Falling back to in-memory singleton.",
-        org_id,
-        active_mv.version_tag,
-        active_mv.model_path,
+    raise RuntimeError(
+        f"Model v{active_mv.version_tag} has no artifact file on disk. "
+        "Please re-run model training to generate the artifact before running simulations."
     )
-    from app.services.ml_service import forecast_model
-
-    if not forecast_model.is_trained:
-        forecast_model.train()
-
-    state = {
-        "model": forecast_model.model,
-        "last_date": forecast_model.last_date,
-        "last_demand": forecast_model.last_demand,
-        "last_4_demand": forecast_model.last_4_demand,
-        "last_demands": forecast_model.last_demands,
-        "std_dev": forecast_model.std_dev,
-        "seasonal_amplitude": forecast_model.seasonal_amplitude,
-    }
-
-    marketing_spend_pct = float(params.get("marketing_spend_pct", 0.0))
-    price_change_pct = float(params.get("price_change_pct", 0.0))
-    lead_time_days = float(params.get("lead_time_days", 14.0))
-    safety_stock_multiplier = float(params.get("safety_stock_multiplier", 1.0))
-    # avg_unit_value is already resolved above from DB; use it directly
-    avg_unit_value = float(params.get("avg_unit_value", 50.0))
-
-    marketing_effect = 1.0 + (marketing_spend_pct / 100) * MARKETING_ELASTICITY
-    price_effect = 1.0 + (price_change_pct / 100) * PRICE_ELASTICITY
-    demand_multiplier = max(0.05, marketing_effect * price_effect)
-    lead_time_adjustment = lead_time_days - 14.0
-
-    baseline_points, _ = _run_baseline(state, weeks)
-    simulated_points, _ = _run_modified(state, weeks, demand_multiplier, lead_time_adjustment)
-    baseline_demand = sum(p["predicted_demand"] for p in baseline_points)
-    simulated_demand = sum(p["demand"] for p in simulated_points)
-    demand_delta = simulated_demand - baseline_demand
-    demand_delta_pct = round(demand_delta / baseline_demand * 100, 2) if baseline_demand > 0 else 0.0
-    revenue_impact = round(demand_delta * avg_unit_value, 2)
-    inventory_impact = round(demand_delta, 1)
-    stockout_risk_pct = _compute_stockout_risk(
-        baseline_points, simulated_points, safety_stock_multiplier, lead_time_days
-    )
-
-    recommendations = [
-        "Simulation ran using in-memory model (artifact not found on disk). "
-        "Re-run training to persist the artifact for more accurate scenarios."
-    ]
-    if demand_delta_pct > 10:
-        recommendations.append(
-            f"Demand increase of {demand_delta_pct:.1f}% — consider raising safety stock."
-        )
-    elif demand_delta_pct < -10:
-        recommendations.append(
-            f"Demand decrease of {abs(demand_delta_pct):.1f}% — reduce reorder quantities."
-        )
-
-    return {
-        "summary": {
-            "baseline_demand": round(baseline_demand, 1),
-            "simulated_demand": round(simulated_demand, 1),
-            "demand_delta_pct": demand_delta_pct,
-            "revenue_impact": revenue_impact,
-            "inventory_impact": inventory_impact,
-            "stockout_risk_pct": stockout_risk_pct,
-        },
-        "baseline": [
-            {
-                "week": p["week"], "date": p["date"], "demand": p["predicted_demand"],
-                "confidence_lower": p["confidence_lower"], "confidence_upper": p["confidence_upper"],
-            }
-            for p in baseline_points
-        ],
-        "simulated": [
-            {k: v for k, v in p.items() if k != "_raw"}
-            for p in simulated_points
-        ],
-        "recommendations": recommendations,
-        "params_applied": {
-            "marketing_spend_pct": marketing_spend_pct,
-            "price_change_pct": price_change_pct,
-            "lead_time_days": lead_time_days,
-            "safety_stock_multiplier": safety_stock_multiplier,
-            "demand_multiplier": round(demand_multiplier, 4),
-        },
-        "model_info": {
-            "version_tag": active_mv.version_tag,
-            "source": "in-memory-fallback",
-        },
-    }
 
 
 # ── Service ───────────────────────────────────────────────────────────

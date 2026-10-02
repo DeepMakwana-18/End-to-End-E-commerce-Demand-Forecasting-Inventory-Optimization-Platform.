@@ -205,6 +205,10 @@ async def titan_error_handler(request: Request, exc: TitanError):
 # ── Middleware Stack (order matters: first added = outermost) ───────
 
 from app.core.middleware import RequestContextMiddleware, LatencyMiddleware
+from uvicorn.middleware.proxy_headers import ProxyHeadersMiddleware
+
+# Parse X-Forwarded-For headers from reverse proxies (Nginx)
+app.add_middleware(ProxyHeadersMiddleware, trusted_hosts="*")
 
 # Latency tracking (outermost — measures full request time)
 app.add_middleware(LatencyMiddleware)
@@ -222,9 +226,24 @@ app.add_middleware(
     expose_headers=["X-Request-ID", "X-Correlation-ID", "X-Response-Time"],
 )
 
+from fastapi.responses import Response
+from starlette.middleware.base import BaseHTTPMiddleware
+
+class CacheControlMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        if request.url.path.startswith("/api/"):
+            response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, proxy-revalidate"
+            response.headers["Pragma"] = "no-cache"
+            response.headers["Expires"] = "0"
+        return response
+
+# Prevent caching on all API responses
+app.add_middleware(CacheControlMiddleware)
+
 # ── Routers ─────────────────────────────────────────────────────────
 
-from app.routers import auth, dashboard, forecast, inventory, products, reports, upload, users, alerts
+from app.routers import auth, dashboard, forecast, inventory, products, reports, upload, users, alerts, system
 from app.routers.scenarios import router as scenarios_router
 from app.routers.anomalies import router as anomalies_router
 from app.routers.copilot import router as copilot_router
@@ -239,10 +258,15 @@ app.include_router(reports.router, prefix="/api/v1")
 app.include_router(upload.router, prefix="/api/v1")
 app.include_router(users.router, prefix="/api/v1")
 app.include_router(alerts.router, prefix="/api/v1")  # Alerts — secured under /api/v1
+app.include_router(system.router, prefix="/api/v1")  # System State (Single Source of Truth)
 app.include_router(scenarios_router, prefix="/api/v1")  # Scenario Engine
 app.include_router(anomalies_router, prefix="/api/v1")  # Anomaly Detection
 app.include_router(copilot_router, prefix="/api/v1")  # AI Copilot
 app.include_router(ws_router)  # WebSocket at /ws
+
+
+
+# ── React Frontend Mounting (Production only) ─────────────────────────────────────────
 
 
 # ── Health & Root Endpoints ─────────────────────────────────────────

@@ -1,3 +1,5 @@
+// deep's api.ts
+
 /** Typed Axios API service layer for the Titan Supply Chain AI platform.
  *
  * All endpoints are typed and organized by domain module.
@@ -101,7 +103,9 @@ api.interceptors.response.use(
         processQueue(refreshError, null);
         useAppStore.getState().logout();
         toast.error('Session expired', 'Please log in again');
-        window.location.href = '/login';
+        if (window.location.pathname !== '/auth') {
+          window.location.href = '/auth';
+        }
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;
@@ -305,6 +309,18 @@ export const usersApi = {
 
 export const taskApi = {
   getStatus: (taskId: string) => api.get(`/tasks/${taskId}`),
+};
+
+// ── System API ────────────────────────────────────────────────────
+
+export const systemApi = {
+  getStatus: () => api.get<{
+    dataset_exists: boolean;
+    products_exist: boolean;
+    inventory_exists: boolean;
+    categories_exist: boolean;
+    alerts_exist: boolean;
+  }>('/system/status'),
 };
 
 export default api;

@@ -43,97 +43,22 @@ export interface Alert {
 
 // ─── Default baseline data ────────────────────────────────────────
 const defaultKPIs: DatasetKPIs = {
-  total_revenue: 2847563, total_orders: 18432, forecast_accuracy: 94.7,
-  inventory_health: 87.3, active_alerts: 5, products_at_risk: 5,
-  reorder_needed: 5, avg_demand: 1243.5, total_products: 8,
+  total_revenue: 0, total_orders: 0, forecast_accuracy: 0,
+  inventory_health: 0, active_alerts: 0, products_at_risk: 0,
+  reorder_needed: 0, avg_demand: 0, total_products: 0,
 };
 
-const defaultDemandTrend: TrendPoint[] = [
-  { label: 'Jan', actual: 1200, predicted: 1180 }, { label: 'Feb', actual: 1350, predicted: 1320 },
-  { label: 'Mar', actual: 1100, predicted: 1250 }, { label: 'Apr', actual: 1480, predicted: 1400 },
-  { label: 'May', actual: 1650, predicted: 1580 }, { label: 'Jun', actual: 1420, predicted: 1500 },
-  { label: 'Jul', actual: 1780, predicted: 1700 }, { label: 'Aug', actual: 1900, predicted: 1820 },
-  { label: 'Sep', actual: 1650, predicted: 1750 }, { label: 'Oct', actual: 2100, predicted: 1980 },
-  { label: 'Nov', actual: 2350, predicted: 2200 }, { label: 'Dec', actual: 2500, predicted: 2400 },
-];
+const defaultDemandTrend: TrendPoint[] = [];
+const defaultRevenueTrend: RevenuePoint[] = [];
+const defaultInventoryHealth: PieSlice[] = [];
+const defaultTopProducts: ProductSales[] = [];
+const defaultInventoryItems: InventoryItem[] = [];
+const defaultAlerts: Alert[] = [];
+const defaultCategoryForecasts: CategoryForecast[] = [];
+const defaultCategoryData: CategoryPie[] = [];
+const defaultSeasonalByCategory: SeasonalCategory[] = [];
+const defaultRadarData: RadarMetric[] = [];
 
-const defaultRevenueTrend: RevenuePoint[] = [
-  { label: 'Jan', value: 380000 }, { label: 'Feb', value: 420000 }, { label: 'Mar', value: 395000 },
-  { label: 'Apr', value: 465000 }, { label: 'May', value: 520000 }, { label: 'Jun', value: 485000 },
-  { label: 'Jul', value: 560000 }, { label: 'Aug', value: 610000 }, { label: 'Sep', value: 575000 },
-  { label: 'Oct', value: 650000 }, { label: 'Nov', value: 720000 }, { label: 'Dec', value: 780000 },
-];
-
-const defaultInventoryHealth: PieSlice[] = [
-  { name: 'Healthy', value: 65, color: '#10b981' }, { name: 'Low Stock', value: 20, color: '#f59e0b' },
-  { name: 'Critical', value: 8, color: '#ef4444' }, { name: 'Overstock', value: 7, color: '#6366f1' },
-];
-
-const defaultTopProducts: ProductSales[] = [
-  { name: 'Wireless Headphones', sales: 4523, revenue: 316610, growth: 18.5, rating: 4.8, category: 'Electronics' },
-  { name: 'Smart Watch Pro', sales: 3891, revenue: 583650, growth: 12.3, rating: 4.6, category: 'Electronics' },
-  { name: 'USB-C Hub', sales: 3245, revenue: 129800, growth: 22.1, rating: 4.5, category: 'Electronics' },
-  { name: 'Laptop Stand', sales: 2876, revenue: 172560, growth: 8.7, rating: 4.7, category: 'Accessories' },
-  { name: 'Bluetooth Speaker', sales: 2543, revenue: 203440, growth: -3.2, rating: 4.3, category: 'Electronics' },
-  { name: 'Mechanical Keyboard', sales: 1890, revenue: 283500, growth: 15.4, rating: 4.9, category: 'Peripherals' },
-  { name: 'Webcam HD', sales: 1432, revenue: 114560, growth: 5.2, rating: 4.2, category: 'Peripherals' },
-  { name: 'Monitor Arm', sales: 980, revenue: 78400, growth: 10.1, rating: 4.6, category: 'Accessories' },
-];
-
-const defaultInventoryItems: InventoryItem[] = [
-  { id: 1, name: 'Wireless Headphones', sku: 'WH-001', category: 'Electronics', current_stock: 45, safety_stock: 80, reorder_point: 120, recommended_qty: 200, lead_time: 2, status: 'critical', health_score: 32 },
-  { id: 2, name: 'Smart Watch Pro', sku: 'SW-002', category: 'Electronics', current_stock: 580, safety_stock: 150, reorder_point: 200, recommended_qty: 0, lead_time: 3, status: 'overstock', health_score: 55 },
-  { id: 3, name: 'USB-C Hub', sku: 'UC-003', category: 'Electronics', current_stock: 12, safety_stock: 50, reorder_point: 80, recommended_qty: 150, lead_time: 1, status: 'critical', health_score: 15 },
-  { id: 4, name: 'Laptop Stand', sku: 'LS-004', category: 'Accessories', current_stock: 89, safety_stock: 60, reorder_point: 95, recommended_qty: 100, lead_time: 2, status: 'low', health_score: 68 },
-  { id: 5, name: 'Bluetooth Speaker', sku: 'BS-005', category: 'Electronics', current_stock: 3, safety_stock: 40, reorder_point: 65, recommended_qty: 180, lead_time: 2, status: 'critical', health_score: 5 },
-  { id: 6, name: 'Mechanical Keyboard', sku: 'MK-006', category: 'Peripherals', current_stock: 245, safety_stock: 80, reorder_point: 120, recommended_qty: 0, lead_time: 3, status: 'healthy', health_score: 92 },
-  { id: 7, name: 'Webcam HD', sku: 'WC-007', category: 'Peripherals', current_stock: 167, safety_stock: 50, reorder_point: 80, recommended_qty: 0, lead_time: 2, status: 'healthy', health_score: 88 },
-  { id: 8, name: 'Monitor Arm', sku: 'MA-008', category: 'Accessories', current_stock: 78, safety_stock: 40, reorder_point: 70, recommended_qty: 50, lead_time: 1, status: 'low', health_score: 72 },
-];
-
-const defaultAlerts: Alert[] = [
-  { id: 1, product: 'Bluetooth Speaker', type: 'stockout', severity: 'critical', message: 'Stockout imminent. Current stock: 3 units, Daily demand: 15 units. Estimated stockout in 0.2 days.', created: '1 hour ago', resolved: false },
-  { id: 2, product: 'USB-C Hub', type: 'low_stock', severity: 'critical', message: 'Critical stock level. Current: 12 units, Safety Stock: 50 units. Stock is 76% below safety threshold.', created: '3 hours ago', resolved: false },
-  { id: 3, product: 'Wireless Headphones', type: 'reorder', severity: 'critical', message: 'Below reorder point. Current: 45 units, Reorder Point: 120 units. Recommended order: 200 units.', created: '5 hours ago', resolved: false },
-  { id: 4, product: 'Laptop Stand', type: 'reorder', severity: 'medium', message: 'Approaching reorder point. Current: 89 units, Reorder Point: 95 units. Monitor closely.', created: '8 hours ago', resolved: false },
-  { id: 5, product: 'Smart Watch Pro', type: 'overstock', severity: 'low', message: 'Overstock detected. Current: 580 units, Maximum capacity: 400 units. Consider running promotions.', created: '1 day ago', resolved: false },
-  { id: 6, product: 'Monitor Arm', type: 'reorder', severity: 'medium', message: 'Stock level near reorder point. Current: 78, ROP: 70. Order placed for 50 units.', created: '2 days ago', resolved: true },
-  { id: 7, product: 'Mechanical Keyboard', type: 'low_stock', severity: 'low', message: 'Seasonal demand spike expected in Q4. Consider pre-ordering to avoid shortages.', created: '3 days ago', resolved: true },
-];
-
-const defaultCategoryForecasts: CategoryForecast[] = [
-  { category: 'Electronics', current: 4520, predicted: 5230, change: 15.7 },
-  { category: 'Fashion', current: 3210, predicted: 3680, change: 14.6 },
-  { category: 'Home & Garden', current: 2100, predicted: 1980, change: -5.7 },
-  { category: 'Sports', current: 1560, predicted: 1820, change: 16.7 },
-  { category: 'Books', current: 890, predicted: 950, change: 6.7 },
-  { category: 'Toys', current: 1230, predicted: 1450, change: 17.9 },
-];
-
-const defaultCategoryData: CategoryPie[] = [
-  { name: 'Electronics', value: 33, demand: 4520, growth: 15.7, color: '#6366f1' },
-  { name: 'Fashion', value: 24, demand: 3210, growth: 14.6, color: '#10b981' },
-  { name: 'Home & Garden', value: 16, demand: 2100, growth: -5.7, color: '#f59e0b' },
-  { name: 'Sports', value: 12, demand: 1560, growth: 16.7, color: '#06b6d4' },
-  { name: 'Toys', value: 9, demand: 1230, growth: 17.9, color: '#ec4899' },
-  { name: 'Books', value: 6, demand: 890, growth: 6.7, color: '#8b5cf6' },
-];
-
-const defaultSeasonalByCategory: SeasonalCategory[] = [
-  { quarter: 'Q1', Electronics: 4200, Fashion: 3100, 'Home & Garden': 1800, Sports: 1200, Toys: 900, Books: 800 },
-  { quarter: 'Q2', Electronics: 4800, Fashion: 3500, 'Home & Garden': 2200, Sports: 1600, Toys: 1100, Books: 750 },
-  { quarter: 'Q3', Electronics: 5100, Fashion: 2800, 'Home & Garden': 1900, Sports: 2100, Toys: 1200, Books: 900 },
-  { quarter: 'Q4', Electronics: 6500, Fashion: 4200, 'Home & Garden': 2500, Sports: 1500, Toys: 2100, Books: 1200 },
-];
-
-const defaultRadarData: RadarMetric[] = [
-  { metric: 'Demand', Electronics: 95, Fashion: 78, 'Home & Garden': 65, Sports: 62, Toys: 55, Books: 40 },
-  { metric: 'Growth', Electronics: 82, Fashion: 75, 'Home & Garden': 40, Sports: 88, Toys: 90, Books: 55 },
-  { metric: 'Margin', Electronics: 65, Fashion: 85, 'Home & Garden': 70, Sports: 55, Toys: 45, Books: 60 },
-  { metric: 'Velocity', Electronics: 90, Fashion: 72, 'Home & Garden': 50, Sports: 85, Toys: 80, Books: 45 },
-  { metric: 'Forecast', Electronics: 88, Fashion: 80, 'Home & Garden': 60, Sports: 75, Toys: 70, Books: 50 },
-  { metric: 'Health', Electronics: 75, Fashion: 82, 'Home & Garden': 78, Sports: 68, Toys: 65, Books: 70 },
-];
 
 // ─── Store Interface ──────────────────────────────────────────────
 interface DatasetState {

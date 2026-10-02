@@ -102,7 +102,7 @@ async def start_redis_subscriber() -> None:
             )
             pubsub = client.pubsub()
             await pubsub.subscribe(CHANNEL)
-            logger.info("✅ Redis Pub/Sub subscriber listening on channel '%s'", CHANNEL)
+            logger.info("Redis Pub/Sub subscriber listening on channel '%s'", CHANNEL)
             backoff = 1.0  # reset on successful connect
 
             async for raw_message in pubsub.listen():

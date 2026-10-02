@@ -164,10 +164,10 @@ async def handle_executive_summary(db: AsyncSession, org_id: int) -> CopilotResp
         model_line = (
             f"🤖 **ML Model:** {active_mv.version_tag} | "
             f"Accuracy: {_fmt_num(active_mv.accuracy * 100 if active_mv.accuracy and active_mv.accuracy <= 1 else active_mv.accuracy, 1)}% | "
-            f"Source: {active_mv.data_source or 'synthetic'}"
+            f"Source: {active_mv.data_source or 'uploaded dataset'}"
         )
     else:
-        model_line = "🤖 **ML Model:** No trained model found — using synthetic baseline"
+        model_line = "🤖 **ML Model:** No trained model found — please upload a dataset to train your first model."
 
     # Anomaly section
     total_anom = anomaly_summary.get("total_active", 0)
@@ -264,25 +264,30 @@ async def handle_forecast(db: AsyncSession, org_id: int, message: str = "") -> C
     mv_repo = ModelVersionRepository(db, org_id)
     active_mv = await mv_repo.get_active()
 
-    # Load model if available
-    if active_mv and active_mv.model_path:
-        try:
+    if not active_mv or not active_mv.model_path:
+        return CopilotResponse(
+            intent="forecast",
+            response="📭 **No Forecasting Model Trained** — Please upload a dataset to automatically train your organization's demand forecasting model.",
+            suggested_followups=["How do I upload a dataset?", "What is the model status?"],
+        )
+
+    try:
+        singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
+        if not forecast_model.is_trained or singleton_tag != active_mv.version_tag:
             forecast_model.load(active_mv.model_path)
-        except Exception:
-            pass
+    except Exception as exc:
+        return CopilotResponse(
+            intent="forecast",
+            response=f"⚠️ **Forecast Unavailable** — Could not load model artifact: {str(exc)}",
+            suggested_followups=["How do I retrain the model?", "What is the model status?"],
+        )
 
     if not forecast_model.is_trained:
-        try:
-            forecast_model.train()
-        except Exception as exc:
-            return CopilotResponse(
-                intent="forecast",
-                response=(
-                    "⚠️ **Forecast Unavailable** — The forecasting model could not be loaded. "
-                    f"Please retrain the model via Admin → Pipeline. Error: {str(exc)}"
-                ),
-                suggested_followups=["How do I retrain the model?", "What is the model status?"],
-            )
+        return CopilotResponse(
+            intent="forecast",
+            response="📭 **Model Not Ready** — The model could not be initialized from disk. Please retrain via Admin → Pipeline.",
+            suggested_followups=["How do I retrain the model?"],
+        )
 
     try:
         forecasts = forecast_model.predict(weeks_ahead=12)
@@ -408,18 +413,33 @@ async def handle_forecast_explain(db: AsyncSession, org_id: int) -> CopilotRespo
     mv_repo = ModelVersionRepository(db, org_id)
     active_mv = await mv_repo.get_active()
 
-    if active_mv and active_mv.model_path:
-        try:
+    if not active_mv or not active_mv.model_path:
+        return CopilotResponse(
+            intent="forecast_explain",
+            response=(
+                "📭 **Explainability Unavailable** — No trained forecasting model found for your organization. "
+                "Please upload a dataset to train your model."
+            ),
+            suggested_followups=["How do I upload a dataset?", "What is the model status?"],
+        )
+
+    try:
+        singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
+        if not forecast_model.is_trained or singleton_tag != active_mv.version_tag:
             forecast_model.load(active_mv.model_path)
-        except Exception:
-            pass
+    except Exception as exc:
+        return CopilotResponse(
+            intent="forecast_explain",
+            response=f"⚠️ **Explainability Unavailable** — Could not load model artifact: {str(exc)}",
+            suggested_followups=["How do I retrain the model?"],
+        )
 
     if not forecast_model.is_trained:
         return CopilotResponse(
             intent="forecast_explain",
             response=(
-                "⚠️ **Explainability Unavailable** — No trained model found. "
-                "Please retrain the model first."
+                "📭 **Explainability Unavailable** — The model could not be initialized from disk. "
+                "Please retrain the model via Admin → Pipeline."
             ),
             suggested_followups=["How do I retrain the model?"],
         )

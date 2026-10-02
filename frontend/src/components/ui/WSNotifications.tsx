@@ -61,7 +61,7 @@ export function WSNotifications() {
         const p = msg.data?.payload as Record<string, unknown> | undefined;
         const version = (p?.version_tag as string) || '';
         const accuracy = typeof p?.accuracy === 'number'
-          ? ` — ${(p.accuracy * 100).toFixed(1)}% accuracy`
+          ? ` — ${p.accuracy.toFixed(1)}% accuracy`
           : '';
         toast.success(
           '🤖 Model Retrained',

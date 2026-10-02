@@ -324,9 +324,10 @@ class AlertRuleEngine:
             severity=severity,
             message=(
                 f"Model accuracy degraded: {version_tag} achieved only "
-                f"{accuracy:.1%} accuracy (threshold: {ACCURACY_HIGH_THRESHOLD:.0%}). "
+                f"{accuracy:.1f}% accuracy (threshold: {ACCURACY_HIGH_THRESHOLD:.0%}). "
                 f"Consider retraining with more data or investigating data quality."
             ),
+
             rule_key=rule_key,
             source_event_id=source_event_id,
             extra_data={

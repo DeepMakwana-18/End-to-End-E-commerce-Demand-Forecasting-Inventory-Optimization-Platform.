@@ -66,7 +66,7 @@ function PageLoader() {
 /** Protected route wrapper */
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAppStore();
-  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (!isAuthenticated) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
 
@@ -101,10 +101,11 @@ function AppContent() {
 
       <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/auth" element={<LoginPage />} />
+          <Route path="/auth/register" element={<LoginPage />} />
 
           <Route
-            path="/"
+            path="/app"
             element={
               <ProtectedRoute>
                 <MainLayout />
@@ -126,7 +127,7 @@ function AppContent() {
             <Route path="admin/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
           </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/app" replace />} />
         </Routes>
       </Suspense>
     </>

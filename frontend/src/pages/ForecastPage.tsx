@@ -14,7 +14,6 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { ForecastExplainPanel } from '@/components/forecast/ForecastExplainPanel';
 import { cn, formatNumber } from '@/lib/utils';
-import { useDataStore } from '@/stores/dataStore';
 import { forecastApi, type ForecastExplainResponse } from '@/services/api';
 
 
@@ -34,12 +33,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 export default function ForecastPage() {
-  const { categoryForecasts, demandTrend, rawCsvText, isCustomDataset, datasetName } = useDataStore();
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [toast, setToast] = useState<string | null>(null);
   
   const [forecastData, setForecastData] = useState<any[]>([]);
+  const [categoryForecasts, setCategoryForecasts] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [modelMetrics, setModelMetrics] = useState<any>(null);
 
@@ -57,6 +56,7 @@ export default function ForecastPage() {
       predicted: undefined as number | undefined,
       lower: undefined as number | undefined,
       upper: undefined as number | undefined,
+      label: new Date(h.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
     }));
     
     const forecasts = (data.forecasts || []).map((d: any) => ({
@@ -66,6 +66,7 @@ export default function ForecastPage() {
       predicted: d.predicted_demand,
       lower: d.confidence_lower,
       upper: d.confidence_upper,
+      label: new Date(d.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
     }));
     
     // Connect the two lines at the junction point
@@ -81,6 +82,7 @@ export default function ForecastPage() {
       dataSource: data.data_source,
       trainingId: data.training_id,
       trainingSamples: data.training_samples,
+      hasModel: data.has_model,
     });
   };
 
@@ -93,6 +95,13 @@ export default function ForecastPage() {
         setExplainError(null);
         const res = await forecastApi.get(12);
         formatResponse(res.data);
+        const catRes = await forecastApi.getCategories();
+        setCategoryForecasts(catRes.data.categories.map((c: any) => ({
+          category: c.category,
+          current: c.current_demand,
+          predicted: c.predicted_demand,
+          change: c.change_pct
+        })));
       } catch (err) {
         console.error(err);
         showToast('❌ Failed to load ML forecasts from backend');
@@ -101,7 +110,7 @@ export default function ForecastPage() {
       }
     };
     loadForecasts();
-  }, [isCustomDataset, rawCsvText]);
+  }, []);
 
   // Fetch explanations after forecast data is ready
   useEffect(() => {
@@ -161,6 +170,16 @@ export default function ForecastPage() {
         )}
       </AnimatePresence>
 
+      {!isLoading && modelMetrics && !modelMetrics.hasModel ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 mt-8">
+          <Layers className="w-16 h-16 text-surface-600 mb-6" />
+          <h2 className="text-xl font-semibold text-surface-200 mb-2">No Forecast Data</h2>
+          <p className="text-surface-400 text-center max-w-md">
+            Upload a dataset and train a model to generate forecasts.
+          </p>
+        </div>
+      ) : (
+        <>
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between">
         <div>
@@ -205,10 +224,10 @@ export default function ForecastPage() {
 
       {/* Forecast KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={`${modelMetrics?.accuracy || 0}%`} change={2.1} icon={TrendingUp} gradient="gradient-primary" delay={0} />
-        <KPICard title="RMSE Score" value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "..."} change={-8.5} icon={Layers} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Model Accuracy" value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : "No data"} change={modelMetrics?.accuracy ? 2.1 : undefined} icon={TrendingUp} gradient="gradient-primary" delay={0} />
+        <KPICard title="RMSE Score" value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "No data"} change={modelMetrics?.rmse ? -8.5 : undefined} icon={Layers} gradient="gradient-accent" delay={0.05} />
         <KPICard title="Forecast Horizon" value="12 Weeks" icon={Calendar} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Next Week Demand" value={(() => { const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null); return f ? formatNumber(f.predicted) : "..."; })()} change={12.3} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Next Week Demand" value={(() => { const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null); return f ? formatNumber(f.predicted) : "No data"; })()} change={forecastData.length > 0 ? 12.3 : undefined} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       {/* Main Forecast Chart with Confidence Intervals */}
@@ -285,7 +304,7 @@ export default function ForecastPage() {
         {/* Seasonal Pattern */}
         <ChartCard title="Seasonal Demand Pattern" subtitle="Monthly demand seasonality analysis" delay={0.3}>
           <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={demandTrend}>
+            <LineChart data={forecastData}>
               <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
               <XAxis dataKey="label" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
               <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
@@ -297,6 +316,8 @@ export default function ForecastPage() {
           </ResponsiveContainer>
         </ChartCard>
       </div>
+        </>
+      )}
     </div>
   );
 }

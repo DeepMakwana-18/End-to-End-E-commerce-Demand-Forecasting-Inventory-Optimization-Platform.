@@ -52,11 +52,19 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install -r requirements.txt
+          pip install ruff mypy pytest pytest-asyncio httpx
 
       - name: Lint with Ruff
-        run: |
-          pip install ruff
-          ruff check .
+        run: ruff check .
+
+      - name: Type Check with Mypy
+        # Technical Debt: Disabled temporarily due to 179 missing type annotations
+        # from SQLAlchemy 2.0 migration. Must be fixed before Phase 4.
+        continue-on-error: true
+        run: mypy app/
+
+      - name: Run Tests with Pytest
+        run: pytest tests/
 
   # ---- Docker Build ----
   docker:

@@ -1,43 +1,43 @@
 /** Admin - ML Pipeline Page. */
 
 import { useState, useEffect } from 'react';
-import api from '@/services/api';
+import api, { systemApi } from '@/services/api';
+import { useQuery } from '@tanstack/react-query';
 import { useDataStore } from '@/stores/dataStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Brain, Cpu, Clock, CheckCircle2, Loader2, Play, RefreshCw, Zap } from 'lucide-react';
+import { Activity, Brain, Cpu, Clock, CheckCircle2, Loader2, Play, RefreshCw, Zap, Database } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn } from '@/lib/utils';
 
-const defaultModelMetrics = [
-  { epoch: '1', mae: 245, rmse: 312 }, { epoch: '2', mae: 198, rmse: 267 }, { epoch: '3', mae: 176, rmse: 234 },
-  { epoch: '4', mae: 165, rmse: 218 }, { epoch: '5', mae: 158, rmse: 205 }, { epoch: '6', mae: 150, rmse: 198 },
-  { epoch: '7', mae: 148, rmse: 192 }, { epoch: '8', mae: 145, rmse: 188 }, { epoch: '9', mae: 143, rmse: 185 },
-  { epoch: '10', mae: 142, rmse: 183 },
-];
 
-// Removed hardcoded initialTrainingHistory
-
-const defaultFeatureImportance = [
-  { name: 'price', importance: 0.24 }, { name: 'month', importance: 0.18 }, { name: 'day_of_week', importance: 0.15 },
-  { name: 'category_encoded', importance: 0.12 }, { name: 'review_score', importance: 0.10 }, { name: 'freight_value', importance: 0.08 },
-  { name: 'payment_installments', importance: 0.07 }, { name: 'product_weight', importance: 0.06 },
-];
 
 export default function PipelinePage() {
   const isCustomDataset = useDataStore(s => s.isCustomDataset);
   const rawCsvText = useDataStore(s => s.rawCsvText);
   const datasetName = useDataStore(s => s.datasetName);
 
+  const { data: systemStatus } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: async () => {
+      const res = await systemApi.getStatus();
+      return res.data;
+    }
+  });
+
+  const isEmptyOrg = systemStatus && !systemStatus.dataset_exists;
+
   const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
-  const [featureImportance, setFeatureImportance] = useState(defaultFeatureImportance);
-  const [modelMetrics, setModelMetrics] = useState(defaultModelMetrics);
+  const [featureImportance, setFeatureImportance] = useState<any[]>([]);
+  const [modelMetrics, setModelMetrics] = useState<any[]>([]);
   const [isTraining, setIsTraining] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
+    if (isEmptyOrg) return;
     const fetchModelInfo = async () => {
       try {
         const res = await api.get('/forecast/model-info');
@@ -49,7 +49,7 @@ export default function PipelinePage() {
           importance: importance as number
         })).sort((a, b) => b.importance - a.importance);
 
-        setFeatureImportance(features.length > 0 ? features : defaultFeatureImportance);
+        setFeatureImportance(features);
 
         if (data.convergence && data.convergence.length > 0) {
           setModelMetrics(data.convergence);
@@ -80,9 +80,8 @@ export default function PipelinePage() {
       }
     };
 
-    fetchModelInfo();
-    fetchHistory();
-  }, []);
+    Promise.all([fetchModelInfo(), fetchHistory()]).finally(() => setIsLoading(false));
+  }, [isEmptyOrg]);
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -132,6 +131,21 @@ export default function PipelinePage() {
                 }));
                 setTrainingHistory(mappedHistory);
               }
+              // Refresh model info
+              try {
+                const infoRes = await api.get('/forecast/model-info');
+                const data = infoRes.data;
+                const features = Object.entries(data.feature_importance || {}).map(([name, importance]) => ({
+                  name,
+                  importance: importance as number
+                })).sort((a, b) => b.importance - a.importance);
+                setFeatureImportance(features);
+                if (data.convergence && data.convergence.length > 0) {
+                  setModelMetrics(data.convergence);
+                }
+              } catch (e) {
+                console.error("Failed to refresh ML model info", e);
+              }
             } else if (state === 'failed') {
               showToast(`❌ ML Error: ${taskRes.data.error || 'Failed'}`);
               setIsTraining(false);
@@ -178,6 +192,7 @@ export default function PipelinePage() {
 
   return (
     <div className="space-y-6">
+
       {/* Toast notification */}
       <AnimatePresence>
         {toast && (
@@ -207,11 +222,21 @@ export default function PipelinePage() {
         </div>
       </motion.div>
 
+      {!isLoading && trainingHistory.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 px-4 mt-8">
+          <Brain className="w-16 h-16 text-surface-600 mb-6" />
+          <h2 className="text-xl font-semibold text-surface-200 mb-2">No model has been trained yet.</h2>
+          <p className="text-surface-400 text-center max-w-md">
+            Upload a dataset to automatically train your first demand forecasting model.
+          </p>
+        </div>
+      ) : (
+        <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={`${trainingHistory[0]?.accuracy || 94.7}%`} change={0.9} icon={Brain} gradient="gradient-primary" delay={0} />
-        <KPICard title="MAE Score" value={String(trainingHistory[0]?.mae || 142.3)} change={-4.3} icon={Activity} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="RMSE Score" value={String(trainingHistory[0]?.rmse || 183.1)} change={-4.2} icon={Zap} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Last Trained" value={trainingHistory[0]?.date || '1d ago'} icon={Clock} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Model Accuracy" value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : "No data"} change={trainingHistory.length > 0 ? 0.9 : undefined} icon={Brain} gradient="gradient-primary" delay={0} />
+        <KPICard title="MAE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : "No data"} change={trainingHistory.length > 0 ? -4.3 : undefined} icon={Activity} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="RMSE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : "No data"} change={trainingHistory.length > 0 ? -4.2 : undefined} icon={Zap} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Last Trained" value={trainingHistory[0]?.date || 'No data'} icon={Clock} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -284,6 +309,8 @@ export default function PipelinePage() {
           </table>
         </div>
       </motion.div>
+      </>
+      )}
     </div>
   );
 }

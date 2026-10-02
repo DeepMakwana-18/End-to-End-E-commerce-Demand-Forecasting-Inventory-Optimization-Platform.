@@ -106,3 +106,15 @@ restore_uploaded_model.py
 p6_health.py
 p6_smoke.py
 p6_supplemental.py
+
+# Additional generated/temp files
+backups/
+*.zip
+*.txt
+recovered*.tsx
+df_backend_dashboard.py
+codebase_forensic_audit.py
+phase9_acceptance_suite.py
+backend/scratch_verify.py
+backend/test_pipeline_apis.py
+e2e_test.py
