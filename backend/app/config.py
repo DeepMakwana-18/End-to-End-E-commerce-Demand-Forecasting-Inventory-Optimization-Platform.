@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     APP_PORT: int = 8000
 
     # Database
-    DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/demandforecaster"
+    DATABASE_URL: str
     POSTGRES_HOST: str = "localhost"
     POSTGRES_PORT: int = 5432
     POSTGRES_DB: str = "demandforecaster"
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str = "postgres"
 
     # Redis
-    REDIS_URL: str = "redis://localhost:6379/0"
+    REDIS_URL: str
 
     # Celery
     CELERY_BROKER_URL: str = ""  # defaults to REDIS_URL if empty
@@ -38,13 +38,13 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # JWT
-    JWT_SECRET_KEY: str = "your-jwt-secret-key-change-in-production"
+    JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
 
     # CORS
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:5173"
+    CORS_ORIGINS: str
 
     # ML
     ML_MODEL_PATH: str = "./ml/models"

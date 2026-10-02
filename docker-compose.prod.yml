@@ -1,0 +1,12 @@
+# Production Docker Compose Override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+
+services:
+  postgres:
+    # Remove port exposure entirely for production
+    # to ensure the database is only accessible via the internal Docker network
+    ports: !reset []
+
+  backend:
+    # Use Gunicorn with Uvicorn workers for production scaling
+    command: gunicorn app.main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000

@@ -60,7 +60,7 @@ async def on_model_retrained(event: DomainEvent) -> None:
         "[org:%s] Model retrained: version=%s accuracy=%.2f%%",
         event.org_id,
         event.payload.get("version_tag", "?"),
-        event.payload.get("accuracy", 0) * 100,
+        event.payload.get("accuracy", 0),
     )
     # Invalidate forecast cache for this org
     try:
@@ -268,7 +268,7 @@ async def on_model_retrained_alerts(event: DomainEvent) -> None:
             )
             logger.warning(
                 "[org:%s] Model accuracy alert raised: %s accuracy=%.1f%%",
-                org_id, version_tag, accuracy * 100,
+                org_id, version_tag, accuracy,
             )
     except Exception:
         logger.exception(

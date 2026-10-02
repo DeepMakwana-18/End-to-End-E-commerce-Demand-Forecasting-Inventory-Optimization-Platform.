@@ -36,6 +36,9 @@ def retrain_model_async(
     csv_text: str,
     filename: str = "uploaded.csv",
     upload_record_id: int | None = None,
+    date_column: str | None = None,
+    demand_column: str | None = None,
+    mappings: str | None = None,
 ):
     """Retrain the ML model in the background.
 
@@ -59,40 +62,78 @@ def retrain_model_async(
     try:
         import pandas as pd
         from app.services.ml_service import forecast_model
+        from app.services.schema_mapper import detect_columns
 
         # Step 1: Parse CSV
         set_task_status_sync(task_id, state=TASK_STATE_PROGRESS, progress=10, message="Parsing CSV data...")
 
         df = pd.read_csv(io.StringIO(csv_text))
 
-        # Auto-detect columns
-        date_col = None
-        demand_col = None
-        for col in df.columns:
-            cl = col.strip().lower().replace(" ", "_").replace("-", "_")
-            if cl in (
-                "date", "order_date", "transaction_date", "week", "ds",
-                "order_day", "purchase_date", "sale_date", "created_at",
-                "timestamp", "period",
-            ):
-                date_col = col
-            if cl in (
-                "demand", "quantity", "quantity_sold", "sales", "units", "y",
-                "value", "total_quantity", "qty", "amount", "units_sold",
-                "order_quantity", "total_sales", "revenue", "unit_price",
-                "total_amount",
-            ):
-                demand_col = col
+        # ── Column resolution ───────────────────────────────────────────────
+        # If the upload router already identified columns (user confirmed or
+        # auto-detected with high confidence), use those directly.
+        # Otherwise delegate to schema_mapper.detect_columns().
+        set_task_status_sync(task_id, state=TASK_STATE_PROGRESS, progress=15, message="Detecting schema / mapping columns...")
 
-        if not date_col or not demand_col:
+        date_col: str | None = date_column
+        demand_col: str | None = demand_column
+        
+        # Always run detection to get full mapping for catalog_service (SKU, Category, Revenue)
+        detection = detect_columns(list(df.columns))
+        
+        if not date_col:
+            date_col = detection.get("date_column")
+        if not demand_col:
+            demand_col = detection.get("demand_column")
+
+        if not date_col:
             set_task_status_sync(
                 task_id,
                 state=TASK_STATE_FAILED,
-                error=f"Could not auto-detect date/demand columns. Found: {list(df.columns)}",
+                error=(
+                    f"Missing required field: Date. "
+                    f"Could not find a date/timestamp column in: {list(df.columns)}. "
+                    f"Please map it manually before uploading."
+                ),
                 org_id=org_id,
                 user_id=user_id,
             )
-            return {"error": "Column detection failed"}
+            return {"error": "Missing required field: Date"}
+
+        if not demand_col:
+            set_task_status_sync(
+                task_id,
+                state=TASK_STATE_FAILED,
+                error=(
+                    f"No quantity/demand column detected. "
+                    f"Could not find a sales quantity column in: {list(df.columns)}. "
+                    f"Please map it manually before uploading."
+                ),
+                org_id=org_id,
+                user_id=user_id,
+            )
+            return {"error": "No revenue column detected"}
+
+        logger.info(
+            "[org:%s] Schema mapping: date=%r  demand=%r  (from %d columns)",
+            org_id, date_col, demand_col, len(df.columns),
+        )
+
+        # ── Backlog Item 1: Auto-populate catalog from raw df ───────────────
+        set_task_status_sync(task_id, state=TASK_STATE_PROGRESS, progress=20, message="Syncing product catalog and inventory...")
+        try:
+            from app.database import async_session
+            from app.services.catalog_service import sync_catalog_from_upload
+            import asyncio
+
+            async def _do_sync():
+                async with async_session() as db:
+                    await sync_catalog_from_upload(db, org_id, df, mappings, detection)
+                    await db.commit()
+            
+            asyncio.run(_do_sync())
+        except Exception as sync_exc:
+            logger.warning("[org:%s] Catalog sync failed: %s", org_id, sync_exc, exc_info=True)
 
         # Step 2: Feature engineering
         set_task_status_sync(task_id, state=TASK_STATE_PROGRESS, progress=25, message="Engineering features...")
@@ -162,6 +203,7 @@ def retrain_model_async(
 
                 # Pull feature metadata populated by train()
                 from app.services.ml_service import MODEL_TYPE
+                import pandas as pd
                 meta = forecast_model.metadata or {}
                 hyper = dict(meta.get("hyperparameters") or {})
                 # Store CSV path so POST /forecast/retrain can reload without browser resend
@@ -178,6 +220,8 @@ def retrain_model_async(
                     training_samples=metrics["training_samples"],
                     data_source=f"uploaded:{filename}",
                     feature_importance=metrics.get("feature_importance", {}),
+                    # FIX: persist convergence data so PipelinePage Training Convergence chart populates
+                    convergence=metrics.get("convergence", []),
                     feature_schema=meta.get("feature_schema"),        # populated
                     hyperparameters=hyper,                            # includes csv_path
                     dataset_hash=meta.get("dataset_hash"),            # SHA-256
@@ -193,15 +237,35 @@ def retrain_model_async(
                 from dateutil import parser
                 await db.execute(delete(Forecast).where(Forecast.organization_id == org_id, Forecast.product_id == None))
 
-                # Insert historical actuals
+                # FIX: Compute in-sample predictions for historical rows so the
+                # Actual vs Predicted chart has two populated data series.
+                # Re-create features from historical data and run model.predict on them.
+                hist_preds: dict[str, float] = {}
+                try:
+                    if forecast_model.historical_data:
+                        _hdf = pd.DataFrame(forecast_model.historical_data)
+                        _hdf["date"] = pd.to_datetime(_hdf["date"])
+                        _hdf = _hdf.rename(columns={"demand": "demand"})
+                        _hdf = _hdf.sort_values("date").reset_index(drop=True)
+                        _feat_df = forecast_model._create_features(_hdf)
+                        _X = _feat_df[["week", "month", "year", "lag_1", "lag_4"]]
+                        _y_hat = forecast_model.model.predict(_X)
+                        for _i, _row in _feat_df.iterrows():
+                            _d = _row["date"] if hasattr(_row["date"], "strftime") else pd.Timestamp(_row["date"])
+                            hist_preds[_d.strftime("%Y-%m-%d")] = round(float(max(0, _y_hat[_feat_df.index.get_loc(_i)])), 1)
+                except Exception as _pred_err:
+                    logger.warning("[org:%s] Could not generate historical predictions for AvP chart: %s", org_id, _pred_err)
+
+                # Insert historical actuals (with in-sample predictions where available)
                 hist_records = []
                 for row in forecast_model.historical_data:
                     dt = parser.parse(row["date"])
+                    in_sample_pred = hist_preds.get(dt.strftime("%Y-%m-%d"), 0.0)
                     hist_records.append(Forecast(
                         organization_id=org_id,
                         product_id=None,
                         forecast_date=dt,
-                        predicted_demand=0.0,  # Required by schema
+                        predicted_demand=in_sample_pred,  # real prediction instead of placeholder 0
                         actual_demand=float(row["demand"]),
                         model_version_id=mv.id,
                         model_version=version_tag,
@@ -266,7 +330,7 @@ def retrain_model_async(
             task_id,
             state=TASK_STATE_COMPLETED,
             progress=100,
-            message=f"Model retrained: {version_tag} (accuracy: {metrics['accuracy']:.1%})",
+            message=f"Model retrained: {version_tag} (accuracy: {metrics['accuracy']:.1f}%)",
             result=result,
             org_id=org_id,
             user_id=user_id,
@@ -276,8 +340,9 @@ def retrain_model_async(
             "[org:%s] Model retrained: %s accuracy=%.2f%%",
             org_id,
             version_tag,
-            metrics["accuracy"] * 100,
+            metrics["accuracy"],
         )
+
 
         # Phase 5E-D: Publish model.retrained via Redis so FastAPI WS bridge picks it up
         try:
@@ -417,6 +482,7 @@ def reset_model_async(
         from app.database import async_session
         from app.repositories.forecast_repo import ModelVersionRepository
         from app.models import ModelVersion
+        import pandas as pd
 
         async def _save_reset_version():
             async with async_session() as db:
@@ -434,6 +500,8 @@ def reset_model_async(
                     training_samples=metrics["training_samples"],
                     data_source="synthetic",
                     feature_importance=metrics.get("feature_importance", {}),
+                    # FIX: persist convergence for Training Convergence chart
+                    convergence=metrics.get("convergence", []),
                     feature_schema=meta.get("feature_schema"),
                     hyperparameters=meta.get("hyperparameters"),
                     dataset_hash=meta.get("dataset_hash"),
@@ -454,15 +522,32 @@ def reset_model_async(
                     )
                 )
 
+                # FIX: Compute in-sample predictions for historical rows (reset path)
+                reset_hist_preds: dict[str, float] = {}
+                try:
+                    if forecast_model.historical_data:
+                        _hdf2 = pd.DataFrame(forecast_model.historical_data)
+                        _hdf2["date"] = pd.to_datetime(_hdf2["date"])
+                        _hdf2 = _hdf2.sort_values("date").reset_index(drop=True)
+                        _feat_df2 = forecast_model._create_features(_hdf2)
+                        _X2 = _feat_df2[["week", "month", "year", "lag_1", "lag_4"]]
+                        _y_hat2 = forecast_model.model.predict(_X2)
+                        for _i2, _row2 in _feat_df2.iterrows():
+                            _d2 = _row2["date"] if hasattr(_row2["date"], "strftime") else pd.Timestamp(_row2["date"])
+                            reset_hist_preds[_d2.strftime("%Y-%m-%d")] = round(float(max(0, _y_hat2[_feat_df2.index.get_loc(_i2)])), 1)
+                except Exception as _pred_err2:
+                    logger.warning("[org:%s] Could not generate historical predictions for AvP chart (reset): %s", org_id, _pred_err2)
+
                 # Insert historical actuals
                 records = []
                 for row in forecast_model.historical_data:
                     dt = parser.parse(row["date"])
+                    in_sample_pred2 = reset_hist_preds.get(dt.strftime("%Y-%m-%d"), 0.0)
                     records.append(Forecast(
                         organization_id=org_id,
                         product_id=None,
                         forecast_date=dt,
-                        predicted_demand=0.0,
+                        predicted_demand=in_sample_pred2,  # real in-sample prediction
                         actual_demand=float(row["demand"]),
                         model_version_id=mv.id,
                         model_version=version_tag,
@@ -508,7 +593,7 @@ def reset_model_async(
             task_id,
             state=TASK_STATE_COMPLETED,
             progress=100,
-            message=f"Model reset to synthetic baseline: {version_tag} (accuracy: {metrics['accuracy']:.1%})",
+            message=f"Model reset to synthetic baseline: {version_tag} (accuracy: {metrics['accuracy']:.1f}%)",
             result=result,
             org_id=org_id,
             user_id=user_id,
@@ -518,7 +603,7 @@ def reset_model_async(
             "[org:%s] Model reset complete: %s accuracy=%.2f%%",
             org_id,
             version_tag,
-            metrics["accuracy"] * 100,
+            metrics["accuracy"],
         )
 
         # Phase 5E-D: Publish model.retrained via Redis for WS clients

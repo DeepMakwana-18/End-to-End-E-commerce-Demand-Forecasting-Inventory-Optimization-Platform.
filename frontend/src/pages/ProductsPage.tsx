@@ -2,19 +2,47 @@
 
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Boxes, TrendingUp, TrendingDown, DollarSign, Star, Search, Filter, X } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
+import { productsApi, systemApi, dashboardApi } from '@/services/api';
+import { Boxes, TrendingUp, TrendingDown, DollarSign, Star, Search, Filter, X, Database } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber, formatCurrency } from '@/lib/utils';
-import { useDataStore } from '@/stores/dataStore';
 
 
 const CATEGORY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899'];
 
 export default function ProductsPage() {
-  const topProducts = useDataStore(s => s.topProducts);
-  const kpis = useDataStore(s => s.kpis);
+  const { data: systemStatus } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: async () => {
+      const res = await systemApi.getStatus();
+      return res.data;
+    }
+  });
+
+  const { data: kpis } = useQuery({
+    queryKey: ['dashboard-kpis'],
+    queryFn: async () => {
+      const res = await dashboardApi.getKPIs();
+      return res.data;
+    },
+    enabled: !!systemStatus?.dataset_exists
+  });
+
+  const { data: topProductsData } = useQuery({
+    queryKey: ['top-products'],
+    queryFn: async () => {
+      const res = await productsApi.getTop(50);
+      return res.data;
+    },
+    enabled: !!systemStatus?.dataset_exists
+  });
+
+  const topProducts = topProductsData?.products || [];
+  const isEmptyOrg = systemStatus && !systemStatus.dataset_exists;
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
@@ -29,8 +57,8 @@ export default function ProductsPage() {
   }, [topProducts, searchTerm, selectedCategory]);
 
   const riskClassification = useMemo(() => {
-    const total = kpis.total_products;
-    const high = kpis.products_at_risk;
+    const total = kpis?.total_products || 0;
+    const high = kpis?.products_at_risk || 0;
     const med = Math.max(0, Math.floor(total * 0.15));
     const low = Math.max(0, total - high - med);
     return [
@@ -102,11 +130,12 @@ export default function ProductsPage() {
         </div>
       </motion.div>
 
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total Products" value={formatNumber(kpis.total_products)} icon={Boxes} gradient="gradient-primary" delay={0} />
-        <KPICard title="Total Revenue" value={formatCurrency(kpis.total_revenue)} change={12.5} icon={DollarSign} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Growth Rate" value="11.2%" change={3.4} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="At Risk Products" value={String(kpis.products_at_risk)} change={-2} icon={TrendingDown} gradient="gradient-danger" delay={0.15} />
+        <KPICard title="Total Products" value={formatNumber(kpis?.total_products || 0)} icon={Boxes} gradient="gradient-primary" delay={0} />
+        <KPICard title="Total Revenue" value={formatCurrency(kpis?.total_revenue || 0)} change={(kpis?.total_revenue || 0) > 0 ? 12.5 : undefined} icon={DollarSign} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Avg Growth Rate" value={(kpis?.total_products || 0) > 0 ? "11.2%" : "No data"} change={(kpis?.total_products || 0) > 0 ? 3.4 : undefined} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="At Risk Products" value={String(kpis?.products_at_risk || 0)} change={(kpis?.products_at_risk || 0) > 0 ? -2 : undefined} icon={TrendingDown} gradient="gradient-danger" delay={0.15} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -126,10 +155,6 @@ export default function ProductsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-medium text-surface-200 truncate">{p.name}</p>
-                      <div className="flex items-center gap-0.5">
-                        <Star className="w-3 h-3 text-warning-400 fill-warning-400" />
-                        <span className="text-[10px] text-surface-400">{p.rating}</span>
-                      </div>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
                       <span className="text-xs text-surface-500">{formatNumber(p.sales)} units</span>
@@ -162,7 +187,7 @@ export default function ProductsPage() {
                   <span className="text-sm font-bold" style={{ color: r.color }}>{r.count}</span>
                 </div>
                 <div className="h-2.5 bg-surface-800/50 rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${(r.count / Math.max(kpis.total_products, 1)) * 100}%` }}
+                  <motion.div initial={{ width: 0 }} animate={{ width: `${(r.count / Math.max(kpis?.total_products || 1, 1)) * 100}%` }}
                     transition={{ duration: 0.8, delay: 0.4 + i * 0.1, ease: 'easeOut' }}
                     className="h-full rounded-full" style={{ background: r.color }} />
                 </div>
@@ -189,7 +214,7 @@ export default function ProductsPage() {
             ))}
           </LineChart>
         </ResponsiveContainer>
-      </ChartCard>
+    </ChartCard>
     </div>
   );
 }

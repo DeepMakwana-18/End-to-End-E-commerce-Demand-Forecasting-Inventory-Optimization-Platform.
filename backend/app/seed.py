@@ -55,9 +55,9 @@ async def seed():
 
         # ── Users ───────────────────────────────────────────────
         users_data = [
-            ("Admin User", "admin@titan.demo", UserRole.ORG_ADMIN, "admin123!"),
-            ("Jane Analyst", "jane@titan.demo", UserRole.ANALYST, "analyst123!"),
-            ("Bob Viewer", "bob@titan.demo", UserRole.VIEWER, "viewer123!"),
+            ("Admin User", "admin@titan.demo", UserRole.ORG_ADMIN, "admin123"),
+            ("Jane Analyst", "jane@titan.demo", UserRole.ANALYST, "analyst123"),
+            ("Bob Viewer", "bob@titan.demo", UserRole.VIEWER, "viewer123"),
         ]
         users = []
         for name, email, role, password in users_data:
@@ -71,7 +71,7 @@ async def seed():
             session.add(u)
             users.append(u)
         await session.flush()
-        print(f"  ✅ Users: {len(users)} created (admin@titan.demo / admin123!)")
+        print(f"  ✅ Users: {len(users)} created (admin@titan.demo / admin123)")
 
         # ── Warehouses ──────────────────────────────────────────
         warehouses_data = [
@@ -197,7 +197,7 @@ async def seed():
         await session.commit()
 
     print("🎉 Seed complete!")
-    print("   Login: admin@titan.demo / admin123!")
+    print("   Login: admin@titan.demo / admin123")
 
 
 if __name__ == "__main__":

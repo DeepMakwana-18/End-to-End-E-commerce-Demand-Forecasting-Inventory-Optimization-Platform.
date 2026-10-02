@@ -1,7 +1,7 @@
 /** Premium login/signup page with glassmorphism card and gradient background. */
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { BarChart3, Mail, Lock, Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
@@ -9,7 +9,8 @@ import { authApi } from '@/services/api';
 import { cn } from '@/lib/utils';
 
 export default function LoginPage() {
-  const [isSignup, setIsSignup] = useState(false);
+  const location = useLocation();
+  const [isSignup, setIsSignup] = useState(location.pathname === '/auth/register');
   const [email, setEmail] = useState('admin@titan.demo');
   const [password, setPassword] = useState('admin123');
   const [name, setName] = useState('');
@@ -35,7 +36,7 @@ export default function LoginPage() {
 
       const data = response.data;
       setAuth(data.user, data.organization, data.access_token, data.refresh_token);
-      navigate('/');
+      navigate('/app');
     } catch (err: any) {
       const detail = err.response?.data?.detail;
       if (typeof detail === 'string') {

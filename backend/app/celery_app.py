@@ -62,11 +62,10 @@ celery.conf.beat_schedule = {
         "schedule": crontab(hour=2, minute=0),
         "options": {"expires": 3600},
     },
-    # Inventory alert sweep: every 30 minutes
+    # Inventory alert sweep: every 30 minutes — runs for ALL active orgs
     "inventory-alert-sweep": {
         "task": "titan.alerts.inventory_sweep",
         "schedule": crontab(minute="*/30"),
-        "kwargs": {"org_id": 1},           # org_id=1 is the default seeded org
         "options": {"expires": 1800},
     },
 }

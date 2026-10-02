@@ -33,27 +33,53 @@ async def get_forecasts(
     mv_repo = ModelVersionRepository(db, tenant.org_id)
     active_model = await mv_repo.get_active()
 
-    if active_model and active_model.model_path:
-        # Only reload from disk if the singleton is blank or holds a different version.
-        # Avoids deserializing the full pkl on every HTTP request.
-        singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
-        if not forecast_model.is_trained or singleton_tag != active_model.version_tag:
-            forecast_model.load(active_model.model_path)
-    elif not forecast_model.is_trained:
-        forecast_model.train()
+    if not active_model or not active_model.model_path:
+        # No model trained for this org — return empty state
+        return {
+            "forecasts": [],
+            "historical": [],
+            "model_version": None,
+            "accuracy": None,
+            "rmse": None,
+            "training_samples": 0,
+            "training_id": 0,
+            "data_source": None,
+            "last_trained": None,
+            "has_model": False,
+        }
+
+    # Load model for this org (reload if version changed or singleton is blank)
+    singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
+    if not forecast_model.is_trained or singleton_tag != active_model.version_tag:
+        forecast_model.load(active_model.model_path)
+
+    if not forecast_model.is_trained:
+        return {
+            "forecasts": [],
+            "historical": [],
+            "model_version": None,
+            "accuracy": None,
+            "rmse": None,
+            "training_samples": 0,
+            "training_id": 0,
+            "data_source": None,
+            "last_trained": None,
+            "has_model": False,
+        }
 
     forecasts = forecast_model.predict(weeks_ahead=weeks)
 
     return {
         "forecasts": forecasts,
         "historical": forecast_model.historical_data,
-        "model_version": active_model.version_tag if active_model else f"v{forecast_model.training_id}.0 (XGBoost)",
+        "model_version": active_model.version_tag,
         "accuracy": forecast_model.metrics["accuracy"],
         "rmse": forecast_model.metrics["rmse"],
         "training_samples": forecast_model.metrics["training_samples"],
         "training_id": forecast_model.training_id,
         "data_source": forecast_model.data_source,
         "last_trained": forecast_model.metrics["last_trained"],
+        "has_model": True,
     }
 
 
@@ -83,17 +109,17 @@ async def explain_forecast(
     from app.services.ml_service import FEATURE_NAMES
     from app.services.shap_service import ShapService
 
-    # ── Ensure model is loaded ────────────────────────────────────────
+    # ── Ensure model is loaded ────────────────────────────────────────────────
     mv_repo = ModelVersionRepository(db, tenant.org_id)
     active_model = await mv_repo.get_active()
 
-    if active_model and active_model.model_path:
-        # Only reload from disk when version changed or singleton is blank.
-        singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
-        if not forecast_model.is_trained or singleton_tag != active_model.version_tag:
-            forecast_model.load(active_model.model_path)
-    elif not forecast_model.is_trained:
-        forecast_model.train()
+    if not active_model or not active_model.model_path:
+        return {"error": "No trained model for this organisation.", "weeks": [], "explainer_ready": False, "has_model": False}
+
+    # Only reload from disk when version changed or singleton is blank.
+    singleton_tag = f"v{forecast_model.training_id}.0" if forecast_model.is_trained else None
+    if not forecast_model.is_trained or singleton_tag != active_model.version_tag:
+        forecast_model.load(active_model.model_path)
 
     if not forecast_model.is_trained:
         return {"error": "Model not ready", "weeks": [], "explainer_ready": False}
@@ -398,8 +424,9 @@ async def get_model_info(
     mv_repo = ModelVersionRepository(db, tenant.org_id)
     active_model = await mv_repo.get_active()
 
-    if active_model:
+    if active_model and active_model.model_path:
         return {
+            "has_model": True,
             "model_type": active_model.model_type,
             "version": active_model.version_tag,
             "accuracy": active_model.accuracy,
@@ -413,23 +440,20 @@ async def get_model_info(
             "data_source": active_model.data_source,
         }
 
-    # Fallback to in-memory model
-    if not forecast_model.is_trained:
-        forecast_model.train()
-
-    metrics = forecast_model.metrics
+    # If no active model exists for this tenant, return has_model: False with null metrics
     return {
-        "model_type": "XGBRegressor",
-        "version": "v2.0",
-        "accuracy": metrics["accuracy"],
-        "mae": metrics["mae"],
-        "rmse": metrics["rmse"],
-        "mape": round((metrics["mae"] / 1000) * 100, 1) if metrics["mae"] else 5.3,
-        "features_used": 5,
-        "training_samples": metrics["training_samples"],
-        "last_trained": metrics["last_trained"],
-        "feature_importance": metrics.get("feature_importance", {}),
-        "convergence": metrics.get("convergence", []),
+        "has_model": False,
+        "model_type": None,
+        "version": None,
+        "accuracy": None,
+        "mae": None,
+        "rmse": None,
+        "features_used": 0,
+        "training_samples": 0,
+        "last_trained": None,
+        "feature_importance": {},
+        "convergence": [],
+        "data_source": None,
     }
 
 

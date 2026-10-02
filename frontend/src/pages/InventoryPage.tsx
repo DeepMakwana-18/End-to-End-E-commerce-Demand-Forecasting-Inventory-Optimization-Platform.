@@ -9,7 +9,8 @@ import {
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { cn, formatNumber } from '@/lib/utils';
-import { useDataStore } from '@/stores/dataStore';
+import { useQuery } from '@tanstack/react-query';
+import { inventoryApi, systemApi } from '@/services/api';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
@@ -34,7 +35,25 @@ const getHealthColor = (score: number) => {
 type SortKey = 'name' | 'current_stock' | 'health_score' | 'status';
 
 export default function InventoryPage() {
-  const inventoryItems = useDataStore(s => s.inventoryItems);
+  const { data: systemStatus } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: async () => {
+      const res = await systemApi.getStatus();
+      return res.data;
+    }
+  });
+
+  const { data: inventoryData } = useQuery({
+    queryKey: ['inventory'],
+    queryFn: async () => {
+      const res = await inventoryApi.getAll(); // Assuming no pagination needed or handled by backend limit
+      return res.data;
+    },
+    enabled: !!systemStatus?.dataset_exists
+  });
+
+  const inventoryItems = inventoryData?.items || [];
+  const isEmptyOrg = systemStatus && !systemStatus.dataset_exists;
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
@@ -151,9 +170,9 @@ export default function InventoryPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total SKUs" value={formatNumber(totalSKUs)} icon={Package} gradient="gradient-primary" delay={0} />
-        <KPICard title="Healthy Stock" value={`${healthyStockPercent}%`} change={healthyStockPercent >= 50 ? 3.2 : -1.5} icon={ShieldCheck} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Healthy Stock" value={totalSKUs > 0 ? `${healthyStockPercent}%` : "No data"} change={totalSKUs > 0 ? (healthyStockPercent >= 50 ? 3.2 : -1.5) : undefined} icon={ShieldCheck} gradient="gradient-accent" delay={0.05} />
         <KPICard title="Reorder Needed" value={String(reorderNeededCount)} icon={RotateCcw} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Critical Items" value={String(criticalItemsCount)} change={criticalItemsCount > 0 ? -2.0 : 0} icon={AlertTriangle} gradient="gradient-danger" delay={0.15} />
+        <KPICard title="Critical Items" value={String(criticalItemsCount)} change={criticalItemsCount > 0 ? -2.0 : undefined} icon={AlertTriangle} gradient="gradient-danger" delay={0.15} />
       </div>
 
       {/* Health Score Chart */}

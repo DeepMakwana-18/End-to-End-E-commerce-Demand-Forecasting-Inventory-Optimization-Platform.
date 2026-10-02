@@ -11,22 +11,22 @@ import { useAppStore } from '@/stores/appStore';
 import { cn } from '@/lib/utils';
 
 const navItems = [
-  { label: 'Dashboard', icon: LayoutDashboard, path: '/' },
-  { label: 'Forecasting', icon: TrendingUp, path: '/forecasting' },
-  { label: 'Scenarios', icon: FlaskConical, path: '/scenarios' },
-  { label: 'Anomalies', icon: ShieldAlert, path: '/anomalies' },
-  { label: 'Inventory', icon: Package, path: '/inventory' },
-  { label: 'Products', icon: Boxes, path: '/products' },
-  { label: 'Categories', icon: PieChart, path: '/categories' },
-  { label: 'Reports', icon: FileText, path: '/reports' },
-  { label: 'Alerts', icon: Bell, path: '/alerts' },
+  { label: 'Dashboard', icon: LayoutDashboard, path: '/app' },
+  { label: 'Forecasting', icon: TrendingUp, path: '/app/forecasting' },
+  { label: 'Scenarios', icon: FlaskConical, path: '/app/scenarios' },
+  { label: 'Anomalies', icon: ShieldAlert, path: '/app/anomalies' },
+  { label: 'Inventory', icon: Package, path: '/app/inventory' },
+  { label: 'Products', icon: Boxes, path: '/app/products' },
+  { label: 'Categories', icon: PieChart, path: '/app/categories' },
+  { label: 'Reports', icon: FileText, path: '/app/reports' },
+  { label: 'Alerts', icon: Bell, path: '/app/alerts' },
 ];
 
 const adminItems = [
-  { label: 'Users', icon: Users, path: '/admin/users' },
-  { label: 'Upload Data', icon: Upload, path: '/admin/upload' },
-  { label: 'ML Pipeline', icon: Activity, path: '/admin/pipeline' },
-  { label: 'Settings', icon: Settings, path: '/admin/settings' },
+  { label: 'Users', icon: Users, path: '/app/admin/users' },
+  { label: 'Upload Data', icon: Upload, path: '/app/admin/upload' },
+  { label: 'ML Pipeline', icon: Activity, path: '/app/admin/pipeline' },
+  { label: 'Settings', icon: Settings, path: '/app/admin/settings' },
 ];
 
 export function Sidebar() {
@@ -80,7 +80,7 @@ export function Sidebar() {
             <NavLink
               key={item.path}
               to={item.path}
-              end={item.path === '/'}
+              end={item.path === '/app'}
               className={({ isActive }) =>
                 cn(
                   'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',

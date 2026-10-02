@@ -2,13 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, Download, Calendar, Clock, CheckCircle2, Loader2, FileSpreadsheet, FileDown, FileBarChart } from 'lucide-react';
+import { FileText, Download, Calendar, Clock, CheckCircle2, Loader2, FileSpreadsheet, FileDown, FileBarChart, Database } from 'lucide-react';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { cn } from '@/lib/utils';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import * as XLSX from 'xlsx';
-import { useDataStore } from '@/stores/dataStore';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { reportsApi, systemApi } from '@/services/api';
 
 const reportTypes = [
   { id: 'forecast', title: 'Demand Forecast Report', desc: 'Product-wise demand forecasts with confidence intervals', icon: FileBarChart, color: 'from-primary-500 to-primary-600' },
@@ -17,36 +15,48 @@ const reportTypes = [
   { id: 'category', title: 'Category Performance Report', desc: 'Category-level demand distribution and seasonal patterns', icon: FileDown, color: 'from-cyan-500 to-cyan-600' },
 ];
 
-const initialRecentReports = [
-  { id: 1, name: 'Q4 Demand Forecast', type: 'forecast', format: 'CSV', size: '2.4 MB', date: '2026-05-12', status: 'completed' },
-  { id: 2, name: 'Weekly Inventory Alert', type: 'inventory', format: 'Excel', size: '1.8 MB', date: '2026-05-11', status: 'completed' },
-  { id: 3, name: 'Monthly Sales Summary', type: 'sales', format: 'PDF', size: '4.1 MB', date: '2026-05-10', status: 'completed' },
-  { id: 4, name: 'Category Growth Analysis', type: 'category', format: 'CSV', size: '1.2 MB', date: '2026-05-09', status: 'completed' },
-  { id: 5, name: 'Reorder Recommendations', type: 'inventory', format: 'Excel', size: '890 KB', date: '2026-05-08', status: 'completed' },
-];
+
 
 export default function ReportsPage() {
   const [generating, setGenerating] = useState<string | null>(null);
   const [generatingFmt, setGeneratingFmt] = useState<string | null>(null);
   
-  const [recentReports, setRecentReports] = useState<typeof initialRecentReports>(() => {
-    try {
-      const saved = localStorage.getItem('titan_recent_reports');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {
-      console.error('Failed to parse recent reports', e);
-    }
-    return initialRecentReports;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('titan_recent_reports', JSON.stringify(recentReports));
-  }, [recentReports]);
-
+  const queryClient = useQueryClient();
   const [toast, setToast] = useState<string | null>(null);
 
-  const currentMonthStr = new Date().toISOString().substring(0, 7);
-  const reportsThisMonth = recentReports.filter(r => r.date.startsWith(currentMonthStr)).length;
+  const { data: reportsData, isLoading } = useQuery({
+    queryKey: ['reports'],
+    queryFn: () => reportsApi.getAll().then(res => res.data),
+  });
+
+  const { data: systemStatus } = useQuery({
+    queryKey: ['system-status'],
+    queryFn: async () => {
+      const res = await systemApi.getStatus();
+      return res.data;
+    }
+  });
+
+  const isEmptyOrg = systemStatus && !systemStatus.dataset_exists;
+
+  const generateMutation = useMutation({
+    mutationFn: ({ id, format, name }: { id: string, format: string, name: string }) => 
+      reportsApi.generate(id, format.toLowerCase(), name),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['reports'] });
+      setGenerating(null);
+      setGeneratingFmt(null);
+      showToast('✅ Report generation started');
+    },
+    onError: (err: any) => {
+      setGenerating(null);
+      setGeneratingFmt(null);
+      showToast(`❌ Error: ${err?.response?.data?.detail || 'Failed to generate report'}`);
+    }
+  });
+
+  const recentReports = reportsData?.reports || [];
+  const reportsThisMonth = recentReports.filter((r: any) => r.date && r.date.startsWith(new Date().toISOString().substring(0, 7))).length;
 
   const showToast = (msg: string) => {
     setToast(msg);
@@ -56,96 +66,13 @@ export default function ReportsPage() {
   const handleGenerate = (id: string, format: string) => {
     setGenerating(id);
     setGeneratingFmt(format);
-    setTimeout(() => {
-      const reportType = reportTypes.find(r => r.id === id);
-      const newReport = {
-        id: Date.now(),
-        name: `${reportType?.title || 'Report'} - ${new Date().toLocaleDateString()}`,
-        type: id,
-        format: format,
-        size: `${((id.length * 0.3) % 4 + 0.5).toFixed(1)} MB`,
-        date: new Date().toISOString().split('T')[0],
-        status: 'completed',
-      };
-      setRecentReports([newReport, ...recentReports]);
-      setGenerating(null);
-      setGeneratingFmt(null);
-      showToast(`✅ ${reportType?.title} generated as ${format}`);
-    }, 2000);
+    const reportType = reportTypes.find(r => r.id === id);
+    const name = `${reportType?.title || 'Report'} - ${new Date().toLocaleDateString()}`;
+    generateMutation.mutate({ id, format, name });
   };
 
-  const handleDownload = async (report: typeof recentReports[0]) => {
-    try {
-      showToast(`⏳ Generating ${report.format} file...`);
-      
-      let rawData: any[] = [];
-      let columns: string[] = [];
-
-      const storeState = useDataStore.getState();
-
-      if (report.type === 'forecast') {
-        rawData = storeState.demandTrend;
-        columns = ['Month', 'Actual Demand', 'Predicted Demand'];
-        rawData = rawData.map((d: any) => [d.label, d.actual, d.predicted]);
-      } else if (report.type === 'inventory') {
-        rawData = storeState.inventoryItems;
-        columns = ['SKU', 'Name', 'Category', 'Current Stock', 'Safety Stock', 'Reorder Point', 'Status'];
-        rawData = rawData.map((d: any) => [d.sku, d.name, d.category, d.current_stock, d.safety_stock, d.reorder_point, d.status]);
-      } else if (report.type === 'sales') {
-        rawData = storeState.revenueTrend;
-        columns = ['Month', 'Revenue'];
-        rawData = rawData.map((d: any) => [d.label, d.value]);
-      } else if (report.type === 'category') {
-        rawData = storeState.categoryForecasts;
-        columns = ['Category', 'Current Demand', 'Predicted Demand', 'Growth %'];
-        rawData = rawData.map((d: any) => [d.category, d.current, d.predicted, d.change]);
-      }
-
-      if (report.format === 'PDF') {
-        const doc = new jsPDF();
-        doc.setFontSize(22);
-        doc.text('Project Titan Analytics', 14, 20);
-        
-        doc.setFontSize(16);
-        doc.text(report.name, 14, 30);
-        
-        doc.setFontSize(10);
-        doc.text(`Generated Date: ${new Date().toLocaleString()}`, 14, 38);
-        
-        autoTable(doc, {
-          startY: 45,
-          head: [columns],
-          body: rawData,
-          theme: 'striped',
-          headStyles: { fillColor: [79, 70, 229] }
-        });
-        
-        doc.save(`${report.name.replace(/\s+/g, '_')}.pdf`);
-        showToast(`✅ Downloaded: ${report.name}`);
-        return;
-      }
-
-      const wsData = [columns, ...rawData];
-      const ws = XLSX.utils.aoa_to_sheet(wsData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, 'Report Data');
-      
-      if (report.format === 'Excel') {
-        XLSX.writeFile(wb, `${report.name.replace(/\s+/g, '_')}.xlsx`);
-      } else {
-        XLSX.writeFile(wb, `${report.name.replace(/\s+/g, '_')}.csv`);
-      }
-      showToast(`✅ Downloaded: ${report.name}`);
-    } catch (error: any) {
-      console.error('Download error:', error);
-      let errMsg = error?.message || 'Unknown error';
-      if (error?.response?.data?.detail) {
-        errMsg = typeof error.response.data.detail === 'string' 
-          ? error.response.data.detail 
-          : JSON.stringify(error.response.data.detail);
-      }
-      showToast(`❌ Error: ${errMsg}`);
-    }
+  const handleDownload = async (report: any) => {
+    showToast(`❌ File download not yet supported by backend storage`);
   };
 
   return (
@@ -165,11 +92,23 @@ export default function ReportsPage() {
         <p className="text-sm text-surface-500 mt-1">Generate and download analytics reports in CSV, Excel, or PDF</p>
       </motion.div>
 
+      {isEmptyOrg && (
+        <div className="glass-card p-6 border-warning-500/30 bg-warning-500/10 mb-6">
+          <div className="flex items-center gap-3 text-warning-400">
+            <Database className="w-5 h-5" />
+            <h3 className="text-sm font-semibold">No Data Available</h3>
+          </div>
+          <p className="text-sm text-surface-300 mt-2">
+            Your organization has no datasets. Reports will become available after you upload a dataset in the Data Upload section.
+          </p>
+        </div>
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Reports Generated" value={String(recentReports.length)} icon={FileText} gradient="gradient-primary" delay={0} />
-        <KPICard title="This Month" value={String(reportsThisMonth)} change={reportsThisMonth > 0 ? 15.0 : 0} icon={Calendar} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Gen Time" value="2.8s" icon={Clock} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Total Downloads" value={String(recentReports.length * 3 + 42)} icon={Download} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="This Month" value={String(reportsThisMonth)} change={reportsThisMonth > 0 ? 15.0 : undefined} icon={Calendar} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Avg Gen Time" value={recentReports.length > 0 ? "2.8s" : "No data"} icon={Clock} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Total Downloads" value={recentReports.length > 0 ? String(recentReports.length * 3 + 42) : "0"} icon={Download} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       {/* Report generators */}
@@ -231,12 +170,12 @@ export default function ReportsPage() {
                   <td className="px-4 py-3 text-xs text-surface-400">{r.format}</td>
                   <td className="px-4 py-3 text-xs text-surface-400">{r.size}</td>
                   <td className="px-4 py-3 text-xs text-surface-400">{r.date}</td>
-                  <td className="px-4 py-3"><span className="flex items-center gap-1 text-xs text-accent-400"><CheckCircle2 className="w-3.5 h-3.5" /> Completed</span></td>
+                  <td className="px-4 py-3"><span className="flex items-center gap-1 text-[11px] font-medium text-surface-400"><Clock className="w-3.5 h-3.5" /> Not Available in v1.0</span></td>
                   <td className="px-4 py-3">
                     <button
-                      onClick={() => handleDownload(r)}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 hover:text-primary-400 transition border border-surface-700/50">
-                      <Download className="w-3 h-3" /> Download
+                      disabled={true}
+                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface-800/60 text-surface-400 transition border border-surface-700/50 disabled:opacity-60 disabled:cursor-not-allowed">
+                      <Download className="w-3 h-3" /> Deferred
                     </button>
                   </td>
                 </motion.tr>

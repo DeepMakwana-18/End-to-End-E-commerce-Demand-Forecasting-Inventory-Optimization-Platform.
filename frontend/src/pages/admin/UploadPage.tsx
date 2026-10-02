@@ -82,27 +82,32 @@ export default function UploadPage() {
       const headers = firstLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
       setDetectedColumns(headers.length > 0 ? headers : ['column_1', 'column_2', 'column_3']);
 
-      // Call real backend — returns task_id immediately (< 200ms)
-      setState({ file, status: 'uploading', progress: 5 });
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        const res = await api.post('/upload', formData, {
-          headers: { 'Content-Type': 'multipart/form-data' },
-        });
-        const { task_id } = res.data as { task_id: string };
-        setTaskId(task_id);
-        setState(s => ({ ...s, status: 'processing', progress: 10 }));
-      } catch {
-        setState({ file, status: 'error', progress: 0 });
-      }
+      // Pause at mapping
+      setState({ file, status: 'queued', progress: 5 });
     };
     reader.readAsText(file);
   };
 
   // resumePipeline — called after column mapping confirmation
-  const resumePipeline = () => {
-    setState(s => ({ ...s, status: 'processing', progress: s.progress || 15 }));
+  const resumePipeline = async () => {
+    if (!state.file) return;
+    setState(s => ({ ...s, status: 'uploading', progress: 10 }));
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', state.file);
+      // Optional: append mappings if backend expects them
+      formData.append('mappings', JSON.stringify(mappings));
+      
+      const res = await api.post('/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const { task_id } = res.data as { task_id: string };
+      setTaskId(task_id);
+      setState(s => ({ ...s, status: 'processing', progress: 15 }));
+    } catch {
+      setState(s => ({ ...s, status: 'error', progress: 0 }));
+    }
   };
 
   const handleDrop = (e: React.DragEvent) => {
@@ -165,8 +170,8 @@ export default function UploadPage() {
       {/* Main interactive area */}
       <AnimatePresence mode="wait">
         
-        {/* Drop Zone — always visible, no mapping state */}
-        {true && (
+        {/* Drop Zone */}
+        {state.status !== 'queued' && (
           <motion.div key="dropzone" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
             onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => state.status === 'idle' && fileRef.current?.click()}
             className={cn('glass-card p-12 border-2 border-dashed transition-all text-center',
@@ -219,8 +224,8 @@ export default function UploadPage() {
           </motion.div>
         )}
 
-        {/* Mapping panel — hidden since server handles schema detection */}
-        {false && (
+        {/* Mapping panel */}
+        {state.status === 'queued' && (
           <motion.div key="mapping" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
             className="glass-card border border-warning-500/30 overflow-hidden">
             <div className="p-5 bg-warning-500/10 border-b border-warning-500/20 flex items-start gap-4">
