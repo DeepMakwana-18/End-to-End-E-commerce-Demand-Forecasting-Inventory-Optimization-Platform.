@@ -18,6 +18,8 @@
 
 *A production-ready, multi-tenant SaaS platform that unifies machine learning forecasting, real-time inventory intelligence, anomaly detection, scenario planning, and an AI Copilot — all in a single containerized system.*
 
+<img src="landing/screenshots/app_dashboard_1784608560491.png" alt="Project Titan Dashboard Preview" style="width:100%; margin-top:20px; border-radius:10px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+
 </div>
 
 ---
@@ -756,21 +758,23 @@ docker compose down -v
 
 ### Dashboard
 Live KPI cards with real-time WebSocket updates, forecast accuracy, anomaly count, and inventory health score.
+![Dashboard](landing/screenshots/app_dashboard_1784608560491.png)
 
 ### Forecasting Page
 12-week demand forecast chart with confidence interval band, model version info, and SHAP driver panel.
+![Forecasting Page](landing/screenshots/app_forecast_1784608599518.png)
 
-### Anomaly Detection
+### Alerts & Anomaly Detection
 Statistical anomaly table with severity badges, resolution tracking, and SHAP investigation drawer.
+![Alerts](landing/screenshots/app_alerts_1784608664287.png)
 
-### AI Copilot
-Floating drawer assistant responding to natural-language queries about forecasts, anomalies, and inventory.
-
-### Scenario Planning
-Side-by-side baseline vs. scenario forecast with delta analysis and SHAP attribution comparison.
+### Inventory & Stock Health
+Inventory levels, health scores, and real-time monitoring of SKU metrics.
+![Inventory Page](landing/screenshots/app_inventory_1784608715754.png)
 
 ### ML Pipeline (Admin)
 Model version history, retrain controls, accuracy trend, and training status with live Celery task polling.
+![ML Pipeline](landing/screenshots/app_pipeline_1784608681678.png)
 
 ---
 
