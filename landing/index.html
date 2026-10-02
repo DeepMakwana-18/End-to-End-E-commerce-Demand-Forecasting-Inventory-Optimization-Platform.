@@ -158,15 +158,18 @@ nav.s{background:rgba(3,3,12,.88);backdrop-filter:blur(24px);border-bottom:1px s
 .dtab{padding:9px 20px;border-radius:10px;font-size:13px;font-weight:600;color:var(--m);transition:all .2s;border:none;background:none;cursor:pointer;display:flex;align-items:center;gap:6px}
 .dtab.active{background:linear-gradient(135deg,var(--p),var(--i));color:#fff;box-shadow:0 0 20px rgba(124,58,237,.3)}
 .dtab:hover:not(.active){color:var(--t);background:rgba(255,255,255,.06)}
-.demo-frame{position:relative;border-radius:20px;overflow:hidden;box-shadow:0 40px 120px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.07);transition:all .4s}
-.demo-img{width:100%;display:none;animation:dfadein .4s ease}
-.demo-img.active{display:block}
-@keyframes dfadein{from{opacity:0;transform:scale(.98)}to{opacity:1;transform:scale(1)}}
+.demo-showcase{width:100%;display:flex;flex-direction:column;gap:60px}
+.demo-card{display:none;width:100%}
+.demo-card.active{display:block;animation:cardShow .6s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes cardShow{from{opacity:0;transform:translateY(30px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.demo-card-label{text-align:center;font-size:12px;font-weight:700;color:var(--p2);letter-spacing:.08em;margin-bottom:24px}
+.demo-card-label span{display:block;font-size:15px;font-weight:400;color:var(--m);letter-spacing:normal;text-transform:none;margin-top:6px}
+.demo-frame{position:relative;border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.6),0 0 0 1px rgba(255,255,255,.08),0 0 40px rgba(124,58,237,.1);background:#0a0a16}
 .demo-topbar{display:flex;align-items:center;gap:8px;padding:12px 18px;background:rgba(10,10,20,.9);border-bottom:1px solid rgba(255,255,255,.06)}
 .demo-dot{width:11px;height:11px;border-radius:50%}
 .demo-url{flex:1;text-align:center;font-size:11px;color:var(--m);font-family:var(--mono)}
 .demo-content{position:relative;background:#0a0a16}
-.demo-content img{width:100%;display:block}
+.demo-img{width:100%;height:auto;display:block}
 
 /* ══════════════ BENTO FEATURES ══════════════ */
 #features{padding:120px 0}
@@ -631,7 +634,7 @@ footer{border-top:1px solid var(--bo);padding:60px 0 36px}
 
 <!-- ══════ PRODUCT DEMO TABS ══════ -->
 <section id="demo" aria-labelledby="demo-h">
-  <div class="wrap">
+  <div class="wrap" style="max-width:1150px">
     <div class="demo-head">
       <div class="chip">🎬 Live Product Demo</div>
       <h2 class="sh" id="demo-h">See <span class="grad">Titan AI</span> in action</h2>
@@ -644,19 +647,86 @@ footer{border-top:1px solid var(--bo);padding:60px 0 36px}
       <button class="dtab" role="tab" aria-selected="false" onclick="setTab('pipeline')" id="tab-pipeline">🧠 ML Pipeline</button>
       <button class="dtab" role="tab" aria-selected="false" onclick="setTab('alerts')" id="tab-alerts">⚡ Alerts</button>
     </div>
-    <div class="demo-frame reveal">
-      <div class="demo-topbar">
-        <div class="demo-dot" style="background:#ff5f57"></div>
-        <div class="demo-dot" style="background:#febc2e"></div>
-        <div class="demo-dot" style="background:#28c840"></div>
-        <div class="demo-url" id="demo-url">localhost/dashboard</div>
+    
+    <div class="demo-showcase">
+      <!-- DASHBOARD -->
+      <div class="demo-card active" id="dc-dashboard">
+        <div class="demo-card-label">01 — EXECUTIVE DASHBOARD<br/><span>Real-time supply chain overview</span></div>
+        <div class="demo-frame">
+          <div class="demo-topbar">
+            <div class="demo-dot" style="background:#ff5f57"></div>
+            <div class="demo-dot" style="background:#febc2e"></div>
+            <div class="demo-dot" style="background:#28c840"></div>
+            <div class="demo-url">Titan AI — Executive Dashboard</div>
+          </div>
+          <div class="demo-content">
+            <img src="screenshots/app_dashboard_1784608560491.png" class="demo-img" alt="Executive Dashboard"/>
+          </div>
+        </div>
       </div>
-      <div class="demo-content">
-        <img src="screenshots/app_dashboard_1784608560491.png" class="demo-img active" id="di-dashboard" alt="Titan AI Executive Dashboard"/>
-        <img src="screenshots/app_forecast_1784608599518.png" class="demo-img" id="di-forecast" alt="Demand Forecasting page"/>
-        <img src="screenshots/app_inventory_1784608715754.png" class="demo-img" id="di-inventory" alt="Inventory Optimization page"/>
-        <img src="screenshots/app_pipeline_1784608681678.png" class="demo-img" id="di-pipeline" alt="ML Pipeline page"/>
-        <img src="screenshots/app_alerts_1784608664287.png" class="demo-img" id="di-alerts" alt="Alert Center page"/>
+
+      <!-- FORECASTING -->
+      <div class="demo-card" id="dc-forecast">
+        <div class="demo-card-label">02 — DEMAND FORECASTING<br/><span>AI-powered demand prediction</span></div>
+        <div class="demo-frame">
+          <div class="demo-topbar">
+            <div class="demo-dot" style="background:#ff5f57"></div>
+            <div class="demo-dot" style="background:#febc2e"></div>
+            <div class="demo-dot" style="background:#28c840"></div>
+            <div class="demo-url">Titan AI — Demand Forecasting</div>
+          </div>
+          <div class="demo-content">
+            <img src="screenshots/app_forecast_1784608599518.png" class="demo-img" alt="Demand Forecasting"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- INVENTORY -->
+      <div class="demo-card" id="dc-inventory">
+        <div class="demo-card-label">03 — INVENTORY OPTIMIZATION<br/><span>Stock levels and reorder intelligence</span></div>
+        <div class="demo-frame">
+          <div class="demo-topbar">
+            <div class="demo-dot" style="background:#ff5f57"></div>
+            <div class="demo-dot" style="background:#febc2e"></div>
+            <div class="demo-dot" style="background:#28c840"></div>
+            <div class="demo-url">Titan AI — Inventory Optimization</div>
+          </div>
+          <div class="demo-content">
+            <img src="screenshots/app_inventory_1784608715754.png" class="demo-img" alt="Inventory Optimization"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- PIPELINE -->
+      <div class="demo-card" id="dc-pipeline">
+        <div class="demo-card-label">04 — ML PIPELINE<br/><span>Model training and performance monitoring</span></div>
+        <div class="demo-frame">
+          <div class="demo-topbar">
+            <div class="demo-dot" style="background:#ff5f57"></div>
+            <div class="demo-dot" style="background:#febc2e"></div>
+            <div class="demo-dot" style="background:#28c840"></div>
+            <div class="demo-url">Titan AI — ML Pipeline</div>
+          </div>
+          <div class="demo-content">
+            <img src="screenshots/app_pipeline_1784608681678.png" class="demo-img" alt="ML Pipeline"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ALERTS -->
+      <div class="demo-card" id="dc-alerts">
+        <div class="demo-card-label">05 — ALERT CENTER<br/><span>Real-time anomaly and inventory alerts</span></div>
+        <div class="demo-frame">
+          <div class="demo-topbar">
+            <div class="demo-dot" style="background:#ff5f57"></div>
+            <div class="demo-dot" style="background:#febc2e"></div>
+            <div class="demo-dot" style="background:#28c840"></div>
+            <div class="demo-url">Titan AI — Alert Center</div>
+          </div>
+          <div class="demo-content">
+            <img src="screenshots/app_alerts_1784608664287.png" class="demo-img" alt="Alert Center"/>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1307,14 +1377,12 @@ document.querySelectorAll('.sn[data-target]').forEach(el=>{
 });
 
 // ── Demo Tabs ──
-const tabUrls={dashboard:'localhost/dashboard',forecast:'localhost/forecast',inventory:'localhost/inventory',pipeline:'localhost/admin/pipeline',alerts:'localhost/alerts'};
 function setTab(name){
   document.querySelectorAll('.dtab').forEach(t=>{t.classList.remove('active');t.setAttribute('aria-selected','false')});
-  document.querySelectorAll('.demo-img').forEach(i=>i.classList.remove('active'));
+  document.querySelectorAll('.demo-card').forEach(c=>c.classList.remove('active'));
   document.getElementById('tab-'+name).classList.add('active');
   document.getElementById('tab-'+name).setAttribute('aria-selected','true');
-  document.getElementById('di-'+name).classList.add('active');
-  document.getElementById('demo-url').textContent=tabUrls[name]||'localhost/'+name;
+  document.getElementById('dc-'+name).classList.add('active');
 }
 // Auto-cycle demo tabs
 const tabs=['dashboard','forecast','inventory','pipeline','alerts'];let ti=0;
