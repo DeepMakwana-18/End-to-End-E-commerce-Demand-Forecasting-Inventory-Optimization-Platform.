@@ -76,6 +76,9 @@ test.pkl
 
 # Reports generated during development
 *_CHECKPOINT.md
+*_REPORT.md
+PHASE_*.md
+test_nan.py
 db_snapshot.py
 p6_health.py
 p6_smoke.py
