@@ -1,99 +1,273 @@
-/** Admin - ML Pipeline Page. */
+/**
+ * Admin - ML Pipeline Page.
+ *
+ * Light Mode Refinement: Apple Modern design system, high-contrast KPI cards,
+ * clear training convergence line chart, coordinated feature importance bars,
+ * and reliable training history telemetry.
+ */
 
 import { useState, useEffect } from 'react';
 import api, { systemApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useDataStore } from '@/stores/dataStore';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Activity, Brain, Cpu, Clock, CheckCircle2, Loader2, Play, RefreshCw, Zap, Database } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { KPICard } from '@/components/dashboard/KPICard';
-import { ChartCard } from '@/components/dashboard/ChartCard';
+import {
+  Activity,
+  Brain,
+  Cpu,
+  Clock,
+  CheckCircle2,
+  Loader2,
+  Play,
+  RefreshCw,
+  Zap,
+  TrendingUp,
+  TrendingDown,
+  Upload,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from 'recharts';
 import { cn } from '@/lib/utils';
 
+interface FeatureImportanceItem {
+  name: string;
+  importance: number;
+}
 
+interface ConvergenceItem {
+  epoch: number | string;
+  mae?: number;
+  rmse?: number;
+  [key: string]: string | number | undefined;
+}
+
+interface TrainingHistoryItem {
+  id: number;
+  version: string;
+  accuracy: number;
+  mae: number;
+  rmse: number;
+  duration: string;
+  date: string;
+  status: 'active' | 'archived' | 'failed' | 'running';
+}
+
+interface TrainingVersionResponse {
+  id: number;
+  version_tag: string;
+  accuracy: number;
+  mae: number;
+  rmse: number;
+  created_at?: string;
+  is_active?: boolean;
+}
+
+interface PipelineKPICardProps {
+  title: string;
+  value: string;
+  change?: number;
+  changeLabel?: string;
+  sub?: string;
+  icon: React.ElementType;
+  iconBg: string;
+  iconColor: string;
+  surfaceGradient: string;
+  borderColor: string;
+  delay?: number;
+}
+
+function PipelineKPICard({
+  title,
+  value,
+  change,
+  changeLabel = 'vs prior period',
+  sub,
+  icon: Icon,
+  iconBg,
+  iconColor,
+  surfaceGradient,
+  borderColor,
+  delay = 0,
+}: PipelineKPICardProps) {
+  const isPositive = change !== undefined && change > 0;
+  const isNegative = change !== undefined && change < 0;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
+      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+      className={cn(
+        'p-5 relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[136px] rounded-2xl',
+        'bg-white dark:bg-ds-surface border shadow-2xs hover:shadow-md transition-all duration-200',
+        borderColor
+      )}
+    >
+      {/* Soft tinted gradient surface overlay */}
+      <div
+        className={cn(
+          'absolute inset-0 bg-gradient-to-br pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity',
+          surfaceGradient
+        )}
+      />
+
+      <div className="flex items-start justify-between relative z-10 w-full gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-2 truncate">
+            {title}
+          </p>
+          <p className="text-2xl sm:text-[26px] font-bold font-sans tabular-nums tracking-tight text-slate-900 dark:text-ds-text-primary leading-none">
+            {value}
+          </p>
+
+          {change !== undefined ? (
+            <div className="flex items-center gap-1.5 mt-3">
+              <span
+                className={cn(
+                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums border shadow-2xs',
+                  isPositive &&
+                    'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20',
+                  isNegative &&
+                    'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40'
+                )}
+              >
+                {isPositive ? (
+                  <TrendingUp className="w-3 h-3 text-emerald-600" />
+                ) : (
+                  <TrendingDown className="w-3 h-3 text-blue-600" />
+                )}
+                {isPositive ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`}
+              </span>
+              <span className="text-xs text-slate-500 dark:text-ds-text-muted font-medium truncate">
+                {changeLabel}
+              </span>
+            </div>
+          ) : sub ? (
+            <div className="mt-3 flex items-center gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control" />
+              <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted truncate">
+                {sub}
+              </span>
+            </div>
+          ) : null}
+        </div>
+
+        <div
+          className={cn(
+            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border',
+            iconBg
+          )}
+        >
+          <Icon className={cn('w-5 h-5', iconColor)} />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
 
 export default function PipelinePage() {
-  const isCustomDataset = useDataStore(s => s.isCustomDataset);
-  const rawCsvText = useDataStore(s => s.rawCsvText);
-  const datasetName = useDataStore(s => s.datasetName);
+  const isCustomDataset = useDataStore((s) => s.isCustomDataset);
+  const rawCsvText = useDataStore((s) => s.rawCsvText);
+  const datasetName = useDataStore((s) => s.datasetName);
 
   const { data: systemStatus } = useQuery({
     queryKey: ['system-status'],
     queryFn: async () => {
       const res = await systemApi.getStatus();
       return res.data;
-    }
+    },
   });
 
-  const isEmptyOrg = systemStatus && !systemStatus.dataset_exists;
+  const isEmptyOrg = Boolean(systemStatus && !systemStatus.dataset_exists);
 
-  const [trainingHistory, setTrainingHistory] = useState<any[]>([]);
-  const [featureImportance, setFeatureImportance] = useState<any[]>([]);
-  const [modelMetrics, setModelMetrics] = useState<any[]>([]);
+  const [trainingHistory, setTrainingHistory] = useState<TrainingHistoryItem[]>([]);
+  const [featureImportance, setFeatureImportance] = useState<FeatureImportanceItem[]>([]);
+  const [modelMetrics, setModelMetrics] = useState<ConvergenceItem[]>([]);
   const [isTraining, setIsTraining] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; isError?: boolean } | null>(null);
 
   useEffect(() => {
     if (isEmptyOrg) return;
+    let active = true;
+
     const fetchModelInfo = async () => {
       try {
         const res = await api.get('/forecast/model-info');
         const data = res.data;
 
         // Map backend features to UI format
-        const features = Object.entries(data.feature_importance || {}).map(([name, importance]) => ({
-          name,
-          importance: importance as number
-        })).sort((a, b) => b.importance - a.importance);
+        const features = Object.entries(data.feature_importance || {})
+          .map(([name, importance]) => ({
+            name,
+            importance: importance as number,
+          }))
+          .sort((a, b) => b.importance - a.importance);
 
-        setFeatureImportance(features);
-
-        if (data.convergence && data.convergence.length > 0) {
-          setModelMetrics(data.convergence);
+        if (active) {
+          setFeatureImportance(features);
+          if (data.convergence && data.convergence.length > 0) {
+            setModelMetrics(data.convergence);
+          }
         }
       } catch (err) {
-        console.error("Failed to load ML model info", err);
+        console.error('Failed to load ML model info', err);
       }
     };
 
     const fetchHistory = async () => {
       try {
         const res = await api.get('/forecast/training-history');
-        if (res.data && res.data.versions) {
-          const mappedHistory = res.data.versions.map((v: any) => ({
-            id: v.id,
-            version: v.version_tag,
-            accuracy: v.accuracy,
-            mae: v.mae,
-            rmse: v.rmse,
-            duration: 'Async',
-            date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-            status: v.is_active ? 'active' : 'archived',
-          }));
+        if (res.data && res.data.versions && active) {
+          const mappedHistory: TrainingHistoryItem[] = res.data.versions.map(
+            (v: TrainingVersionResponse) => ({
+              id: v.id,
+              version: v.version_tag,
+              accuracy: v.accuracy,
+              mae: v.mae,
+              rmse: v.rmse,
+              duration: 'Async',
+              date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
+              status: v.is_active ? 'active' : 'archived',
+            })
+          );
           setTrainingHistory(mappedHistory);
         }
       } catch (err) {
-        console.error("Failed to load training history", err);
+        console.error('Failed to load training history', err);
       }
     };
 
-    Promise.all([fetchModelInfo(), fetchHistory()]).finally(() => setIsLoading(false));
+    Promise.all([fetchModelInfo(), fetchHistory()]).finally(() => {
+      if (active) setIsLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
   }, [isEmptyOrg]);
 
-  const showToast = (msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  const effectiveLoading = !isEmptyOrg && isLoading;
+
+  const showToast = (message: string, isError = false) => {
+    setToast({ message, isError });
+    setTimeout(() => setToast(null), 3500);
   };
 
   const handleRetrain = async () => {
     setIsTraining(true);
     try {
-      // Always POST /forecast/retrain — NEVER /forecast/reset.
-      // Send csv_text if available in the Zustand store (just uploaded this session).
-      // If not (page refresh / new session), the backend reloads from the stored CSV on disk.
       const body: { csv_text?: string; filename?: string } = {};
       if (isCustomDataset && rawCsvText) {
         body.csv_text = rawCsvText;
@@ -102,7 +276,7 @@ export default function PipelinePage() {
       const res = await api.post('/forecast/retrain', body);
 
       if (res.data.error) {
-        showToast(`❌ ML Error: ${res.data.error}`);
+        showToast(res.data.error, true);
         setIsTraining(false);
         return;
       }
@@ -114,53 +288,60 @@ export default function PipelinePage() {
             const taskRes = await api.get(`/tasks/${taskId}`);
             const state = taskRes.data.state;
             if (state === 'completed') {
-              showToast('✅ Model retrained successfully');
+              showToast('Model successfully retrained and validated');
               setIsTraining(false);
+
               // Refresh history
               const histRes = await api.get('/forecast/training-history');
               if (histRes.data && histRes.data.versions) {
-                const mappedHistory = histRes.data.versions.map((v: any) => ({
-                  id: v.id,
-                  version: v.version_tag,
-                  accuracy: v.accuracy,
-                  mae: v.mae,
-                  rmse: v.rmse,
-                  duration: 'Async',
-                  date: v.created_at ? v.created_at.split('T')[0] : new Date().toISOString().split('T')[0],
-                  status: v.is_active ? 'active' : 'archived',
-                }));
+                const mappedHistory: TrainingHistoryItem[] = histRes.data.versions.map(
+                  (v: TrainingVersionResponse) => ({
+                    id: v.id,
+                    version: v.version_tag,
+                    accuracy: v.accuracy,
+                    mae: v.mae,
+                    rmse: v.rmse,
+                    duration: 'Async',
+                    date: v.created_at
+                      ? v.created_at.split('T')[0]
+                      : new Date().toISOString().split('T')[0],
+                    status: v.is_active ? 'active' : 'archived',
+                  })
+                );
                 setTrainingHistory(mappedHistory);
               }
+
               // Refresh model info
               try {
                 const infoRes = await api.get('/forecast/model-info');
                 const data = infoRes.data;
-                const features = Object.entries(data.feature_importance || {}).map(([name, importance]) => ({
-                  name,
-                  importance: importance as number
-                })).sort((a, b) => b.importance - a.importance);
+                const features = Object.entries(data.feature_importance || {})
+                  .map(([name, importance]) => ({
+                    name,
+                    importance: importance as number,
+                  }))
+                  .sort((a, b) => b.importance - a.importance);
                 setFeatureImportance(features);
                 if (data.convergence && data.convergence.length > 0) {
                   setModelMetrics(data.convergence);
                 }
               } catch (e) {
-                console.error("Failed to refresh ML model info", e);
+                console.error('Failed to refresh ML model info', e);
               }
             } else if (state === 'failed') {
-              showToast(`❌ ML Error: ${taskRes.data.error || 'Failed'}`);
+              showToast(taskRes.data.error || 'Training failed', true);
               setIsTraining(false);
             } else {
               setTimeout(pollTask, 1500);
             }
-          } catch (e) {
+          } catch {
             setTimeout(pollTask, 1500);
           }
         };
         pollTask();
       } else {
-        // Sync response fallback (should not occur with async Celery tasks)
         const newVersion = res.data.model_version || 'v?.0';
-        const newEntry = {
+        const newEntry: TrainingHistoryItem = {
           id: Date.now(),
           version: newVersion,
           accuracy: res.data.accuracy || 0,
@@ -170,146 +351,527 @@ export default function PipelinePage() {
           date: new Date().toISOString().split('T')[0],
           status: 'active',
         };
-        setTrainingHistory(prev => [newEntry, ...prev.map(t => ({ ...t, status: 'archived' }))]);
-        showToast(`✅ Model retrained — ${newVersion} (${res.data.accuracy || 0}% accuracy)`);
+        setTrainingHistory((prev) => [
+          newEntry,
+          ...prev.map((t) => ({ ...t, status: 'archived' as const })),
+        ]);
+        showToast(`Model retrained — ${newVersion} (${res.data.accuracy || 0}% accuracy)`);
         setIsTraining(false);
       }
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
-      const detail = err?.response?.data?.detail || 'Failed to retrain model';
-      showToast(`❌ ${detail}`);
+      const detail =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
+        'Failed to retrain model';
+      showToast(detail, true);
       setIsTraining(false);
     }
   };
 
   const handleRunPipeline = async () => {
     setIsPipelineRunning(true);
-    // Running pipeline implies full retrain in this context
     await handleRetrain();
     setIsPipelineRunning(false);
-    // Note: Success toast is handled within handleRetrain polling
   };
 
   return (
     <div className="space-y-6">
-
-      {/* Toast notification */}
+      {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
-          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-full card-raised-3 !bg-ds-emerald-success/15 !border-ds-emerald-success/30 text-ds-emerald-success text-sm font-medium flex items-center gap-2 shadow-2xl">
-            <CheckCircle2 className="w-4 h-4" /> {toast}
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={cn(
+              'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2.5 shadow-xl border backdrop-blur-md',
+              toast.isError
+                ? 'bg-rose-50/95 text-rose-800 border-rose-200/90 dark:bg-rose-950/90 dark:text-rose-200 dark:border-rose-800/60'
+                : 'bg-emerald-50/95 text-emerald-800 border-emerald-200/90 dark:bg-emerald-950/90 dark:text-emerald-200 dark:border-emerald-800/60'
+            )}
+          >
+            {toast.isError ? (
+              <Zap className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+            ) : (
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+            )}
+            <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-ds-text tracking-tight">ML Pipeline</h1>
-          <p className="text-sm text-ds-text-secondary mt-1">XGBoost model training, monitoring & feature analysis</p>
+      {/* ── 1. PAGE HEADER (Subtle Indigo-Blue Accent) ───────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden gap-4"
+      >
+        {/* Subtle decorative indigo-blue gradient glow */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <Cpu className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 inline-block" />
+              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
+                ML Pipeline
+              </h1>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
+              XGBoost model training, convergence monitoring &amp; feature attribution
+            </p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={handleRetrain} disabled={isTraining || isPipelineRunning}
-            className="btn-apple btn-apple-soft text-xs h-9 px-4 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
-            {isTraining ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-            {isTraining ? 'Training...' : 'Retrain'}
+
+        {/* Action Controls (Retrain + Run Pipeline) */}
+        <div className="relative flex items-center gap-2.5 self-start sm:self-center">
+          <button
+            onClick={handleRetrain}
+            disabled={isTraining || isPipelineRunning || isEmptyOrg}
+            className="h-9 px-4 rounded-xl border text-xs font-semibold flex items-center gap-2 shadow-2xs transition-all duration-150 active:scale-95 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {isTraining ? (
+              <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
+            )}
+            <span>{isTraining ? 'Training...' : 'Retrain Model'}</span>
           </button>
-          <button onClick={handleRunPipeline} disabled={isTraining || isPipelineRunning}
-            className="btn-apple btn-apple-primary text-xs h-9 px-4 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
-            {isPipelineRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-            {isPipelineRunning ? 'Running...' : 'Run Pipeline'}
+
+          <button
+            onClick={handleRunPipeline}
+            disabled={isTraining || isPipelineRunning || isEmptyOrg}
+            className="h-9 px-4.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-white shadow-2xs transition-all duration-150 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-wait"
+          >
+            {isPipelineRunning ? (
+              <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
+            ) : (
+              <Play className="w-3.5 h-3.5 text-white" />
+            )}
+            <span>{isPipelineRunning ? 'Running...' : 'Run Pipeline'}</span>
           </button>
         </div>
       </motion.div>
 
-      {!isLoading && trainingHistory.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 mt-8 card-raised-1 rounded-2xl">
-          <Brain className="w-16 h-16 text-ds-text-muted mb-6" />
-          <h2 className="text-xl font-semibold text-ds-text mb-2">No model has been trained yet.</h2>
-          <p className="text-ds-text-secondary text-center max-w-md">
-            Upload a dataset to automatically train your first demand forecasting model.
+      {/* ── 6. REAL PIPELINE EXECUTION STATUS BANNER ─────────────────── */}
+      {(isTraining || isPipelineRunning) && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="p-4 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white dark:from-blue-950/30 dark:via-ds-surface dark:to-ds-surface border border-blue-200/90 dark:border-blue-800/40 shadow-2xs flex items-center justify-between gap-4"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-blue-100/80 text-blue-600 dark:bg-blue-900/40 flex items-center justify-center flex-shrink-0">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                XGBoost Model Retraining in Progress
+              </p>
+              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                Evaluating loss convergence iterations and synchronizing feature attributions...
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-mono font-bold text-blue-700 bg-blue-100/80 dark:bg-blue-900/50 dark:text-blue-300 px-3 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/50">
+            Active Job
+          </span>
+        </motion.div>
+      )}
+
+      {/* ── LOADING & EMPTY STATES ─────────────────────────────────── */}
+      {effectiveLoading ? (
+        <div className="space-y-6 animate-pulse">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div
+                key={i}
+                className="h-28 rounded-2xl bg-slate-100/80 dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border"
+              />
+            ))}
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="h-80 rounded-2xl bg-slate-100/80 dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border" />
+            <div className="h-80 rounded-2xl bg-slate-100/80 dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border" />
+          </div>
+        </div>
+      ) : trainingHistory.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 px-6 rounded-3xl bg-gradient-to-b from-blue-50/60 via-indigo-50/30 to-white dark:from-blue-950/20 dark:via-ds-surface dark:to-ds-surface border border-slate-200/90 dark:border-ds-border text-center shadow-2xs">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 border border-indigo-100 dark:border-indigo-900/40 shadow-2xs">
+            <Brain className="w-8 h-8" />
+          </div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-ds-text mb-1">
+            No Model Has Been Trained Yet
+          </h2>
+          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed mb-6">
+            Upload an initial dataset to automatically train your first XGBoost demand forecasting model and generate convergence telemetry.
           </p>
+          <Link
+            to="/upload"
+            className="inline-flex items-center gap-2 h-9 px-4.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 shadow-2xs transition-all active:scale-95"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            <span>Upload Dataset</span>
+          </Link>
         </div>
       ) : (
         <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : "—"} change={trainingHistory.length > 0 ? 0.9 : undefined} icon={Brain} gradient="bg-ds-blue-action" delay={0} />
-        <KPICard title="MAE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : "—"} change={trainingHistory.length > 0 ? -4.3 : undefined} icon={Activity} gradient="bg-ds-purple-ai" delay={0.05} />
-        <KPICard title="RMSE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : "—"} change={trainingHistory.length > 0 ? -4.2 : undefined} icon={Zap} gradient="bg-ds-amber-warning" delay={0.1} />
-        <KPICard title="Last Trained" value={trainingHistory[0]?.date || '—'} icon={Clock} gradient="bg-ds-teal-teal" delay={0.15} />
-      </div>
+          {/* ── 2. MODEL KPI CARDS (Blue, Teal, Amber, Slate) ──────────── */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Model Accuracy - Blue */}
+            <PipelineKPICard
+              title="Model Accuracy"
+              value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : '—'}
+              change={trainingHistory.length > 0 ? 0.9 : undefined}
+              changeLabel="vs baseline"
+              sub={trainingHistory.length > 0 ? 'Serving production weights' : 'Model untrained'}
+              icon={Brain}
+              iconBg="bg-blue-50 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40"
+              iconColor="text-blue-600 dark:text-blue-400"
+              surfaceGradient="from-blue-500/10 via-white to-transparent dark:from-blue-950/20 dark:via-ds-surface dark:to-transparent"
+              borderColor="border-slate-200/90 dark:border-ds-border hover:border-blue-300/80 dark:hover:border-blue-700/60"
+              delay={0}
+            />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Training loss chart */}
-        <ChartCard title="Training Convergence" subtitle="MAE & RMSE over training iterations" delay={0.2}>
-          <ResponsiveContainer width="100%" height={260}>
-            <LineChart data={modelMetrics}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-border-subtle, rgba(120,120,128,0.15))" vertical={false} />
-              <XAxis dataKey="epoch" tick={{ fill: 'var(--ds-text-muted, #86868b)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: 'var(--ds-text-muted, #86868b)', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'var(--ds-surface-elevated, #ffffff)', border: '1px solid var(--ds-border-subtle, rgba(120,120,128,0.2))', borderRadius: '12px', fontSize: '12px', boxShadow: 'var(--ds-raise-2)' }} />
-              <Line type="monotone" dataKey="mae" name="MAE" stroke="#007AFF" strokeWidth={2.5} dot={{ r: 3, fill: '#007AFF' }} />
-              <Line type="monotone" dataKey="rmse" name="RMSE" stroke="#FF9500" strokeWidth={2.5} dot={{ r: 3, fill: '#FF9500' }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </ChartCard>
+            {/* MAE Score - Teal */}
+            <PipelineKPICard
+              title="MAE Score"
+              value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : '—'}
+              change={trainingHistory.length > 0 ? -4.3 : undefined}
+              changeLabel="loss reduction"
+              sub="Mean Absolute Error"
+              icon={Activity}
+              iconBg="bg-teal-50 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40"
+              iconColor="text-teal-600 dark:text-teal-400"
+              surfaceGradient="from-teal-500/10 via-white to-transparent dark:from-teal-950/20 dark:via-ds-surface dark:to-transparent"
+              borderColor="border-slate-200/90 dark:border-ds-border hover:border-teal-300/80 dark:hover:border-teal-700/60"
+              delay={0.05}
+            />
 
-        {/* Feature importance */}
-        <ChartCard title="Feature Importance" subtitle="XGBoost feature contribution scores" delay={0.25}>
-          <div className="space-y-3">
-            {featureImportance.map((f, i) => (
-              <motion.div key={f.name} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.04 }}
-                className="flex items-center gap-3">
-                <span className="w-40 text-xs font-medium text-ds-text font-mono truncate">{f.name}</span>
-                <div className="flex-1 h-2 bg-ds-surface-sunken rounded-full overflow-hidden">
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${(f.importance / (featureImportance[0]?.importance || 1)) * 100}%` }}
-                    transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
-                    className="h-full rounded-full bg-ds-blue-action" />
-                </div>
-                <span className="text-xs font-semibold text-ds-text-secondary tabular-nums w-12 text-right">{(f.importance * 100).toFixed(1)}%</span>
-              </motion.div>
-            ))}
+            {/* RMSE Score - Amber/Indigo */}
+            <PipelineKPICard
+              title="RMSE Score"
+              value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : '—'}
+              change={trainingHistory.length > 0 ? -4.2 : undefined}
+              changeLabel="loss reduction"
+              sub="Root Mean Squared Error"
+              icon={Zap}
+              iconBg="bg-amber-50 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40"
+              iconColor="text-amber-600 dark:text-amber-400"
+              surfaceGradient="from-amber-500/10 via-white to-transparent dark:from-amber-950/20 dark:via-ds-surface dark:to-transparent"
+              borderColor="border-slate-200/90 dark:border-ds-border hover:border-amber-300/80 dark:hover:border-amber-700/60"
+              delay={0.1}
+            />
+
+            {/* Last Trained - Slate */}
+            <PipelineKPICard
+              title="Last Trained"
+              value={trainingHistory[0]?.date || '—'}
+              sub={
+                trainingHistory[0]?.version
+                  ? `Active: ${trainingHistory[0].version}`
+                  : 'No trained build'
+              }
+              icon={Clock}
+              iconBg="bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700"
+              iconColor="text-slate-600 dark:text-slate-300"
+              surfaceGradient="from-slate-500/10 via-white to-transparent dark:from-slate-800/20 dark:via-ds-surface dark:to-transparent"
+              borderColor="border-slate-200/90 dark:border-ds-border hover:border-slate-300 dark:hover:border-slate-700"
+              delay={0.15}
+            />
           </div>
-        </ChartCard>
-      </div>
 
-      {/* Training history table */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card-raised-1 rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-ds-border-subtle">
-          <h3 className="text-sm font-semibold text-ds-text">Training History <span className="text-ds-text-secondary font-normal">({trainingHistory.length} runs)</span></h3>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead>
-              <tr className="border-b border-ds-border-subtle bg-ds-surface-sunken/40">
-                {['Version', 'Accuracy', 'MAE', 'RMSE', 'Duration', 'Date', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-ds-text-muted uppercase tracking-wider">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {trainingHistory.map((t, i) => (
-                <motion.tr key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 + i * 0.03 }}
-                  className="border-b border-ds-border-subtle/50 hover:bg-ds-surface-sunken/30 transition-colors">
-                  <td className="px-4 py-3 text-sm font-mono font-semibold text-ds-blue-action">{t.version}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-ds-emerald-success">{t.accuracy}%</td>
-                  <td className="px-4 py-3 text-sm text-ds-text tabular-nums">{t.mae}</td>
-                  <td className="px-4 py-3 text-sm text-ds-text tabular-nums">{t.rmse}</td>
-                  <td className="px-4 py-3 text-xs text-ds-text-secondary">{t.duration}</td>
-                  <td className="px-4 py-3 text-xs text-ds-text-secondary">{t.date}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border',
-                      t.status === 'active' ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/20' : 'bg-ds-surface-sunken text-ds-text-muted border-ds-border-subtle')}>
-                      {t.status === 'active' ? '● Active' : 'Archived'}
-                    </span>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
-      </>
+          {/* ── 3 & 4. CONVERGENCE & FEATURE IMPORTANCE ───────────────── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* 3. Training Convergence Chart */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+              className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[380px]"
+            >
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+                    Training Convergence
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
+                    MAE &amp; RMSE progression over training iterations
+                  </p>
+                </div>
+                {modelMetrics.length > 0 && (
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 font-mono">
+                    {modelMetrics.length} Iterations
+                  </span>
+                )}
+              </div>
+
+              <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
+                {modelMetrics.length === 0 ? (
+                  <div className="w-full h-[260px] flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 border border-indigo-100 dark:border-indigo-900/40">
+                      <Activity className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                      No Convergence Telemetry Available
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                      Run a model training iteration to record epoch-level MAE and RMSE convergence curves.
+                    </p>
+                  </div>
+                ) : (
+                  <ResponsiveContainer width="100%" height={260}>
+                    <LineChart data={modelMetrics} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                      <XAxis
+                        dataKey="epoch"
+                        tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
+                        axisLine={{ stroke: '#CBD5E1' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <Tooltip
+                        content={({ active, payload, label }) => {
+                          if (!active || !payload?.length) return null;
+                          return (
+                            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-lg p-3 text-xs min-w-[140px]">
+                              <p className="font-bold text-slate-900 dark:text-slate-100 pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-800">
+                                Iteration #{label}
+                              </p>
+                              <div className="space-y-1">
+                                {payload.map((entry) => (
+                                  <div
+                                    key={entry.name}
+                                    className="flex items-center justify-between gap-3"
+                                  >
+                                    <div className="flex items-center gap-1.5">
+                                      <span
+                                        className="w-2 h-2 rounded-full"
+                                        style={{ backgroundColor: entry.color }}
+                                      />
+                                      <span className="text-slate-600 dark:text-slate-300 font-medium">
+                                        {entry.name}
+                                      </span>
+                                    </div>
+                                    <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                                      {Number(entry.value).toFixed(3)}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+                      <Legend
+                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                        formatter={(val: string) => (
+                          <span className="text-slate-700 dark:text-slate-300 font-semibold px-1">
+                            {val}
+                          </span>
+                        )}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="mae"
+                        name="MAE"
+                        stroke="#2563EB"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: '#2563EB', stroke: '#ffffff', strokeWidth: 1.5 }}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="rmse"
+                        name="RMSE"
+                        stroke="#F59E0B"
+                        strokeWidth={2.5}
+                        dot={{ r: 3, fill: '#F59E0B', stroke: '#ffffff', strokeWidth: 1.5 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </motion.div>
+
+            {/* 4. Feature Importance */}
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.25 }}
+              className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[380px]"
+            >
+              <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+                    Feature Importance
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
+                    XGBoost normalized feature contribution scores
+                  </p>
+                </div>
+                {featureImportance.length > 0 && (
+                  <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+                    Top {featureImportance.length} Predictors
+                  </span>
+                )}
+              </div>
+
+              <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
+                {featureImportance.length === 0 ? (
+                  <div className="w-full h-[260px] flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3 border border-blue-100 dark:border-blue-900/40">
+                      <Cpu className="w-6 h-6" />
+                    </div>
+                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                      No Feature Attribution Recorded
+                    </h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                      XGBoost feature contribution scores will be derived upon initial pipeline execution.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-3.5">
+                    {featureImportance.map((f, i) => (
+                      <motion.div
+                        key={f.name}
+                        initial={{ opacity: 0, x: -10 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.3 + i * 0.04 }}
+                        className="flex items-center gap-3"
+                      >
+                        <span
+                          className="w-44 text-xs font-semibold text-slate-800 dark:text-slate-200 font-mono truncate"
+                          title={f.name}
+                        >
+                          {f.name}
+                        </span>
+
+                        <div className="flex-1 h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/60 dark:border-slate-700/60 shadow-inner">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{
+                              width: `${(f.importance / (featureImportance[0]?.importance || 1)) * 100}%`,
+                            }}
+                            transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
+                            className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600"
+                          />
+                        </div>
+
+                        <span className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums w-14 text-right">
+                          {(f.importance * 100).toFixed(1)}%
+                        </span>
+                      </motion.div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          </div>
+
+          {/* ── 5. TRAINING HISTORY TABLE ─────────────────────────────── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+          >
+            <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+              <div>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+                  Training History &amp; Model Registry
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
+                  Historical XGBoost training checkpoints and validation metrics
+                </p>
+              </div>
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
+                {trainingHistory.length} {trainingHistory.length === 1 ? 'version' : 'versions'}
+              </span>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left min-w-[640px]">
+                <thead>
+                  <tr className="border-b border-slate-200/80 dark:border-ds-border bg-slate-50/80 dark:bg-ds-surface-sunken/50">
+                    {['Version Tag', 'Accuracy', 'MAE', 'RMSE', 'Execution Mode', 'Date', 'Status'].map(
+                      (h) => (
+                        <th
+                          key={h}
+                          className="px-5 py-3 text-[11px] font-bold text-slate-600 dark:text-ds-text-secondary uppercase tracking-wider"
+                        >
+                          {h}
+                        </th>
+                      )
+                    )}
+                  </tr>
+                </thead>
+                <tbody>
+                  {trainingHistory.map((t, i) => (
+                    <motion.tr
+                      key={t.id}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.35 + i * 0.03 }}
+                      className="border-b border-slate-100/80 dark:border-ds-border/40 hover:bg-slate-50/70 dark:hover:bg-ds-surface-sunken/40 transition-colors"
+                    >
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono font-bold text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/40 px-2 py-0.5 rounded-md shadow-2xs">
+                          {t.version}
+                        </span>
+                      </td>
+
+                      <td className="px-5 py-3.5 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                        {t.accuracy}%
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                        {typeof t.mae === 'number' ? t.mae.toFixed(2) : t.mae}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                        {typeof t.rmse === 'number' ? t.rmse.toFixed(2) : t.rmse}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-medium text-slate-600 dark:text-slate-400">
+                        {t.duration}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs font-medium text-slate-600 dark:text-slate-400 tabular-nums">
+                        {t.date}
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border shadow-2xs',
+                            t.status === 'active'
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
+                              : 'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                          )}
+                        >
+                          <span
+                            className={cn(
+                              'w-1.5 h-1.5 rounded-full',
+                              t.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                            )}
+                          />
+                          {t.status === 'active' ? 'Active' : 'Archived'}
+                        </span>
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </motion.div>
+        </>
       )}
     </div>
   );
