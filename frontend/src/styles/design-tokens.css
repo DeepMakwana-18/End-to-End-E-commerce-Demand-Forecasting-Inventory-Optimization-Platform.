@@ -205,24 +205,24 @@
    ========================================================================== */
 :root.light {
   /* Backgrounds & Surfaces */
-  --ds-canvas:           #F5F7FC;   /* Application canvas */
-  --ds-surface:          #FFFFFF;   /* Standard card surface */
-  --ds-surface-alt:      #EEF3FB;   /* Alternate section */
-  --ds-surface-sunken:   #F8FAFF;   /* Secondary surface */
-  --ds-sidebar-surface:  #F8FAFC;   /* Sidebar surface */
-  --ds-ink:              #17233B;
+  --ds-canvas:           #F1F5F9;   /* Crisp cool slate canvas distinctly darker than white cards */
+  --ds-surface:          #FFFFFF;   /* Pure white card surface */
+  --ds-surface-alt:      #E2E8F0;   /* Alternate section */
+  --ds-surface-sunken:   #F8FAFC;   /* Secondary/sunken surface */
+  --ds-sidebar-surface:  #FFFFFF;   /* Crisp elevated sidebar */
+  --ds-ink:              #0F172A;
   --ds-hairline:         #E2E8F0;   /* 1px solid #E2E8F0 card border */
   --ds-border:           #E2E8F0;
-  --ds-border-subtle:    #EEF2F6;
+  --ds-border-subtle:    #F1F5F9;
   --ds-border-strong:    #CBD5E1;
   --ds-border-control:   #94A3B8;
   --ds-gray-400:         #94A3B8;
   --ds-gray-500:         #64748B;
 
   /* Typography */
-  --ds-text:             #17233B;   /* Heading: #17233B */
-  --ds-text-heading:     #17233B;
-  --ds-text-primary:     #17233B;
+  --ds-text:             #0F172A;   /* Heading: #0F172A */
+  --ds-text-heading:     #0F172A;
+  --ds-text-primary:     #0F172A;
   --ds-text-body:        #334155;   /* Primary body: #334155 */
   --ds-text-secondary:   #334155;
   --ds-text-muted:       #64748B;   /* Secondary body: #64748B */
@@ -274,19 +274,19 @@
   --ds-mat-ink:          linear-gradient(160deg, #1E293B 0%, #0F172A 100%);
   --ds-mat-gray:         linear-gradient(160deg, #F8FAFC 0%, #E2E8F0 100%);
   --ds-mat-blue:         linear-gradient(160deg, #3B82F6 0%, #2563EB 50%, #1D4ED8 100%);
-  --ds-glass:            rgba(255, 255, 255, 0.94);
-  --ds-glass-nav:        rgba(248, 250, 252, 0.90);
+  --ds-glass:            rgba(255, 255, 255, 0.98);
+  --ds-glass-nav:        rgba(255, 255, 255, 0.92);
   --ds-scrim:            rgba(15, 23, 42, 0.40);
 
   /* Card Shadows & Elevation */
   --ds-hl:               rgba(255, 255, 255, 1);
-  --ds-sd:               rgba(15, 23, 42, 0.055);
-  --ds-card-shadow:      0 6px 24px rgba(15, 23, 42, 0.055);
-  --ds-card-hover:       0 12px 28px rgba(15, 23, 42, 0.09);
-  --ds-raise-1:          0 4px 16px rgba(15, 23, 42, 0.04);
-  --ds-raise-2:          0 6px 24px rgba(15, 23, 42, 0.055);
-  --ds-raise-3:          0 12px 28px rgba(15, 23, 42, 0.09);
-  --ds-raise-4:          0 20px 48px rgba(15, 23, 42, 0.12);
+  --ds-sd:               rgba(15, 23, 42, 0.08);
+  --ds-card-shadow:      0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 4px 12px 0 rgba(15, 23, 42, 0.05);
+  --ds-card-hover:       0 10px 25px -3px rgba(15, 23, 42, 0.10), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  --ds-raise-1:          0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --ds-raise-2:          0 4px 12px -1px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+  --ds-raise-3:          0 10px 25px -3px rgba(15, 23, 42, 0.10), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
+  --ds-raise-4:          0 20px 35px -4px rgba(15, 23, 42, 0.12), 0 8px 16px -3px rgba(15, 23, 42, 0.06);
   --ds-inset-1:          inset 1px 1px 3px rgba(15, 23, 42, 0.06);
   --ds-inset-2:          inset 2px 2px 6px rgba(15, 23, 42, 0.08);
   --ds-press:            inset 1px 1px 4px rgba(15, 23, 42, 0.10);
