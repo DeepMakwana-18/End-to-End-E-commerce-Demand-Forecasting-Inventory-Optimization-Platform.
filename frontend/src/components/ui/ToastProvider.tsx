@@ -36,10 +36,10 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: () => void }
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, y: -16, scale: 0.96 }}
       transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-      className={`flex items-start gap-3 px-4 py-3 rounded-2xl border backdrop-blur-2xl bg-ds-surface-alt/90 shadow-ds-float-2 max-w-sm cursor-pointer ${COLORS[toast.type]}`}
+      className={`flex items-start gap-3 px-4 py-3 rounded-2xl border backdrop-blur-xl bg-ds-surface shadow-ds-float-2 max-w-sm cursor-pointer ${COLORS[toast.type]}`}
       onClick={onDismiss}
     >
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold shadow-sm ${ICON_COLORS[toast.type]}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 text-sm font-bold shadow-sm border border-ds-hairline ${ICON_COLORS[toast.type]}`}>
         {ICONS[toast.type]}
       </div>
       <div className="flex-1 min-w-0">

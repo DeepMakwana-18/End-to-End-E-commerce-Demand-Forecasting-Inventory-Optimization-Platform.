@@ -17,14 +17,14 @@ export function ChartCard({ title, subtitle, children, className, delay = 0, act
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: [0.28, 0.11, 0.32, 1] }}
-      className={cn('card-apple p-5', className)}
+      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
+      className={cn('card-apple p-5 sm:p-6', className)}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
         <div>
-          <h3 className="text-sm font-semibold text-ds-text-primary">{title}</h3>
+          <h3 className="text-sm font-bold text-ds-text-primary tracking-tight">{title}</h3>
           {subtitle && (
-            <p className="text-xs text-ds-text-muted mt-0.5">{subtitle}</p>
+            <p className="text-xs text-ds-text-muted mt-0.5 font-medium">{subtitle}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -37,8 +37,8 @@ export function ChartCard({ title, subtitle, children, className, delay = 0, act
 /** Skeleton loader for chart cards */
 export function ChartCardSkeleton() {
   return (
-    <div className="card-apple p-5">
-      <div className="skeleton h-4 w-32 mb-1 bg-ds-surface-sunken" />
+    <div className="card-apple p-5 sm:p-6">
+      <div className="skeleton h-4 w-32 mb-2 bg-ds-surface-sunken" />
       <div className="skeleton h-3 w-48 mb-4 bg-ds-surface-sunken" />
       <div className="skeleton h-64 w-full rounded-2xl bg-ds-surface-sunken" />
     </div>

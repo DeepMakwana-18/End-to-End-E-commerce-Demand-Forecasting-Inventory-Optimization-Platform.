@@ -127,8 +127,8 @@ export function GlobalTaskProgress() {
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
           className="fixed top-3 left-1/2 -translate-x-1/2 z-[9998]
                      flex items-center gap-3 px-5 py-2.5 rounded-full
-                     bg-ds-surface-alt/90 border border-ds-hairline
-                     backdrop-blur-2xl shadow-ds-float-2 min-w-[300px] max-w-[440px]"
+                     bg-ds-surface border border-ds-hairline
+                     backdrop-blur-xl shadow-ds-float-2 min-w-[300px] max-w-[440px]"
         >
           {/* Status icon */}
           <div className="flex-shrink-0">

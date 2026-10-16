@@ -114,7 +114,27 @@
   --ds-container-form:   520px;
   --ds-nav-h:            64px;
 
-  /* Direct Aliases for DESIGN.md Token Spec */
+  /* Direct Aliases & Extended Tokens */
+  --ds-sidebar-surface:  #141416;
+  --ds-border:           var(--ds-hairline);
+  --ds-border-subtle:    rgba(255, 255, 255, 0.06);
+  --ds-text:             var(--ds-text-primary);
+  --ds-text-heading:     var(--ds-text-primary);
+  --ds-text-body:        var(--ds-text-secondary);
+  --ds-indigo:           #818CF8;
+  --ds-indigo-surface:   rgba(99, 102, 241, 0.16);
+  --ds-indigo-text:      #A5B4FC;
+  --ds-teal:             #2DD4BF;
+  --ds-teal-surface:     rgba(13, 148, 136, 0.16);
+  --ds-teal-text:        #5EEAD4;
+  --ds-amber:            #FF9F0A;
+  --ds-emerald:          #30D158;
+  --ds-emerald-success:  var(--ds-green);
+  --ds-amber-warning:    var(--ds-orange);
+  --ds-red-danger:       var(--ds-red);
+  --ds-card-shadow:      var(--ds-raise-2);
+  --ds-card-hover:       var(--ds-raise-3);
+
   --canvas:              var(--ds-canvas);
   --ink:                 var(--ds-ink);
   --hairline:            var(--ds-hairline);
@@ -181,77 +201,165 @@
 }
 
 /* ==========================================================================
-   2. LIGHT THEME (:root.light) — from DESIGN.md §17
+   2. LIGHT THEME (:root.light) — Titan AI Enterprise SaaS Light Mode
    ========================================================================== */
 :root.light {
-  /* Neutrals */
-  --ds-canvas:           #F5F5F7;
-  --ds-surface:          #FFFFFF;
-  --ds-surface-alt:      #EDEDF0;
-  --ds-surface-sunken:   #E8E8ED;
-  --ds-ink:              #1D1D1F;
-  --ds-hairline:         rgba(29, 29, 31, 0.08);
-  --ds-border-strong:    #D2D2D7;
-  --ds-border-control:   #86868B;
-  --ds-gray-400:         #AAAAAA;   /* decorative */
-  --ds-gray-500:         #86868B;   /* icons, large text */
+  /* Backgrounds & Surfaces */
+  --ds-canvas:           #F5F7FC;   /* Application canvas */
+  --ds-surface:          #FFFFFF;   /* Standard card surface */
+  --ds-surface-alt:      #EEF3FB;   /* Alternate section */
+  --ds-surface-sunken:   #F8FAFF;   /* Secondary surface */
+  --ds-sidebar-surface:  #F8FAFC;   /* Sidebar surface */
+  --ds-ink:              #17233B;
+  --ds-hairline:         #E2E8F0;   /* 1px solid #E2E8F0 card border */
+  --ds-border:           #E2E8F0;
+  --ds-border-subtle:    #EEF2F6;
+  --ds-border-strong:    #CBD5E1;
+  --ds-border-control:   #94A3B8;
+  --ds-gray-400:         #94A3B8;
+  --ds-gray-500:         #64748B;
 
-  /* Text */
-  --ds-text-primary:     #1D1D1F;
-  --ds-text-secondary:   #424245;
-  --ds-text-muted:       #6E6E73;
-  --ds-text-disabled:    #AAAAAA;
+  /* Typography */
+  --ds-text:             #17233B;   /* Heading: #17233B */
+  --ds-text-heading:     #17233B;
+  --ds-text-primary:     #17233B;
+  --ds-text-body:        #334155;   /* Primary body: #334155 */
+  --ds-text-secondary:   #334155;
+  --ds-text-muted:       #64748B;   /* Secondary body: #64748B */
+  --ds-text-disabled:    #94A3B8;
   --ds-text-inverse:     #FFFFFF;
-  --ds-btn-primary-bg:   #1D1D1F;
+  --ds-btn-primary-bg:   #2563EB;
   --ds-btn-primary-text: #FFFFFF;
 
-  /* Blue Accent */
-  --ds-blue:             #007AFF;
-  --ds-blue-action:      #0071E3;
-  --ds-blue-strong:      #0058B8;
-  --ds-blue-text:        #0066CC;
-  --ds-blue-surface:     #E5F0FF;
-  --ds-blue-on-surface:  #0A4FA8;
+  /* Primary Palette */
+  --ds-blue:             #2563EB;
+  --ds-blue-action:      #2563EB;
+  --ds-blue-strong:      #1D4ED8;
+  --ds-blue-text:        #1D4ED8;
+  --ds-blue-surface:     #EFF6FF;
+  --ds-blue-on-surface:  #1E40AF;
 
-  /* Semantic Status */
-  --ds-green:            #34C759;
-  --ds-green-strong:     #248A3D;
-  --ds-green-surface:    #E3F6E8;
-  --ds-green-text:       #1E7B34;
+  --ds-indigo:           #6366F1;
+  --ds-indigo-surface:   #EEF2FF;
+  --ds-indigo-text:      #4338CA;
 
-  --ds-orange:           #FF9500;
-  --ds-orange-strong:    #C25E00;
-  --ds-orange-surface:   #FFF1DB;
-  --ds-orange-text:      #9A5B00;
+  --ds-teal:             #0D9488;
+  --ds-teal-surface:     #F0FDFA;
+  --ds-teal-text:        #0F766E;
 
-  --ds-red:              #FF3B30;
-  --ds-red-strong:       #D70015;
-  --ds-red-surface:      #FFE8E6;
-  --ds-red-text:         #C4271B;
+  --ds-emerald:          #059669;
+  --ds-green:            #059669;
+  --ds-green-strong:     #047857;
+  --ds-green-surface:    #ECFDF5;
+  --ds-green-text:       #065F46;
 
-  /* Materials */
-  --ds-surface-soft:     linear-gradient(145deg, #FFFFFF 0%, #F5F5F7 55%, #ECECEF 100%);
-  --ds-mat-ink:          linear-gradient(160deg, #3A3A3C 0%, #1D1D1F 55%, #000000 100%);
-  --ds-mat-gray:         linear-gradient(160deg, #C4C4C6 0%, #AAAAAA 55%, #8F8F92 100%);
-  --ds-mat-blue:         linear-gradient(160deg, #4DA3FF 0%, #007AFF 50%, #0060D6 100%);
-  --ds-glass:            rgba(255, 255, 255, 0.72);
-  --ds-glass-nav:        rgba(245, 245, 247, 0.72);
-  --ds-scrim:            rgba(29, 29, 31, 0.32);
+  --ds-amber:            #D97706;
+  --ds-orange:           #D97706;
+  --ds-orange-strong:    #B45309;
+  --ds-orange-surface:   #FFFBEB;
+  --ds-orange-text:      #92400E;
 
-  /* Elevation (Soft-raised light from top-left) */
-  --ds-hl:               rgba(255, 255, 255, 0.95);
-  --ds-sd:               rgba(174, 174, 192, 0.32);
-  --ds-raise-1:          -3px -3px 8px var(--ds-hl), 3px 3px 10px var(--ds-sd);
-  --ds-raise-2:          -6px -6px 16px var(--ds-hl), 8px 8px 20px var(--ds-sd);
-  --ds-raise-3:          -10px -10px 28px var(--ds-hl), 14px 14px 32px var(--ds-sd);
-  --ds-raise-4:          -16px -16px 40px var(--ds-hl), 24px 24px 56px rgba(150, 150, 170, 0.36);
-  --ds-inset-1:          inset 2px 2px 5px var(--ds-sd), inset -2px -2px 5px var(--ds-hl);
-  --ds-inset-2:          inset 4px 4px 10px var(--ds-sd), inset -4px -4px 10px var(--ds-hl);
-  --ds-press:            inset 3px 3px 8px var(--ds-sd), inset -3px -3px 8px var(--ds-hl);
-  --ds-float-1:          0 4px 12px rgba(29, 29, 31, 0.08);
-  --ds-float-2:          0 12px 40px rgba(29, 29, 31, 0.12);
-  --ds-float-3:          0 24px 64px rgba(29, 29, 31, 0.18);
-  --ds-focus-ring:       0 0 0 2px var(--ds-canvas), 0 0 0 4px var(--ds-blue);
+  --ds-red:              #DC2626;
+  --ds-red-strong:       #B91C1C;
+  --ds-red-surface:      #FEF2F2;
+  --ds-red-text:         #991B1B;
+
+  /* Semantic Aliases for Existing Components */
+  --ds-emerald-success:  #059669;
+  --ds-amber-warning:    #D97706;
+  --ds-red-danger:       #DC2626;
+
+  /* Card Surfaces & Gradients */
+  --ds-surface-soft:     #FFFFFF;
+  --ds-mat-ink:          linear-gradient(160deg, #1E293B 0%, #0F172A 100%);
+  --ds-mat-gray:         linear-gradient(160deg, #F8FAFC 0%, #E2E8F0 100%);
+  --ds-mat-blue:         linear-gradient(160deg, #3B82F6 0%, #2563EB 50%, #1D4ED8 100%);
+  --ds-glass:            rgba(255, 255, 255, 0.94);
+  --ds-glass-nav:        rgba(248, 250, 252, 0.90);
+  --ds-scrim:            rgba(15, 23, 42, 0.40);
+
+  /* Card Shadows & Elevation */
+  --ds-hl:               rgba(255, 255, 255, 1);
+  --ds-sd:               rgba(15, 23, 42, 0.055);
+  --ds-card-shadow:      0 6px 24px rgba(15, 23, 42, 0.055);
+  --ds-card-hover:       0 12px 28px rgba(15, 23, 42, 0.09);
+  --ds-raise-1:          0 4px 16px rgba(15, 23, 42, 0.04);
+  --ds-raise-2:          0 6px 24px rgba(15, 23, 42, 0.055);
+  --ds-raise-3:          0 12px 28px rgba(15, 23, 42, 0.09);
+  --ds-raise-4:          0 20px 48px rgba(15, 23, 42, 0.12);
+  --ds-inset-1:          inset 1px 1px 3px rgba(15, 23, 42, 0.06);
+  --ds-inset-2:          inset 2px 2px 6px rgba(15, 23, 42, 0.08);
+  --ds-press:            inset 1px 1px 4px rgba(15, 23, 42, 0.10);
+  --ds-float-1:          0 4px 14px rgba(15, 23, 42, 0.06);
+  --ds-float-2:          0 12px 32px rgba(15, 23, 42, 0.10);
+  --ds-float-3:          0 24px 54px rgba(15, 23, 42, 0.14);
+  --ds-focus-ring:       0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB;
+
+  /* Card Radius (18–22px) */
+  --ds-r-xs:             8px;
+  --ds-r-sm:             12px;
+  --ds-r-md:             16px;
+  --ds-r-lg:             18px;
+  --ds-r-xl:             20px;
+  --ds-r-2xl:            26px;
+  --ds-r-pill:           999px;
+
+  /* Legacy direct aliases for Light Theme */
+  --canvas:              var(--ds-canvas);
+  --ink:                 var(--ds-ink);
+  --hairline:            var(--ds-hairline);
+  --border-strong:       var(--ds-border-strong);
+  --border-control:      var(--ds-border-control);
+  --gray-400:            var(--ds-gray-400);
+  --gray-500:            var(--ds-gray-500);
+  --text-primary:        var(--ds-text-primary);
+  --text-secondary:      var(--ds-text-secondary);
+  --text-muted:          var(--ds-text-muted);
+  --text-disabled:       var(--ds-text-disabled);
+  --text-inverse:        var(--ds-text-inverse);
+  --blue:                var(--ds-blue);
+  --blue-action:         var(--ds-blue-action);
+  --blue-strong:         var(--ds-blue-strong);
+  --blue-text:           var(--ds-blue-text);
+  --blue-surface:        var(--ds-blue-surface);
+  --blue-on-surface:     var(--ds-blue-on-surface);
+  --green:               var(--ds-green);
+  --green-strong:        var(--ds-green-strong);
+  --green-surface:       var(--ds-green-surface);
+  --green-text:          var(--ds-green-text);
+  --orange:              var(--ds-orange);
+  --orange-strong:       var(--ds-orange-strong);
+  --orange-surface:      var(--ds-orange-surface);
+  --orange-text:         var(--ds-orange-text);
+  --red:                 var(--ds-red);
+  --red-strong:          var(--ds-red-strong);
+  --red-surface:         var(--ds-red-surface);
+  --red-text:            var(--ds-red-text);
+  --surface-soft:        var(--ds-surface-soft);
+  --mat-ink:             var(--ds-mat-ink);
+  --mat-gray:            var(--ds-mat-gray);
+  --mat-blue:            var(--ds-mat-blue);
+  --glass:               var(--ds-glass);
+  --glass-nav:           var(--ds-glass-nav);
+  --scrim:               var(--ds-scrim);
+  --raise-1:             var(--ds-raise-1);
+  --raise-2:             var(--ds-raise-2);
+  --raise-3:             var(--ds-raise-3);
+  --raise-4:             var(--ds-raise-4);
+  --inset-1:             var(--ds-inset-1);
+  --inset-2:             var(--ds-inset-2);
+  --press:               var(--ds-press);
+  --float-1:             var(--ds-float-1);
+  --float-2:             var(--ds-float-2);
+  --float-3:             var(--ds-float-3);
+  --focus-ring:          var(--ds-focus-ring);
+  --r-xs:                var(--ds-r-xs);
+  --r-sm:                var(--ds-r-sm);
+  --r-md:                var(--ds-r-md);
+  --r-lg:                var(--ds-r-lg);
+  --r-xl:                var(--ds-r-xl);
+  --r-2xl:               var(--ds-r-2xl);
+  --r-pill:              var(--ds-r-pill);
 }
 
 /* ==========================================================================

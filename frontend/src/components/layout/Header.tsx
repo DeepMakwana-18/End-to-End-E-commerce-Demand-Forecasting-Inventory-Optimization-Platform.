@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, Search, Sun, Moon, Monitor, X, Wifi, WifiOff } from 'lucide-react';
+import { Bell, Search, Sun, Moon, Monitor, X, Wifi, WifiOff, Menu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAppStore } from '@/stores/appStore';
 import { useWebSocket } from '@/hooks/useWebSocket';
@@ -35,7 +35,7 @@ const searchableItems = [
 ];
 
 export function Header() {
-  const { user, theme, setTheme } = useAppStore();
+  const { user, theme, setTheme, toggleSidebar } = useAppStore();
   const { isConnected } = useWebSocket();
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
@@ -75,15 +75,23 @@ export function Header() {
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 h-16 flex items-center justify-between px-6',
+        'sticky top-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6',
         'border-b border-ds-hairline',
-        'backdrop-blur-2xl bg-ds-canvas/75'
+        'backdrop-blur-xl bg-ds-surface/90 shadow-[0_1px_3px_rgba(15,23,42,0.03)]'
       )}
     >
-      {/* Search */}
-      <div className="flex items-center gap-3 flex-1 max-w-md" ref={searchRef}>
+      {/* Mobile toggle & Search */}
+      <div className="flex items-center gap-2.5 flex-1 max-w-md" ref={searchRef}>
+        <button
+          onClick={toggleSidebar}
+          className="md:hidden p-2 rounded-xl text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken border border-ds-hairline transition-colors flex-shrink-0"
+          aria-label="Toggle navigation menu"
+        >
+          <Menu className="w-4 h-4" />
+        </button>
+
         <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-gray-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-gray-500 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
@@ -91,11 +99,12 @@ export function Header() {
             onFocus={() => searchQuery.trim() && setShowResults(true)}
             placeholder="Search products, forecasts, alerts..."
             className={cn(
-              'w-full h-11 pl-10 pr-10 rounded-full text-sm',
+              'w-full h-10 pl-10 pr-10 rounded-full text-sm',
               'bg-ds-surface-sunken border border-ds-hairline',
               'text-ds-text-primary placeholder:text-ds-text-muted',
-              'focus:outline-none focus:border-ds-blue focus:ring-2 focus:ring-ds-blue/30',
-              'transition-all duration-200'
+              'hover:border-ds-border-strong',
+              'focus:outline-none focus:border-ds-blue focus:ring-2 focus:ring-ds-blue/20',
+              'transition-all duration-200 shadow-sm'
             )}
           />
           {searchQuery ? (
@@ -191,12 +200,12 @@ export function Header() {
 
         {/* User avatar */}
         <div className="flex items-center gap-3 ml-2 pl-3 border-l border-ds-hairline">
-          <div className="w-9 h-9 rounded-full bg-ds-ink text-ds-text-inverse flex items-center justify-center text-sm font-bold shadow-md">
+          <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center text-sm font-bold shadow-sm">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="hidden md:block">
             <p className="text-sm font-semibold text-ds-text-primary leading-none">{user?.name || 'User'}</p>
-            <p className="text-[11px] text-ds-text-muted mt-1 capitalize">{user?.role || 'viewer'}</p>
+            <p className="text-[11px] text-ds-text-muted mt-1 capitalize font-medium">{user?.role || 'viewer'}</p>
           </div>
         </div>
       </div>

@@ -37,56 +37,55 @@ export function KPICard({
     <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, delay, ease: [0.28, 0.11, 0.32, 1] }}
+      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      className="card-apple card-apple-hover p-5 relative overflow-hidden group cursor-default"
+      className="card-apple card-apple-hover kpi-surface-gradient p-5 relative overflow-hidden group cursor-default"
     >
       {/* Subtle glow effect on hover */}
       <div
         className={cn(
-          'absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-15 transition-opacity duration-500 blur-2xl',
+          'absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-10 transition-opacity duration-500 blur-2xl pointer-events-none',
           gradient
         )}
       />
 
       <div className="flex items-start justify-between relative z-10">
         <div className="flex-1">
-          <p className="text-[11px] font-semibold text-ds-text-muted uppercase tracking-wider mb-2">
+          <p className="text-[11px] font-bold text-ds-text-muted uppercase tracking-wider mb-2">
             {title}
           </p>
           {loading ? (
             <Skeleton className="h-8 w-24 my-0.5 rounded-lg" />
           ) : (
-            <p className="text-2xl font-bold font-sans tabular-nums tracking-[-0.03em] text-ds-text-primary">
+            <p className="text-2xl font-bold font-sans tabular-nums tracking-tight text-ds-text-primary">
               {displayValue}
             </p>
           )}
 
           {change !== undefined && (
-            <div className="flex items-center gap-1.5 mt-2">
-              {isPositive && <TrendingUp className="w-3.5 h-3.5 text-ds-green" />}
-              {isNegative && <TrendingDown className="w-3.5 h-3.5 text-ds-red" />}
-              {isNeutral && <Minus className="w-3.5 h-3.5 text-ds-text-muted" />}
+            <div className="flex items-center gap-1.5 mt-2.5">
               <span
                 className={cn(
-                  'text-xs font-semibold font-sans tabular-nums tracking-[-0.01em]',
-                  isPositive && 'text-ds-green-text',
-                  isNegative && 'text-ds-red-text',
-                  isNeutral && 'text-ds-text-muted'
+                  'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-xs font-semibold tabular-nums border',
+                  isPositive && 'bg-ds-green-surface text-ds-green-text border-ds-green/20',
+                  isNegative && 'bg-ds-red-surface text-ds-red-text border-ds-red/20',
+                  isNeutral && 'bg-ds-surface-sunken text-ds-text-muted border-ds-border'
                 )}
               >
+                {isPositive && <TrendingUp className="w-3 h-3 text-ds-green" />}
+                {isNegative && <TrendingDown className="w-3 h-3 text-ds-red" />}
+                {isNeutral && <Minus className="w-3 h-3 text-ds-text-muted" />}
                 {isPositive && '+'}
                 {change?.toFixed(1)}%
               </span>
-              <span className="text-xs text-ds-text-muted">{changeLabel}</span>
+              <span className="text-xs text-ds-text-muted font-medium">{changeLabel}</span>
             </div>
           )}
         </div>
 
         <div
           className={cn(
-            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0',
-            'shadow-md',
+            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-sm',
             gradient
           )}
           style={glowColor ? { boxShadow: `0 4px 14px ${glowColor}` } : undefined}

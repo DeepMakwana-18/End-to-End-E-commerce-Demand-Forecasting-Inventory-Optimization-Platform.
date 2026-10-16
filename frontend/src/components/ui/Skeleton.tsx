@@ -12,7 +12,7 @@ interface SkeletonProps {
 export function Skeleton({ className = '', style }: SkeletonProps) {
   return (
     <div
-      className={`animate-pulse bg-surface-700/20 dark:bg-surface-800/60 rounded-xl ${className}`}
+      className={`animate-pulse bg-ds-surface-sunken border border-ds-hairline/50 rounded-xl ${className}`}
       style={style}
     />
   );
@@ -20,7 +20,7 @@ export function Skeleton({ className = '', style }: SkeletonProps) {
 
 export function SkeletonCard() {
   return (
-    <div className="p-6 rounded-2xl bg-ds-surface/60 border border-ds-border/60 shadow-[var(--ds-raise-1)] space-y-4">
+    <div className="p-6 rounded-2xl bg-ds-surface border border-ds-hairline shadow-[var(--ds-raise-1)] space-y-4">
       <div className="flex items-center justify-between">
         <Skeleton className="h-4 w-24" />
         <Skeleton className="h-8 w-8 rounded-full" />
@@ -33,16 +33,16 @@ export function SkeletonCard() {
 
 export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   return (
-    <div className="rounded-2xl bg-ds-surface/60 border border-ds-border/60 shadow-[var(--ds-raise-1)] overflow-hidden">
+    <div className="rounded-2xl bg-ds-surface border border-ds-hairline shadow-[var(--ds-raise-1)] overflow-hidden">
       {/* Header */}
-      <div className="flex gap-4 p-4 border-b border-ds-border/40">
+      <div className="flex gap-4 p-4 border-b border-ds-hairline bg-ds-surface-alt">
         {Array.from({ length: 5 }).map((_, i) => (
           <Skeleton key={i} className="h-4 flex-1" />
         ))}
       </div>
       {/* Rows */}
       {Array.from({ length: rows }).map((_, i) => (
-        <div key={i} className="flex gap-4 p-4 border-b border-ds-border/20 last:border-0">
+        <div key={i} className="flex gap-4 p-4 border-b border-ds-hairline last:border-0">
           {Array.from({ length: 5 }).map((_, j) => (
             <Skeleton key={j} className="h-4 flex-1" />
           ))}
@@ -54,7 +54,7 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
 
 export function SkeletonChart() {
   return (
-    <div className="p-6 rounded-2xl bg-ds-surface/60 border border-ds-border/60 shadow-[var(--ds-raise-1)] space-y-4">
+    <div className="p-6 rounded-2xl bg-ds-surface border border-ds-hairline shadow-[var(--ds-raise-1)] space-y-4">
       <div className="flex items-center justify-between">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-8 w-24 rounded-full" />

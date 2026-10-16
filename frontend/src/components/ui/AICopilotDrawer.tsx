@@ -43,20 +43,20 @@ function renderMarkdown(text: string): React.ReactNode[] {
 
     if (line.startsWith('## ')) {
       elements.push(
-        <h2 key={i} className="text-base font-bold text-white mb-2 mt-3">
+        <h2 key={i} className="text-base font-bold text-ds-text-primary mb-2 mt-3">
           {renderInline(line.slice(3))}
         </h2>
       );
     } else if (line.startsWith('# ')) {
       elements.push(
-        <h1 key={i} className="text-lg font-bold text-white mb-2 mt-3">
+        <h1 key={i} className="text-lg font-bold text-ds-text-primary mb-2 mt-3">
           {renderInline(line.slice(2))}
         </h1>
       );
     } else if (line.startsWith('- ') || line.startsWith('• ')) {
       elements.push(
-        <div key={i} className="flex gap-2 text-sm text-surface-200 my-0.5 leading-relaxed">
-          <span className="text-indigo-400 mt-0.5 flex-shrink-0">•</span>
+        <div key={i} className="flex gap-2 text-sm text-ds-text-secondary my-0.5 leading-relaxed">
+          <span className="text-ds-blue mt-0.5 flex-shrink-0">•</span>
           <span>{renderInline(line.slice(2))}</span>
         </div>
       );
@@ -64,7 +64,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
       elements.push(<div key={i} className="h-2" />);
     } else {
       elements.push(
-        <p key={i} className="text-sm text-surface-200 leading-relaxed">
+        <p key={i} className="text-sm text-ds-text-secondary leading-relaxed">
           {renderInline(line)}
         </p>
       );
@@ -79,11 +79,11 @@ function renderInline(text: string): React.ReactNode {
   const parts = text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g);
   return parts.map((part, idx) => {
     if (part.startsWith('**') && part.endsWith('**')) {
-      return <strong key={idx} className="text-white font-semibold">{part.slice(2, -2)}</strong>;
+      return <strong key={idx} className="text-ds-text-primary font-semibold">{part.slice(2, -2)}</strong>;
     }
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={idx} className="bg-surface-800 text-indigo-300 text-xs px-1.5 py-0.5 rounded font-mono">
+        <code key={idx} className="bg-ds-surface-sunken text-ds-blue-text text-xs px-1.5 py-0.5 rounded font-mono border border-ds-hairline">
           {part.slice(1, -1)}
         </code>
       );
@@ -213,12 +213,12 @@ function PromptCard({ prompt, onClick }: { prompt: StarterPrompt; onClick: () =>
   return (
     <button
       onClick={onClick}
-      className="flex items-start gap-3 w-full text-left p-3 rounded-xl border border-surface-700/50 bg-surface-800/40 hover:bg-surface-700/50 hover:border-indigo-500/30 transition-all duration-150 group"
+      className="flex items-start gap-3 w-full text-left p-3 rounded-xl border border-ds-hairline bg-ds-surface-sunken hover:bg-ds-surface hover:border-ds-blue/40 transition-all duration-150 group shadow-sm"
     >
       <span className="text-lg flex-shrink-0">{prompt.icon}</span>
       <div>
-        <p className="text-xs font-semibold text-surface-300 group-hover:text-white transition-colors">{prompt.label}</p>
-        <p className="text-xs text-surface-500 mt-0.5 leading-relaxed">{prompt.prompt}</p>
+        <p className="text-xs font-semibold text-ds-text-primary group-hover:text-ds-blue transition-colors">{prompt.label}</p>
+        <p className="text-xs text-ds-text-muted mt-0.5 leading-relaxed">{prompt.prompt}</p>
       </div>
     </button>
   );
@@ -372,7 +372,7 @@ export function AICopilotDrawer() {
               fixed right-0 top-0 bottom-0 z-50
               w-full sm:w-[420px] lg:w-[460px]
               flex flex-col
-              bg-ds-surface-alt/95 backdrop-blur-2xl
+              bg-ds-surface backdrop-blur-2xl
               border-l border-ds-hairline
               shadow-ds-float-3
             `}
@@ -414,11 +414,11 @@ export function AICopilotDrawer() {
                 /* Empty state with prompts */
                 <div className="h-full flex flex-col">
                   <div className="text-center py-6">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-600/20 flex items-center justify-center mx-auto mb-4 shadow-sm">
                       <span className="text-3xl">🧠</span>
                     </div>
-                    <h3 className="text-base font-semibold text-white mb-1">Supply Chain Analyst</h3>
-                    <p className="text-xs text-surface-400 max-w-xs mx-auto leading-relaxed">
+                    <h3 className="text-base font-semibold text-ds-text-primary mb-1">Supply Chain Analyst</h3>
+                    <p className="text-xs text-ds-text-muted max-w-xs mx-auto leading-relaxed">
                       Ask me about forecasts, anomalies, alerts, inventory health, or scenario simulations.
                       I use your live platform data to provide accurate, real-time insights.
                     </p>
@@ -431,7 +431,7 @@ export function AICopilotDrawer() {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <p className="text-xs font-medium text-surface-400 uppercase tracking-wide mb-3">
+                      <p className="text-xs font-semibold text-ds-text-muted uppercase tracking-wide mb-3">
                         Suggested questions
                       </p>
                       {starterPrompts.map((prompt, idx) => (

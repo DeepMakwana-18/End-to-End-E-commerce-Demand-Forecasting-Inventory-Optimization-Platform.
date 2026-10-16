@@ -1,5 +1,6 @@
 /** Premium enterprise sidebar with glassmorphism effects. */
 
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,24 +33,41 @@ const adminItems = [
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, user, logout } = useAppStore();
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const width = isMobile ? (sidebarCollapsed ? 0 : 260) : (sidebarCollapsed ? 72 : 260);
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: sidebarCollapsed ? 72 : 260 }}
-      transition={{ duration: 0.3, ease: [0.28, 0.11, 0.32, 1] }}
-      className={cn(
-        'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
-        'border-r border-ds-hairline',
-        'bg-ds-canvas/80 backdrop-blur-2xl',
-        'overflow-hidden'
+    <>
+      {isMobile && !sidebarCollapsed && (
+        <div
+          onClick={toggleSidebar}
+          className="fixed inset-0 bg-ds-scrim z-30 md:hidden"
+        />
       )}
-    >
+      <motion.aside
+        initial={false}
+        animate={{ width }}
+        transition={{ duration: 0.3, ease: [0.28, 0.11, 0.32, 1] }}
+        className={cn(
+          'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
+          'border-r border-ds-hairline',
+          'bg-ds-sidebar-surface backdrop-blur-2xl',
+          'overflow-hidden shadow-sm'
+        )}
+      >
       {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-ds-hairline">
+      <div className="flex items-center h-16 px-4 border-b border-ds-hairline flex-shrink-0">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-2xl bg-ds-ink flex items-center justify-center flex-shrink-0 shadow-md">
-            <BarChart3 className="w-5 h-5 text-ds-text-inverse" />
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md">
+            <BarChart3 className="w-5 h-5 text-white" />
           </div>
           <AnimatePresence>
             {!sidebarCollapsed && (
@@ -214,5 +232,6 @@ export function Sidebar() {
         </button>
       </div>
     </motion.aside>
+    </>
   );
 }
