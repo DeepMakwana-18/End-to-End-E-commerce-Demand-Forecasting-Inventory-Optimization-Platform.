@@ -62,7 +62,7 @@ export default function AnomaliesPage() {
     setIsLoadingList(true);
     setSelectedIds(new Set());
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean> = {
         page: p,
         per_page: PER_PAGE,
         include_resolved: f.include_resolved,
@@ -89,8 +89,10 @@ export default function AnomaliesPage() {
     try {
       const { data } = await anomalyApi.list({ page: 1, per_page: 500, include_resolved: true });
       setAllAnomalies(data.anomalies);
-    } catch (err: any) {
-      console.error('[loadAllForCharts] failed:', err?.response?.status, err?.response?.data);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: unknown } })?.response?.status;
+      const data = (err as { response?: { status?: number; data?: unknown } })?.response?.data;
+      console.error('[loadAllForCharts] failed:', status, data);
     } finally {
       setIsLoadingAll(false);
     }
@@ -111,10 +113,11 @@ export default function AnomaliesPage() {
 
   // ── Init ──────────────────────────────────────────────────────────
   useEffect(() => {
-    loadList(1, DEFAULT_FILTERS);
-    loadSummary();
-    loadAllForCharts();
-  }, []);
+    const init = async () => {
+      await Promise.allSettled([loadList(1, DEFAULT_FILTERS), loadSummary(), loadAllForCharts()]);
+    };
+    init();
+  }, [loadList, loadSummary, loadAllForCharts]);
 
   // ── Filter change ─────────────────────────────────────────────────
   const handleFilterChange = useCallback((f: AnomalyFilters) => {
@@ -140,7 +143,11 @@ export default function AnomaliesPage() {
   const handleSelectToggle = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }, []);
@@ -179,8 +186,10 @@ export default function AnomaliesPage() {
       );
       await Promise.all([loadList(1, filters), loadSummary(), loadAllForCharts()]);
       return data;
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Detection failed';
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        'Detection failed';
       toast.error('Detection error', typeof msg === 'string' ? msg : 'Unexpected error');
       return null;
     } finally {

@@ -37,8 +37,9 @@ export default function LoginPage() {
       const data = response.data;
       setAuth(data.user, data.organization, data.access_token, data.refresh_token);
       navigate('/app');
-    } catch (err: any) {
-      const detail = err.response?.data?.detail;
+    } catch (err: unknown) {
+      const detail = (err as { response?: { data?: { detail?: string | { message?: string } } } })
+        ?.response?.data?.detail;
       if (typeof detail === 'string') {
         setError(detail);
       } else if (detail?.message) {

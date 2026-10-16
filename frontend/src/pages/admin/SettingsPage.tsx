@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Settings, Bell, Shield, Database, Palette, Save, CheckCircle2 } from 'lucide-react';
+import { Bell, Shield, Database, Palette, Save, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
 import type { ThemeMode } from '@/types';
@@ -14,7 +14,9 @@ export default function SettingsPage() {
     try {
       const saved = localStorage.getItem('titan_settings_toggles');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch {
+      // ignore JSON parse error
+    }
     return {
       sidebarCollapsed: false,
       emailAlerts: true,
@@ -29,7 +31,9 @@ export default function SettingsPage() {
     try {
       const saved = localStorage.getItem('titan_settings_selects');
       if (saved) return JSON.parse(saved);
-    } catch (e) {}
+    } catch {
+      // ignore JSON parse error
+    }
     return {
       dataRetention: '1 year',
       confidenceLevel: '95%',
