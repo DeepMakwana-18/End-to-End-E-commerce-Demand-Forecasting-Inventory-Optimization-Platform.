@@ -4,9 +4,10 @@ import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, systemApi, dashboardApi } from '@/services/api';
+import { useAppStore } from '@/stores/appStore';
 import {
   Boxes, TrendingUp, TrendingDown, DollarSign, Search, Filter, X,
-  Activity, AlertTriangle, ShieldCheck,
+  Activity, AlertTriangle, ShieldCheck, ChevronDown, ChevronUp, Minus,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -119,9 +120,13 @@ export default function ProductsPage() {
 
   const topProducts = useMemo(() => topProductsData?.products || [], [topProductsData?.products]);
 
+  const { theme } = useAppStore();
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showFilters, setShowFilters] = useState(false);
+  const [showAllRanking, setShowAllRanking] = useState(false);
 
   const categories = useMemo(() => {
     return ['All', ...new Set(topProducts.map((p) => p.category))];
@@ -134,20 +139,29 @@ export default function ProductsPage() {
     );
   }, [topProducts, searchTerm, selectedCategory]);
 
+  const displayedRankingProducts = useMemo(() => {
+    if (showAllRanking || filteredProducts.length <= 5) {
+      return filteredProducts;
+    }
+    return filteredProducts.slice(0, 5);
+  }, [filteredProducts, showAllRanking]);
+
   const riskClassification = useMemo(() => {
     const total = kpis?.total_products || 0;
     const high = kpis?.products_at_risk || 0;
     const med = Math.max(0, Math.floor(total * 0.15));
     const low = Math.max(0, total - high - med);
+    const safeTotal = total > 0 ? total : ((low + med + high) || 1);
     return [
       {
         name: 'Low Risk',
         subtitle: 'Consistent demand velocity & healthy buffer',
         count: low,
+        pct: Math.round((low / safeTotal) * 100),
         color: '#059669',
         bg: 'bg-emerald-50/50 dark:bg-emerald-950/20',
         border: 'border-emerald-200/80 dark:border-emerald-800/40',
-        trackBg: 'bg-emerald-100/70 dark:bg-surface-800',
+        trackBg: 'bg-emerald-100/70 dark:bg-emerald-950/40',
         barColor: '#059669',
         textColor: 'text-emerald-700 dark:text-emerald-400',
       },
@@ -155,10 +169,11 @@ export default function ProductsPage() {
         name: 'Medium Risk',
         subtitle: 'Moderate variance or seasonal volatility',
         count: med,
+        pct: Math.round((med / safeTotal) * 100),
         color: '#D97706',
         bg: 'bg-amber-50/50 dark:bg-amber-950/20',
         border: 'border-amber-200/80 dark:border-amber-800/40',
-        trackBg: 'bg-amber-100/70 dark:bg-surface-800',
+        trackBg: 'bg-amber-100/70 dark:bg-amber-950/40',
         barColor: '#D97706',
         textColor: 'text-amber-700 dark:text-amber-400',
       },
@@ -166,10 +181,11 @@ export default function ProductsPage() {
         name: 'High Risk',
         subtitle: 'High volatility, lead time sensitivity or stockout threat',
         count: high,
+        pct: Math.round((high / safeTotal) * 100),
         color: '#E11D48',
         bg: 'bg-rose-50/50 dark:bg-rose-950/20',
         border: 'border-rose-200/80 dark:border-rose-800/40',
-        trackBg: 'bg-rose-100/70 dark:bg-surface-800',
+        trackBg: 'bg-rose-100/70 dark:bg-rose-950/40',
         barColor: '#E11D48',
         textColor: 'text-rose-700 dark:text-rose-400',
       },
@@ -198,7 +214,7 @@ export default function ProductsPage() {
   const top3Names = useMemo(() => topProducts.slice(0, 3).map((p) => p.name), [topProducts]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* ── Page Header with Blue-Indigo Visual Accent ───────────────── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
@@ -234,8 +250,17 @@ export default function ProductsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search products..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border text-slate-900 dark:text-ds-text placeholder:text-slate-400 dark:placeholder:text-ds-text-secondary focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-950 transition-all shadow-2xs"
+              className="w-full pl-9 pr-8 py-2 rounded-xl text-xs bg-white dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border text-slate-900 dark:text-ds-text placeholder:text-slate-400 dark:placeholder:text-ds-text-secondary focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 dark:focus:ring-blue-950 transition-all shadow-2xs"
             />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-ds-text"
+                aria-label="Clear search"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           {/* Filter Popover Button */}
@@ -352,7 +377,7 @@ export default function ProductsPage() {
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
         {/* ── Section 3: Product Performance Ranking (2 Columns) ────── */}
         <div className="lg:col-span-2">
           <motion.div
@@ -371,16 +396,29 @@ export default function ProductsPage() {
                     Product Performance Ranking
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-                    Sorted by total units sold{selectedCategory !== 'All' ? ` — ${selectedCategory}` : ''} ({filteredProducts.length} items)
+                    Ranked by gross revenue · Volume tracking{selectedCategory !== 'All' ? ` — ${selectedCategory}` : ''} ({filteredProducts.length} items)
                   </p>
                 </div>
               </div>
-              <span className="text-[11px] font-semibold text-slate-500 dark:text-ds-text-muted bg-white dark:bg-ds-surface px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-ds-border shadow-2xs">
-                Top Volume Drivers
-              </span>
+              <div className="flex items-center gap-2">
+                {filteredProducts.length > 5 && (
+                  <button
+                    id="product-ranking-view-toggle"
+                    onClick={() => setShowAllRanking(!showAllRanking)}
+                    className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50/80 dark:bg-blue-950/40 px-2.5 py-1 rounded-lg border border-blue-200/60 dark:border-blue-800/40 transition-colors flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>{showAllRanking ? 'Top 5 Only' : `View All (${filteredProducts.length})`}</span>
+                    {showAllRanking ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                )}
+                <span className="text-[11px] font-semibold text-slate-500 dark:text-ds-text-muted bg-white dark:bg-ds-surface px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-ds-border shadow-2xs">
+                  Revenue Drivers
+                </span>
+              </div>
             </div>
 
-            <div className="p-5 flex-1 overflow-y-auto max-h-[460px] space-y-2.5">
+            {/* Seamless Ranking List (No cramped nested scrollbar) */}
+            <div className="p-5 flex-1 space-y-2.5">
               {filteredProducts.length === 0 ? (
                 <div className="py-12 px-4 flex flex-col items-center justify-center text-center">
                   <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-800/40 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3 shadow-2xs">
@@ -394,7 +432,7 @@ export default function ProductsPage() {
                   </p>
                 </div>
               ) : (
-                filteredProducts.map((p, i) => (
+                displayedRankingProducts.map((p, i) => (
                   <motion.div
                     key={p.name}
                     initial={{ opacity: 0, x: -8 }}
@@ -405,11 +443,11 @@ export default function ProductsPage() {
                     {/* Rank Indicator */}
                     <span
                       className={cn(
-                        'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold font-sans tabular-nums flex-shrink-0 shadow-2xs',
+                        'w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold font-mono tabular-nums flex-shrink-0 shadow-2xs',
                         i === 0 && 'bg-gradient-to-br from-amber-400 to-amber-600 text-white shadow-xs',
                         i === 1 && 'bg-gradient-to-br from-slate-400 to-slate-600 text-white shadow-xs',
                         i === 2 && 'bg-gradient-to-br from-amber-700 to-amber-900 text-white shadow-xs',
-                        i > 2 && 'bg-white dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border text-slate-600 dark:text-ds-text-secondary'
+                        i > 2 && 'bg-white dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border text-slate-700 dark:text-ds-text font-semibold'
                       )}
                     >
                       {i + 1}
@@ -421,12 +459,12 @@ export default function ProductsPage() {
                         <p className="text-sm font-semibold text-slate-900 dark:text-ds-text truncate">
                           {p.name}
                         </p>
-                        <span className="text-xs font-bold font-sans tabular-nums text-slate-900 dark:text-ds-text flex-shrink-0">
-                          {formatNumber(p.sales)} <span className="text-[11px] font-normal text-slate-500">units</span>
+                        <span className="text-xs font-bold font-mono tabular-nums text-slate-900 dark:text-ds-text flex-shrink-0">
+                          {formatNumber(p.sales)} <span className="text-[11px] font-normal text-slate-500 dark:text-ds-text-secondary">units</span>
                         </span>
                       </div>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400 font-sans tabular-nums">
+                        <span className="text-xs font-bold text-emerald-700 dark:text-emerald-400 font-mono tabular-nums">
                           {formatCurrency(p.revenue)}
                         </span>
                         <span className="text-slate-300 dark:text-ds-text-muted">•</span>
@@ -436,32 +474,57 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
-                    {/* Growth Pill */}
+                    {/* Growth Pill with clear baseline handling */}
                     <div
                       className={cn(
-                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-sans tabular-nums border shadow-2xs flex-shrink-0',
-                        p.growth >= 0
+                        'inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold font-mono tabular-nums border shadow-2xs flex-shrink-0',
+                        p.growth > 0
                           ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-emerald-success/15 dark:text-ds-emerald-success dark:border-ds-emerald-success/30'
-                          : 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-ds-red-danger/15 dark:text-ds-red-danger dark:border-ds-red-danger/30'
+                          : p.growth < 0
+                          ? 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-ds-red-danger/15 dark:text-ds-red-danger dark:border-ds-red-danger/30'
+                          : 'bg-slate-100/90 text-slate-600 border-slate-200/80 dark:bg-ds-surface dark:text-ds-text-secondary dark:border-ds-border'
                       )}
+                      title={p.growth === 0 ? 'Baseline tracking (period delta uncalculated)' : undefined}
                     >
-                      {p.growth >= 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                      {p.growth >= 0 ? '+' : ''}{p.growth}%
+                      {p.growth > 0 ? (
+                        <TrendingUp className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      ) : p.growth < 0 ? (
+                        <TrendingDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                      ) : (
+                        <Minus className="w-3 h-3 text-slate-400 dark:text-ds-text-muted" />
+                      )}
+                      {p.growth > 0 ? `+${p.growth}%` : p.growth < 0 ? `${p.growth}%` : '0.0%'}
                     </div>
                   </motion.div>
                 ))
+              )}
+
+              {/* Expansion control footer */}
+              {filteredProducts.length > 5 && (
+                <div className="pt-2 flex items-center justify-between text-xs text-slate-500 dark:text-ds-text-secondary">
+                  <span>
+                    Showing {displayedRankingProducts.length} of {filteredProducts.length} products
+                  </span>
+                  <button
+                    onClick={() => setShowAllRanking(!showAllRanking)}
+                    className="font-medium text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    <span>{showAllRanking ? 'Collapse to Top 5' : `Show all ${filteredProducts.length} products`}</span>
+                    {showAllRanking ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  </button>
+                </div>
               )}
             </div>
           </motion.div>
         </div>
 
         {/* ── Section 4: Product Risk Classification (1 Column) ────── */}
-        <div>
+        <div className="self-start">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.35, delay: 0.25 }}
-            className="rounded-2xl border border-slate-200/90 dark:border-ds-border overflow-hidden bg-white dark:bg-ds-surface shadow-2xs h-full flex flex-col justify-between"
+            className="rounded-2xl border border-slate-200/90 dark:border-ds-border overflow-hidden bg-white dark:bg-ds-surface shadow-2xs"
           >
             <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-amber-50/60 via-slate-50/40 to-white dark:bg-none dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-3">
@@ -477,9 +540,12 @@ export default function ProductsPage() {
                   </p>
                 </div>
               </div>
+              <span className="text-[11px] font-semibold text-slate-500 dark:text-ds-text-muted bg-white dark:bg-ds-surface px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-ds-border shadow-2xs">
+                {kpis?.total_products || 20} Products
+              </span>
             </div>
 
-            <div className="p-5 space-y-3.5 flex-1 flex flex-col justify-center">
+            <div className="p-5 space-y-3.5">
               {riskClassification.map((r, i) => (
                 <motion.div
                   key={r.name}
@@ -496,16 +562,21 @@ export default function ProductsPage() {
                       </div>
                       <p className="text-[11px] text-slate-500 dark:text-ds-text-muted mt-0.5">{r.subtitle}</p>
                     </div>
-                    <span className={cn('text-lg font-bold font-mono tabular-nums leading-none', r.textColor)}>
-                      {r.count}
-                    </span>
+                    <div className="flex items-baseline gap-1.5 flex-shrink-0">
+                      <span className={cn('text-lg font-extrabold font-mono tabular-nums leading-none', r.textColor)}>
+                        {r.count}
+                      </span>
+                      <span className="text-xs font-bold font-mono text-slate-500 dark:text-ds-text-muted">
+                        ({r.pct}%)
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Progress Bar with crisp track contrast */}
-                  <div className={cn('h-2 rounded-full overflow-hidden mt-2.5 border border-slate-200/40 dark:border-transparent', r.trackBg)}>
+                  {/* Progress Bar with crisp track contrast and exact percentage width */}
+                  <div className={cn('h-2 rounded-full overflow-hidden mt-2.5 border border-slate-200/40 dark:border-ds-border', r.trackBg)}>
                     <motion.div
                       initial={{ width: 0 }}
-                      animate={{ width: `${(r.count / Math.max(kpis?.total_products || 1, 1)) * 100}%` }}
+                      animate={{ width: `${r.pct}%` }}
                       transition={{ duration: 0.8, delay: 0.35 + i * 0.1, ease: 'easeOut' }}
                       className="h-full rounded-full"
                       style={{ backgroundColor: r.barColor }}
@@ -566,27 +637,37 @@ export default function ProductsPage() {
               </p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={trendData} margin={{ top: 10, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
-                <XAxis dataKey="month" tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }} axisLine={{ stroke: '#CBD5E1' }} tickLine={false} />
-                <YAxis tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+            <ResponsiveContainer width="100%" height={290}>
+              <LineChart data={trendData} margin={{ top: 10, right: 25, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} vertical={false} strokeOpacity={0.6} />
+                <XAxis
+                  dataKey="month"
+                  tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 500 }}
+                  axisLine={{ stroke: isDark ? '#475569' : '#CBD5E1' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 500 }}
+                  axisLine={false}
+                  tickLine={false}
+                />
                 <Tooltip
                   content={({ active, payload, label }) => {
                     if (active && payload && payload.length) {
                       return (
-                        <div className="p-3 bg-white dark:bg-ds-surface rounded-xl border border-slate-200 dark:border-ds-border shadow-lg text-xs min-w-[160px]">
-                          <p className="font-bold text-slate-900 dark:text-ds-text mb-2 pb-1 border-b border-slate-100 dark:border-ds-border">
-                            {label} Sales Volume
+                        <div className="p-3.5 bg-white dark:bg-ds-surface rounded-xl border border-slate-200/90 dark:border-ds-border shadow-xl text-xs min-w-[180px]">
+                          <p className="font-bold text-slate-900 dark:text-ds-text mb-2 pb-1.5 border-b border-slate-100 dark:border-ds-border flex items-center justify-between">
+                            <span>{label} Sales Volume</span>
+                            <span className="text-[10px] text-slate-400 font-mono">Monthly</span>
                           </p>
                           <div className="space-y-1.5">
                             {payload.map((entry, idx) => (
                               <div key={idx} className="flex items-center justify-between gap-3">
-                                <div className="flex items-center gap-1.5 truncate">
+                                <div className="flex items-center gap-1.5 truncate max-w-[140px]">
                                   <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color }} />
                                   <span className="text-slate-600 dark:text-ds-text-secondary truncate">{entry.name}:</span>
                                 </div>
-                                <span className="font-bold font-mono text-slate-900 dark:text-ds-text">{formatNumber(Number(entry.value))}</span>
+                                <span className="font-bold font-mono text-slate-900 dark:text-ds-text">{formatNumber(Number(entry.value))} units</span>
                               </div>
                             ))}
                           </div>
@@ -596,7 +677,7 @@ export default function ProductsPage() {
                     return null;
                   }}
                 />
-                <Legend wrapperStyle={{ fontSize: '11px', color: '#475569', fontWeight: 600, paddingTop: '12px' }} />
+                <Legend wrapperStyle={{ fontSize: '11px', color: isDark ? '#CBD5E1' : '#475569', fontWeight: 600, paddingTop: '12px' }} />
                 {top3Names.map((name, i) => (
                   <Line
                     key={name}
@@ -604,7 +685,7 @@ export default function ProductsPage() {
                     dataKey={name}
                     stroke={PRODUCT_PALETTE[i % PRODUCT_PALETTE.length]}
                     strokeWidth={2.5}
-                    dot={{ r: 3.5, strokeWidth: 1, stroke: '#FFFFFF' }}
+                    dot={{ r: 3.5, strokeWidth: 1.5, stroke: isDark ? '#1E293B' : '#FFFFFF' }}
                     activeDot={{ r: 5 }}
                   />
                 ))}
