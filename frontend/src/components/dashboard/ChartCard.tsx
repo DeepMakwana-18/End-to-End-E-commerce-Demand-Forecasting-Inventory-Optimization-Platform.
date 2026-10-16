@@ -27,13 +27,13 @@ export function ChartCard({
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
-        className={cn('card-apple overflow-hidden flex flex-col', className)}
+        className={cn('rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs hover:shadow-xs transition-all duration-200 overflow-hidden flex flex-col', className)}
       >
-        <div className="px-5 py-4 sm:px-6 sm:py-4.5 border-b border-ds-hairline bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
+        <div className="px-5 py-4 sm:px-6 sm:py-4.5 border-b border-slate-100 dark:border-ds-hairline bg-slate-50/70 dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold text-ds-text-primary tracking-tight">{title}</h3>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">{title}</h3>
             {subtitle && (
-              <p className="text-xs text-ds-text-muted mt-0.5 font-medium">{subtitle}</p>
+              <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">{subtitle}</p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
@@ -50,13 +50,13 @@ export function ChartCard({
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
-      className={cn('card-apple p-5 sm:p-6', className)}
+      className={cn('rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs hover:shadow-xs transition-all duration-200 p-5 sm:p-6', className)}
     >
       <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
         <div>
-          <h3 className="text-sm font-bold text-ds-text-primary tracking-tight">{title}</h3>
+          <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">{title}</h3>
           {subtitle && (
-            <p className="text-xs text-ds-text-muted mt-0.5 font-medium">{subtitle}</p>
+            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">{subtitle}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

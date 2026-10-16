@@ -12,70 +12,93 @@
    ========================================================================== */
 :root,
 :root.dark {
-  /* Neutrals */
-  --ds-canvas:           #000000;
-  --ds-surface:          #1C1C1E;
-  --ds-surface-alt:      #2C2C2E;
-  --ds-surface-sunken:   #111113;
-  --ds-ink:              #F5F5F7;
-  --ds-hairline:         rgba(255, 255, 255, 0.10);
-  --ds-border-strong:    #3A3A3C;
-  --ds-border-control:   #8E8E93;
-  --ds-gray-400:         #636366;
-  --ds-gray-500:         #98989D;
+  /* Neutrals & Surfaces - Section 4.2 */
+  --ds-canvas:           #0F1117;   /* Application background */
+  --ds-sidebar-surface:  #151922;   /* Sidebar background */
+  --ds-surface:          #1B202A;   /* Primary card */
+  --ds-surface-alt:      #242A36;   /* Secondary card */
+  --ds-surface-elevated: #2A3240;   /* Elevated surface */
+  --ds-surface-sunken:   #151922;   /* Sunken / background panel */
+  --ds-ink:              #F1F5F9;
+  --ds-hairline:         #353D4D;   /* Border */
+  --ds-border:           #353D4D;   /* Border */
+  --ds-border-subtle:    #242A36;
+  --ds-border-strong:    #475369;
+  --ds-border-control:   #64748B;
+  --ds-gray-400:         #94A3B8;
+  --ds-gray-500:         #A9B7CC;
 
-  /* Text */
-  --ds-text-primary:     #F5F5F7;
-  --ds-text-secondary:   #EBEBF5;
-  --ds-text-muted:       #98989D;
-  --ds-text-disabled:    #636366;
-  --ds-text-inverse:     #FFFFFF;
-  --ds-btn-primary-bg:   #F5F5F7;
-  --ds-btn-primary-text: #1D1D1F;
+  /* Text - Section 4.2 */
+  --ds-text-primary:     #F1F5F9;   /* Primary text */
+  --ds-text-secondary:   #A9B7CC;   /* Secondary text */
+  --ds-text-muted:       #94A3B8;   /* Muted text */
+  --ds-text-disabled:    #64748B;
+  --ds-text-inverse:     #0F1117;
+  --ds-btn-primary-bg:   #60A5FA;
+  --ds-btn-primary-text: #0F1117;
 
-  /* Blue Accent */
-  --ds-blue:             #0A84FF;
-  --ds-blue-action:      #0071E3;
-  --ds-blue-strong:      #409CFF;
-  --ds-blue-text:        #64A9FF;
-  --ds-blue-surface:     rgba(10, 132, 255, 0.16);
-  --ds-blue-on-surface:  #99C8FF;
+  /* Primary Blue - Section 4.2 */
+  --ds-blue:             #60A5FA;
+  --ds-blue-action:      #3B82F6;
+  --ds-blue-strong:      #60A5FA;
+  --ds-blue-text:        #60A5FA;
+  --ds-blue-surface:     rgba(96, 165, 250, 0.15);
+  --ds-blue-on-surface:  #93C5FD;
 
-  /* Semantic Status */
-  --ds-green:            #30D158;
-  --ds-green-strong:     #30D158;
-  --ds-green-surface:    rgba(48, 209, 88, 0.16);
-  --ds-green-text:       #7BE495;
+  /* Indigo - Section 4.2 */
+  --ds-indigo:           #818CF8;
+  --ds-indigo-surface:   rgba(129, 140, 248, 0.15);
+  --ds-indigo-text:      #A5B4FC;
 
-  --ds-orange:           #FF9F0A;
-  --ds-orange-strong:    #FF9F0A;
-  --ds-orange-surface:   rgba(255, 159, 10, 0.16);
-  --ds-orange-text:      #FFC266;
+  /* Teal - Section 4.2 */
+  --ds-teal:             #2DD4BF;
+  --ds-teal-surface:     rgba(45, 212, 191, 0.15);
+  --ds-teal-text:        #5EEAD4;
 
-  --ds-red:              #FF453A;
-  --ds-red-strong:       #FF453A;
-  --ds-red-surface:      rgba(255, 69, 58, 0.16);
-  --ds-red-text:         #FF8A82;
+  /* Success / Green - Section 4.2 */
+  --ds-green:            #34D399;
+  --ds-green-strong:     #34D399;
+  --ds-green-surface:    rgba(52, 211, 153, 0.15);
+  --ds-green-text:       #6EE7B7;
+  --ds-emerald:          #34D399;
+  --ds-emerald-success:  #34D399;
 
-  /* Materials */
-  --ds-surface-soft:     linear-gradient(145deg, #2C2C2E 0%, #1C1C1E 60%, #161618 100%);
-  --ds-mat-ink:          linear-gradient(160deg, #2C2C2E 0%, #1C1C1E 100%);
-  --ds-mat-gray:         linear-gradient(160deg, #636366 0%, #3A3A3C 100%);
-  --ds-mat-blue:         linear-gradient(160deg, #4DA3FF 0%, #007AFF 50%, #0060D6 100%);
-  --ds-glass:            rgba(28, 28, 30, 0.72);
-  --ds-glass-nav:        rgba(0, 0, 0, 0.72);
-  --ds-scrim:            rgba(0, 0, 0, 0.6);
+  /* Warning / Amber - Section 4.2 */
+  --ds-amber:            #FBBF24;
+  --ds-orange:           #FBBF24;
+  --ds-orange-strong:    #FBBF24;
+  --ds-orange-surface:   rgba(251, 191, 36, 0.15);
+  --ds-orange-text:      #FCD34D;
+  --ds-amber-warning:    #FBBF24;
+
+  /* Critical / Red - Section 4.2 */
+  --ds-red:              #FB7185;
+  --ds-red-strong:       #FB7185;
+  --ds-red-surface:      rgba(251, 113, 133, 0.15);
+  --ds-red-text:         #FDA4AF;
+  --ds-red-danger:       #FB7185;
+
+  /* Materials - Solid Charcoal Cards (NO white-to-gray vertical gradients!) */
+  --ds-surface-soft:     #1B202A;
+  --ds-mat-ink:          #1B202A;
+  --ds-mat-gray:         #242A36;
+  --ds-mat-blue:         #1B202A;
+  --ds-glass:            rgba(27, 32, 42, 0.95);
+  --ds-glass-nav:        rgba(15, 17, 23, 0.90);
+  --ds-scrim:            rgba(0, 0, 0, 0.70);
 
   /* Elevation (Soft-lit in dark mode) */
-  --ds-hl:               rgba(255, 255, 255, 0.06);
+  --ds-hl:               rgba(255, 255, 255, 0.04);
   --ds-sd:               rgba(0, 0, 0, 0.65);
-  --ds-raise-1:          -2px -2px 6px var(--ds-hl), 2px 2px 8px var(--ds-sd);
-  --ds-raise-2:          -3px -3px 10px var(--ds-hl), 5px 5px 16px var(--ds-sd);
-  --ds-raise-3:          -5px -5px 16px var(--ds-hl), 10px 10px 26px var(--ds-sd);
-  --ds-raise-4:          -8px -8px 24px var(--ds-hl), 18px 18px 44px rgba(0, 0, 0, 0.85);
-  --ds-inset-1:          inset 1px 1px 3px var(--ds-sd), inset -1px -1px 3px var(--ds-hl);
-  --ds-inset-2:          inset 2px 2px 6px var(--ds-sd), inset -2px -2px 6px var(--ds-hl);
-  --ds-press:            inset 2px 2px 5px var(--ds-sd), inset -2px -2px 5px var(--ds-hl);
+  --ds-card-shadow:      0 2px 8px 0 rgba(0, 0, 0, 0.40), 0 8px 24px -4px rgba(0, 0, 0, 0.50);
+  --ds-card-hover:       0 4px 14px 0 rgba(0, 0, 0, 0.50), 0 16px 36px -4px rgba(0, 0, 0, 0.60);
+  --ds-raise-1:          0 1px 3px 0 rgba(0, 0, 0, 0.35);
+  --ds-raise-2:          0 2px 8px 0 rgba(0, 0, 0, 0.40), 0 8px 24px -4px rgba(0, 0, 0, 0.50);
+  --ds-raise-3:          0 4px 14px 0 rgba(0, 0, 0, 0.50), 0 16px 36px -4px rgba(0, 0, 0, 0.60);
+  --ds-raise-4:          0 8px 24px 0 rgba(0, 0, 0, 0.60), 0 24px 48px -4px rgba(0, 0, 0, 0.75);
+  --ds-inset-1:          inset 1px 1px 3px var(--ds-sd);
+  --ds-inset-2:          inset 2px 2px 6px var(--ds-sd);
+  --ds-press:            inset 2px 2px 5px var(--ds-sd);
   --ds-float-1:          0 4px 12px rgba(0, 0, 0, 0.35);
   --ds-float-2:          0 12px 40px rgba(0, 0, 0, 0.50);
   --ds-float-3:          0 24px 64px rgba(0, 0, 0, 0.60);
@@ -115,25 +138,9 @@
   --ds-nav-h:            64px;
 
   /* Direct Aliases & Extended Tokens */
-  --ds-sidebar-surface:  #141416;
-  --ds-border:           var(--ds-hairline);
-  --ds-border-subtle:    rgba(255, 255, 255, 0.06);
   --ds-text:             var(--ds-text-primary);
   --ds-text-heading:     var(--ds-text-primary);
   --ds-text-body:        var(--ds-text-secondary);
-  --ds-indigo:           #818CF8;
-  --ds-indigo-surface:   rgba(99, 102, 241, 0.16);
-  --ds-indigo-text:      #A5B4FC;
-  --ds-teal:             #2DD4BF;
-  --ds-teal-surface:     rgba(13, 148, 136, 0.16);
-  --ds-teal-text:        #5EEAD4;
-  --ds-amber:            #FF9F0A;
-  --ds-emerald:          #30D158;
-  --ds-emerald-success:  var(--ds-green);
-  --ds-amber-warning:    var(--ds-orange);
-  --ds-red-danger:       var(--ds-red);
-  --ds-card-shadow:      var(--ds-raise-2);
-  --ds-card-hover:       var(--ds-raise-3);
 
   --canvas:              var(--ds-canvas);
   --ink:                 var(--ds-ink);
@@ -204,34 +211,35 @@
    2. LIGHT THEME (:root.light) — Titan AI Enterprise SaaS Light Mode
    ========================================================================== */
 :root.light {
-  /* Backgrounds & Surfaces */
-  --ds-canvas:           #F1F5F9;   /* Crisp cool slate canvas distinctly darker than white cards */
-  --ds-surface:          #FFFFFF;   /* Pure white card surface */
-  --ds-surface-alt:      #E2E8F0;   /* Alternate section */
-  --ds-surface-sunken:   #F8FAFC;   /* Secondary/sunken surface */
-  --ds-sidebar-surface:  #FFFFFF;   /* Crisp elevated sidebar */
-  --ds-ink:              #0F172A;
-  --ds-hairline:         #E2E8F0;   /* 1px solid #E2E8F0 card border */
-  --ds-border:           #E2E8F0;
-  --ds-border-subtle:    #F1F5F9;
+  /* Backgrounds & Surfaces - Section 4.1 */
+  --ds-canvas:           #F3F6FC;   /* Application background */
+  --ds-sidebar-surface:  #EDF2FA;   /* Sidebar background */
+  --ds-surface:          #FFFFFF;   /* Primary card */
+  --ds-surface-alt:      #F8FAFF;   /* Secondary surface */
+  --ds-surface-elevated: #FFFFFF;
+  --ds-surface-sunken:   #EAF0F9;   /* Subtle section background */
+  --ds-ink:              #17233B;
+  --ds-hairline:         #DCE5F2;   /* Border */
+  --ds-border:           #DCE5F2;   /* Border */
+  --ds-border-subtle:    #EEF3FA;
   --ds-border-strong:    #CBD5E1;
   --ds-border-control:   #94A3B8;
   --ds-gray-400:         #94A3B8;
   --ds-gray-500:         #64748B;
 
-  /* Typography */
-  --ds-text:             #0F172A;   /* Heading: #0F172A */
-  --ds-text-heading:     #0F172A;
-  --ds-text-primary:     #0F172A;
-  --ds-text-body:        #334155;   /* Primary body: #334155 */
-  --ds-text-secondary:   #334155;
-  --ds-text-muted:       #64748B;   /* Secondary body: #64748B */
+  /* Typography - Section 4.1 */
+  --ds-text:             #17233B;   /* Main text */
+  --ds-text-heading:     #17233B;
+  --ds-text-primary:     #17233B;
+  --ds-text-body:        #53657E;   /* Secondary text */
+  --ds-text-secondary:   #53657E;
+  --ds-text-muted:       #64748B;   /* Muted text */
   --ds-text-disabled:    #94A3B8;
   --ds-text-inverse:     #FFFFFF;
   --ds-btn-primary-bg:   #2563EB;
   --ds-btn-primary-text: #FFFFFF;
 
-  /* Primary Palette */
+  /* Primary Palette - Section 4.1 */
   --ds-blue:             #2563EB;
   --ds-blue-action:      #2563EB;
   --ds-blue-strong:      #1D4ED8;
@@ -252,26 +260,24 @@
   --ds-green-strong:     #047857;
   --ds-green-surface:    #ECFDF5;
   --ds-green-text:       #065F46;
+  --ds-emerald-success:  #059669;
 
   --ds-amber:            #D97706;
   --ds-orange:           #D97706;
   --ds-orange-strong:    #B45309;
   --ds-orange-surface:   #FFFBEB;
   --ds-orange-text:      #92400E;
+  --ds-amber-warning:    #D97706;
 
   --ds-red:              #DC2626;
   --ds-red-strong:       #B91C1C;
   --ds-red-surface:      #FEF2F2;
   --ds-red-text:         #991B1B;
-
-  /* Semantic Aliases for Existing Components */
-  --ds-emerald-success:  #059669;
-  --ds-amber-warning:    #D97706;
   --ds-red-danger:       #DC2626;
 
   /* Card Surfaces & Gradients */
   --ds-surface-soft:     #FFFFFF;
-  --ds-mat-ink:          linear-gradient(160deg, #1E293B 0%, #0F172A 100%);
+  --ds-mat-ink:          linear-gradient(160deg, #17233B 0%, #0F172A 100%);
   --ds-mat-gray:         linear-gradient(160deg, #F8FAFC 0%, #E2E8F0 100%);
   --ds-mat-blue:         linear-gradient(160deg, #3B82F6 0%, #2563EB 50%, #1D4ED8 100%);
   --ds-glass:            rgba(255, 255, 255, 0.98);
@@ -281,12 +287,12 @@
   /* Card Shadows & Elevation */
   --ds-hl:               rgba(255, 255, 255, 1);
   --ds-sd:               rgba(15, 23, 42, 0.08);
-  --ds-card-shadow:      0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 4px 12px 0 rgba(15, 23, 42, 0.05);
-  --ds-card-hover:       0 10px 25px -3px rgba(15, 23, 42, 0.10), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
-  --ds-raise-1:          0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
-  --ds-raise-2:          0 4px 12px -1px rgba(15, 23, 42, 0.08), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
-  --ds-raise-3:          0 10px 25px -3px rgba(15, 23, 42, 0.10), 0 4px 10px -2px rgba(15, 23, 42, 0.05);
-  --ds-raise-4:          0 20px 35px -4px rgba(15, 23, 42, 0.12), 0 8px 16px -3px rgba(15, 23, 42, 0.06);
+  --ds-card-shadow:      0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 14px -2px rgba(15, 23, 42, 0.06);
+  --ds-card-hover:       0 4px 8px -1px rgba(15, 23, 42, 0.06), 0 14px 28px -4px rgba(15, 23, 42, 0.09);
+  --ds-raise-1:          0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  --ds-raise-2:          0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 14px -2px rgba(15, 23, 42, 0.06);
+  --ds-raise-3:          0 4px 8px -1px rgba(15, 23, 42, 0.06), 0 14px 28px -4px rgba(15, 23, 42, 0.09);
+  --ds-raise-4:          0 8px 16px -2px rgba(15, 23, 42, 0.08), 0 24px 44px -4px rgba(15, 23, 42, 0.12);
   --ds-inset-1:          inset 1px 1px 3px rgba(15, 23, 42, 0.06);
   --ds-inset-2:          inset 2px 2px 6px rgba(15, 23, 42, 0.08);
   --ds-press:            inset 1px 1px 4px rgba(15, 23, 42, 0.10);

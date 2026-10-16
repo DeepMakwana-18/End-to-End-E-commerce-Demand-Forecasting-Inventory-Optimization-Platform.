@@ -346,7 +346,7 @@ export default function UploadPage() {
               'rounded-3xl p-10 sm:p-14 border-2 border-dashed transition-all duration-200 text-center flex flex-col items-center justify-center relative overflow-hidden',
               effectiveStatus === 'idle'
                 ? cn(
-                    'bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white dark:from-blue-950/20 dark:via-ds-surface dark:to-ds-surface cursor-pointer group shadow-2xs',
+                    'bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white dark:bg-none dark:bg-ds-surface cursor-pointer group shadow-2xs',
                     isDragOver
                       ? 'border-blue-600 bg-blue-50/90 shadow-md scale-[1.01]'
                       : 'border-blue-300 hover:border-blue-500 hover:shadow-md'
@@ -587,7 +587,7 @@ export default function UploadPage() {
         transition={{ delay: 0.25 }}
         className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
               Recent Ingestion Logs

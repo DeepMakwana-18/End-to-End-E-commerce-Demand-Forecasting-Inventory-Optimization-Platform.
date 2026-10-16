@@ -104,7 +104,7 @@ function KpiCard({ label, value, sub, icon: Icon, color, bgIcon, cardBg, border,
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3 }}
       className={cn(
-        'p-3.5 rounded-2xl flex flex-col justify-between gap-2.5 border relative overflow-hidden transition-all duration-200 shadow-2xs hover:shadow-xs hover:-translate-y-0.5',
+        'p-3.5 rounded-2xl flex flex-col justify-between gap-2.5 border relative overflow-hidden transition-all duration-200 shadow-2xs hover:shadow-xs hover:-translate-y-0.5 dark:bg-none dark:bg-[#1B202A] dark:border-[#353D4D]',
         cardBg,
         border
       )}
@@ -122,9 +122,9 @@ function KpiCard({ label, value, sub, icon: Icon, color, bgIcon, cardBg, border,
       </div>
 
       <div className="relative">
-        <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 dark:text-surface-400 mb-1 leading-none">{label}</p>
+        <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 dark:text-ds-text-muted mb-1 leading-none">{label}</p>
         <div className={cn('text-2xl font-bold font-sans tabular-nums tracking-tight leading-tight', color)}>{value}</div>
-        {sub && <p className="text-[10px] text-slate-500 dark:text-surface-400 mt-1 leading-tight line-clamp-1">{sub}</p>}
+        {sub && <p className="text-[10px] text-slate-500 dark:text-ds-text-muted mt-1 leading-tight line-clamp-1">{sub}</p>}
       </div>
     </motion.div>
   );

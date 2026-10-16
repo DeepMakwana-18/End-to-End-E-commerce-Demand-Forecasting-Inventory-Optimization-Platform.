@@ -6,6 +6,7 @@ import { dashboardApi, systemApi } from '@/services/api';
 import {
   DollarSign, ShoppingCart, Target, HeartPulse,
   AlertTriangle, ShieldAlert, RotateCcw, TrendingUp,
+  LayoutDashboard,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -123,32 +124,37 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6 sm:space-y-8">
-      {/* 1. Page Header */}
+      {/* 1. Page Header with Elevated Container */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ds-hairline"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
-        <div className="relative">
-          {/* Subtle blue-to-indigo decorative glow without impairing text readability */}
-          <div className="absolute -top-6 -left-6 w-48 h-20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-2.5 h-7 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600 shadow-sm flex-shrink-0" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-ds-text-heading tracking-tight">
+        {/* Subtle blue-to-indigo decorative glow */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <LayoutDashboard className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600 inline-block" />
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
                 Executive Dashboard
               </h1>
-              <p className="text-sm font-medium text-ds-text-secondary mt-1">
-                AI-powered demand forecasting &amp; inventory intelligence
-              </p>
             </div>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
+              AI-powered demand forecasting &amp; inventory intelligence overview
+            </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 self-start sm:self-auto">
-          <span className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold bg-ds-green-surface text-ds-green-text border border-ds-green/25 shadow-xs">
+
+        <div className="flex items-center gap-2 self-start sm:self-auto relative z-10">
+          <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/25 shadow-2xs">
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ds-green opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-ds-green" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
             </span>
             Live Platform Telemetry
           </span>
@@ -162,8 +168,7 @@ export default function DashboardPage() {
           value={formatCurrency(kpis?.total_revenue || 0)}
           change={(kpis?.total_revenue || 0) > 0 ? 12.5 : undefined}
           icon={DollarSign}
-          gradient="bg-gradient-to-br from-blue-600 to-indigo-600"
-          glowColor="rgba(37, 99, 235, 0.25)"
+          variant="blue"
           delay={0}
         />
         <KPICard
@@ -171,8 +176,7 @@ export default function DashboardPage() {
           value={formatNumber(kpis?.total_orders || 0)}
           change={(kpis?.total_orders || 0) > 0 ? 8.3 : undefined}
           icon={ShoppingCart}
-          gradient="bg-gradient-to-br from-indigo-600 to-blue-600"
-          glowColor="rgba(99, 102, 241, 0.25)"
+          variant="indigo"
           delay={0.05}
         />
         <KPICard
@@ -180,8 +184,7 @@ export default function DashboardPage() {
           value={realAccuracy > 0 ? formatPercent(realAccuracy) : "—"}
           change={realAccuracy > 0 ? 2.1 : undefined}
           icon={Target}
-          gradient="bg-gradient-to-br from-emerald-600 to-teal-600"
-          glowColor="rgba(5, 150, 105, 0.25)"
+          variant="teal"
           delay={0.1}
         />
         <KPICard
@@ -189,8 +192,7 @@ export default function DashboardPage() {
           value={kpis?.inventory_health ? formatPercent(kpis.inventory_health) : "—"}
           change={(kpis?.inventory_health || 0) > 0 ? -1.8 : undefined}
           icon={HeartPulse}
-          gradient="bg-gradient-to-br from-teal-600 to-emerald-600"
-          glowColor="rgba(13, 148, 136, 0.25)"
+          variant="emerald"
           delay={0.15}
         />
       </div>
@@ -200,25 +202,25 @@ export default function DashboardPage() {
         <KPICard
           title="Active Alerts"
           value={String(kpis?.active_alerts || 0)}
+          sub={kpis?.active_alerts ? `${kpis.active_alerts} require review` : 'All systems normal'}
           icon={AlertTriangle}
-          gradient="bg-gradient-to-br from-amber-500 to-amber-600"
-          glowColor="rgba(217, 119, 6, 0.25)"
+          variant="amber"
           delay={0.2}
         />
         <KPICard
           title="Products at Risk"
           value={String(kpis?.products_at_risk || 0)}
+          sub={kpis?.products_at_risk ? 'Stockout risk detected' : 'Zero products at risk'}
           icon={ShieldAlert}
-          gradient="bg-gradient-to-br from-red-600 to-rose-600"
-          glowColor="rgba(220, 38, 38, 0.25)"
+          variant="rose"
           delay={0.25}
         />
         <KPICard
           title="Reorder Needed"
           value={String(kpis?.reorder_needed || 0)}
+          sub={kpis?.reorder_needed ? 'Restock recommended' : 'Buffers optimal'}
           icon={RotateCcw}
-          gradient="bg-gradient-to-br from-orange-500 to-amber-600"
-          glowColor="rgba(245, 158, 11, 0.25)"
+          variant="amber"
           delay={0.3}
         />
         <KPICard
@@ -226,21 +228,20 @@ export default function DashboardPage() {
           value={formatNumber(kpis?.avg_demand || 0)}
           change={(kpis?.avg_demand || 0) > 0 ? 5.2 : undefined}
           icon={TrendingUp}
-          gradient="bg-gradient-to-br from-blue-500 to-teal-600"
-          glowColor="rgba(14, 165, 233, 0.25)"
+          variant="blue"
           delay={0.35}
         />
       </div>
 
       {/* 4. Section Divider & Hierarchy Break */}
-      <div className="pt-2 pb-1 flex items-center justify-between border-b border-ds-hairline">
+      <div className="pt-2 pb-1 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-ds-blue shadow-xs" />
-          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-ds-text-primary">
+          <span className="w-2 h-2 rounded-full bg-blue-600 shadow-2xs" />
+          <h2 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-slate-800 dark:text-ds-text-primary">
             Demand Forecasts &amp; Revenue Analytics
           </h2>
         </div>
-        <span className="text-xs text-ds-text-muted font-medium hidden sm:inline">
+        <span className="text-xs text-slate-500 dark:text-ds-text-muted font-medium hidden sm:inline">
           Aggregated monthly telemetry
         </span>
       </div>
@@ -457,14 +458,14 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.35 + i * 0.05 }}
-                  className="flex items-center gap-3 p-2 rounded-xl hover:bg-ds-surface-sunken transition-colors"
+                  className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-slate-50 dark:hover:bg-ds-surface-sunken transition-colors"
                 >
-                  <span className="w-6 h-6 rounded-full bg-ds-surface-sunken flex items-center justify-center text-[10px] font-bold text-ds-text-primary border border-ds-border shadow-xs flex-shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-slate-100 dark:bg-ds-surface-sunken flex items-center justify-center text-[10px] font-bold text-slate-700 dark:text-ds-text-primary border border-slate-200 dark:border-ds-border shadow-2xs flex-shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-ds-text-primary truncate">{product.label}</p>
-                    <div className="mt-1.5 h-1.5 w-full bg-ds-surface-sunken rounded-full overflow-hidden border border-ds-hairline/40">
+                    <p className="text-xs font-bold text-slate-900 dark:text-ds-text-primary truncate">{product.label}</p>
+                    <div className="mt-1.5 h-1.5 w-full bg-slate-100 dark:bg-ds-surface-sunken rounded-full overflow-hidden border border-slate-200/60 dark:border-ds-hairline/40">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${((product.value || 0) / ((charts?.top_products?.[0]?.value) || 1)) * 100}%` }}
@@ -473,19 +474,19 @@ export default function DashboardPage() {
                       />
                     </div>
                   </div>
-                  <span className="text-xs font-sans font-bold text-ds-text-primary tabular-nums flex-shrink-0">
+                  <span className="text-xs font-sans font-bold text-slate-900 dark:text-ds-text-primary tabular-nums flex-shrink-0">
                     {formatNumber(product.value || 0)}
                   </span>
                 </motion.div>
               ))}
             </div>
           ) : (
-            <div className="h-[250px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-ds-border-strong bg-ds-surface-sunken p-6 text-center">
-              <div className="w-10 h-10 rounded-2xl bg-ds-blue-surface text-ds-blue flex items-center justify-center mb-2 shadow-xs">
+            <div className="h-[250px] flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 dark:border-ds-border-strong bg-slate-50/50 dark:bg-ds-surface-sunken p-6 text-center">
+              <div className="w-10 h-10 rounded-2xl bg-blue-50 dark:bg-ds-blue-surface text-blue-600 dark:text-ds-blue flex items-center justify-center mb-2 shadow-2xs">
                 <ShoppingCart className="w-5 h-5" />
               </div>
-              <h4 className="text-xs font-bold text-ds-text-primary">No Product Sales Data</h4>
-              <p className="text-[11px] text-ds-text-muted mt-1">
+              <h4 className="text-xs font-bold text-slate-900 dark:text-ds-text-primary">No Product Sales Data</h4>
+              <p className="text-[11px] text-slate-500 dark:text-ds-text-muted mt-1">
                 Top performing SKUs will be listed once demand orders are logged.
               </p>
             </div>
@@ -506,16 +507,16 @@ export default function DashboardPage() {
                   initial={{ opacity: 0, x: 10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 + i * 0.05 }}
-                  className="flex items-start gap-3 p-3 rounded-xl bg-ds-surface-sunken hover:bg-ds-surface border border-ds-hairline transition-all duration-150 shadow-xs"
+                  className="flex items-start gap-3 p-3 rounded-xl bg-slate-50/80 hover:bg-white dark:bg-ds-surface-sunken dark:hover:bg-ds-surface border border-slate-200/80 dark:border-ds-hairline transition-all duration-150 shadow-2xs"
                 >
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border flex-shrink-0 ${getSeverityBg(alert.severity)}`}>
                     {alert.severity}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-ds-text-primary truncate">{alert.product_name}</p>
-                    <p className="text-[11px] text-ds-text-secondary mt-0.5 line-clamp-1">{alert.message}</p>
+                    <p className="text-xs font-bold text-slate-900 dark:text-ds-text-primary truncate">{alert.product_name}</p>
+                    <p className="text-[11px] text-slate-600 dark:text-ds-text-secondary mt-0.5 line-clamp-1">{alert.message}</p>
                   </div>
-                  <span className="text-[10px] font-medium text-ds-text-muted flex-shrink-0">
+                  <span className="text-[10px] font-medium text-slate-400 dark:text-ds-text-muted flex-shrink-0">
                     {new Date(alert.created_at).toLocaleDateString()}
                   </span>
                 </motion.div>

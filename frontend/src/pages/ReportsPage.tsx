@@ -85,15 +85,16 @@ const reportTypes: ReportTypeConfig[] = [
 
 interface ReportKPICardProps {
   title: string;
-  value: string;
+  value: React.ReactNode;
   change?: number;
   changeLabel?: string;
   sub?: string;
   icon: React.ElementType;
   iconBg: string;
   iconColor: string;
-  surfaceGradient: string;
+  cardBg: string;
   borderColor: string;
+  valueColor: string;
   delay?: number;
 }
 
@@ -106,8 +107,9 @@ function ReportKPICard({
   icon: Icon,
   iconBg,
   iconColor,
-  surfaceGradient,
+  cardBg,
   borderColor,
+  valueColor,
   delay = 0,
 }: ReportKPICardProps) {
   const isPositive = change !== undefined && change > 0;
@@ -120,25 +122,17 @@ function ReportKPICard({
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
-        'p-5 relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[136px] rounded-2xl',
-        'bg-white dark:bg-ds-surface border shadow-2xs hover:shadow-md transition-all duration-200',
+        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
+        cardBg,
         borderColor
       )}
     >
-      {/* Subtle tinted gradient overlay */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-gradient-to-br pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity',
-          surfaceGradient
-        )}
-      />
-
       <div className="flex items-start justify-between relative z-10 w-full gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-2 truncate">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-1.5 truncate">
             {title}
           </p>
-          <p className="text-2xl sm:text-[26px] font-bold font-sans tabular-nums tracking-tight text-slate-900 dark:text-ds-text-primary leading-none">
+          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
             {value}
           </p>
 
@@ -345,10 +339,11 @@ export default function ReportsPage() {
           value={String(recentReports.length)}
           sub={recentReports.length > 0 ? 'All compiled exports' : 'No reports generated'}
           icon={FileText}
-          iconBg="bg-indigo-50 dark:bg-indigo-950/50 border-indigo-100 dark:border-indigo-900/40"
+          cardBg="bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-indigo-200/80 dark:border-ds-border"
+          iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
           iconColor="text-indigo-600 dark:text-indigo-400"
-          surfaceGradient="from-indigo-500/10 via-white to-transparent dark:from-indigo-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-indigo-300/80 dark:hover:border-indigo-700/60"
+          valueColor="text-indigo-950 dark:text-ds-text-primary"
           delay={0}
         />
 
@@ -360,10 +355,11 @@ export default function ReportsPage() {
           changeLabel="vs prior month"
           sub={reportsThisMonth === 0 ? 'Current monthly cycle' : undefined}
           icon={Calendar}
-          iconBg="bg-emerald-50 dark:bg-emerald-950/50 border-emerald-100 dark:border-emerald-900/40"
+          cardBg="bg-gradient-to-b from-emerald-50/70 via-emerald-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-emerald-200/80 dark:border-ds-border"
+          iconBg="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
           iconColor="text-emerald-600 dark:text-emerald-400"
-          surfaceGradient="from-emerald-500/10 via-white to-transparent dark:from-emerald-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-emerald-300/80 dark:hover:border-emerald-700/60"
+          valueColor="text-emerald-950 dark:text-ds-text-primary"
           delay={0.05}
         />
 
@@ -373,10 +369,11 @@ export default function ReportsPage() {
           value={recentReports.length > 0 ? '2.8s' : '—'}
           sub="Server-side rendering latency"
           icon={Clock}
-          iconBg="bg-amber-50 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40"
+          cardBg="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-amber-200/80 dark:border-ds-border"
+          iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
           iconColor="text-amber-600 dark:text-amber-400"
-          surfaceGradient="from-amber-500/10 via-white to-transparent dark:from-amber-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-amber-300/80 dark:hover:border-amber-700/60"
+          valueColor="text-amber-950 dark:text-ds-text-primary"
           delay={0.1}
         />
 
@@ -388,10 +385,11 @@ export default function ReportsPage() {
           changeLabel="retrieval velocity"
           sub={recentReports.length === 0 ? '0 telemetry pulls' : undefined}
           icon={Download}
-          iconBg="bg-cyan-50 dark:bg-cyan-950/50 border-cyan-100 dark:border-cyan-900/40"
-          iconColor="text-cyan-600 dark:text-cyan-400"
-          surfaceGradient="from-cyan-500/10 via-white to-transparent dark:from-cyan-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-cyan-300/80 dark:hover:border-cyan-700/60"
+          cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-blue-200/80 dark:border-ds-border"
+          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
+          iconColor="text-blue-600 dark:text-blue-400"
+          valueColor="text-blue-950 dark:text-ds-text-primary"
           delay={0.15}
         />
       </div>
@@ -536,7 +534,7 @@ export default function ReportsPage() {
         transition={{ delay: 0.3 }}
         className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
               Recent Reports &amp; Generation Log

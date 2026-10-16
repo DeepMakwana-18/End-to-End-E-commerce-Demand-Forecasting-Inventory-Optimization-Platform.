@@ -95,25 +95,17 @@ function CategoryKPICard({
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
-        'card-apple p-5 relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[136px]',
-        'bg-white dark:bg-ds-surface border shadow-2xs hover:shadow-md transition-all duration-200',
+        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
+        surfaceGradient,
         borderColor
       )}
     >
-      {/* Soft tinted gradient surface overlay */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-gradient-to-br pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity',
-          surfaceGradient
-        )}
-      />
-
       <div className="flex items-start justify-between relative z-10 w-full gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-2 truncate">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-1.5 truncate">
             {title}
           </p>
-          <p className="text-2xl sm:text-[26px] font-bold font-sans tabular-nums tracking-tight text-slate-900 dark:text-ds-text-primary leading-none">
+          <p className="text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight text-slate-900 dark:text-ds-text-primary leading-none">
             {value}
           </p>
 
@@ -260,7 +252,7 @@ export default function CategoriesPage() {
         </div>
       </motion.div>
 
-      {/* ── 2. KPI CARDS (Indigo, Teal, Amber, Cyan) ─────────────────── */}
+      {/* ── 2. KPI CARDS (Indigo, Teal, Amber, Blue) ─────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Categories - Indigo */}
         <CategoryKPICard
@@ -268,10 +260,10 @@ export default function CategoriesPage() {
           value={categoryData.length.toString()}
           sub={categoryData.length > 0 ? `${categoryData.length} active segments` : 'No categories found'}
           icon={Layers}
-          iconBg="bg-indigo-50 dark:bg-indigo-950/50 border-indigo-100 dark:border-indigo-900/40"
-          iconColor="text-indigo-600 dark:text-indigo-400"
-          surfaceGradient="from-indigo-500/10 via-white to-transparent dark:from-indigo-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-indigo-300/80 dark:hover:border-indigo-700/60"
+          iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-500/30"
+          iconColor="text-indigo-700 dark:text-indigo-400"
+          surfaceGradient="bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-indigo-200/80 dark:border-ds-border"
           delay={0}
         />
 
@@ -281,10 +273,10 @@ export default function CategoriesPage() {
           value={categoryData.length ? categoryData[0].name : '—'}
           sub={categoryData.length ? `${categoryData[0].value}% of total volume` : 'No category data'}
           icon={PieIcon}
-          iconBg="bg-teal-50 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40"
-          iconColor="text-teal-600 dark:text-teal-400"
-          surfaceGradient="from-teal-500/10 via-white to-transparent dark:from-teal-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-teal-300/80 dark:hover:border-teal-700/60"
+          iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400 border-teal-200/60 dark:border-teal-500/30"
+          iconColor="text-teal-700 dark:text-teal-400"
+          surfaceGradient="bg-gradient-to-b from-teal-50/70 via-emerald-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-teal-200/80 dark:border-ds-border"
           delay={0.05}
         />
 
@@ -296,14 +288,14 @@ export default function CategoriesPage() {
           changeLabel="vs prior cycle"
           sub={categoryData.length === 0 ? 'Baseline model active' : undefined}
           icon={TrendingUp}
-          iconBg="bg-amber-50 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40"
-          iconColor="text-amber-600 dark:text-amber-400"
-          surfaceGradient="from-amber-500/10 via-white to-transparent dark:from-amber-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-amber-300/80 dark:hover:border-amber-700/60"
+          iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200/60 dark:border-amber-500/30"
+          iconColor="text-amber-700 dark:text-amber-400"
+          surfaceGradient="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-amber-200/80 dark:border-ds-border"
           delay={0.1}
         />
 
-        {/* Total Demand - Cyan */}
+        {/* Total Demand - Blue */}
         <CategoryKPICard
           title="Total Demand"
           value={formatNumber(categoryData.reduce((acc, c) => acc + c.demand, 0))}
@@ -311,10 +303,10 @@ export default function CategoriesPage() {
           changeLabel="units aggregated"
           sub={categoryData.length === 0 ? '0 units recorded' : undefined}
           icon={BarChart3}
-          iconBg="bg-cyan-50 dark:bg-cyan-950/50 border-cyan-100 dark:border-cyan-900/40"
-          iconColor="text-cyan-600 dark:text-cyan-400"
-          surfaceGradient="from-cyan-500/10 via-white to-transparent dark:from-cyan-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-cyan-300/80 dark:hover:border-cyan-700/60"
+          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200/60 dark:border-blue-500/30"
+          iconColor="text-blue-700 dark:text-blue-400"
+          surfaceGradient="bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-blue-200/80 dark:border-ds-border"
           delay={0.15}
         />
       </div>
@@ -329,7 +321,7 @@ export default function CategoriesPage() {
           className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[440px]"
         >
           {/* Card Header */}
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
                 Category Demand Distribution
@@ -472,7 +464,7 @@ export default function CategoriesPage() {
           className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[440px]"
         >
           {/* Card Header */}
-          <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+          <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
             <div>
               <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
                 Category Performance Radar
@@ -588,7 +580,7 @@ export default function CategoriesPage() {
         transition={{ duration: 0.35, delay: 0.3 }}
         className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col"
       >
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
               Seasonal Category Demand

@@ -180,7 +180,7 @@ export function ScenarioResultPanel({ result, isRunning, scenarioName }: Props) 
             key="empty"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="card-apple p-10 sm:p-14 flex flex-col items-center justify-center gap-3 text-center bg-gradient-to-b from-[#F0F5FF]/80 via-[#F8FAFF]/80 to-white dark:from-surface-900 dark:to-surface-950 border border-blue-200/60 dark:border-ds-border shadow-xs rounded-2xl"
+            className="card-apple p-10 sm:p-14 flex flex-col items-center justify-center gap-3 text-center bg-gradient-to-b from-[#F0F5FF]/80 via-[#F8FAFF]/80 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/60 dark:border-ds-border shadow-xs rounded-2xl"
           >
             <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/15 via-indigo-500/15 to-teal-500/15 border border-blue-300/30 flex items-center justify-center shadow-inner relative mb-2">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25">
@@ -207,7 +207,7 @@ export function ScenarioResultPanel({ result, isRunning, scenarioName }: Props) 
             className="flex flex-col gap-4"
           >
             {/* Title bar */}
-            <div className="card-apple px-4 py-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-white dark:from-surface-900 dark:to-surface-950 border border-blue-200/60 dark:border-ds-border flex items-center justify-between shadow-2xs flex-wrap gap-2">
+            <div className="card-apple px-4 py-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/60 dark:border-ds-border flex items-center justify-between shadow-2xs flex-wrap gap-2">
               <div>
                 <p className="text-[10px] uppercase font-bold text-ds-text-muted tracking-wider">
                   Simulation Results

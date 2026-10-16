@@ -216,23 +216,23 @@ export default function AnomaliesPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* ── Page Header ──────────────────────────────────────────────── */}
+      {/* ── Page Header with Elevated Container ───────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative flex items-center justify-between px-6 py-4 border-b border-ds-border/60 flex-shrink-0 bg-ds-surface/60 backdrop-blur-md overflow-hidden"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden mb-5"
       >
         {/* Subtle indigo decorative accent glow */}
         <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
 
-        <div className="relative flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs">
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
             <Activity className="w-5 h-5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2.5">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 inline-block" />
-              <h1 className="text-lg font-bold text-ds-text flex items-center gap-2 tracking-tight">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 inline-block" />
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text flex items-center gap-2 tracking-tight">
                 Anomaly Intelligence
                 <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
                   <Brain className="w-3 h-3 text-indigo-600" />
@@ -240,7 +240,7 @@ export default function AnomaliesPage() {
                 </span>
               </h1>
             </div>
-            <p className="text-xs text-ds-text-muted mt-0.5 ml-3.5">
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-muted mt-0.5 ml-3.5 font-medium">
               Rolling z-score detection across demand, inventory &amp; forecast data
             </p>
           </div>
@@ -250,9 +250,9 @@ export default function AnomaliesPage() {
           id="refresh-all-btn"
           onClick={handleRefresh}
           disabled={isLoadingList}
-          className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs hover:shadow-xs transition-all"
+          className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-slate-200 dark:border-ds-border hover:bg-slate-50 dark:hover:bg-ds-surface-sunken self-start sm:self-auto relative z-10"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-blue-600' : ''}`} />
           Refresh
         </button>
       </motion.div>

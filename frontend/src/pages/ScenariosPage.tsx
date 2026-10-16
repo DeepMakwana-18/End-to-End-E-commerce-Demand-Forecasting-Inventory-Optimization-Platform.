@@ -156,23 +156,25 @@ export default function ScenariosPage() {
     <div className="flex flex-col gap-0 h-full min-h-0">
       {/* 1. Page Header */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-ds-hairline flex-shrink-0 bg-ds-surface/90 backdrop-blur-md relative overflow-hidden"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden mb-5"
       >
         {/* Subtle indigo-to-blue decorative glow */}
-        <div className="absolute -top-6 -left-6 w-48 h-20 bg-gradient-to-r from-indigo-500/10 via-blue-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
 
-        <div className="flex items-center gap-3 relative z-10">
-          <div className="w-2.5 h-7 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 shadow-sm flex-shrink-0" />
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
             <FlaskConical className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-xl sm:text-2xl font-extrabold text-ds-text-heading tracking-tight">
-              Scenario Engine
-            </h1>
-            <p className="text-xs sm:text-sm font-medium text-ds-text-secondary mt-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 inline-block" />
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
+                Scenario Engine
+              </h1>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
               What-If simulations powered by the active ML model
             </p>
           </div>
@@ -180,8 +182,8 @@ export default function ScenariosPage() {
 
         <div className="flex items-center gap-2.5 relative z-10 self-start sm:self-auto">
           {/* Informational non-destructive badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-ds-blue-surface text-ds-blue-text border border-ds-blue/20 text-xs font-semibold shadow-2xs">
-            <Lightbulb className="w-3.5 h-3.5 text-ds-blue flex-shrink-0" />
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-ds-blue-surface dark:text-ds-blue-text dark:border-ds-blue/20 text-xs font-semibold shadow-2xs">
+            <Lightbulb className="w-3.5 h-3.5 text-blue-600 dark:text-ds-blue flex-shrink-0" />
             <span>Non-destructive simulation — model is never retrained</span>
           </div>
 
@@ -189,22 +191,22 @@ export default function ScenariosPage() {
             id="refresh-scenarios"
             onClick={loadScenarios}
             disabled={isLoadingList}
-            className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-ds-border hover:bg-ds-surface-sunken"
+            className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-slate-200 dark:border-ds-border hover:bg-slate-50 dark:hover:bg-ds-surface-sunken"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-ds-blue' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-blue-600' : ''}`} />
             <span>Refresh</span>
           </button>
         </div>
       </motion.div>
 
-      {/* 2. Responsive Layout: 3 columns on desktop, clean stacking on tablet/mobile */}
-      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-hidden bg-ds-surface-sunken/30">
+      {/* 2. Responsive Layout: 3 distinct cards with clean gap spacing */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-5 overflow-y-auto lg:overflow-hidden pb-4">
         {/* ── Left Column: History ── */}
         <motion.div
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.05 }}
-          className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col p-4 border-b lg:border-b-0 lg:border-r border-ds-hairline overflow-y-auto bg-ds-surface/50"
+          className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col p-4 rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs overflow-y-auto"
         >
           <ScenarioHistory
             scenarios={scenarios}
@@ -221,7 +223,7 @@ export default function ScenariosPage() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col p-4 border-b lg:border-b-0 lg:border-r border-ds-hairline overflow-y-auto bg-ds-surface/30"
+          className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col p-4 rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs overflow-y-auto"
         >
           <ScenarioBuilder
             onRun={handleRun}
@@ -234,7 +236,7 @@ export default function ScenariosPage() {
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 }}
-          className="flex-1 min-w-0 flex flex-col gap-4 p-4 overflow-y-auto bg-ds-surface/20"
+          className="flex-1 min-w-0 flex flex-col gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs overflow-y-auto"
         >
           <ScenarioResultPanel
             result={activeResult}

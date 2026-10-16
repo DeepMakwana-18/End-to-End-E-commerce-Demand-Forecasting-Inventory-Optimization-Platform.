@@ -45,7 +45,7 @@ function ProductKpiCard({
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
-        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200',
+        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
         cardBg,
         border
       )}
@@ -361,7 +361,7 @@ export default function ProductsPage() {
             transition={{ duration: 0.35, delay: 0.2 }}
             className="rounded-2xl border border-slate-200/90 dark:border-ds-border overflow-hidden bg-white dark:bg-ds-surface shadow-2xs h-full flex flex-col justify-between"
           >
-            <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-blue-50/60 via-slate-50/40 to-white dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
+            <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-blue-50/60 via-slate-50/40 to-white dark:bg-none dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-blue-100 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/40 flex items-center justify-center text-blue-700 dark:text-blue-400 shadow-2xs">
                   <Activity className="w-4 h-4" />
@@ -463,7 +463,7 @@ export default function ProductsPage() {
             transition={{ duration: 0.35, delay: 0.25 }}
             className="rounded-2xl border border-slate-200/90 dark:border-ds-border overflow-hidden bg-white dark:bg-ds-surface shadow-2xs h-full flex flex-col justify-between"
           >
-            <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-amber-50/60 via-slate-50/40 to-white dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
+            <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-amber-50/60 via-slate-50/40 to-white dark:bg-none dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 flex items-center justify-center text-amber-700 dark:text-amber-400 shadow-2xs">
                   <ShieldCheck className="w-4 h-4" />
@@ -535,7 +535,7 @@ export default function ProductsPage() {
         transition={{ duration: 0.35, delay: 0.3 }}
         className="rounded-2xl border border-slate-200/90 dark:border-ds-border overflow-hidden bg-white dark:bg-ds-surface shadow-2xs"
       >
-        <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-indigo-50/60 via-slate-50/40 to-white dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
+        <div className="px-5 py-4 border-b border-slate-200/80 dark:border-ds-border/60 bg-gradient-to-r from-indigo-50/60 via-slate-50/40 to-white dark:bg-none dark:bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-3">
             <div className="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-950/40 border border-indigo-200/80 dark:border-indigo-800/40 flex items-center justify-center text-indigo-700 dark:text-indigo-400 shadow-2xs">
               <TrendingUp className="w-4 h-4" />

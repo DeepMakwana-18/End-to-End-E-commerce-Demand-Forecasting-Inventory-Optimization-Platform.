@@ -79,13 +79,14 @@ const severityLevels = ['all', 'critical', 'high', 'medium', 'low'] as const;
 
 interface AlertKPICardProps {
   title: string;
-  value: string;
+  value: React.ReactNode;
   sub: string;
   icon: React.ElementType;
   iconBg: string;
   iconColor: string;
-  surfaceGradient: string;
+  cardBg: string;
   borderColor: string;
+  valueColor: string;
   delay?: number;
 }
 
@@ -96,8 +97,9 @@ function AlertKPICard({
   icon: Icon,
   iconBg,
   iconColor,
-  surfaceGradient,
+  cardBg,
   borderColor,
+  valueColor,
   delay = 0,
 }: AlertKPICardProps) {
   return (
@@ -107,25 +109,17 @@ function AlertKPICard({
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
-        'p-5 relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[136px] rounded-2xl',
-        'bg-white dark:bg-ds-surface border shadow-2xs hover:shadow-md transition-all duration-200',
+        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
+        cardBg,
         borderColor
       )}
     >
-      {/* Soft tinted gradient surface overlay */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-gradient-to-br pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity',
-          surfaceGradient
-        )}
-      />
-
       <div className="flex items-start justify-between relative z-10 w-full gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-2 truncate">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-1.5 truncate">
             {title}
           </p>
-          <p className="text-2xl sm:text-[26px] font-bold font-sans tabular-nums tracking-tight text-slate-900 dark:text-ds-text-primary leading-none">
+          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
             {value}
           </p>
           <div className="mt-3 flex items-center gap-1.5">
@@ -382,10 +376,11 @@ export default function AlertsPage() {
           value={String(activeCount)}
           sub={activeCount > 0 ? 'Pending operator review' : 'Zero active breaches'}
           icon={Bell}
-          iconBg="bg-blue-50 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40"
+          cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-blue-200/80 dark:border-ds-border"
+          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
           iconColor="text-blue-600 dark:text-blue-400"
-          surfaceGradient="from-blue-500/10 via-white to-transparent dark:from-blue-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-blue-300/80 dark:hover:border-blue-700/60"
+          valueColor="text-blue-950 dark:text-ds-text-primary"
           delay={0}
         />
 
@@ -395,10 +390,11 @@ export default function AlertsPage() {
           value={String(criticalCount)}
           sub={criticalCount > 0 ? 'Immediate action required' : 'No critical stockouts'}
           icon={AlertOctagon}
-          iconBg="bg-rose-50 dark:bg-rose-950/50 border-rose-100 dark:border-rose-900/40"
+          cardBg="bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-rose-200/80 dark:border-ds-border"
+          iconBg="bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
           iconColor="text-rose-600 dark:text-rose-400"
-          surfaceGradient="from-rose-500/10 via-white to-transparent dark:from-rose-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-rose-300/80 dark:hover:border-rose-700/60"
+          valueColor="text-rose-950 dark:text-ds-text-primary"
           delay={0.05}
         />
 
@@ -408,10 +404,11 @@ export default function AlertsPage() {
           value={String(highCount)}
           sub={highCount > 0 ? 'Threshold breaches' : 'No elevated risks'}
           icon={AlertTriangle}
-          iconBg="bg-amber-50 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40"
+          cardBg="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-amber-200/80 dark:border-ds-border"
+          iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
           iconColor="text-amber-600 dark:text-amber-400"
-          surfaceGradient="from-amber-500/10 via-white to-transparent dark:from-amber-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-amber-300/80 dark:hover:border-amber-700/60"
+          valueColor="text-amber-950 dark:text-ds-text-primary"
           delay={0.1}
         />
 
@@ -421,10 +418,11 @@ export default function AlertsPage() {
           value={String(acknowledgedCount)}
           sub="Triaged by operators"
           icon={Eye}
-          iconBg="bg-teal-50 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40"
+          cardBg="bg-gradient-to-b from-teal-50/70 via-teal-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-teal-200/80 dark:border-ds-border"
+          iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400"
           iconColor="text-teal-600 dark:text-teal-400"
-          surfaceGradient="from-teal-500/10 via-white to-transparent dark:from-teal-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-teal-300/80 dark:hover:border-teal-700/60"
+          valueColor="text-teal-950 dark:text-ds-text-primary"
           delay={0.15}
         />
       </div>

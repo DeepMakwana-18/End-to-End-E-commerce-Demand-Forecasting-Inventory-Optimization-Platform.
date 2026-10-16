@@ -56,15 +56,16 @@ const roleBadgeStyles: Record<string, string> = {
 
 interface UserKPICardProps {
   title: string;
-  value: string;
+  value: React.ReactNode;
   change?: number;
   changeLabel?: string;
   sub?: string;
   icon: React.ElementType;
   iconBg: string;
   iconColor: string;
-  surfaceGradient: string;
+  cardBg: string;
   borderColor: string;
+  valueColor: string;
   delay?: number;
 }
 
@@ -77,8 +78,9 @@ function UserKPICard({
   icon: Icon,
   iconBg,
   iconColor,
-  surfaceGradient,
+  cardBg,
   borderColor,
+  valueColor,
   delay = 0,
 }: UserKPICardProps) {
   return (
@@ -88,25 +90,17 @@ function UserKPICard({
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
-        'p-5 relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[136px] rounded-2xl',
-        'bg-white dark:bg-ds-surface border shadow-2xs hover:shadow-md transition-all duration-200',
+        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
+        cardBg,
         borderColor
       )}
     >
-      {/* Subtle tinted gradient surface overlay */}
-      <div
-        className={cn(
-          'absolute inset-0 bg-gradient-to-br pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity',
-          surfaceGradient
-        )}
-      />
-
       <div className="flex items-start justify-between relative z-10 w-full gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-2 truncate">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-1.5 truncate">
             {title}
           </p>
-          <p className="text-2xl sm:text-[26px] font-bold font-sans tabular-nums tracking-tight text-slate-900 dark:text-ds-text-primary leading-none">
+          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
             {value}
           </p>
 
@@ -369,10 +363,11 @@ export default function AdminUsersPage() {
           value={String(users.length)}
           sub="All registered accounts"
           icon={Users}
-          iconBg="bg-blue-50 dark:bg-blue-950/50 border-blue-100 dark:border-blue-900/40"
+          cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-blue-200/80 dark:border-ds-border"
+          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
           iconColor="text-blue-600 dark:text-blue-400"
-          surfaceGradient="from-blue-500/10 via-white to-transparent dark:from-blue-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-blue-300/80 dark:hover:border-blue-700/60"
+          valueColor="text-blue-950 dark:text-ds-text-primary"
           delay={0}
         />
 
@@ -382,10 +377,11 @@ export default function AdminUsersPage() {
           value={String(activeCount)}
           sub={`${Math.round((activeCount / Math.max(1, users.length)) * 100)}% active rate`}
           icon={Users}
-          iconBg="bg-emerald-50 dark:bg-emerald-950/50 border-emerald-100 dark:border-emerald-900/40"
+          cardBg="bg-gradient-to-b from-emerald-50/70 via-emerald-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-emerald-200/80 dark:border-ds-border"
+          iconBg="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
           iconColor="text-emerald-600 dark:text-emerald-400"
-          surfaceGradient="from-emerald-500/10 via-white to-transparent dark:from-emerald-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-emerald-300/80 dark:hover:border-emerald-700/60"
+          valueColor="text-emerald-950 dark:text-ds-text-primary"
           delay={0.05}
         />
 
@@ -395,10 +391,11 @@ export default function AdminUsersPage() {
           value={String(adminCount)}
           sub="Full platform permissions"
           icon={Shield}
-          iconBg="bg-indigo-50 dark:bg-indigo-950/50 border-indigo-100 dark:border-indigo-900/40"
+          cardBg="bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-indigo-200/80 dark:border-ds-border"
+          iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
           iconColor="text-indigo-600 dark:text-indigo-400"
-          surfaceGradient="from-indigo-500/10 via-white to-transparent dark:from-indigo-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-indigo-300/80 dark:hover:border-indigo-700/60"
+          valueColor="text-indigo-950 dark:text-ds-text-primary"
           delay={0.1}
         />
 
@@ -409,10 +406,11 @@ export default function AdminUsersPage() {
           change={100}
           changeLabel="growth velocity"
           icon={UserPlus}
-          iconBg="bg-teal-50 dark:bg-teal-950/50 border-teal-100 dark:border-teal-900/40"
+          cardBg="bg-gradient-to-b from-teal-50/70 via-teal-50/30 to-white dark:bg-ds-surface"
+          borderColor="border-teal-200/80 dark:border-ds-border"
+          iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400"
           iconColor="text-teal-600 dark:text-teal-400"
-          surfaceGradient="from-teal-500/10 via-white to-transparent dark:from-teal-950/20 dark:via-ds-surface dark:to-transparent"
-          borderColor="border-slate-200/90 dark:border-ds-border hover:border-teal-300/80 dark:hover:border-teal-700/60"
+          valueColor="text-teal-950 dark:text-ds-text-primary"
           delay={0.15}
         />
       </div>
@@ -425,7 +423,7 @@ export default function AdminUsersPage() {
         className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
         {/* Table Top Bar: Title & Search */}
-        <div className="p-4 sm:px-5 sm:py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-3">
+        <div className="p-4 sm:px-5 sm:py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-3">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
               All Platform Users

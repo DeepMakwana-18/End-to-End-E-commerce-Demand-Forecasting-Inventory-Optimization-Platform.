@@ -63,12 +63,12 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
   const confidence = lastResult ? getConfidenceScore(lastResult) : null;
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-200/90 dark:border-surface-700/30 bg-white dark:bg-surface-900/60 shadow-2xs">
+    <div className="rounded-2xl overflow-hidden border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs">
       {/* Header (always visible) */}
       <button
         id="detect-panel-toggle"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-slate-50/90 via-indigo-50/30 to-white dark:from-surface-800/40 dark:to-surface-800/10 hover:from-slate-100/90 hover:to-indigo-50/50 transition-all border-b border-transparent data-[open=true]:border-slate-200/80"
+        className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-slate-50/90 via-indigo-50/30 to-white dark:bg-none dark:bg-ds-surface-sunken/60 hover:from-slate-100/90 hover:to-indigo-50/50 transition-all border-b border-transparent data-[open=true]:border-slate-200/80 dark:data-[open=true]:border-ds-border"
         data-open={open}
       >
         <div className="flex items-center gap-3">
@@ -186,8 +186,8 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
               <div className={cn(
                 'rounded-xl border p-4 transition-all duration-200',
                 sweep
-                  ? 'bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-white dark:bg-primary-500/10 border-indigo-300 dark:border-primary-500/30 shadow-2xs'
-                  : 'bg-slate-50/60 dark:bg-surface-900/40 border-slate-200/90 dark:border-surface-700/40'
+                  ? 'bg-gradient-to-r from-indigo-50/80 via-blue-50/50 to-white dark:bg-none dark:bg-indigo-950/20 border-indigo-300 dark:border-indigo-500/30 shadow-2xs'
+                  : 'bg-slate-50/60 dark:bg-ds-surface-sunken/40 border-slate-200/90 dark:border-ds-border'
               )}>
                 <div className="flex items-start gap-3">
                   <input

@@ -293,31 +293,35 @@ export default function ForecastPage() {
         )}
       </AnimatePresence>
 
-      {/* 1. Header with subtle decorative accent */}
+      {/* 1. Header with elevated container matching Inventory direction */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-ds-hairline"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
-        <div className="relative">
-          {/* Subtle blue-to-indigo decorative glow without impairing text readability */}
-          <div className="absolute -top-6 -left-6 w-48 h-20 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
-          <div className="flex items-center gap-3 relative z-10">
-            <div className="w-2.5 h-7 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600 shadow-sm flex-shrink-0" />
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-ds-text-heading tracking-tight">
+        {/* Subtle blue-to-indigo decorative glow without impairing text readability */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <TrendingUp className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600 inline-block" />
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
                 Demand Forecasting
               </h1>
-              <p className="text-sm font-medium text-ds-text-secondary mt-1">
-                ML-powered demand predictions with SHAP explainability
-              </p>
             </div>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
+              ML-powered demand predictions with SHAP explainability
+            </p>
           </div>
         </div>
 
         {/* Action Controls (Active when data exists) */}
         {!isZeroData && !isLoading && (
-          <div className="flex items-center gap-2.5 self-start sm:self-auto">
+          <div className="flex items-center gap-2.5 self-start sm:self-auto relative z-10">
             <div className="relative">
               <button
                 onClick={() => setShowFilters(!showFilters)}
@@ -411,7 +415,7 @@ export default function ForecastPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, ease: [0.28, 0.11, 0.32, 1] }}
-          className="max-w-2xl mx-auto my-6 sm:my-8 p-7 sm:p-10 rounded-3xl bg-gradient-to-b from-[#F0F5FF]/90 via-[#F8FAFF]/90 to-white dark:from-surface-900/80 dark:via-surface-900/50 dark:to-surface-950 border border-blue-200/70 dark:border-ds-border shadow-[0_16px_40px_rgba(37,99,235,0.07)] flex flex-col items-center text-center relative overflow-hidden"
+          className="max-w-2xl mx-auto my-6 sm:my-8 p-7 sm:p-10 rounded-3xl bg-gradient-to-b from-[#F0F5FF]/90 via-[#F8FAFF]/90 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/70 dark:border-ds-border shadow-[0_16px_40px_rgba(37,99,235,0.07)] flex flex-col items-center text-center relative overflow-hidden"
         >
           {/* Subtle ambient gradient highlights */}
           <div className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-br from-blue-400/15 to-indigo-400/15 rounded-full blur-3xl pointer-events-none" />
