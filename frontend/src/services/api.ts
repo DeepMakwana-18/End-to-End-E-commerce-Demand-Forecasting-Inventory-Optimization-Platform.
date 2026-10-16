@@ -200,6 +200,8 @@ export interface ShapWeekExplanation {
   week: number;
   date: string;
   prediction: number;
+  prediction_raw?: number;
+  seasonal_adjustment?: number;
   base_value: number | null;
   feature_vector: Record<string, number>;
   shap_values: Record<string, number>;

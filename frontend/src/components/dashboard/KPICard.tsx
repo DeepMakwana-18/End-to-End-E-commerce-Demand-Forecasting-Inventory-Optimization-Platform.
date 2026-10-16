@@ -18,6 +18,7 @@ interface KPICardProps {
   loading?: boolean;
   className?: string;
   variant?: 'blue' | 'indigo' | 'teal' | 'emerald' | 'amber' | 'rose' | 'default';
+  invertChange?: boolean;
 }
 
 const variantSurfaceMap: Record<string, string> = {
@@ -53,10 +54,15 @@ export function KPICard({
   loading = false,
   className,
   variant,
+  invertChange = false,
 }: KPICardProps) {
   const isPositive = change !== undefined && change > 0;
   const isNegative = change !== undefined && change < 0;
   const isNeutral = change !== undefined && change === 0;
+
+  // When invertChange is true (e.g. RMSE, defect rate), a negative change is favorable/good
+  const isFavorable = invertChange ? isNegative : isPositive;
+  const isUnfavorable = invertChange ? isPositive : isNegative;
   const displayValue = !value || value === 'No data' ? '—' : value;
 
   const detectedVariant = variant || (
@@ -106,13 +112,13 @@ export function KPICard({
               <span
                 className={cn(
                   'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold tabular-nums border shadow-2xs',
-                  isPositive && 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/30',
-                  isNegative && 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30',
+                  isFavorable && 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/30',
+                  isUnfavorable && 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30',
                   isNeutral && 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-ds-surface-sunken dark:text-ds-text-secondary dark:border-ds-border'
                 )}
               >
-                {isPositive && <TrendingUp className="w-3 h-3 text-[#059669] dark:text-emerald-400" />}
-                {isNegative && <TrendingDown className="w-3 h-3 text-[#E11D48] dark:text-rose-400" />}
+                {isPositive && <TrendingUp className={cn('w-3 h-3', isFavorable ? 'text-[#059669] dark:text-emerald-400' : 'text-[#E11D48] dark:text-rose-400')} />}
+                {isNegative && <TrendingDown className={cn('w-3 h-3', isFavorable ? 'text-[#059669] dark:text-emerald-400' : 'text-[#E11D48] dark:text-rose-400')} />}
                 {isNeutral && <Minus className="w-3 h-3 text-slate-400 dark:text-slate-500" />}
                 {isPositive && '+'}
                 {change?.toFixed(1)}%

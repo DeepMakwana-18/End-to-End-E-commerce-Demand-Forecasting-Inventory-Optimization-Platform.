@@ -11,6 +11,7 @@ import {
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Area, AreaChart, Legend,
+  ReferenceLine, ReferenceArea,
 } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
@@ -23,6 +24,7 @@ interface TooltipEntry {
   value: number;
   color?: string;
   stroke?: string;
+  payload?: ForecastChartPoint & { date?: string };
 }
 
 interface CustomTooltipProps {
@@ -33,21 +35,47 @@ interface CustomTooltipProps {
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (!active || !payload?.length) return null;
+  const point = payload[0]?.payload as (ForecastChartPoint & { date?: string }) | undefined;
+  const dateFormatted = point?.date
+    ? new Date(point.date).toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      })
+    : label;
+
   return (
-    <div className="rounded-xl p-3 bg-ds-surface border border-ds-border shadow-ds-float-2 text-xs z-50 min-w-[160px]">
-      <p className="font-bold text-ds-text-primary mb-1.5 pb-1 border-b border-ds-hairline">{label}</p>
+    <div className="rounded-xl p-3.5 bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border shadow-md dark:shadow-ds-float-2 text-xs z-50 min-w-[200px]">
+      <div className="mb-2 pb-1.5 border-b border-slate-100 dark:border-ds-hairline">
+        <p className="font-bold text-slate-900 dark:text-ds-text-primary text-xs">{label}</p>
+        {point?.date && (
+          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{dateFormatted}</p>
+        )}
+      </div>
       <div className="space-y-1.5">
-        {payload.map((entry, i) => (
-          <div key={i} className="flex items-center justify-between gap-3 font-medium">
-            <span className="flex items-center gap-1.5 text-ds-text-muted">
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color || entry.stroke }} />
-              <span className="truncate">{entry.name}:</span>
-            </span>
-            <span className="font-bold text-ds-text-primary font-sans tabular-nums">
-              {formatNumber(entry.value)}
+        {payload
+          .filter((entry: any) => entry.value !== undefined && entry.name !== 'Upper CI' && entry.name !== 'Lower CI')
+          .map((entry, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 font-medium">
+              <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
+                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color || entry.stroke }} />
+                <span className="truncate">{entry.name}:</span>
+              </span>
+              <span className="font-bold text-slate-900 dark:text-ds-text-primary font-sans tabular-nums">
+                {formatNumber(entry.value)}
+              </span>
+            </div>
+          ))}
+
+        {point?.lower !== undefined && point?.upper !== undefined && (
+          <div className="pt-2 mt-1.5 border-t border-slate-100 dark:border-ds-hairline flex items-center justify-between text-[11px]">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">95% CI Range:</span>
+            <span className="font-mono text-slate-700 dark:text-slate-200 font-semibold tabular-nums">
+              [{formatNumber(point.lower)} – {formatNumber(point.upper)}]
             </span>
           </div>
-        ))}
+        )}
       </div>
     </div>
   );
@@ -128,6 +156,11 @@ export default function ForecastPage() {
 
   // Helper to format the API response into chart data
   const formatResponse = (data: ForecastApiResponse) => {
+    const formatDateLabel = (dStr: string) => {
+      const dt = new Date(dStr);
+      return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    };
+
     const historical: ForecastChartPoint[] = (data.historical || []).map((h, i) => ({
       week: `H${i + 1}`,
       date: h.date,
@@ -135,7 +168,7 @@ export default function ForecastPage() {
       predicted: undefined,
       lower: undefined,
       upper: undefined,
-      label: new Date(h.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+      label: formatDateLabel(h.date),
     }));
     
     const forecasts: ForecastChartPoint[] = (data.forecasts || []).map((d) => ({
@@ -145,7 +178,7 @@ export default function ForecastPage() {
       predicted: d.predicted_demand,
       lower: d.confidence_lower,
       upper: d.confidence_upper,
-      label: new Date(d.date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }),
+      label: formatDateLabel(d.date),
     }));
     
     // Connect the two lines at the junction point
@@ -276,8 +309,23 @@ export default function ForecastPage() {
       : forecastData.length === 0
   );
 
+  const historicalEndWeek = useMemo(() => {
+    const lastH = forecastData.filter(d => d.week.startsWith('H')).pop();
+    return lastH?.week;
+  }, [forecastData]);
+
+  const forecastStartWeek = useMemo(() => {
+    const firstF = forecastData.filter(d => d.week.startsWith('F'))[0];
+    return firstF?.week;
+  }, [forecastData]);
+
+  const forecastEndWeek = useMemo(() => {
+    const lastF = forecastData.filter(d => d.week.startsWith('F')).pop();
+    return lastF?.week;
+  }, [forecastData]);
+
   return (
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-6 sm:space-y-8 pb-12 sm:pb-16">
       {/* Toast notification */}
       <AnimatePresence>
         {toast && (
@@ -517,25 +565,23 @@ export default function ForecastPage() {
               value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : "—"}
               change={modelMetrics?.accuracy ? 2.1 : undefined}
               icon={TrendingUp}
-              gradient="bg-gradient-to-br from-emerald-600 to-teal-600"
-              glowColor="rgba(5, 150, 105, 0.25)"
+              variant="teal"
               delay={0}
             />
             <KPICard
               title="RMSE Score"
               value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "—"}
               change={modelMetrics?.rmse ? -8.5 : undefined}
+              invertChange={true}
               icon={Layers}
-              gradient="bg-gradient-to-br from-indigo-600 to-blue-600"
-              glowColor="rgba(99, 102, 241, 0.25)"
+              variant="indigo"
               delay={0.05}
             />
             <KPICard
               title="Forecast Horizon"
               value="12 Weeks"
               icon={Calendar}
-              gradient="bg-gradient-to-br from-amber-500 to-amber-600"
-              glowColor="rgba(217, 119, 6, 0.25)"
+              variant="amber"
               delay={0.1}
             />
             <KPICard
@@ -546,8 +592,7 @@ export default function ForecastPage() {
               })()}
               change={forecastData.length > 0 ? 12.3 : undefined}
               icon={ArrowUpRight}
-              gradient="bg-gradient-to-br from-blue-600 to-indigo-600"
-              glowColor="rgba(37, 99, 235, 0.25)"
+              variant="blue"
               delay={0.15}
             />
           </div>
@@ -568,26 +613,50 @@ export default function ForecastPage() {
               <AreaChart data={forecastData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                 <defs>
                   <linearGradient id="ciGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563EB" stopOpacity={0.16} />
-                    <stop offset="95%" stopColor="#2563EB" stopOpacity={0.0} />
+                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.24} />
+                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.04} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-hairline)" vertical={false} />
                 <XAxis
                   dataKey="week"
-                  tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
-                  axisLine={{ stroke: '#E2E8F0' }}
+                  tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
+                  axisLine={{ stroke: 'var(--ds-hairline)' }}
                   tickLine={false}
                 />
                 <YAxis
-                  tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
+                  tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend
-                  wrapperStyle={{ fontSize: '12px', fontWeight: 500, paddingTop: '12px', color: '#475569' }}
+                  wrapperStyle={{ fontSize: '12px', fontWeight: 500, paddingTop: '12px' }}
+                  formatter={(val) => <span className="text-slate-700 dark:text-slate-200 font-semibold">{val}</span>}
                 />
+                {historicalEndWeek && (
+                  <ReferenceLine
+                    x={historicalEndWeek}
+                    stroke="#2563EB"
+                    strokeDasharray="3 3"
+                    strokeWidth={1.5}
+                    label={{
+                      value: 'Forecast Horizon',
+                      position: 'top',
+                      fill: '#2563EB',
+                      fontSize: 10,
+                      fontWeight: 700,
+                    }}
+                  />
+                )}
+                {forecastStartWeek && forecastEndWeek && (
+                  <ReferenceArea
+                    x1={forecastStartWeek}
+                    x2={forecastEndWeek}
+                    fill="#2563EB"
+                    fillOpacity={0.035}
+                  />
+                )}
                 <Area type="monotone" dataKey="upper" name="Upper CI" stroke="transparent" fill="url(#ciGrad)" />
                 <Area type="monotone" dataKey="lower" name="Lower CI" stroke="transparent" fill="transparent" />
                 <Line
@@ -633,65 +702,123 @@ export default function ForecastPage() {
               delay={0.25}
               headerVariant="tinted"
             >
-              <div className="space-y-3">
-                {filteredCategories.map((cat, i) => (
-                  <motion.div
-                    key={cat.category}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + i * 0.04 }}
-                    className="flex items-center gap-4 p-3.5 rounded-xl bg-ds-surface-sunken hover:bg-ds-surface transition-all duration-150 border border-ds-hairline shadow-xs"
-                  >
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs sm:text-sm font-bold text-ds-text-primary truncate">{cat.category}</p>
-                      <div className="flex items-center gap-3 mt-1 text-xs">
-                        <span className="text-ds-text-muted font-sans tabular-nums font-medium">
-                          Current: {formatNumber(cat.current)}
-                        </span>
-                        <span className="text-ds-text-muted">→</span>
-                        <span className="font-bold text-ds-text-primary font-sans tabular-nums">
-                          Predicted: {formatNumber(cat.predicted)}
-                        </span>
-                      </div>
+              {filteredCategories.length === 1 ? (
+                /* Compact, well-proportioned single-category presentation */
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                        Active Category
+                      </span>
+                      <p className="text-base font-bold text-slate-900 dark:text-ds-text-primary mt-0.5">
+                        {filteredCategories[0].category}
+                      </p>
                     </div>
                     <div
                       className={cn(
-                        'px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums border flex items-center gap-1 flex-shrink-0',
-                        cat.change > 0
-                          ? 'bg-ds-green-surface text-ds-green-text border-ds-green/20'
-                          : 'bg-ds-red-surface text-ds-red-text border-ds-red/20'
+                        'px-2.5 py-1 rounded-md text-xs font-bold tabular-nums border flex items-center gap-1 shadow-2xs',
+                        filteredCategories[0].change > 0
+                          ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/30'
+                          : 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30'
                       )}
                     >
-                      {cat.change > 0 ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 text-ds-green" />
+                      {filteredCategories[0].change > 0 ? (
+                        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 text-ds-red" />
+                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                       )}
-                      <span>{Math.abs(cat.change)}%</span>
+                      <span>{Math.abs(filteredCategories[0].change)}% shift</span>
                     </div>
-                  </motion.div>
-                ))}
-              </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-hairline shadow-2xs">
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Current Volume</p>
+                      <p className="text-xl font-bold font-sans tabular-nums text-slate-900 dark:text-white mt-1">
+                        {formatNumber(filteredCategories[0].current)}
+                      </p>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Observed demand baseline</span>
+                    </div>
+                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-hairline shadow-2xs">
+                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Predicted Volume</p>
+                      <p className="text-xl font-bold font-sans tabular-nums text-blue-600 dark:text-blue-400 mt-1">
+                        {formatNumber(filteredCategories[0].predicted)}
+                      </p>
+                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">12-week projected horizon</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-ds-surface-sunken/60 border border-slate-200/70 dark:border-ds-hairline flex items-center justify-between text-xs">
+                    <span className="text-slate-600 dark:text-slate-300 font-medium">Net Variance:</span>
+                    <span className="font-bold tabular-nums text-slate-900 dark:text-ds-text-primary">
+                      {filteredCategories[0].predicted - filteredCategories[0].current > 0 ? '+' : ''}
+                      {formatNumber(filteredCategories[0].predicted - filteredCategories[0].current)} units
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* Multi-category list when detailed breakdown exists */
+                <div className="space-y-3">
+                  {filteredCategories.map((cat, i) => (
+                    <motion.div
+                      key={cat.category}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 + i * 0.04 }}
+                      className="flex items-center gap-4 p-3.5 rounded-xl bg-slate-50 hover:bg-white dark:bg-ds-surface-sunken dark:hover:bg-ds-surface transition-all duration-150 border border-slate-200/80 dark:border-ds-hairline shadow-2xs"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-ds-text-primary truncate">{cat.category}</p>
+                        <div className="flex items-center gap-3 mt-1 text-xs">
+                          <span className="text-slate-500 dark:text-slate-400 font-sans tabular-nums font-medium">
+                            Current: {formatNumber(cat.current)}
+                          </span>
+                          <span className="text-slate-400 dark:text-slate-500">→</span>
+                          <span className="font-bold text-slate-900 dark:text-ds-text-primary font-sans tabular-nums">
+                            Predicted: {formatNumber(cat.predicted)}
+                          </span>
+                        </div>
+                      </div>
+                      <div
+                        className={cn(
+                          'px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums border flex items-center gap-1 flex-shrink-0 shadow-2xs',
+                          cat.change > 0
+                            ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/30'
+                            : 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30'
+                        )}
+                      >
+                        {cat.change > 0 ? (
+                          <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        ) : (
+                          <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                        )}
+                        <span>{Math.abs(cat.change)}%</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
             </ChartCard>
 
             {/* Seasonal Pattern */}
             <ChartCard
               title="Seasonal Demand Pattern"
-              subtitle="Monthly demand seasonality analysis"
+              subtitle="Weekly demand seasonality with disambiguated timeline"
               delay={0.3}
               headerVariant="tinted"
             >
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={forecastData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-hairline)" vertical={false} />
                   <XAxis
                     dataKey="label"
-                    tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
-                    axisLine={{ stroke: '#E2E8F0' }}
+                    tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
+                    axisLine={{ stroke: 'var(--ds-hairline)' }}
                     tickLine={false}
+                    interval="preserveStartEnd"
                   />
                   <YAxis
-                    tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
+                    tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                   />
