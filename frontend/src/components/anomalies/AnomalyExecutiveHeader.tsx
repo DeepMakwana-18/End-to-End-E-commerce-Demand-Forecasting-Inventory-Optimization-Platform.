@@ -67,9 +67,11 @@ function deriveMetrics(summary: AnomalySummary, anomalies: Anomaly[]) {
 
 // ── KPI Card ──────────────────────────────────────────────────────────
 
+import { Skeleton } from '@/components/ui/Skeleton';
+
 interface KpiCardProps {
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   sub?: string;
   icon: any;
   color: string;
@@ -105,7 +107,7 @@ function KpiCard({ label, value, sub, icon: Icon, color, bg, border, delay = 0, 
 
       <div className="relative">
         <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500 mb-0.5">{label}</p>
-        <p className={cn('text-2xl font-black font-mono tabular-nums leading-none', color)}>{value}</p>
+        <div className={cn('text-2xl font-bold font-sans tabular-nums tracking-[-0.03em] leading-none', color)}>{value}</div>
         {sub && <p className="text-[10px] text-surface-600 mt-1">{sub}</p>}
       </div>
     </motion.div>
@@ -203,14 +205,16 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
     },
     {
       label: 'Deviation Exposure',
-      value: exposureLoading
-        ? '...'
-        : deviationExposure != null && deviationExposure > 0
-        ? `${(deviationExposure / 1000).toFixed(1)}k`
-        : '—',
+      value: exposureLoading ? (
+        <Skeleton className="h-6 w-16 my-0.5 rounded" />
+      ) : deviationExposure != null && deviationExposure > 0 ? (
+        `${(deviationExposure / 1000).toFixed(1)}k`
+      ) : (
+        '—'
+      ),
       sub: deviationExposure != null
         ? `Σ |dev%| × actual × sev. weight`
-        : 'Loading anomaly data…',
+        : 'Weighted impact',
       icon: DollarSign,
       color: deviationExposure != null && deviationExposure > 50000 ? 'text-danger-400' : deviationExposure != null && deviationExposure > 5000 ? 'text-warning-400' : 'text-surface-300',
       bg: deviationExposure != null && deviationExposure > 50000 ? 'bg-danger-500/10' : 'bg-surface-700/30',

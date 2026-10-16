@@ -25,7 +25,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       {payload.map((entry: any, i: number) => (
         <p key={i} className="text-xs font-medium" style={{ color: entry.color || entry.stroke }}>
           <span className="font-semibold">{entry.name}: </span>
-          <span className="font-mono">{formatNumber(entry.value)}</span>
+          <span className="font-sans tabular-nums font-semibold">{formatNumber(entry.value)}</span>
         </p>
       ))}
     </div>
@@ -224,10 +224,10 @@ export default function ForecastPage() {
 
       {/* Forecast KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : "No data"} change={modelMetrics?.accuracy ? 2.1 : undefined} icon={TrendingUp} gradient="gradient-primary" delay={0} />
-        <KPICard title="RMSE Score" value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "No data"} change={modelMetrics?.rmse ? -8.5 : undefined} icon={Layers} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Model Accuracy" value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : "—"} change={modelMetrics?.accuracy ? 2.1 : undefined} icon={TrendingUp} gradient="gradient-primary" delay={0} />
+        <KPICard title="RMSE Score" value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "—"} change={modelMetrics?.rmse ? -8.5 : undefined} icon={Layers} gradient="gradient-accent" delay={0.05} />
         <KPICard title="Forecast Horizon" value="12 Weeks" icon={Calendar} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Next Week Demand" value={(() => { const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null); return f ? formatNumber(f.predicted) : "No data"; })()} change={forecastData.length > 0 ? 12.3 : undefined} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Next Week Demand" value={(() => { const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null); return f ? formatNumber(f.predicted) : "—"; })()} change={forecastData.length > 0 ? 12.3 : undefined} icon={ArrowUpRight} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
       {/* Main Forecast Chart with Confidence Intervals */}
@@ -286,12 +286,12 @@ export default function ForecastPage() {
                 <div className="flex-1">
                   <p className="text-sm font-semibold text-ds-text">{cat.category}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-ds-text-secondary font-mono">Current: {formatNumber(cat.current)}</span>
+                    <span className="text-xs text-ds-text-secondary font-sans tabular-nums">Current: {formatNumber(cat.current)}</span>
                     <span className="text-xs text-ds-text-secondary">→</span>
-                    <span className="text-xs font-semibold text-ds-text font-mono">Predicted: {formatNumber(cat.predicted)}</span>
+                    <span className="text-xs font-semibold text-ds-text font-sans tabular-nums">Predicted: {formatNumber(cat.predicted)}</span>
                   </div>
                 </div>
-                <div className={cn('badge-apple flex items-center gap-1 font-mono font-bold',
+                <div className={cn('badge-apple flex items-center gap-1 font-sans font-semibold tabular-nums',
                   cat.change > 0 ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25' : 'bg-ds-red-danger/10 text-ds-red-danger border-ds-red-danger/25')}>
                   {cat.change > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                   {Math.abs(cat.change)}%

@@ -170,7 +170,7 @@ export default function InventoryPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total SKUs" value={formatNumber(totalSKUs)} icon={Package} gradient="gradient-primary" delay={0} />
-        <KPICard title="Healthy Stock" value={totalSKUs > 0 ? `${healthyStockPercent}%` : "No data"} change={totalSKUs > 0 ? (healthyStockPercent >= 50 ? 3.2 : -1.5) : undefined} icon={ShieldCheck} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Healthy Stock" value={totalSKUs > 0 ? `${healthyStockPercent}%` : "—"} change={totalSKUs > 0 ? (healthyStockPercent >= 50 ? 3.2 : -1.5) : undefined} icon={ShieldCheck} gradient="gradient-accent" delay={0.05} />
         <KPICard title="Reorder Needed" value={String(reorderNeededCount)} icon={RotateCcw} gradient="gradient-warning" delay={0.1} />
         <KPICard title="Critical Items" value={String(criticalItemsCount)} change={criticalItemsCount > 0 ? -2.0 : undefined} icon={AlertTriangle} gradient="gradient-danger" delay={0.15} />
       </div>
@@ -239,13 +239,13 @@ export default function InventoryPage() {
                     <td className="px-4 py-3 text-sm font-semibold text-ds-text whitespace-nowrap">{item.name}</td>
                     <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{item.sku}</td>
                     <td className="px-4 py-3 text-xs text-ds-text-secondary">{item.category}</td>
-                    <td className={cn('px-4 py-3 text-sm font-semibold font-mono tabular-nums', sc.color)}>{formatNumber(item.current_stock)}</td>
-                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-mono tabular-nums">{formatNumber(item.safety_stock)}</td>
-                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-mono tabular-nums">{formatNumber(item.reorder_point)}</td>
-                    <td className="px-4 py-3 text-sm font-semibold font-mono text-ds-text tabular-nums">
+                    <td className={cn('px-4 py-3 text-sm font-semibold font-sans tabular-nums', sc.color)}>{formatNumber(item.current_stock)}</td>
+                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-sans tabular-nums">{formatNumber(item.safety_stock)}</td>
+                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-sans tabular-nums">{formatNumber(item.reorder_point)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold font-sans text-ds-text tabular-nums">
                       {item.recommended_qty > 0 ? formatNumber(item.recommended_qty) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-mono">{item.lead_time}w</td>
+                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-sans tabular-nums">{item.lead_time}w</td>
                     <td className="px-4 py-3">
                       <span className={cn('badge-apple border font-bold uppercase', sc.bg, sc.color)}>{sc.label}</span>
                     </td>
@@ -254,7 +254,7 @@ export default function InventoryPage() {
                         <div className="w-16 h-1.5 bg-ds-surface-sunken rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${item.health_score}%`, background: getHealthColor(item.health_score) }} />
                         </div>
-                        <span className="text-xs font-semibold font-mono tabular-nums" style={{ color: getHealthColor(item.health_score) }}>{item.health_score}</span>
+                        <span className="text-xs font-semibold font-sans tabular-nums" style={{ color: getHealthColor(item.health_score) }}>{item.health_score}</span>
                       </div>
                     </td>
                   </motion.tr>

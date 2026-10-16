@@ -233,10 +233,10 @@ export default function PipelinePage() {
       ) : (
         <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : "No data"} change={trainingHistory.length > 0 ? 0.9 : undefined} icon={Brain} gradient="bg-ds-blue-action" delay={0} />
-        <KPICard title="MAE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : "No data"} change={trainingHistory.length > 0 ? -4.3 : undefined} icon={Activity} gradient="bg-ds-purple-ai" delay={0.05} />
-        <KPICard title="RMSE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : "No data"} change={trainingHistory.length > 0 ? -4.2 : undefined} icon={Zap} gradient="bg-ds-amber-warning" delay={0.1} />
-        <KPICard title="Last Trained" value={trainingHistory[0]?.date || 'No data'} icon={Clock} gradient="bg-ds-teal-teal" delay={0.15} />
+        <KPICard title="Model Accuracy" value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : "—"} change={trainingHistory.length > 0 ? 0.9 : undefined} icon={Brain} gradient="bg-ds-blue-action" delay={0} />
+        <KPICard title="MAE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : "—"} change={trainingHistory.length > 0 ? -4.3 : undefined} icon={Activity} gradient="bg-ds-purple-ai" delay={0.05} />
+        <KPICard title="RMSE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : "—"} change={trainingHistory.length > 0 ? -4.2 : undefined} icon={Zap} gradient="bg-ds-amber-warning" delay={0.1} />
+        <KPICard title="Last Trained" value={trainingHistory[0]?.date || '—'} icon={Clock} gradient="bg-ds-teal-teal" delay={0.15} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -133,7 +133,7 @@ export default function ProductsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total Products" value={formatNumber(kpis?.total_products || 0)} icon={Boxes} gradient="gradient-primary" delay={0} />
         <KPICard title="Total Revenue" value={formatCurrency(kpis?.total_revenue || 0)} change={(kpis?.total_revenue || 0) > 0 ? 12.5 : undefined} icon={DollarSign} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Growth Rate" value={(kpis?.total_products || 0) > 0 ? "11.2%" : "No data"} change={(kpis?.total_products || 0) > 0 ? 3.4 : undefined} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Avg Growth Rate" value={(kpis?.total_products || 0) > 0 ? "11.2%" : "—"} change={(kpis?.total_products || 0) > 0 ? 3.4 : undefined} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
         <KPICard title="At Risk Products" value={String(kpis?.products_at_risk || 0)} change={(kpis?.products_at_risk || 0) > 0 ? -2 : undefined} icon={TrendingDown} gradient="gradient-danger" delay={0.15} />
       </div>
 
@@ -149,21 +149,21 @@ export default function ProductsPage() {
               ) : filteredProducts.map((p, i) => (
                 <motion.div key={p.name} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.25 + i * 0.04 }}
                   className="flex items-center gap-4 p-3.5 rounded-2xl bg-ds-surface-sunken/40 hover:bg-ds-surface-sunken transition-all duration-200 border border-ds-border/60 group">
-                  <span className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-mono flex-shrink-0',
+                  <span className={cn('w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold font-sans tabular-nums flex-shrink-0',
                     i < 3 ? 'bg-ds-blue-action text-white shadow-[var(--ds-raise-1)]' : 'bg-ds-surface border border-ds-border text-ds-text-secondary')}>{i + 1}</span>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold text-ds-text truncate">{p.name}</p>
                     </div>
                     <div className="flex items-center gap-3 mt-1">
-                      <span className="text-xs text-ds-text-secondary font-mono">{formatNumber(p.sales)} units</span>
+                      <span className="text-xs text-ds-text-secondary font-sans tabular-nums">{formatNumber(p.sales)} units</span>
                       <span className="text-xs text-ds-text-secondary">•</span>
-                      <span className="text-xs text-ds-text-secondary font-mono">{formatCurrency(p.revenue)}</span>
+                      <span className="text-xs text-ds-text-secondary font-sans tabular-nums">{formatCurrency(p.revenue)}</span>
                       <span className="text-xs text-ds-text-secondary">•</span>
                       <span className="badge-apple bg-ds-surface text-ds-text-secondary border border-ds-border">{p.category}</span>
                     </div>
                   </div>
-                  <div className={cn('badge-apple flex items-center gap-1 font-mono font-bold',
+                  <div className={cn('badge-apple flex items-center gap-1 font-sans font-semibold tabular-nums',
                     p.growth > 0 ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25' : 'bg-ds-red-danger/10 text-ds-red-danger border-ds-red-danger/25')}>
                     {p.growth > 0 ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
                     {p.growth > 0 ? '+' : ''}{p.growth}%
@@ -184,7 +184,7 @@ export default function ProductsPage() {
                     <div className="w-2.5 h-2.5 rounded-full" style={{ background: r.color }} />
                     <span className="text-sm font-medium text-ds-text">{r.name}</span>
                   </div>
-                  <span className="text-sm font-bold font-mono" style={{ color: r.color }}>{r.count}</span>
+                  <span className="text-sm font-bold font-sans tabular-nums tracking-[-0.03em]" style={{ color: r.color }}>{r.count}</span>
                 </div>
                 <div className="h-2.5 bg-ds-surface-sunken rounded-full overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${(r.count / Math.max(kpis?.total_products || 1, 1)) * 100}%` }}

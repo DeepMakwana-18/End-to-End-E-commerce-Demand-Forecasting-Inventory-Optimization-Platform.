@@ -196,7 +196,7 @@ function AnomalyTrendTimeline({ anomalies }: TrendTimelineProps) {
   const dataTotal = weekData.reduce((s, w) => s + w.total, 0);
   const dateRangeLabel = timestamps.length > 0
     ? `${new Date(rangeStart).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })} – ${new Date(rangeEnd).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })}`
-    : 'No data';
+    : '—';
 
   return (
     <div className="glass-card p-4">

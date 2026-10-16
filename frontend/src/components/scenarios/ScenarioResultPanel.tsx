@@ -25,7 +25,7 @@ function ChartTooltip({ active, payload, label }: any) {
           <span className="text-xs text-surface-300" style={{ color: entry.color }}>
             {entry.name}
           </span>
-          <span className="text-xs font-bold text-surface-100 font-mono">
+          <span className="text-xs font-bold text-surface-100 font-sans tabular-nums">
             {formatNumber(entry.value)}
           </span>
         </div>
@@ -85,7 +85,7 @@ function DeltaCard({
           <ArrowIcon className={cn('w-3 h-3', colorClass)} />
         )}
       </div>
-      <p className={cn('text-2xl font-black font-mono tabular-nums', colorClass)}>
+      <p className={cn('text-2xl font-bold font-sans tabular-nums tracking-[-0.03em]', colorClass)}>
         {isPositive && value > 0.05 ? '+' : ''}{typeof value === 'number' ? value.toFixed(1) : value}
         <span className="text-sm font-normal ml-0.5">{unit}</span>
       </p>

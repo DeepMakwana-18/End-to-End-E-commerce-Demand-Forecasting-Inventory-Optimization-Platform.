@@ -164,7 +164,7 @@ export default function AlertsPage() {
         <div>
           <h1 className="text-2xl font-bold text-ds-text tracking-tight">Alert Center</h1>
           <p className="text-sm text-ds-text-secondary mt-1">
-            Rule-driven inventory, anomaly &amp; model alerts — <span className="text-ds-blue-action font-semibold font-mono">{activeCount} active</span>
+            Rule-driven inventory, anomaly &amp; model alerts — <span className="font-semibold font-sans tabular-nums">{activeCount} active</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -302,22 +302,22 @@ export default function AlertsPage() {
                   {alert.extra_data && Object.keys(alert.extra_data).length > 0 && (
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
                       {alert.extra_data.current_stock !== undefined && (
-                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                        <span className="text-[11px] text-ds-text-secondary font-sans tabular-nums">
                           Stock: <span className="text-ds-text font-semibold">{String(alert.extra_data.current_stock)}</span>
                         </span>
                       )}
                       {alert.extra_data.reorder_point !== undefined && (
-                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                        <span className="text-[11px] text-ds-text-secondary font-sans tabular-nums">
                           Reorder at: <span className="text-ds-text font-semibold">{String(alert.extra_data.reorder_point)}</span>
                         </span>
                       )}
                       {alert.extra_data.accuracy !== undefined && (
-                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                        <span className="text-[11px] text-ds-text-secondary font-sans tabular-nums">
                           Accuracy: <span className="text-ds-red-danger font-semibold">{(Number(alert.extra_data.accuracy) * 100).toFixed(1)}%</span>
                         </span>
                       )}
                       {alert.extra_data.z_score !== undefined && (
-                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                        <span className="text-[11px] text-ds-text-secondary font-sans tabular-nums">
                           Z-score: <span className="text-ds-amber-warning font-semibold">{Number(alert.extra_data.z_score).toFixed(2)}</span>
                         </span>
                       )}
@@ -325,11 +325,11 @@ export default function AlertsPage() {
                   )}
 
                   <div className="flex items-center gap-3 mt-2">
-                    <p className="text-[11px] text-ds-text-secondary font-mono">
+                    <p className="text-[11px] text-ds-text-secondary font-sans tabular-nums">
                       {new Date(alert.created_at).toLocaleString()}
                     </p>
                     {alert.acknowledged_at && (
-                      <p className="text-[11px] text-ds-amber-warning font-mono">
+                      <p className="text-[11px] text-ds-amber-warning font-sans tabular-nums">
                         Ack: {new Date(alert.acknowledged_at).toLocaleString()}
                       </p>
                     )}

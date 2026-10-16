@@ -132,7 +132,7 @@ export default function DashboardPage() {
         />
         <KPICard
           title="Forecast Accuracy"
-          value={realAccuracy > 0 ? formatPercent(realAccuracy) : "No data"}
+          value={realAccuracy > 0 ? formatPercent(realAccuracy) : "—"}
           change={realAccuracy > 0 ? 2.1 : undefined}
           icon={Target}
           gradient="gradient-warning"
@@ -141,7 +141,7 @@ export default function DashboardPage() {
         />
         <KPICard
           title="Inventory Health"
-          value={kpis?.inventory_health ? formatPercent(kpis.inventory_health) : "No data"}
+          value={kpis?.inventory_health ? formatPercent(kpis.inventory_health) : "—"}
           change={(kpis?.inventory_health || 0) > 0 ? -1.8 : undefined}
           icon={HeartPulse}
           gradient="gradient-danger"
@@ -337,7 +337,7 @@ export default function DashboardPage() {
                     />
                   </div>
                 </div>
-                <span className="text-xs font-mono font-medium text-ds-text-secondary tabular-nums">
+                <span className="text-xs font-sans font-medium text-ds-text-secondary tabular-nums">
                   {formatNumber(product.value || 0)}
                 </span>
               </motion.div>

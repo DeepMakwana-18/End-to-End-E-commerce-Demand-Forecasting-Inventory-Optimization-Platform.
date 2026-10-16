@@ -107,7 +107,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Reports Generated" value={String(recentReports.length)} icon={FileText} gradient="gradient-primary" delay={0} />
         <KPICard title="This Month" value={String(reportsThisMonth)} change={reportsThisMonth > 0 ? 15.0 : undefined} icon={Calendar} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Gen Time" value={recentReports.length > 0 ? "2.8s" : "No data"} icon={Clock} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Avg Gen Time" value={recentReports.length > 0 ? "2.8s" : "—"} icon={Clock} gradient="gradient-warning" delay={0.1} />
         <KPICard title="Total Downloads" value={recentReports.length > 0 ? String(recentReports.length * 3 + 42) : "0"} icon={Download} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
@@ -145,7 +145,7 @@ export default function ReportsPage() {
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
         className="card-apple overflow-hidden shadow-[var(--ds-raise-1)]">
         <div className="p-4 border-b border-ds-border/60">
-          <h3 className="text-sm font-semibold text-ds-text">Recent Reports <span className="text-ds-text-secondary font-normal font-mono">({recentReports.length})</span></h3>
+          <h3 className="text-sm font-semibold text-ds-text">Recent Reports <span className="text-ds-text-secondary font-normal font-sans">({recentReports.length})</span></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -162,9 +162,9 @@ export default function ReportsPage() {
                   className="border-b border-ds-border/30 hover:bg-ds-surface-sunken/30 transition-colors">
                   <td className="px-4 py-3 text-sm font-semibold text-ds-text">{r.name}</td>
                   <td className="px-4 py-3"><span className="badge-apple bg-ds-blue-action/10 text-ds-blue-action border-ds-blue-action/25 font-bold uppercase">{r.type}</span></td>
-                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{r.format}</td>
-                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{r.size}</td>
-                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{r.date}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-sans">{r.format}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-sans tabular-nums">{r.size}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-sans tabular-nums">{r.date}</td>
                   <td className="px-4 py-3"><span className="flex items-center gap-1 text-[11px] font-medium text-ds-text-secondary"><Clock className="w-3.5 h-3.5" /> Not Available in v1.0</span></td>
                   <td className="px-4 py-3">
                     <button

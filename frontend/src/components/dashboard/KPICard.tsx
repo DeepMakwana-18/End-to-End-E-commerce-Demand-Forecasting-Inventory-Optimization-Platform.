@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 interface KPICardProps {
   title: string;
@@ -13,6 +14,7 @@ interface KPICardProps {
   gradient: string;
   glowColor?: string;
   delay?: number;
+  loading?: boolean;
 }
 
 export function KPICard({
@@ -24,10 +26,12 @@ export function KPICard({
   gradient,
   glowColor,
   delay = 0,
+  loading = false,
 }: KPICardProps) {
   const isPositive = change && change > 0;
   const isNegative = change && change < 0;
   const isNeutral = !change || change === 0;
+  const displayValue = !value || value === 'No data' ? '—' : value;
 
   return (
     <motion.div
@@ -50,9 +54,13 @@ export function KPICard({
           <p className="text-[11px] font-semibold text-ds-text-muted uppercase tracking-wider mb-2">
             {title}
           </p>
-          <p className="text-2xl font-bold text-ds-text-primary tracking-tight font-mono">
-            {value}
-          </p>
+          {loading ? (
+            <Skeleton className="h-8 w-24 my-0.5 rounded-lg" />
+          ) : (
+            <p className="text-2xl font-bold font-sans tabular-nums tracking-[-0.03em] text-ds-text-primary">
+              {displayValue}
+            </p>
+          )}
 
           {change !== undefined && (
             <div className="flex items-center gap-1.5 mt-2">
@@ -61,7 +69,7 @@ export function KPICard({
               {isNeutral && <Minus className="w-3.5 h-3.5 text-ds-text-muted" />}
               <span
                 className={cn(
-                  'text-xs font-semibold font-mono',
+                  'text-xs font-semibold font-sans tabular-nums tracking-[-0.01em]',
                   isPositive && 'text-ds-green-text',
                   isNegative && 'text-ds-red-text',
                   isNeutral && 'text-ds-text-muted'

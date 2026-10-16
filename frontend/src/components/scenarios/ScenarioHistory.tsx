@@ -146,7 +146,7 @@ export function ScenarioHistory({
                   {/* Delta badge */}
                   {delta !== null && s.status === 'completed' && (
                     <div className={cn(
-                      'flex items-center gap-0.5 text-[10px] font-bold font-mono px-1.5 py-0.5 rounded-md',
+                      'flex items-center gap-0.5 text-[10px] font-bold font-sans tabular-nums px-1.5 py-0.5 rounded-md',
                       delta > 0.5 ? 'text-accent-400 bg-accent-500/10' :
                       delta < -0.5 ? 'text-danger-400 bg-danger-500/10' :
                       'text-surface-400 bg-surface-800/60'

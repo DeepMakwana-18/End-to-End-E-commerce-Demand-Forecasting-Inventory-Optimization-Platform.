@@ -75,8 +75,8 @@ export default function CategoriesPage() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KPICard title="Total Categories" value={categoryData.length.toString()} icon={Layers} gradient="gradient-primary" delay={0} />
-        <KPICard title="Top Category" value={categoryData.length ? categoryData[0].name : 'No data'} icon={PieIcon} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Avg Growth" value={categoryData.length ? `${avgGrowth}%` : "No data"} change={categoryData.length > 0 ? (parseFloat(avgGrowth) > 0 ? 4.2 : -2.1) : undefined} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
+        <KPICard title="Top Category" value={categoryData.length ? categoryData[0].name : '—'} icon={PieIcon} gradient="gradient-accent" delay={0.05} />
+        <KPICard title="Avg Growth" value={categoryData.length ? `${avgGrowth}%` : "—"} change={categoryData.length > 0 ? (parseFloat(avgGrowth) > 0 ? 4.2 : -2.1) : undefined} icon={TrendingUp} gradient="gradient-warning" delay={0.1} />
         <KPICard title="Total Demand" value={formatNumber(categoryData.reduce((acc, c) => acc + c.demand, 0))} change={categoryData.length > 0 ? 8.1 : undefined} icon={BarChart3} gradient="bg-cyan-500" delay={0.15} />
       </div>
 
@@ -156,9 +156,9 @@ export default function CategoriesPage() {
               <div className="w-3 h-3 rounded-full" style={{ background: cat.color }} />
               <h4 className="text-sm font-semibold text-ds-text">{cat.name}</h4>
             </div>
-            <p className="text-xl font-bold font-mono text-ds-text tabular-nums">{formatNumber(cat.demand)}</p>
+            <p className="text-xl font-bold font-sans text-ds-text tabular-nums tracking-[-0.03em]">{formatNumber(cat.demand)}</p>
             <p className="text-xs text-ds-text-secondary mt-0.5">weekly demand</p>
-            <div className={cn('badge-apple mt-3 inline-flex font-mono font-bold', cat.growth > 0 ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25' : 'bg-ds-surface-sunken text-ds-text-secondary border-ds-border')}>
+            <div className={cn('badge-apple mt-3 inline-flex font-sans font-semibold tabular-nums', cat.growth > 0 ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25' : 'bg-ds-surface-sunken text-ds-text-secondary border-ds-border')}>
               {cat.growth > 0 ? '↑' : '—'} {Math.abs(cat.growth)}% growth
             </div>
           </motion.div>

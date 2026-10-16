@@ -83,7 +83,7 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.15 }}
           className={cn(
-            'text-sm font-bold font-mono tabular-nums min-w-[4rem] text-right',
+            'text-sm font-bold font-sans tabular-nums min-w-[4rem] text-right',
             valueColor
           )}
         >
