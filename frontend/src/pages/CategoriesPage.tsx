@@ -33,7 +33,7 @@ export default function CategoriesPage() {
 
   const rawCategories = categoriesResponse?.categories || [];
   
-  const CATEGORY_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#06b6d4', '#8b5cf6', '#ec4899'];
+  const CATEGORY_COLORS = ['#007AFF', '#5856D6', '#34C759', '#FF9500', '#AF52DE', '#FF2D55'];
   
   const totalSales = rawCategories.reduce((acc, c) => acc + c.total_sales, 0);
 
@@ -69,8 +69,8 @@ export default function CategoriesPage() {
     <div className="space-y-6">
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Category Analytics</h1>
-        <p className="text-sm text-surface-500 mt-1">Category demand distribution, growth & seasonal analysis</p>
+        <h1 className="text-2xl font-bold text-ds-text tracking-tight">Category Analytics</h1>
+        <p className="text-sm text-ds-text-secondary mt-1">Category demand distribution, growth & seasonal analysis</p>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -84,7 +84,7 @@ export default function CategoriesPage() {
         {/* Pie chart */}
         <ChartCard title="Category Demand Distribution" subtitle="Percentage share by category" delay={0.2}>
           {categoryData.length === 0 ? (
-            <div className="w-full h-[280px] flex items-center justify-center text-surface-500 text-sm">No data available</div>
+            <div className="w-full h-[280px] flex items-center justify-center text-ds-text-secondary text-sm">No data available</div>
           ) : (
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
@@ -92,7 +92,7 @@ export default function CategoriesPage() {
                 {categoryData.map((entry, i) => <Cell key={i} fill={entry.color} />)}
               </Pie>
               <Tooltip formatter={((value: any) => [`${value}%`, '']) as any}
-                contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px', fontSize: '12px' }} />
+                contentStyle={{ background: 'var(--ds-surface)', border: '1px solid var(--ds-border)', borderRadius: '16px', boxShadow: 'var(--ds-raise-2)', fontSize: '12px', color: 'var(--ds-text)' }} />
             </PieChart>
           </ResponsiveContainer>
           )}
@@ -100,7 +100,7 @@ export default function CategoriesPage() {
             {categoryData.map(c => (
               <div key={c.name} className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: c.color }} />
-                <span className="text-[11px] text-surface-400">{c.name} ({c.value}%)</span>
+                <span className="text-[11px] font-medium text-ds-text-secondary">{c.name} ({c.value}%)</span>
               </div>
             ))}
           </div>
@@ -109,18 +109,18 @@ export default function CategoriesPage() {
         {/* Radar chart */}
         <ChartCard title="Category Performance Radar" subtitle="Multi-metric comparison" delay={0.25}>
           {categoriesList.length === 0 ? (
-            <div className="w-full h-[310px] flex items-center justify-center text-surface-500 text-sm">No data available</div>
+            <div className="w-full h-[310px] flex items-center justify-center text-ds-text-secondary text-sm">No data available</div>
           ) : (
           <ResponsiveContainer width="100%" height={310}>
             <RadarChart cx="50%" cy="50%" outerRadius="70%" data={radarData}>
-              <PolarGrid stroke="rgba(63,63,70,0.5)" />
-              <PolarAngleAxis dataKey="metric" tick={{ fill: '#a1a1aa', fontSize: 11 }} />
+              <PolarGrid stroke="rgba(128,128,128,0.2)" />
+              <PolarAngleAxis dataKey="metric" tick={{ fill: '#8E8E93', fontSize: 11 }} />
               <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-              <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px' }} />
+              <Tooltip contentStyle={{ background: 'var(--ds-surface)', border: '1px solid var(--ds-border)', borderRadius: '16px', boxShadow: 'var(--ds-raise-2)', fontSize: '12px', color: 'var(--ds-text)' }} />
               {categoriesList.slice(0, 3).map((cat, i) => (
-                <Radar key={cat} name={cat} dataKey={cat} stroke={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} fillOpacity={0.3} />
+                <Radar key={cat} name={cat} dataKey={cat} stroke={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} fillOpacity={0.25} />
               ))}
-              <Legend wrapperStyle={{ fontSize: '11px', color: '#a1a1aa' }} />
+              <Legend wrapperStyle={{ fontSize: '11px', color: '#8E8E93' }} />
             </RadarChart>
           </ResponsiveContainer>
           )}
@@ -130,17 +130,17 @@ export default function CategoriesPage() {
       {/* Seasonal stacked bar chart */}
       <ChartCard title="Seasonal Category Demand" subtitle="Quarterly demand breakdown by category" delay={0.3}>
         {categoriesList.length === 0 ? (
-          <div className="w-full h-[300px] flex items-center justify-center text-surface-500 text-sm">No data available</div>
+          <div className="w-full h-[300px] flex items-center justify-center text-ds-text-secondary text-sm">No data available</div>
         ) : (
         <ResponsiveContainer width="100%" height={300}>
           <BarChart data={seasonalByCategory}>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
-            <XAxis dataKey="quarter" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px' }} />
-            <Legend wrapperStyle={{ fontSize: '11px', color: '#a1a1aa' }} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" vertical={false} />
+            <XAxis dataKey="quarter" tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: 'var(--ds-surface)', border: '1px solid var(--ds-border)', borderRadius: '16px', boxShadow: 'var(--ds-raise-2)', fontSize: '12px', color: 'var(--ds-text)' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', color: '#8E8E93' }} />
             {categoriesList.map((cat, i) => (
-              <Bar key={cat} dataKey={cat} stackId="a" fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} radius={i === categoriesList.length - 1 ? [4, 4, 0, 0] : [0, 0, 0, 0]} />
+              <Bar key={cat} dataKey={cat} stackId="a" fill={CATEGORY_COLORS[i % CATEGORY_COLORS.length]} radius={i === categoriesList.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]} />
             ))}
           </BarChart>
         </ResponsiveContainer>
@@ -151,15 +151,15 @@ export default function CategoriesPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         {categoryData.map((cat, i) => (
           <motion.div key={cat.name} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.35 + i * 0.05 }}
-            className="glass-card p-4 group hover:scale-[1.02] transition-transform cursor-default">
+            className="card-apple p-4.5 shadow-[var(--ds-raise-1)] hover:shadow-[var(--ds-raise-2)] transition-all duration-200 cursor-default">
             <div className="flex items-center gap-2 mb-3">
               <div className="w-3 h-3 rounded-full" style={{ background: cat.color }} />
-              <h4 className="text-sm font-semibold text-surface-200">{cat.name}</h4>
+              <h4 className="text-sm font-semibold text-ds-text">{cat.name}</h4>
             </div>
-            <p className="text-xl font-bold text-surface-50">{formatNumber(cat.demand)}</p>
-            <p className="text-xs text-surface-500 mt-0.5">weekly demand</p>
-            <div className={cn('mt-2 text-xs font-bold', cat.growth > 0 ? 'text-accent-400' : 'text-danger-400')}>
-              {cat.growth > 0 ? '↑' : '↓'} {Math.abs(cat.growth)}% growth
+            <p className="text-xl font-bold font-mono text-ds-text tabular-nums">{formatNumber(cat.demand)}</p>
+            <p className="text-xs text-ds-text-secondary mt-0.5">weekly demand</p>
+            <div className={cn('badge-apple mt-3 inline-flex font-mono font-bold', cat.growth > 0 ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25' : 'bg-ds-surface-sunken text-ds-text-secondary border-ds-border')}>
+              {cat.growth > 0 ? '↑' : '—'} {Math.abs(cat.growth)}% growth
             </div>
           </motion.div>
         ))}

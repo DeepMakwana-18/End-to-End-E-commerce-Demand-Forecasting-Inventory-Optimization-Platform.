@@ -31,54 +31,54 @@ export function KPICard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, delay, ease: [0.4, 0, 0.2, 1] }}
+      transition={{ duration: 0.4, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
-      className="glass-card p-5 relative overflow-hidden group cursor-default"
+      className="card-apple card-apple-hover p-5 relative overflow-hidden group cursor-default"
     >
-      {/* Gradient glow effect on hover */}
+      {/* Subtle glow effect on hover */}
       <div
         className={cn(
-          'absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-20 transition-opacity duration-500 blur-2xl',
+          'absolute -top-12 -right-12 w-32 h-32 rounded-full opacity-0 group-hover:opacity-15 transition-opacity duration-500 blur-2xl',
           gradient
         )}
       />
 
       <div className="flex items-start justify-between relative z-10">
         <div className="flex-1">
-          <p className="text-xs font-medium text-surface-500 uppercase tracking-wider mb-2">
+          <p className="text-[11px] font-semibold text-ds-text-muted uppercase tracking-wider mb-2">
             {title}
           </p>
-          <p className="text-2xl font-bold text-surface-50 tracking-tight">
+          <p className="text-2xl font-bold text-ds-text-primary tracking-tight font-mono">
             {value}
           </p>
 
           {change !== undefined && (
             <div className="flex items-center gap-1.5 mt-2">
-              {isPositive && <TrendingUp className="w-3.5 h-3.5 text-accent-400" />}
-              {isNegative && <TrendingDown className="w-3.5 h-3.5 text-danger-400" />}
-              {isNeutral && <Minus className="w-3.5 h-3.5 text-surface-500" />}
+              {isPositive && <TrendingUp className="w-3.5 h-3.5 text-ds-green" />}
+              {isNegative && <TrendingDown className="w-3.5 h-3.5 text-ds-red" />}
+              {isNeutral && <Minus className="w-3.5 h-3.5 text-ds-text-muted" />}
               <span
                 className={cn(
-                  'text-xs font-semibold',
-                  isPositive && 'text-accent-400',
-                  isNegative && 'text-danger-400',
-                  isNeutral && 'text-surface-500'
+                  'text-xs font-semibold font-mono',
+                  isPositive && 'text-ds-green-text',
+                  isNegative && 'text-ds-red-text',
+                  isNeutral && 'text-ds-text-muted'
                 )}
               >
                 {isPositive && '+'}
                 {change?.toFixed(1)}%
               </span>
-              <span className="text-xs text-surface-500">{changeLabel}</span>
+              <span className="text-xs text-ds-text-muted">{changeLabel}</span>
             </div>
           )}
         </div>
 
         <div
           className={cn(
-            'w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0',
-            'shadow-lg',
+            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0',
+            'shadow-md',
             gradient
           )}
           style={glowColor ? { boxShadow: `0 4px 14px ${glowColor}` } : undefined}

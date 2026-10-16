@@ -127,6 +127,8 @@ services:
     depends_on:
       - celery_worker
       - redis
+    ports:
+      - "5555:5555"
     networks:
       - df-network
 

@@ -53,11 +53,11 @@ const getTypeLabel = (type: string) => {
 const lifecycleBadge = (lifecycle: string) => {
   switch (lifecycle) {
     case 'acknowledged':
-      return 'bg-warning-500/10 text-warning-400 border-warning-500/20';
+      return 'bg-ds-amber-warning/10 text-ds-amber-warning border-ds-amber-warning/25';
     case 'resolved':
-      return 'bg-accent-500/10 text-accent-400 border-accent-500/20';
+      return 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25';
     default:
-      return 'bg-surface-800/60 text-surface-400 border-surface-700/50';
+      return 'bg-ds-surface-sunken text-ds-text-secondary border-ds-border';
   }
 };
 
@@ -162,9 +162,9 @@ export default function AlertsPage() {
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Alert Center</h1>
-          <p className="text-sm text-surface-500 mt-1">
-            Rule-driven inventory, anomaly &amp; model alerts — <span className="text-primary-400">{activeCount} active</span>
+          <h1 className="text-2xl font-bold text-ds-text tracking-tight">Alert Center</h1>
+          <p className="text-sm text-ds-text-secondary mt-1">
+            Rule-driven inventory, anomaly &amp; model alerts — <span className="text-ds-blue-action font-semibold font-mono">{activeCount} active</span>
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ export default function AlertsPage() {
             id="btn-scan-inventory"
             onClick={() => scanMutation.mutate()}
             disabled={scanMutation.isPending}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium bg-primary-500/10 text-primary-400 border border-primary-500/30 hover:bg-primary-500/20 transition disabled:opacity-50"
+            className="btn-apple btn-apple-soft text-xs h-9 px-3.5"
           >
             <RefreshCw className={cn('w-3.5 h-3.5', scanMutation.isPending && 'animate-spin')} />
             {scanMutation.isPending ? 'Scanning...' : 'Scan Inventory'}
@@ -184,15 +184,13 @@ export default function AlertsPage() {
               id="btn-filter-alerts"
               onClick={() => setShowFilters(!showFilters)}
               className={cn(
-                'flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition border',
-                showFilters || severityFilter !== 'all'
-                  ? 'bg-primary-500/10 text-primary-400 border-primary-500/30'
-                  : 'bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 border-surface-700/50'
+                'btn-apple btn-apple-soft text-xs h-9 px-3.5',
+                (showFilters || severityFilter !== 'all') && 'bg-ds-blue-action text-white'
               )}
             >
               <Filter className="w-3.5 h-3.5" />
               Filter
-              {severityFilter !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />}
+              {severityFilter !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
             </button>
             <AnimatePresence>
               {showFilters && (
@@ -200,21 +198,21 @@ export default function AlertsPage() {
                   initial={{ opacity: 0, y: 5, scale: 0.95 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-48 glass-card p-3 z-50 space-y-1"
+                  className="absolute right-0 top-full mt-2 w-48 card-apple p-2 z-50 space-y-1 shadow-[var(--ds-raise-3)] backdrop-blur-2xl"
                 >
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-surface-300">Severity</span>
-                    <button onClick={() => setShowFilters(false)} className="text-surface-500 hover:text-surface-300"><X className="w-3.5 h-3.5" /></button>
+                  <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-ds-border">
+                    <span className="text-xs font-semibold text-ds-text">Severity</span>
+                    <button onClick={() => setShowFilters(false)} className="w-6 h-6 rounded-full flex items-center justify-center text-ds-text-secondary hover:text-ds-text hover:bg-ds-surface-sunken"><X className="w-3.5 h-3.5" /></button>
                   </div>
                   {severityLevels.map(level => (
                     <button
                       key={level}
                       onClick={() => { setSeverityFilter(level); setShowFilters(false); }}
                       className={cn(
-                        'w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition capitalize',
+                        'w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 capitalize',
                         severityFilter === level
-                          ? 'bg-primary-500/10 text-primary-400'
-                          : 'text-surface-400 hover:bg-surface-800/60 hover:text-surface-200'
+                          ? 'bg-ds-blue-action text-white'
+                          : 'text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text'
                       )}
                     >
                       {level === 'all' ? 'All Severities' : level}
@@ -238,17 +236,17 @@ export default function AlertsPage() {
       {/* Alert List */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="glass-card p-8 text-center">
-            <RefreshCw className="w-6 h-6 text-primary-400 animate-spin mx-auto mb-2" />
-            <p className="text-sm text-surface-400">Loading alerts...</p>
+          <div className="card-apple p-8 text-center shadow-[var(--ds-raise-1)]">
+            <RefreshCw className="w-6 h-6 text-ds-blue-action animate-spin mx-auto mb-2" />
+            <p className="text-sm text-ds-text-secondary">Loading alerts...</p>
           </div>
         ) : alerts.length === 0 ? (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="glass-card p-8 text-center">
-            <CheckCircle2 className="w-10 h-10 text-accent-500 mx-auto mb-3" />
-            <p className="text-sm text-surface-400">
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card-apple p-8 text-center shadow-[var(--ds-raise-1)]">
+            <CheckCircle2 className="w-10 h-10 text-ds-emerald-success mx-auto mb-3" />
+            <p className="text-sm text-ds-text font-medium">
               No active alerts{severityFilter !== 'all' && ` with severity "${severityFilter}"`}
             </p>
-            <p className="text-xs text-surface-600 mt-1">All systems nominal</p>
+            <p className="text-xs text-ds-text-secondary mt-1">All systems nominal</p>
           </motion.div>
         ) : (
           alerts.map((alert, i) => {
@@ -266,72 +264,72 @@ export default function AlertsPage() {
                 exit={{ opacity: 0, x: -100 }}
                 transition={{ delay: 0.05 + i * 0.03 }}
                 className={cn(
-                  'glass-card p-4 flex items-start gap-4 group hover:border-surface-600/50 transition-colors',
-                  isAck && 'border-warning-500/20'
+                  'card-apple p-4 flex items-start gap-4 group hover:shadow-[var(--ds-raise-2)] transition-all duration-200 border border-ds-border/60',
+                  isAck && 'border-ds-amber-warning/30'
                 )}
               >
                 {/* Icon */}
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', getSeverityBg(alert.severity))}>
+                <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0', getSeverityBg(alert.severity))}>
                   <Icon className="w-5 h-5" />
                 </div>
 
                 {/* Content */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <h4 className="text-sm font-semibold text-surface-200">
+                    <h4 className="text-sm font-semibold text-ds-text">
                       {alert.product_name || 'System Alert'}
                     </h4>
                     {/* Severity badge */}
-                    <span className={cn('px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border', getSeverityBg(alert.severity))}>
+                    <span className={cn('badge-apple border font-bold uppercase', getSeverityBg(alert.severity))}>
                       {alert.severity}
                     </span>
                     {/* Type badge */}
-                    <span className="px-2 py-0.5 rounded-md text-[10px] font-medium bg-surface-800/60 text-surface-400 border border-surface-700/50">
+                    <span className="badge-apple bg-ds-surface-sunken text-ds-text-secondary border border-ds-border">
                       {getTypeLabel(alert.alert_type)}
                     </span>
                     {/* Lifecycle badge */}
                     {alert.lifecycle !== 'active' && (
-                      <span className={cn('flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border', lifecycleBadge(alert.lifecycle))}>
+                      <span className={cn('badge-apple flex items-center gap-1 font-bold border', lifecycleBadge(alert.lifecycle))}>
                         {alert.lifecycle === 'acknowledged' ? <Eye className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}
                         {alert.lifecycle.charAt(0).toUpperCase() + alert.lifecycle.slice(1)}
                       </span>
                     )}
                   </div>
 
-                  <p className="text-xs text-surface-400 leading-relaxed">{alert.message}</p>
+                  <p className="text-xs text-ds-text-secondary leading-relaxed">{alert.message}</p>
 
                   {/* Extra context from rule engine */}
                   {alert.extra_data && Object.keys(alert.extra_data).length > 0 && (
                     <div className="mt-2 flex items-center gap-3 flex-wrap">
                       {alert.extra_data.current_stock !== undefined && (
-                        <span className="text-[11px] text-surface-500">
-                          Stock: <span className="text-surface-300">{String(alert.extra_data.current_stock)}</span>
+                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                          Stock: <span className="text-ds-text font-semibold">{String(alert.extra_data.current_stock)}</span>
                         </span>
                       )}
                       {alert.extra_data.reorder_point !== undefined && (
-                        <span className="text-[11px] text-surface-500">
-                          Reorder at: <span className="text-surface-300">{String(alert.extra_data.reorder_point)}</span>
+                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                          Reorder at: <span className="text-ds-text font-semibold">{String(alert.extra_data.reorder_point)}</span>
                         </span>
                       )}
                       {alert.extra_data.accuracy !== undefined && (
-                        <span className="text-[11px] text-surface-500">
-                          Accuracy: <span className="text-danger-400">{(Number(alert.extra_data.accuracy) * 100).toFixed(1)}%</span>
+                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                          Accuracy: <span className="text-ds-red-danger font-semibold">{(Number(alert.extra_data.accuracy) * 100).toFixed(1)}%</span>
                         </span>
                       )}
                       {alert.extra_data.z_score !== undefined && (
-                        <span className="text-[11px] text-surface-500">
-                          Z-score: <span className="text-warning-400">{Number(alert.extra_data.z_score).toFixed(2)}</span>
+                        <span className="text-[11px] text-ds-text-secondary font-mono">
+                          Z-score: <span className="text-ds-amber-warning font-semibold">{Number(alert.extra_data.z_score).toFixed(2)}</span>
                         </span>
                       )}
                     </div>
                   )}
 
                   <div className="flex items-center gap-3 mt-2">
-                    <p className="text-[11px] text-surface-600">
+                    <p className="text-[11px] text-ds-text-secondary font-mono">
                       {new Date(alert.created_at).toLocaleString()}
                     </p>
                     {alert.acknowledged_at && (
-                      <p className="text-[11px] text-warning-600">
+                      <p className="text-[11px] text-ds-amber-warning font-mono">
                         Ack: {new Date(alert.acknowledged_at).toLocaleString()}
                       </p>
                     )}
@@ -346,7 +344,7 @@ export default function AlertsPage() {
                       id={`btn-ack-${alert.id}`}
                       onClick={() => acknowledgeMutation.mutate(alert.id)}
                       disabled={isPendingAck}
-                      className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-warning-500/10 text-warning-400 border border-warning-500/20 hover:bg-warning-500/20 transition disabled:opacity-50"
+                      className="btn-apple text-[11px] h-8 px-3 bg-ds-amber-warning/10 text-ds-amber-warning border border-ds-amber-warning/25 hover:bg-ds-amber-warning/20 transition-all duration-200 disabled:opacity-50"
                     >
                       {isPendingAck ? '...' : 'Acknowledge'}
                     </button>
@@ -356,7 +354,7 @@ export default function AlertsPage() {
                     id={`btn-resolve-${alert.id}`}
                     onClick={() => resolveMutation.mutate(alert.id)}
                     disabled={isPendingRes}
-                    className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold gradient-primary text-white shadow-lg shadow-primary-500/15 hover:shadow-xl transition disabled:opacity-50"
+                    className="btn-apple btn-apple-primary text-[11px] h-8 px-3 shadow-[var(--ds-raise-1)] disabled:opacity-50"
                   >
                     {isPendingRes ? '...' : 'Resolve'}
                   </button>
@@ -364,7 +362,7 @@ export default function AlertsPage() {
                   <button
                     id={`btn-dismiss-${alert.id}`}
                     onClick={() => dismissMutation.mutate(alert.id)}
-                    className="p-1.5 rounded-lg text-surface-500 hover:text-danger-400 hover:bg-danger-500/10 transition"
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-ds-text-secondary hover:text-ds-red-danger hover:bg-ds-red-danger/10 transition-colors"
                   >
                     <XCircle className="w-4 h-4" />
                   </button>

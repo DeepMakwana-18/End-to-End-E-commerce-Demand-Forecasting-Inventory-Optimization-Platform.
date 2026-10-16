@@ -20,12 +20,12 @@ import { forecastApi, type ForecastExplainResponse } from '@/services/api';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="glass-card p-3 !bg-surface-900/95 !border-surface-700/80 shadow-2xl">
-      <p className="text-xs font-medium text-surface-300 mb-1.5">{label}</p>
+    <div className="card-apple p-3 !bg-ds-surface/95 !border-ds-border/80 shadow-[var(--ds-raise-3)] backdrop-blur-xl">
+      <p className="text-xs font-medium text-ds-text-secondary mb-1.5">{label}</p>
       {payload.map((entry: any, i: number) => (
-        <p key={i} className="text-xs" style={{ color: entry.color || entry.stroke }}>
+        <p key={i} className="text-xs font-medium" style={{ color: entry.color || entry.stroke }}>
           <span className="font-semibold">{entry.name}: </span>
-          {formatNumber(entry.value)}
+          <span className="font-mono">{formatNumber(entry.value)}</span>
         </p>
       ))}
     </div>
@@ -183,31 +183,31 @@ export default function ForecastPage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Demand Forecasting</h1>
-          <p className="text-sm text-surface-500 mt-1">
+          <h1 className="text-2xl font-bold text-ds-text tracking-tight">Demand Forecasting</h1>
+          <p className="text-sm text-ds-text-secondary mt-1">
             ML-powered demand predictions with SHAP explainability
           </p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <button onClick={() => setShowFilters(!showFilters)}
-              className={cn("flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition border",
-                showFilters ? "bg-primary-500/10 text-primary-400 border-primary-500/30" : "bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 border-surface-700/50")}>
+              className={cn("btn-apple btn-apple-soft text-xs h-9 px-3.5",
+                showFilters && "bg-ds-blue-action text-white")}>
               <Filter className="w-3.5 h-3.5" /> Filters
-              {selectedCategory !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />}
+              {selectedCategory !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
             </button>
             <AnimatePresence>
               {showFilters && (
                 <motion.div initial={{ opacity: 0, y: 5, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-56 glass-card p-3 z-50 space-y-2">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-surface-300">Filter by Category</span>
-                    <button onClick={() => setShowFilters(false)} className="text-surface-500 hover:text-surface-300"><X className="w-3.5 h-3.5" /></button>
+                  className="absolute right-0 top-full mt-2 w-56 card-apple p-2 z-50 space-y-1 shadow-[var(--ds-raise-3)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-ds-border">
+                    <span className="text-xs font-semibold text-ds-text">Filter by Category</span>
+                    <button onClick={() => setShowFilters(false)} className="w-6 h-6 rounded-full flex items-center justify-center text-ds-text-secondary hover:text-ds-text hover:bg-ds-surface-sunken"><X className="w-3.5 h-3.5" /></button>
                   </div>
                   {['all', ...categoryForecasts.map(c => c.category)].map(cat => (
                     <button key={cat} onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
-                      className={cn("w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition",
-                        selectedCategory === cat ? "bg-primary-500/10 text-primary-400" : "text-surface-400 hover:bg-surface-800/60 hover:text-surface-200")}>
+                      className={cn("w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200",
+                        selectedCategory === cat ? "bg-ds-blue-action text-white" : "text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text")}>
                       {cat === 'all' ? 'All Categories' : cat}
                     </button>
                   ))}
@@ -216,7 +216,7 @@ export default function ForecastPage() {
             </AnimatePresence>
           </div>
           <button onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium gradient-primary text-white shadow-lg shadow-primary-500/20">
+            className="btn-apple btn-apple-primary text-xs h-9 px-3.5 shadow-[var(--ds-raise-1)]">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
         </div>
@@ -234,8 +234,8 @@ export default function ForecastPage() {
       <ChartCard title="Demand Forecast with Confidence Intervals"
         subtitle={isLoading ? "Training ML model and predicting..." : `Trained on: ${modelMetrics?.dataSource || 'synthetic'} (${modelMetrics?.trainingSamples || '?'} samples) | ${modelMetrics?.version || 'ML'} predictions (95% CI)`} delay={0.2}>
         {isLoading ? (
-          <div className="w-full h-[340px] flex flex-col items-center justify-center text-surface-500 gap-3">
-            <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
+          <div className="w-full h-[340px] flex flex-col items-center justify-center text-ds-text-secondary gap-3">
+            <Loader2 className="w-8 h-8 animate-spin text-ds-blue-action" />
             <p className="text-sm font-medium animate-pulse">Running ML Pipeline...</p>
           </div>
         ) : (
@@ -243,21 +243,21 @@ export default function ForecastPage() {
           <AreaChart data={forecastData}>
             <defs>
               <linearGradient id="ciGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#6366f1" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                <stop offset="5%" stopColor="#007AFF" stopOpacity={0.12} />
+                <stop offset="95%" stopColor="#007AFF" stopOpacity={0} />
               </linearGradient>
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
-            <XAxis dataKey="week" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" vertical={false} />
+            <XAxis dataKey="week" tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
             <Tooltip content={<CustomTooltip />} />
-            <Legend wrapperStyle={{ fontSize: '11px', color: '#a1a1aa' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', color: '#8E8E93' }} />
             <Area type="monotone" dataKey="upper" name="Upper CI" stroke="transparent" fill="url(#ciGrad)" />
             <Area type="monotone" dataKey="lower" name="Lower CI" stroke="transparent" fill="transparent" />
-            <Line type="monotone" dataKey="actual" name="Actual" stroke="#10b981" strokeWidth={2.5}
-              dot={{ fill: '#10b981', r: 3 }} connectNulls={false} />
-            <Line type="monotone" dataKey="predicted" name="Predicted" stroke="#6366f1" strokeWidth={2.5}
-              strokeDasharray="5 5" dot={{ fill: '#6366f1', r: 3 }} />
+            <Line type="monotone" dataKey="actual" name="Actual Demand" stroke="#007AFF" strokeWidth={2.5}
+              dot={{ fill: '#007AFF', r: 3 }} connectNulls={false} />
+            <Line type="monotone" dataKey="predicted" name="Predicted Demand" stroke="#5856D6" strokeWidth={2.5}
+              strokeDasharray="5 5" dot={{ fill: '#5856D6', r: 3 }} />
           </AreaChart>
         </ResponsiveContainer>
         )}
@@ -282,17 +282,17 @@ export default function ForecastPage() {
               <motion.div key={cat.category}
                 initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.3 + i * 0.04 }}
-                className="flex items-center gap-4 p-3 rounded-xl bg-surface-800/30 hover:bg-surface-800/50 transition">
+                className="flex items-center gap-4 p-3.5 rounded-2xl bg-ds-surface-sunken/40 hover:bg-ds-surface-sunken transition-all duration-200 border border-ds-border/60">
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-surface-200">{cat.category}</p>
+                  <p className="text-sm font-semibold text-ds-text">{cat.category}</p>
                   <div className="flex items-center gap-3 mt-1">
-                    <span className="text-xs text-surface-500">Current: {formatNumber(cat.current)}</span>
-                    <span className="text-xs text-surface-500">→</span>
-                    <span className="text-xs font-semibold text-surface-300">Predicted: {formatNumber(cat.predicted)}</span>
+                    <span className="text-xs text-ds-text-secondary font-mono">Current: {formatNumber(cat.current)}</span>
+                    <span className="text-xs text-ds-text-secondary">→</span>
+                    <span className="text-xs font-semibold text-ds-text font-mono">Predicted: {formatNumber(cat.predicted)}</span>
                   </div>
                 </div>
-                <div className={cn('flex items-center gap-1 text-xs font-bold',
-                  cat.change > 0 ? 'text-accent-400' : 'text-danger-400')}>
+                <div className={cn('badge-apple flex items-center gap-1 font-mono font-bold',
+                  cat.change > 0 ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25' : 'bg-ds-red-danger/10 text-ds-red-danger border-ds-red-danger/25')}>
                   {cat.change > 0 ? <ArrowUpRight className="w-3.5 h-3.5" /> : <ArrowDownRight className="w-3.5 h-3.5" />}
                   {Math.abs(cat.change)}%
                 </div>
@@ -305,13 +305,13 @@ export default function ForecastPage() {
         <ChartCard title="Seasonal Demand Pattern" subtitle="Monthly demand seasonality analysis" delay={0.3}>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={forecastData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
-              <XAxis dataKey="label" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
-              <Line type="monotone" dataKey="actual" name="Actual Demand" stroke="#f59e0b" strokeWidth={3}
-                dot={{ fill: '#f59e0b', r: 4 }} activeDot={{ r: 6 }} />
-              <Line type="monotone" dataKey="predicted" name="Predicted Demand" stroke="#10b981" strokeWidth={2} strokeDasharray="4 4" dot={false} />
+              <Line type="monotone" dataKey="actual" name="Actual Demand" stroke="#007AFF" strokeWidth={2.5}
+                dot={{ fill: '#007AFF', r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="predicted" name="Predicted Demand" stroke="#5856D6" strokeWidth={2} strokeDasharray="4 4" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>

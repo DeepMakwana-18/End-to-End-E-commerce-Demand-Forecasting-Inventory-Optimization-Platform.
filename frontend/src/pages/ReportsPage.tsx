@@ -88,17 +88,17 @@ export default function ReportsPage() {
       </AnimatePresence>
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Reports & Exports</h1>
-        <p className="text-sm text-surface-500 mt-1">Generate and download analytics reports in CSV, Excel, or PDF</p>
+        <h1 className="text-2xl font-bold text-ds-text tracking-tight">Reports & Exports</h1>
+        <p className="text-sm text-ds-text-secondary mt-1">Generate and download analytics reports in CSV, Excel, or PDF</p>
       </motion.div>
 
       {isEmptyOrg && (
-        <div className="glass-card p-6 border-warning-500/30 bg-warning-500/10 mb-6">
-          <div className="flex items-center gap-3 text-warning-400">
+        <div className="card-apple p-6 border-ds-amber-warning/30 bg-ds-amber-warning/10 mb-6">
+          <div className="flex items-center gap-3 text-ds-amber-warning">
             <Database className="w-5 h-5" />
             <h3 className="text-sm font-semibold">No Data Available</h3>
           </div>
-          <p className="text-sm text-surface-300 mt-2">
+          <p className="text-sm text-ds-text-secondary mt-2">
             Your organization has no datasets. Reports will become available after you upload a dataset in the Data Upload section.
           </p>
         </div>
@@ -113,28 +113,23 @@ export default function ReportsPage() {
 
       {/* Report generators */}
       <div>
-        <h2 className="text-lg font-semibold text-surface-200 mb-4">Generate New Report</h2>
+        <h2 className="text-lg font-semibold text-ds-text mb-4">Generate New Report</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {reportTypes.map((rt, i) => (
             <motion.div key={rt.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 + i * 0.05 }}
-              className="glass-card p-5 group hover:scale-[1.01] transition-transform">
+              className="card-apple p-5.5 shadow-[var(--ds-raise-1)] hover:shadow-[var(--ds-raise-2)] transition-all duration-200">
               <div className="flex items-start gap-4">
-                <div className={cn('w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center flex-shrink-0 shadow-lg', rt.color)}>
+                <div className={cn('w-12 h-12 rounded-2xl bg-gradient-to-br flex items-center justify-center flex-shrink-0 shadow-[var(--ds-raise-1)]', rt.color)}>
                   <rt.icon className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-sm font-semibold text-surface-200">{rt.title}</h3>
-                  <p className="text-xs text-surface-500 mt-1">{rt.desc}</p>
-                  <div className="flex items-center gap-2 mt-3">
+                  <h3 className="text-sm font-semibold text-ds-text">{rt.title}</h3>
+                  <p className="text-xs text-ds-text-secondary mt-1">{rt.desc}</p>
+                  <div className="flex items-center gap-2 mt-3.5">
                     {['CSV', 'Excel', 'PDF'].map(fmt => (
                       <button key={fmt} onClick={() => handleGenerate(rt.id, fmt)}
                         disabled={generating === rt.id}
-                        className={cn(
-                          'px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all',
-                          'bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 border border-surface-700/50',
-                          'hover:text-primary-400 hover:border-primary-500/30',
-                          'disabled:opacity-50 disabled:cursor-wait'
-                        )}>
+                        className="btn-apple btn-apple-soft text-[11px] h-8 px-3.5 disabled:opacity-50 disabled:cursor-wait">
                         {generating === rt.id && generatingFmt === fmt ? <Loader2 className="w-3 h-3 animate-spin" /> : fmt}
                       </button>
                     ))}
@@ -148,33 +143,33 @@ export default function ReportsPage() {
 
       {/* Recent reports table */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
-        className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-surface-800/50">
-          <h3 className="text-sm font-semibold text-surface-200">Recent Reports <span className="text-surface-500 font-normal">({recentReports.length})</span></h3>
+        className="card-apple overflow-hidden shadow-[var(--ds-raise-1)]">
+        <div className="p-4 border-b border-ds-border/60">
+          <h3 className="text-sm font-semibold text-ds-text">Recent Reports <span className="text-ds-text-secondary font-normal font-mono">({recentReports.length})</span></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-surface-800/50 bg-surface-900/50">
+              <tr className="border-b border-ds-border/60 bg-ds-surface-sunken/40">
                 {['Report Name', 'Type', 'Format', 'Size', 'Generated', 'Status', 'Action'].map(h => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-surface-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-ds-text-secondary uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {recentReports.map((r, i) => (
                 <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 + i * 0.03 }}
-                  className="border-b border-surface-800/30 hover:bg-surface-800/20 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-surface-200">{r.name}</td>
-                  <td className="px-4 py-3"><span className="px-2 py-1 rounded-md text-[10px] font-bold uppercase bg-primary-500/10 text-primary-400 border border-primary-500/20">{r.type}</span></td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{r.format}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{r.size}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{r.date}</td>
-                  <td className="px-4 py-3"><span className="flex items-center gap-1 text-[11px] font-medium text-surface-400"><Clock className="w-3.5 h-3.5" /> Not Available in v1.0</span></td>
+                  className="border-b border-ds-border/30 hover:bg-ds-surface-sunken/30 transition-colors">
+                  <td className="px-4 py-3 text-sm font-semibold text-ds-text">{r.name}</td>
+                  <td className="px-4 py-3"><span className="badge-apple bg-ds-blue-action/10 text-ds-blue-action border-ds-blue-action/25 font-bold uppercase">{r.type}</span></td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{r.format}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{r.size}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{r.date}</td>
+                  <td className="px-4 py-3"><span className="flex items-center gap-1 text-[11px] font-medium text-ds-text-secondary"><Clock className="w-3.5 h-3.5" /> Not Available in v1.0</span></td>
                   <td className="px-4 py-3">
                     <button
                       disabled={true}
-                      className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-surface-800/60 text-surface-400 transition border border-surface-700/50 disabled:opacity-60 disabled:cursor-not-allowed">
+                      className="btn-apple btn-apple-soft text-[11px] h-7 px-2.5 disabled:opacity-60 disabled:cursor-not-allowed">
                       <Download className="w-3 h-3" /> Deferred
                     </button>
                   </td>

@@ -87,7 +87,7 @@ interface Props {
 }
 
 const TH = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
-  <th className={cn('px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-widest text-surface-500', className)}>
+  <th className={cn('px-4 py-3 text-left text-[11px] font-semibold text-ds-text-muted bg-ds-surface-alt/60 border-b border-ds-hairline', className)}>
     {children}
   </th>
 );
@@ -107,10 +107,10 @@ export function AnomalyTable({
 
   if (isLoading) {
     return (
-      <div className="glass-card overflow-hidden">
+      <div className="card-apple overflow-hidden">
         <div className="p-4 space-y-2">
           {[1, 2, 3, 4, 5].map((i) => (
-            <div key={i} className="h-12 skeleton rounded-xl" />
+            <div key={i} className="h-12 skeleton rounded-2xl bg-ds-surface-sunken" />
           ))}
         </div>
       </div>
@@ -118,7 +118,7 @@ export function AnomalyTable({
   }
 
   return (
-    <div className="glass-card overflow-hidden">
+    <div className="card-apple overflow-hidden">
       {/* Bulk action bar */}
       <AnimatePresence>
         {someSelected && (
@@ -128,15 +128,15 @@ export function AnomalyTable({
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <div className="px-4 py-2.5 bg-primary-500/8 border-b border-primary-500/20 flex items-center gap-3">
-              <span className="text-xs font-semibold text-primary-400">
+            <div className="px-4 py-2.5 bg-ds-blue-surface border-b border-ds-hairline flex items-center gap-3">
+              <span className="text-xs font-semibold text-ds-blue-on-surface">
                 {selectedIds.size} selected
               </span>
               {activeSelected.length > 0 && (
                 <button
                   id="bulk-resolve-btn"
                   onClick={() => onResolve(activeSelected)}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-accent-500/15 text-accent-400 border border-accent-500/25 hover:bg-accent-500/25 transition-all"
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-ds-green-surface text-ds-green-text border border-ds-green/30 hover:opacity-90 transition-all shadow-sm"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   Resolve {activeSelected.length} active
@@ -205,21 +205,21 @@ export function AnomalyTable({
                         }
                       }}
                       className={cn(
-                        'border-b border-surface-800/40 cursor-pointer transition-colors duration-150',
+                        'border-b border-ds-hairline cursor-pointer transition-colors duration-150',
                         isSelected
-                          ? 'bg-primary-500/5'
-                          : 'hover:bg-surface-800/30',
-                        a.is_resolved && 'opacity-50'
+                          ? 'bg-ds-blue-surface/30'
+                          : 'hover:bg-ds-surface-alt/50',
+                        a.is_resolved && 'opacity-60'
                       )}
                     >
                       {/* Checkbox */}
                       <td className="px-4 py-3 w-10">
                         <button
                           onClick={(e) => { e.stopPropagation(); onSelectToggle(a.id); }}
-                          className="text-surface-500 hover:text-primary-400 transition-colors"
+                          className="text-ds-text-muted hover:text-ds-blue transition-colors"
                         >
                           {isSelected
-                            ? <CheckSquare className="w-4 h-4 text-primary-400" />
+                            ? <CheckSquare className="w-4 h-4 text-ds-blue" />
                             : <Square className="w-4 h-4" />}
                         </button>
                       </td>
@@ -239,30 +239,30 @@ export function AnomalyTable({
                         {deviationAbs != null ? (
                           <span className={cn(
                             'text-sm font-bold font-mono tabular-nums',
-                            isPositive ? 'text-accent-400' : 'text-danger-400'
+                            isPositive ? 'text-ds-green-text' : 'text-ds-red-text'
                           )}>
                             {isPositive ? '+' : '-'}{deviationAbs.toFixed(1)}%
                           </span>
-                        ) : <span className="text-surface-600">—</span>}
+                        ) : <span className="text-ds-text-muted">—</span>}
                       </td>
 
                       {/* Expected */}
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-sm text-surface-400 font-mono tabular-nums">
+                        <span className="text-sm text-ds-text-muted font-mono tabular-nums">
                           {a.expected_value != null ? formatNumber(a.expected_value) : '—'}
                         </span>
                       </td>
 
                       {/* Actual */}
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <span className="text-sm text-surface-200 font-mono tabular-nums font-semibold">
+                        <span className="text-sm text-ds-text-primary font-mono tabular-nums font-semibold">
                           {a.actual_value != null ? formatNumber(a.actual_value) : '—'}
                         </span>
                       </td>
 
                       {/* Event date */}
                       <td className="px-4 py-3 hidden lg:table-cell">
-                        <span className="text-xs text-surface-400">
+                        <span className="text-xs text-ds-text-muted font-mono">
                           {a.event_date ?? new Date(a.detected_at).toLocaleDateString()}
                         </span>
                       </td>
@@ -270,12 +270,12 @@ export function AnomalyTable({
                       {/* Status */}
                       <td className="px-4 py-3 hidden lg:table-cell">
                         {a.is_resolved ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-accent-400 font-semibold">
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] bg-ds-green-surface text-ds-green-text font-semibold border border-ds-green/30">
                             <CheckCircle2 className="w-3 h-3" />Resolved
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] text-danger-400 font-semibold">
-                            <span className="w-1.5 h-1.5 rounded-full bg-danger-400 animate-pulse" />
+                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] bg-ds-red-surface text-ds-red-text font-semibold border border-ds-red/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-ds-red animate-pulse" />
                             Active
                           </span>
                         )}
@@ -284,8 +284,8 @@ export function AnomalyTable({
                       {/* Expand chevron */}
                       <td className="px-2 py-3 w-8">
                         {isExpanded
-                          ? <ChevronUp className="w-3.5 h-3.5 text-primary-400" />
-                          : <ChevronDown className="w-3.5 h-3.5 text-surface-600" />}
+                          ? <ChevronUp className="w-3.5 h-3.5 text-ds-blue" />
+                          : <ChevronDown className="w-3.5 h-3.5 text-ds-text-muted" />}
                       </td>
                     </motion.tr>
 
@@ -303,8 +303,8 @@ export function AnomalyTable({
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-4 py-3 border-t border-surface-800/50 flex items-center justify-between">
-          <span className="text-xs text-surface-500">
+        <div className="px-4 py-3 border-t border-ds-hairline bg-ds-surface-alt/30 flex items-center justify-between">
+          <span className="text-xs text-ds-text-muted font-mono">
             {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total}
           </span>
           <div className="flex items-center gap-2">
@@ -312,18 +312,18 @@ export function AnomalyTable({
               id="prev-page-btn"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="w-7 h-7 flex items-center justify-center rounded-lg border border-surface-700/60 text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-ds-hairline bg-ds-surface-alt/60 text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-alt disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronLeft className="w-3.5 h-3.5" />
             </button>
-            <span className="text-xs text-surface-400 font-mono px-2">
+            <span className="text-xs text-ds-text-muted font-mono px-2">
               {page} / {totalPages}
             </span>
             <button
               id="next-page-btn"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="w-7 h-7 flex items-center justify-center rounded-lg border border-surface-700/60 text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+              className="w-8 h-8 flex items-center justify-center rounded-full border border-ds-hairline bg-ds-surface-alt/60 text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-alt disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               <ChevronRight className="w-3.5 h-3.5" />
             </button>

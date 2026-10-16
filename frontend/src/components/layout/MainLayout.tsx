@@ -10,12 +10,12 @@ export function MainLayout() {
   const { sidebarCollapsed } = useAppStore();
 
   return (
-    <div className="min-h-screen bg-surface-950">
+    <div className="min-h-screen bg-ds-canvas text-ds-text-primary">
       <Sidebar />
       <motion.div
         initial={false}
         animate={{ marginLeft: sidebarCollapsed ? 72 : 260 }}
-        transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ duration: 0.3, ease: [0.28, 0.11, 0.32, 1] }}
         className="flex flex-col min-h-screen"
       >
         <Header />

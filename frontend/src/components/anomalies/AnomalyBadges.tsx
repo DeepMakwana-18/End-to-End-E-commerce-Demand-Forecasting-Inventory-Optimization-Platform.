@@ -16,26 +16,26 @@ export const SEVERITY_CONFIG: Record<
   critical: {
     label: 'Critical',
     icon: Flame,
-    color: 'text-danger-400',
-    bg: 'bg-danger-500/10',
-    border: 'border-danger-500/30',
-    glow: 'shadow-danger-500/20',
+    color: 'text-ds-red-text',
+    bg: 'bg-ds-red-surface',
+    border: 'border-ds-red/30',
+    glow: 'shadow-ds-red/20',
   },
   medium: {
     label: 'Medium',
     icon: AlertTriangle,
-    color: 'text-warning-400',
-    bg: 'bg-warning-500/10',
-    border: 'border-warning-500/30',
-    glow: 'shadow-warning-500/20',
+    color: 'text-ds-orange-text',
+    bg: 'bg-ds-orange-surface',
+    border: 'border-ds-orange/30',
+    glow: 'shadow-ds-orange/20',
   },
   low: {
     label: 'Low',
     icon: Info,
-    color: 'text-primary-400',
-    bg: 'bg-primary-500/10',
-    border: 'border-primary-500/30',
-    glow: 'shadow-primary-500/20',
+    color: 'text-ds-blue-on-surface',
+    bg: 'bg-ds-blue-surface',
+    border: 'border-ds-blue/30',
+    glow: 'shadow-ds-blue/20',
   },
 };
 
@@ -48,26 +48,26 @@ export const TYPE_CONFIG: Record<
   demand_spike: {
     label: 'Demand Spike',
     icon: TrendingUp,
-    color: 'text-accent-400',
-    bg: 'bg-accent-500/10',
+    color: 'text-ds-green-text',
+    bg: 'bg-ds-green-surface',
   },
   demand_drop: {
     label: 'Demand Drop',
     icon: TrendingDown,
-    color: 'text-danger-400',
-    bg: 'bg-danger-500/10',
+    color: 'text-ds-red-text',
+    bg: 'bg-ds-red-surface',
   },
   inventory_shock: {
     label: 'Inventory Shock',
     icon: Package,
-    color: 'text-warning-400',
-    bg: 'bg-warning-500/10',
+    color: 'text-ds-orange-text',
+    bg: 'bg-ds-orange-surface',
   },
   forecast_miss: {
     label: 'Forecast Miss',
     icon: BarChart2,
-    color: 'text-primary-400',
-    bg: 'bg-primary-500/10',
+    color: 'text-ds-blue-on-surface',
+    bg: 'bg-ds-blue-surface',
   },
 };
 
@@ -79,11 +79,11 @@ export function SeverityBadge({ severity }: { severity: AnomalySeverity }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border',
         cfg.color, cfg.bg, cfg.border
       )}
     >
-      <Icon className="w-2.5 h-2.5" />
+      <Icon className="w-3 h-3" />
       {cfg.label}
     </span>
   );
@@ -97,11 +97,11 @@ export function TypeBadge({ type }: { type: AnomalyType }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2 py-0.5 rounded-lg text-[10px] font-semibold',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-ds-hairline',
         cfg.color, cfg.bg
       )}
     >
-      <Icon className="w-2.5 h-2.5" />
+      <Icon className="w-3 h-3" />
       {cfg.label}
     </span>
   );

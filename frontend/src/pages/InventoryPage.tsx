@@ -19,17 +19,17 @@ import {
 type StatusType = 'healthy' | 'low' | 'critical' | 'overstock';
 
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
-  healthy: { label: 'Healthy', color: 'text-accent-400', bg: 'bg-accent-500/10 border-accent-500/20' },
-  low: { label: 'Low Stock', color: 'text-warning-400', bg: 'bg-warning-500/10 border-warning-500/20' },
-  critical: { label: 'Critical', color: 'text-danger-400', bg: 'bg-danger-500/10 border-danger-500/20' },
-  overstock: { label: 'Overstock', color: 'text-primary-400', bg: 'bg-primary-500/10 border-primary-500/20' },
+  healthy: { label: 'Healthy', color: 'text-ds-emerald-success', bg: 'bg-ds-emerald-success/10 border-ds-emerald-success/25' },
+  low: { label: 'Low Stock', color: 'text-ds-amber-warning', bg: 'bg-ds-amber-warning/10 border-ds-amber-warning/25' },
+  critical: { label: 'Critical', color: 'text-ds-red-danger', bg: 'bg-ds-red-danger/10 border-ds-red-danger/25' },
+  overstock: { label: 'Overstock', color: 'text-ds-blue-action', bg: 'bg-ds-blue-action/10 border-ds-blue-action/25' },
 };
 
 const getHealthColor = (score: number) => {
-  if (score >= 80) return '#10b981';
-  if (score >= 60) return '#f59e0b';
-  if (score >= 30) return '#f97316';
-  return '#ef4444';
+  if (score >= 80) return '#34C759'; // Apple Green
+  if (score >= 60) return '#FF9500'; // Apple Amber
+  if (score >= 30) return '#FF9500';
+  return '#FF3B30'; // Apple Red
 };
 
 type SortKey = 'name' | 'current_stock' | 'health_score' | 'status';
@@ -130,29 +130,29 @@ export default function InventoryPage() {
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}
         className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Inventory Optimization</h1>
-          <p className="text-sm text-surface-500 mt-1">Safety stock, reorder points & inventory health monitoring</p>
+          <h1 className="text-2xl font-bold text-ds-text tracking-tight">Inventory Optimization</h1>
+          <p className="text-sm text-ds-text-secondary mt-1">Safety stock, reorder points & inventory health monitoring</p>
         </div>
         <div className="flex items-center gap-2">
           <div className="relative">
             <button onClick={() => setShowFilters(!showFilters)}
-              className={cn("flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium transition border",
-                showFilters || statusFilter !== 'all' ? "bg-primary-500/10 text-primary-400 border-primary-500/30" : "bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 border-surface-700/50")}>
+              className={cn("btn-apple btn-apple-soft text-xs h-9 px-3.5",
+                (showFilters || statusFilter !== 'all') && "bg-ds-blue-action text-white")}>
               <Filter className="w-3.5 h-3.5" /> Filter
-              {statusFilter !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-primary-400" />}
+              {statusFilter !== 'all' && <span className="w-1.5 h-1.5 rounded-full bg-white" />}
             </button>
             <AnimatePresence>
               {showFilters && (
                 <motion.div initial={{ opacity: 0, y: 5, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-48 glass-card p-3 z-50 space-y-1">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-semibold text-surface-300">Filter by Status</span>
-                    <button onClick={() => setShowFilters(false)} className="text-surface-500 hover:text-surface-300"><X className="w-3.5 h-3.5" /></button>
+                  className="absolute right-0 top-full mt-2 w-48 card-apple p-2 z-50 space-y-1 shadow-[var(--ds-raise-3)] backdrop-blur-2xl">
+                  <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-ds-border">
+                    <span className="text-xs font-semibold text-ds-text">Filter by Status</span>
+                    <button onClick={() => setShowFilters(false)} className="w-6 h-6 rounded-full flex items-center justify-center text-ds-text-secondary hover:text-ds-text hover:bg-ds-surface-sunken"><X className="w-3.5 h-3.5" /></button>
                   </div>
                   {['all', 'healthy', 'low', 'critical', 'overstock'].map(s => (
                     <button key={s} onClick={() => { setStatusFilter(s); setShowFilters(false); }}
-                      className={cn("w-full text-left px-3 py-2 rounded-lg text-xs font-medium transition capitalize",
-                        statusFilter === s ? "bg-primary-500/10 text-primary-400" : "text-surface-400 hover:bg-surface-800/60 hover:text-surface-200")}>
+                      className={cn("w-full text-left px-3 py-2 rounded-xl text-xs font-medium transition-all duration-200 capitalize",
+                        statusFilter === s ? "bg-ds-blue-action text-white" : "text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text")}>
                       {s === 'all' ? 'All Statuses' : statusConfig[s]?.label || s}
                     </button>
                   ))}
@@ -161,7 +161,7 @@ export default function InventoryPage() {
             </AnimatePresence>
           </div>
           <button onClick={handleExport}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-medium gradient-primary text-white shadow-lg shadow-primary-500/20">
+            className="btn-apple btn-apple-primary text-xs h-9 px-3.5 shadow-[var(--ds-raise-1)]">
             <Download className="w-3.5 h-3.5" /> Export
           </button>
         </div>
@@ -179,11 +179,11 @@ export default function InventoryPage() {
       <ChartCard title="Inventory Health Scores" subtitle={`Per-product health score (0-100)${statusFilter !== 'all' ? ` — ${statusConfig[statusFilter]?.label}` : ''}`} delay={0.2}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={healthChartData} layout="vertical">
-            <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" horizontal={false} />
-            <XAxis type="number" domain={[0, 100]} tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#a1a1aa', fontSize: 11 }} axisLine={false} tickLine={false} />
-            <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px', fontSize: '12px' }} />
-            <Bar dataKey="score" name="Health Score" radius={[0, 6, 6, 0]} maxBarSize={20}>
+            <CartesianGrid strokeDasharray="3 3" stroke="rgba(128,128,128,0.15)" horizontal={false} />
+            <XAxis type="number" domain={[0, 100]} tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <YAxis type="category" dataKey="name" width={120} tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={{ background: 'var(--ds-surface)', border: '1px solid var(--ds-border)', borderRadius: '16px', boxShadow: 'var(--ds-raise-2)', fontSize: '12px', color: 'var(--ds-text)' }} />
+            <Bar dataKey="score" name="Health Score" radius={[0, 8, 8, 0]} maxBarSize={20}>
               {healthChartData.map((entry, i) => (
                 <Cell key={i} fill={getHealthColor(entry.score)} />
               ))}
@@ -194,28 +194,28 @@ export default function InventoryPage() {
 
       {/* Inventory Table */}
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
-        className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-surface-800/50 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-surface-200">
-            Inventory Items <span className="text-surface-500 font-normal">({filteredItems.length})</span>
+        className="card-apple overflow-hidden shadow-[var(--ds-raise-1)]">
+        <div className="p-4 border-b border-ds-border/60 flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-ds-text">
+            Inventory Items <span className="text-ds-text-secondary font-normal font-mono">({filteredItems.length})</span>
           </h3>
           <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
             <input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search products, SKU, category..."
-              className="w-full pl-9 pr-4 py-2 rounded-lg text-xs bg-surface-800/50 border border-surface-700/50 text-surface-300 placeholder:text-surface-600 focus:outline-none focus:ring-1 focus:ring-primary-500/30"
+              className="w-full pl-9 pr-4 py-2 rounded-full text-xs bg-ds-surface-sunken border border-ds-border text-ds-text placeholder:text-ds-text-secondary focus:outline-none focus:ring-2 focus:ring-ds-blue-action/25 transition-all duration-200"
             />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-surface-800/50 bg-surface-900/50">
+              <tr className="border-b border-ds-border/60 bg-ds-surface-sunken/40">
                 {([['Product', 'name'], ['SKU', ''], ['Category', ''], ['Current Stock', 'current_stock'], ['Safety Stock', ''], ['Reorder Point', ''], ['Rec. Order Qty', ''], ['Lead Time', ''], ['Status', 'status'], ['Health', 'health_score']] as [string, string][]).map(([h, key]) => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-surface-500 uppercase tracking-wider whitespace-nowrap">
-                    <div className={cn("flex items-center gap-1", key && "cursor-pointer hover:text-surface-300 transition")}
+                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-ds-text-secondary uppercase tracking-wider whitespace-nowrap">
+                    <div className={cn("flex items-center gap-1", key && "cursor-pointer hover:text-ds-text transition-colors")}
                       onClick={() => key && handleSort(key as SortKey)}>
                       {h}{key && sortIndicator(key as SortKey)} {key && <ArrowUpDown className="w-3 h-3" />}
                     </div>
@@ -226,7 +226,7 @@ export default function InventoryPage() {
             <tbody>
               {filteredItems.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-surface-500">
+                  <td colSpan={10} className="px-4 py-8 text-center text-sm text-ds-text-secondary">
                     No items found {searchTerm && `matching "${searchTerm}"`} {statusFilter !== 'all' && `with status "${statusConfig[statusFilter]?.label}"`}
                   </td>
                 </tr>
@@ -235,26 +235,26 @@ export default function InventoryPage() {
                 return (
                   <motion.tr key={item.id}
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.03 }}
-                    className="border-b border-surface-800/30 hover:bg-surface-800/20 transition-colors">
-                    <td className="px-4 py-3 text-sm font-medium text-surface-200 whitespace-nowrap">{item.name}</td>
-                    <td className="px-4 py-3 text-xs text-surface-400 font-mono">{item.sku}</td>
-                    <td className="px-4 py-3 text-xs text-surface-400">{item.category}</td>
-                    <td className={cn('px-4 py-3 text-sm font-semibold tabular-nums', sc.color)}>{formatNumber(item.current_stock)}</td>
-                    <td className="px-4 py-3 text-sm text-surface-300 tabular-nums">{formatNumber(item.safety_stock)}</td>
-                    <td className="px-4 py-3 text-sm text-surface-300 tabular-nums">{formatNumber(item.reorder_point)}</td>
-                    <td className="px-4 py-3 text-sm font-semibold text-surface-200 tabular-nums">
+                    className="border-b border-ds-border/30 hover:bg-ds-surface-sunken/30 transition-colors">
+                    <td className="px-4 py-3 text-sm font-semibold text-ds-text whitespace-nowrap">{item.name}</td>
+                    <td className="px-4 py-3 text-xs text-ds-text-secondary font-mono">{item.sku}</td>
+                    <td className="px-4 py-3 text-xs text-ds-text-secondary">{item.category}</td>
+                    <td className={cn('px-4 py-3 text-sm font-semibold font-mono tabular-nums', sc.color)}>{formatNumber(item.current_stock)}</td>
+                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-mono tabular-nums">{formatNumber(item.safety_stock)}</td>
+                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-mono tabular-nums">{formatNumber(item.reorder_point)}</td>
+                    <td className="px-4 py-3 text-sm font-semibold font-mono text-ds-text tabular-nums">
                       {item.recommended_qty > 0 ? formatNumber(item.recommended_qty) : '—'}
                     </td>
-                    <td className="px-4 py-3 text-sm text-surface-400">{item.lead_time}w</td>
+                    <td className="px-4 py-3 text-sm text-ds-text-secondary font-mono">{item.lead_time}w</td>
                     <td className="px-4 py-3">
-                      <span className={cn('px-2 py-1 rounded-md text-[10px] font-bold uppercase border', sc.bg, sc.color)}>{sc.label}</span>
+                      <span className={cn('badge-apple border font-bold uppercase', sc.bg, sc.color)}>{sc.label}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <div className="w-16 h-1.5 bg-surface-800/50 rounded-full overflow-hidden">
+                        <div className="w-16 h-1.5 bg-ds-surface-sunken rounded-full overflow-hidden">
                           <div className="h-full rounded-full" style={{ width: `${item.health_score}%`, background: getHealthColor(item.health_score) }} />
                         </div>
-                        <span className="text-xs font-semibold tabular-nums" style={{ color: getHealthColor(item.health_score) }}>{item.health_score}</span>
+                        <span className="text-xs font-semibold font-mono tabular-nums" style={{ color: getHealthColor(item.health_score) }}>{item.health_score}</span>
                       </div>
                     </td>
                   </motion.tr>

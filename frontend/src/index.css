@@ -1,6 +1,71 @@
 @import "tailwindcss";
+@import "./styles/design-tokens.css";
 
 @theme {
+  /* ---- Apple Modern Design System Tokens (§17/§18) ---- */
+  --color-ds-canvas: var(--ds-canvas);
+  --color-ds-surface: var(--ds-surface);
+  --color-ds-surface-alt: var(--ds-surface-alt);
+  --color-ds-surface-sunken: var(--ds-surface-sunken);
+  --color-ds-ink: var(--ds-ink);
+  --color-ds-hairline: var(--ds-hairline);
+  --color-ds-border-strong: var(--ds-border-strong);
+  --color-ds-border-control: var(--ds-border-control);
+  --color-ds-gray-400: var(--ds-gray-400);
+  --color-ds-gray-500: var(--ds-gray-500);
+
+  --color-ds-text-primary: var(--ds-text-primary);
+  --color-ds-text-secondary: var(--ds-text-secondary);
+  --color-ds-text-muted: var(--ds-text-muted);
+  --color-ds-text-disabled: var(--ds-text-disabled);
+  --color-ds-text-inverse: var(--ds-text-inverse);
+
+  --color-ds-blue: var(--ds-blue);
+  --color-ds-blue-action: var(--ds-blue-action);
+  --color-ds-blue-strong: var(--ds-blue-strong);
+  --color-ds-blue-text: var(--ds-blue-text);
+  --color-ds-blue-surface: var(--ds-blue-surface);
+  --color-ds-blue-on-surface: var(--ds-blue-on-surface);
+
+  --color-ds-green: var(--ds-green);
+  --color-ds-green-strong: var(--ds-green-strong);
+  --color-ds-green-surface: var(--ds-green-surface);
+  --color-ds-green-text: var(--ds-green-text);
+
+  --color-ds-orange: var(--ds-orange);
+  --color-ds-orange-strong: var(--ds-orange-strong);
+  --color-ds-orange-surface: var(--ds-orange-surface);
+  --color-ds-orange-text: var(--ds-orange-text);
+
+  --color-ds-red: var(--ds-red);
+  --color-ds-red-strong: var(--ds-red-strong);
+  --color-ds-red-surface: var(--ds-red-surface);
+  --color-ds-red-text: var(--ds-red-text);
+
+  --radius-ds-xs: var(--ds-r-xs);
+  --radius-ds-sm: var(--ds-r-sm);
+  --radius-ds-md: var(--ds-r-md);
+  --radius-ds-lg: var(--ds-r-lg);
+  --radius-ds-xl: var(--ds-r-xl);
+  --radius-ds-2xl: var(--ds-r-2xl);
+  --radius-ds-pill: var(--ds-r-pill);
+
+  --shadow-ds-raise-1: var(--ds-raise-1);
+  --shadow-ds-raise-2: var(--ds-raise-2);
+  --shadow-ds-raise-3: var(--ds-raise-3);
+  --shadow-ds-raise-4: var(--ds-raise-4);
+  --shadow-ds-inset-1: var(--ds-inset-1);
+  --shadow-ds-inset-2: var(--ds-inset-2);
+  --shadow-ds-press: var(--ds-press);
+  --shadow-ds-float-1: var(--ds-float-1);
+  --shadow-ds-float-2: var(--ds-float-2);
+  --shadow-ds-float-3: var(--ds-float-3);
+
+  --ease-ds-standard: var(--ds-ease-standard);
+  --ease-ds-out: var(--ds-ease-out);
+  --ease-ds-out-expo: var(--ds-ease-out-expo);
+  --ease-ds-sheet: var(--ds-ease-sheet);
+
   /* ---- Premium Enterprise Color Palette ---- */
   --color-primary-50: #eef2ff;
   --color-primary-100: #e0e7ff;
@@ -112,24 +177,153 @@
 
 /* ---- Component Utilities ---- */
 @layer utilities {
-  /* Glassmorphism card */
+  /* Glassmorphism card (Apple Modern Soft-Raised) */
   .glass-card {
-    @apply backdrop-blur-xl border rounded-2xl;
-    background: rgba(39, 39, 42, 0.6);
-    border-color: rgba(63, 63, 70, 0.5);
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.03),
-      0 4px 6px -1px rgba(0, 0, 0, 0.3),
-      0 2px 4px -2px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: var(--ds-surface-soft);
+    border: 1px solid var(--ds-hairline);
+    border-radius: var(--ds-r-xl);
+    box-shadow: var(--ds-raise-2);
   }
 
   .light .glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    border-color: rgba(228, 228, 231, 0.8);
-    box-shadow:
-      0 0 0 1px rgba(0, 0, 0, 0.03),
-      0 4px 6px -1px rgba(0, 0, 0, 0.07),
-      0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    background: var(--ds-surface-soft);
+    border: 1px solid var(--ds-hairline);
+    box-shadow: var(--ds-raise-2);
+  }
+
+  /* ---- Apple Modern Shared Utilities (DESIGN.md §8) ---- */
+  .btn-apple {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 44px;
+    padding: 0 22px;
+    border-radius: var(--ds-r-pill);
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.006em;
+    cursor: pointer;
+    transition: transform var(--ds-dur-base) var(--ds-ease-standard),
+                box-shadow var(--ds-dur-base) var(--ds-ease-standard),
+                background var(--ds-dur-fast) var(--ds-ease-standard);
+  }
+  .btn-apple:active {
+    transform: scale(0.97);
+    transition-duration: var(--ds-dur-instant);
+  }
+  .btn-apple-primary {
+    background: var(--ds-btn-primary-bg, var(--ds-ink));
+    color: var(--ds-btn-primary-text, var(--ds-text-inverse));
+    border: none;
+  }
+  .btn-apple-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  }
+  .btn-apple-accent {
+    background: var(--ds-blue-action);
+    color: #ffffff;
+    border: none;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);
+  }
+  .btn-apple-accent:hover {
+    background: var(--ds-blue-strong);
+    transform: translateY(-1px);
+  }
+  .btn-apple-soft {
+    background: var(--ds-surface-soft);
+    color: var(--ds-text-primary);
+    box-shadow: var(--ds-raise-2);
+    border: 1px solid var(--ds-hairline);
+  }
+  .btn-apple-soft:hover {
+    box-shadow: var(--ds-raise-3);
+    transform: translateY(-2px);
+  }
+  .btn-apple-soft:active {
+    box-shadow: var(--ds-press);
+  }
+
+  .input-apple {
+    height: 44px;
+    padding: 0 14px;
+    border-radius: var(--ds-r-sm);
+    background: var(--ds-surface-sunken);
+    box-shadow: var(--ds-inset-1);
+    border: 1px solid var(--ds-border-control);
+    color: var(--ds-text-primary);
+    font-size: 15px;
+    transition: border-color var(--ds-dur-fast), box-shadow var(--ds-dur-fast);
+  }
+  .input-apple::placeholder {
+    color: var(--ds-text-muted);
+  }
+  .input-apple:focus {
+    outline: none;
+    border-color: var(--ds-blue);
+    box-shadow: var(--ds-focus-ring);
+  }
+
+  .card-apple {
+    border-radius: var(--ds-r-xl);
+    background: var(--ds-surface-soft);
+    box-shadow: var(--ds-raise-2);
+    border: 1px solid var(--ds-hairline);
+    transition: transform var(--ds-dur-base) var(--ds-ease-standard),
+                box-shadow var(--ds-dur-base) var(--ds-ease-standard);
+  }
+  .card-apple-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--ds-raise-3);
+  }
+
+  /* Explicit elevation levels matching DESIGN.md §7 */
+  .card-raised-1 {
+    background: var(--ds-surface-soft);
+    border: 1px solid var(--ds-hairline);
+    border-radius: var(--ds-r-xl);
+    box-shadow: var(--ds-raise-1);
+    transition: transform var(--ds-dur-base) var(--ds-ease-standard),
+                box-shadow var(--ds-dur-base) var(--ds-ease-standard);
+  }
+  .card-raised-2 {
+    background: var(--ds-surface-soft);
+    border: 1px solid var(--ds-hairline);
+    border-radius: var(--ds-r-xl);
+    box-shadow: var(--ds-raise-2);
+    transition: transform var(--ds-dur-base) var(--ds-ease-standard),
+                box-shadow var(--ds-dur-base) var(--ds-ease-standard);
+  }
+  .card-raised-3 {
+    background: var(--ds-surface-soft);
+    border: 1px solid var(--ds-hairline);
+    border-radius: var(--ds-r-xl);
+    box-shadow: var(--ds-raise-3);
+    transition: transform var(--ds-dur-base) var(--ds-ease-standard),
+                box-shadow var(--ds-dur-base) var(--ds-ease-standard);
+  }
+  .card-raised-4 {
+    background: var(--ds-surface-soft);
+    border: 1px solid var(--ds-hairline);
+    border-radius: var(--ds-r-xl);
+    box-shadow: var(--ds-raise-4);
+  }
+
+  .badge-apple {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 10px;
+    border-radius: var(--ds-r-pill);
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    letter-spacing: -0.005em;
   }
 
   /* Premium gradient backgrounds */

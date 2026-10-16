@@ -52,27 +52,27 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated background */}
-      <div className="absolute inset-0 bg-surface-950">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary-500/10 rounded-full blur-[128px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent-500/10 rounded-full blur-[128px] animate-pulse" style={{ animationDelay: '1s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-600/5 rounded-full blur-[200px]" />
+    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-ds-canvas transition-colors duration-300">
+      {/* Animated background with Apple Modern subtle glow */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#007AFF]/10 rounded-full blur-[140px] animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#5856D6]/10 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '1.2s' }} />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#007AFF]/5 rounded-full blur-[200px]" />
       </div>
 
       {/* Grid pattern overlay */}
       <div
-        className="absolute inset-0 opacity-[0.03]"
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
-          backgroundImage: 'linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)',
-          backgroundSize: '60px 60px',
+          backgroundImage: 'linear-gradient(rgba(128,128,128,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.2) 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
         }}
       />
 
       <motion.div
-        initial={{ opacity: 0, y: 30, scale: 0.95 }}
+        initial={{ opacity: 0, y: 24, scale: 0.98 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
+        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
         className="w-full max-w-md relative z-10"
       >
         {/* Logo */}
@@ -80,33 +80,33 @@ export default function LoginPage() {
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ delay: 0.2, type: 'spring', stiffness: 200 }}
-            className="w-16 h-16 rounded-2xl gradient-primary flex items-center justify-center mx-auto shadow-2xl shadow-primary-500/30"
+            transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 20 }}
+            className="w-16 h-16 rounded-2xl bg-ds-blue-action flex items-center justify-center mx-auto shadow-[var(--ds-raise-2)] text-white"
           >
             <BarChart3 className="w-8 h-8 text-white" />
           </motion.div>
-          <h1 className="mt-5 text-2xl font-bold text-white tracking-tight">
+          <h1 className="mt-5 text-2xl font-bold text-ds-text tracking-tight">
             Titan Supply Chain AI
           </h1>
-          <p className="mt-1.5 text-sm text-surface-500">
+          <p className="mt-1.5 text-sm text-ds-text-secondary">
             Enterprise AI-Powered Demand Forecasting Platform
           </p>
         </div>
 
         {/* Login/Signup card */}
-        <div className="glass-card p-8">
-          <h2 className="text-lg font-semibold text-surface-50 mb-1">
+        <div className="card-apple p-8 sm:p-10 shadow-[var(--ds-raise-3)] backdrop-blur-2xl">
+          <h2 className="text-lg font-semibold text-ds-text mb-1">
             {isSignup ? 'Create your account' : 'Welcome back'}
           </h2>
-          <p className="text-sm text-surface-500 mb-6">
+          <p className="text-sm text-ds-text-secondary mb-6">
             {isSignup ? 'Start your 14-day free trial' : 'Sign in to your account to continue'}
           </p>
 
           {error && (
             <motion.div
-              initial={{ opacity: 0, y: -10 }}
+              initial={{ opacity: 0, y: -8 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 rounded-xl bg-danger-500/10 border border-danger-500/20 text-danger-400 text-sm"
+              className="mb-4 p-3 rounded-xl bg-ds-red-danger/10 border border-ds-red-danger/25 text-ds-red-danger text-sm font-medium"
             >
               {error}
             </motion.div>
@@ -124,9 +124,9 @@ export default function LoginPage() {
                 >
                   {/* Full Name */}
                   <div>
-                    <label className="block text-xs font-medium text-surface-400 mb-1.5">Full Name</label>
+                    <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Full Name</label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
                       <input
                         type="text"
                         value={name}
@@ -134,10 +134,10 @@ export default function LoginPage() {
                         placeholder="Jane Smith"
                         required={isSignup}
                         className={cn(
-                          'w-full pl-11 pr-4 py-3 rounded-xl text-sm',
-                          'bg-surface-800/50 border border-surface-700/50',
-                          'text-white placeholder:text-surface-600',
-                          'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+                          'w-full pl-11 pr-4 py-3 rounded-full text-sm',
+                          'bg-ds-surface-sunken border border-ds-border',
+                          'text-ds-text placeholder:text-ds-text-secondary',
+                          'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
                           'transition-all duration-200'
                         )}
                       />
@@ -146,9 +146,9 @@ export default function LoginPage() {
 
                   {/* Organization Name */}
                   <div>
-                    <label className="block text-xs font-medium text-surface-400 mb-1.5">Organization Name</label>
+                    <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Organization Name</label>
                     <div className="relative">
-                      <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
                       <input
                         type="text"
                         value={orgName}
@@ -156,10 +156,10 @@ export default function LoginPage() {
                         placeholder="Acme Corporation"
                         required={isSignup}
                         className={cn(
-                          'w-full pl-11 pr-4 py-3 rounded-xl text-sm',
-                          'bg-surface-800/50 border border-surface-700/50',
-                          'text-white placeholder:text-surface-600',
-                          'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+                          'w-full pl-11 pr-4 py-3 rounded-full text-sm',
+                          'bg-ds-surface-sunken border border-ds-border',
+                          'text-ds-text placeholder:text-ds-text-secondary',
+                          'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
                           'transition-all duration-200'
                         )}
                       />
@@ -171,9 +171,9 @@ export default function LoginPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-medium text-surface-400 mb-1.5">Email Address</label>
+              <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Email Address</label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
                 <input
                   type="email"
                   value={email}
@@ -181,10 +181,10 @@ export default function LoginPage() {
                   placeholder="you@company.com"
                   required
                   className={cn(
-                    'w-full pl-11 pr-4 py-3 rounded-xl text-sm',
-                    'bg-surface-800/50 border border-surface-700/50',
-                    'text-white placeholder:text-surface-600',
-                    'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+                    'w-full pl-11 pr-4 py-3 rounded-full text-sm',
+                    'bg-ds-surface-sunken border border-ds-border',
+                    'text-ds-text placeholder:text-ds-text-secondary',
+                    'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
                     'transition-all duration-200'
                   )}
                 />
@@ -193,9 +193,9 @@ export default function LoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-medium text-surface-400 mb-1.5">Password</label>
+              <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Password</label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
                 <input
                   type={showPassword ? 'text' : 'password'}
                   value={password}
@@ -203,17 +203,17 @@ export default function LoginPage() {
                   placeholder="Enter your password"
                   required
                   className={cn(
-                    'w-full pl-11 pr-12 py-3 rounded-xl text-sm',
-                    'bg-surface-800/50 border border-surface-700/50',
-                    'text-white placeholder:text-surface-600',
-                    'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+                    'w-full pl-11 pr-12 py-3 rounded-full text-sm',
+                    'bg-ds-surface-sunken border border-ds-border',
+                    'text-ds-text placeholder:text-ds-text-secondary',
+                    'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
                     'transition-all duration-200'
                   )}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ds-text-secondary hover:text-ds-text transition-colors"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
@@ -224,15 +224,8 @@ export default function LoginPage() {
             <motion.button
               type="submit"
               disabled={isLoading}
-              whileHover={{ scale: 1.01 }}
-              whileTap={{ scale: 0.99 }}
-              className={cn(
-                'w-full py-3 rounded-xl text-sm font-semibold text-white',
-                'gradient-primary shadow-lg shadow-primary-500/25',
-                'hover:shadow-xl hover:shadow-primary-500/30 transition-shadow',
-                'flex items-center justify-center gap-2',
-                'disabled:opacity-50 disabled:cursor-not-allowed'
-              )}
+              whileTap={{ scale: 0.98 }}
+              className="btn-apple btn-apple-primary w-full py-3.5 text-sm font-semibold justify-center shadow-[var(--ds-raise-1)] mt-2"
             >
               {isLoading ? (
                 <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -245,23 +238,25 @@ export default function LoginPage() {
           </form>
 
           {/* Toggle login/signup */}
-          <p className="mt-6 text-center text-sm text-surface-500">
+          <p className="mt-6 text-center text-sm text-ds-text-secondary">
             {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               type="button"
               onClick={() => { setIsSignup(!isSignup); setError(''); }}
-              className="text-primary-400 hover:text-primary-300 font-medium transition-colors"
+              className="text-ds-blue-action hover:underline font-medium transition-colors"
             >
               {isSignup ? 'Sign In' : 'Sign Up'}
             </button>
           </p>
 
-          <p className="mt-3 text-center text-xs text-surface-600">
-            Demo: admin@titan.demo / admin123
-          </p>
+          <div className="mt-4 text-center">
+            <span className="inline-block px-3 py-1 rounded-full text-xs font-mono bg-ds-surface-sunken border border-ds-border text-ds-text-secondary">
+              Demo: admin@titan.demo / admin123
+            </span>
+          </div>
         </div>
 
-        <p className="mt-6 text-center text-xs text-surface-600">
+        <p className="mt-6 text-center text-xs text-ds-text-secondary">
           © 2026 Titan Supply Chain AI. Enterprise-Grade Platform.
         </p>
       </motion.div>

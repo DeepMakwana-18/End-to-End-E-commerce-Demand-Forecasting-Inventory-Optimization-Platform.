@@ -211,20 +211,20 @@ export default function AnomaliesPage() {
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-surface-800/50 flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b border-ds-border/60 flex-shrink-0 bg-ds-surface/60 backdrop-blur-md"
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-danger flex items-center justify-center shadow-lg shadow-danger-500/20">
+          <div className="w-9 h-9 rounded-2xl bg-ds-red-danger flex items-center justify-center text-white shadow-[var(--ds-raise-1)]">
             <Activity className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-surface-50 flex items-center gap-2">
+            <h1 className="text-lg font-bold text-ds-text flex items-center gap-2">
               Anomaly Intelligence
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-400 font-semibold">
+              <span className="badge-apple bg-ds-blue-action/10 border-ds-blue-action/25 text-ds-blue-action font-semibold">
                 & Investigation Center
               </span>
             </h1>
-            <p className="text-xs text-surface-500 mt-0.5">
+            <p className="text-xs text-ds-text-secondary mt-0.5">
               Rolling z-score detection across demand, inventory & forecast data
             </p>
           </div>
@@ -234,7 +234,7 @@ export default function AnomaliesPage() {
           id="refresh-all-btn"
           onClick={handleRefresh}
           disabled={isLoadingList}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-surface-700/60 text-surface-400 hover:bg-surface-800/50 hover:text-surface-200 transition-all duration-200"
+          className="btn-apple btn-apple-soft text-xs h-9 px-3.5"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
           Refresh

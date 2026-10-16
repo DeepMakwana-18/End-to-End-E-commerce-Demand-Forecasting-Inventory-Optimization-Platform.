@@ -16,9 +16,11 @@ const initialUsers = [
 ];
 
 const roleBadge: Record<string, string> = {
-  admin: 'bg-primary-500/10 text-primary-400 border-primary-500/30',
-  editor: 'bg-accent-500/10 text-accent-400 border-accent-500/30',
-  viewer: 'bg-surface-500/10 text-surface-400 border-surface-500/30',
+  admin: 'bg-ds-blue-action/10 text-ds-blue-action border-ds-blue-action/25',
+  manager: 'bg-ds-purple-ai/10 text-ds-purple-ai border-ds-purple-ai/25',
+  analyst: 'bg-ds-teal-teal/10 text-ds-teal-teal border-ds-teal-teal/25',
+  editor: 'bg-ds-purple-ai/10 text-ds-purple-ai border-ds-purple-ai/25',
+  viewer: 'bg-ds-surface-sunken text-ds-text-secondary border-ds-border-subtle',
 };
 
 interface User {
@@ -101,7 +103,7 @@ export default function AdminUsersPage() {
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl glass-card !bg-accent-500/10 !border-accent-500/30 text-accent-400 text-sm font-medium flex items-center gap-2 shadow-2xl">
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-full card-raised-3 !bg-ds-emerald-success/15 !border-ds-emerald-success/30 text-ds-emerald-success text-sm font-medium flex items-center gap-2 shadow-2xl">
             <CheckCircle2 className="w-4 h-4" /> {toast}
           </motion.div>
         )}
@@ -111,29 +113,29 @@ export default function AdminUsersPage() {
       <AnimatePresence>
         {showAddModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-md"
             onClick={() => setShowAddModal(false)}>
-            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="glass-card p-6 w-full max-w-md mx-4" onClick={(e) => e.stopPropagation()}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="card-raised-2 p-6 w-full max-w-md mx-4 rounded-2xl border border-ds-border-subtle" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
-                <h3 className="text-lg font-semibold text-surface-50">Add New User</h3>
-                <button onClick={() => setShowAddModal(false)} className="text-surface-500 hover:text-surface-300"><X className="w-5 h-5" /></button>
+                <h3 className="text-lg font-semibold text-ds-text">Add New User</h3>
+                <button onClick={() => setShowAddModal(false)} className="text-ds-text-secondary hover:text-ds-text p-1 rounded-full hover:bg-ds-surface-sunken transition"><X className="w-5 h-5" /></button>
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs font-medium text-surface-400 mb-1.5">Full Name</label>
+                  <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Full Name</label>
                   <input value={newUser.name} onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
-                    placeholder="John Doe" className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-800/50 border border-surface-700/50 text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                    placeholder="John Doe" className="w-full px-4 py-2.5 rounded-xl text-sm bg-ds-surface-sunken border border-ds-border text-ds-text placeholder:text-ds-text-muted focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-surface-400 mb-1.5">Email Address</label>
+                  <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Email Address</label>
                   <input value={newUser.email} onChange={(e) => setNewUser({ ...newUser, email: e.target.value })} type="email"
-                    placeholder="john@company.com" className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-800/50 border border-surface-700/50 text-white placeholder:text-surface-600 focus:outline-none focus:ring-2 focus:ring-primary-500/30" />
+                    placeholder="john@company.com" className="w-full px-4 py-2.5 rounded-xl text-sm bg-ds-surface-sunken border border-ds-border text-ds-text placeholder:text-ds-text-muted focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30" />
                 </div>
                 <div>
-                  <label className="block text-xs font-medium text-surface-400 mb-1.5">Role</label>
+                  <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Role</label>
                   <select value={newUser.role} onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-surface-800/50 border border-surface-700/50 text-white focus:outline-none focus:ring-2 focus:ring-primary-500/30">
+                    className="w-full px-4 py-2.5 rounded-xl text-sm bg-ds-surface-sunken border border-ds-border text-ds-text focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30">
                     <option value="viewer">Viewer</option>
                     <option value="analyst">Analyst</option>
                     <option value="manager">Manager</option>
@@ -141,7 +143,7 @@ export default function AdminUsersPage() {
                   </select>
                 </div>
                 <button onClick={handleAddUser} disabled={!newUser.name || !newUser.email}
-                  className="w-full py-2.5 rounded-xl text-sm font-semibold gradient-primary text-white shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed">
+                  className="w-full py-2.5 rounded-full btn-apple btn-apple-primary text-sm font-semibold disabled:opacity-50 disabled:cursor-not-allowed mt-2">
                   Add User
                 </button>
               </div>
@@ -152,81 +154,81 @@ export default function AdminUsersPage() {
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">User Management</h1>
-          <p className="text-sm text-surface-500 mt-1">Manage users, roles, and permissions</p>
+          <h1 className="text-2xl font-bold text-ds-text tracking-tight">User Management</h1>
+          <p className="text-sm text-ds-text-secondary mt-1">Manage users, roles, and permissions</p>
         </div>
         <button onClick={() => setShowAddModal(true)}
-          className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold gradient-primary text-white shadow-lg shadow-primary-500/20">
+          className="btn-apple btn-apple-primary text-xs h-9 px-4 flex items-center gap-2">
           <UserPlus className="w-4 h-4" /> Add User
         </button>
       </motion.div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Total Users" value={String(users.length)} icon={Users} gradient="gradient-primary" delay={0} />
-        <KPICard title="Active Users" value={String(activeCount)} icon={Users} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="Admin Users" value={String(adminCount)} icon={Shield} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="New This Month" value="2" change={100} icon={UserPlus} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Total Users" value={String(users.length)} icon={Users} gradient="bg-ds-blue-action" delay={0} />
+        <KPICard title="Active Users" value={String(activeCount)} icon={Users} gradient="bg-ds-emerald-success" delay={0.05} />
+        <KPICard title="Admin Users" value={String(adminCount)} icon={Shield} gradient="bg-ds-purple-ai" delay={0.1} />
+        <KPICard title="New This Month" value="2" change={100} icon={UserPlus} gradient="bg-ds-teal-teal" delay={0.15} />
       </div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-        className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-surface-800/50 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-surface-200">All Users <span className="text-surface-500 font-normal">({filteredUsers.length})</span></h3>
+        className="card-raised-1 overflow-hidden rounded-2xl">
+        <div className="p-4 border-b border-ds-border-subtle flex items-center justify-between gap-4">
+          <h3 className="text-sm font-semibold text-ds-text">All Users <span className="text-ds-text-secondary font-normal">({filteredUsers.length})</span></h3>
           <div className="relative w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-muted" />
             <input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search users..." className="w-full pl-9 pr-4 py-2 rounded-lg text-xs bg-surface-800/50 border border-surface-700/50 text-surface-300 placeholder:text-surface-600 focus:outline-none focus:ring-1 focus:ring-primary-500/30" />
+              placeholder="Search users..." className="w-full pl-9 pr-4 py-1.5 rounded-full text-xs bg-ds-surface-sunken border border-ds-border text-ds-text placeholder:text-ds-text-muted focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 transition" />
           </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-surface-800/50 bg-surface-900/50">
+              <tr className="border-b border-ds-border-subtle bg-ds-surface-sunken/40">
                 {['User', 'Role', 'Status', 'Last Login', 'Created', ''].map(h => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-surface-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-ds-text-muted uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {filteredUsers.length === 0 ? (
-                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-surface-500">No users found matching "{searchTerm}"</td></tr>
+                <tr><td colSpan={6} className="px-4 py-8 text-center text-sm text-ds-text-muted">No users found matching "{searchTerm}"</td></tr>
               ) : filteredUsers.map((u, i) => (
                 <motion.tr key={u.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 + i * 0.03 }}
-                  className="border-b border-surface-800/30 hover:bg-surface-800/20 transition-colors">
+                  className="border-b border-ds-border-subtle/50 hover:bg-ds-surface-sunken/30 transition-colors">
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center text-white text-xs font-bold">{u.name.charAt(0)}</div>
+                      <div className="w-8 h-8 rounded-full bg-ds-blue-action/15 text-ds-blue-action flex items-center justify-center text-xs font-bold">{u.name.charAt(0)}</div>
                       <div>
-                        <p className="text-sm font-medium text-surface-200">{u.name}</p>
-                        <p className="text-[11px] text-surface-500 flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
+                        <p className="text-sm font-medium text-ds-text">{u.name}</p>
+                        <p className="text-[11px] text-ds-text-secondary flex items-center gap-1"><Mail className="w-3 h-3" />{u.email}</p>
                       </div>
                     </div>
                   </td>
-                  <td className="px-4 py-3"><span className={cn('px-2 py-1 rounded-md text-[10px] font-bold uppercase border', roleBadge[u.role])}>{u.role}</span></td>
+                  <td className="px-4 py-3"><span className={cn('px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border', roleBadge[u.role] || roleBadge.viewer)}>{u.role}</span></td>
                   <td className="px-4 py-3">
-                    <span className={cn('flex items-center gap-1.5 text-xs font-medium',
-                      u.status === 'active' ? 'text-accent-400' : 'text-surface-500')}>
-                      <span className={cn('w-1.5 h-1.5 rounded-full', u.status === 'active' ? 'bg-accent-400' : 'bg-surface-600')} />
+                    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium',
+                      u.status === 'active' ? 'bg-ds-emerald-success/10 text-ds-emerald-success' : 'bg-ds-surface-sunken text-ds-text-muted')}>
+                      <span className={cn('w-1.5 h-1.5 rounded-full', u.status === 'active' ? 'bg-ds-emerald-success' : 'bg-ds-text-muted')} />
                       {u.status === 'active' ? 'Active' : 'Inactive'}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{u.lastLogin}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400 flex items-center gap-1"><Calendar className="w-3 h-3" />{u.created}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary">{u.lastLogin}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary"><span className="flex items-center gap-1"><Calendar className="w-3 h-3 text-ds-text-muted" />{u.created}</span></td>
                   <td className="px-4 py-3 relative">
                     <button onClick={() => setMenuOpen(menuOpen === u.id ? null : u.id)}
-                      className="p-1.5 rounded-lg text-surface-500 hover:text-surface-300 hover:bg-surface-800/60 transition">
+                      className="p-1.5 rounded-full text-ds-text-secondary hover:text-ds-text hover:bg-ds-surface-sunken transition">
                       <MoreVertical className="w-4 h-4" />
                     </button>
                     <AnimatePresence>
                       {menuOpen === u.id && (
                         <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }}
-                          className="absolute right-4 top-full mt-1 w-40 glass-card py-1 z-50">
+                          className="absolute right-4 top-full mt-1 w-40 card-raised-2 py-1 rounded-xl shadow-xl border border-ds-border-subtle z-50">
                           <button onClick={() => handleToggleStatus(u.id)}
-                            className="w-full text-left px-4 py-2 text-xs text-surface-300 hover:bg-surface-800/60 transition">
+                            className="w-full text-left px-4 py-2 text-xs text-ds-text hover:bg-ds-surface-sunken transition">
                             {u.status === 'active' ? 'Deactivate' : 'Activate'}
                           </button>
                           <button onClick={() => handleDeleteUser(u.id)}
-                            className="w-full text-left px-4 py-2 text-xs text-danger-400 hover:bg-danger-500/10 transition">
+                            className="w-full text-left px-4 py-2 text-xs text-ds-red-danger hover:bg-ds-red-danger/10 transition">
                             Delete User
                           </button>
                         </motion.div>

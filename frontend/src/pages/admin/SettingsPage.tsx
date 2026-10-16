@@ -97,30 +97,30 @@ export default function SettingsPage() {
       </AnimatePresence>
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Settings</h1>
-        <p className="text-sm text-surface-500 mt-1">Platform configuration and preferences</p>
+        <h1 className="text-2xl font-bold text-ds-text tracking-tight">Settings</h1>
+        <p className="text-sm text-ds-text-secondary mt-1">Platform configuration and preferences</p>
       </motion.div>
 
       {settingSections.map((section, si) => (
         <motion.div key={section.title} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 + si * 0.05 }} className="glass-card overflow-hidden">
-          <div className="p-4 border-b border-surface-800/50 flex items-center gap-3">
-            <section.icon className="w-5 h-5 text-surface-400" />
-            <h3 className="text-sm font-semibold text-surface-200">{section.title}</h3>
+          transition={{ delay: 0.1 + si * 0.05 }} className="card-apple overflow-hidden shadow-[var(--ds-raise-1)]">
+          <div className="p-4.5 border-b border-ds-border/60 flex items-center gap-3 bg-ds-surface-sunken/40">
+            <section.icon className="w-5 h-5 text-ds-text-secondary" />
+            <h3 className="text-sm font-semibold text-ds-text">{section.title}</h3>
           </div>
-          <div className="divide-y divide-surface-800/30">
+          <div className="divide-y divide-ds-border/30">
             {section.settings.map((setting) => (
-              <div key={setting.label} className="px-4 py-4 flex items-center justify-between">
+              <div key={setting.label} className="px-5 py-4.5 flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-surface-200">{setting.label}</p>
-                  <p className="text-xs text-surface-500 mt-0.5">{setting.description}</p>
+                  <p className="text-sm font-semibold text-ds-text">{setting.label}</p>
+                  <p className="text-xs text-ds-text-secondary mt-0.5">{setting.description}</p>
                 </div>
                 {setting.type === 'theme' && (
-                  <div className="flex items-center gap-1 bg-surface-800/60 rounded-xl p-1 border border-surface-700/50">
+                  <div className="flex items-center gap-1 bg-ds-surface-sunken rounded-full p-1 border border-ds-border">
                     {(['dark', 'light', 'system'] as ThemeMode[]).map(t => (
                       <button key={t} onClick={() => setTheme(t)}
-                        className={cn('px-3 py-1.5 rounded-lg text-xs font-medium transition-all capitalize',
-                          theme === t ? 'gradient-primary text-white shadow-sm' : 'text-surface-400 hover:text-surface-200')}>
+                        className={cn('px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200 capitalize',
+                          theme === t ? 'bg-ds-blue-action text-white shadow-sm' : 'text-ds-text-secondary hover:text-ds-text')}>
                         {t}
                       </button>
                     ))}
@@ -128,8 +128,8 @@ export default function SettingsPage() {
                 )}
                 {setting.type === 'toggle' && setting.key && (
                   <button onClick={() => handleToggle(setting.key!)}
-                    className={cn('w-11 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/30',
-                      toggles[setting.key!] ? 'bg-primary-500' : 'bg-surface-700/50 border border-surface-600/50')}>
+                    className={cn('w-11 h-6 rounded-full relative transition-colors focus:outline-none focus:ring-2 focus:ring-ds-blue-action/25 cursor-pointer',
+                      toggles[setting.key!] ? 'bg-ds-blue-action' : 'bg-ds-surface-sunken border border-ds-border')}>
                     <div className={cn('w-4 h-4 rounded-full bg-white absolute top-1 transition-transform shadow-sm',
                       toggles[setting.key!] ? 'translate-x-[22px]' : 'translate-x-1')} />
                   </button>
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                   <select
                     value={selects[setting.key!] || setting.options?.[0]}
                     onChange={(e) => setSelects(prev => ({ ...prev, [setting.key!]: e.target.value }))}
-                    className="px-3 py-1.5 rounded-lg text-xs bg-surface-800/60 border border-surface-700/50 text-surface-300 focus:outline-none focus:ring-1 focus:ring-primary-500/30">
+                    className="px-3.5 py-1.5 rounded-full text-xs bg-ds-surface-sunken border border-ds-border text-ds-text focus:outline-none focus:border-ds-blue-action cursor-pointer">
                     {setting.options?.map(o => <option key={o} value={o}>{o}</option>)}
                   </select>
                 )}
@@ -150,7 +150,7 @@ export default function SettingsPage() {
 
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.4 }}>
         <button onClick={handleSave}
-          className="flex items-center gap-2 px-6 py-3 rounded-xl text-sm font-semibold gradient-primary text-white shadow-lg shadow-primary-500/20 hover:shadow-xl transition-shadow">
+          className="btn-apple btn-apple-primary px-6 py-3 text-sm font-semibold shadow-[var(--ds-raise-1)]">
           <Save className="w-4 h-4" /> Save Settings
         </button>
       </motion.div>

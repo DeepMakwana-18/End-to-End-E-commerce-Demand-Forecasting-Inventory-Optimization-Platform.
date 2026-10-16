@@ -197,7 +197,7 @@ export default function PipelinePage() {
       <AnimatePresence>
         {toast && (
           <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl glass-card !bg-accent-500/10 !border-accent-500/30 text-accent-400 text-sm font-medium flex items-center gap-2 shadow-2xl">
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-full card-raised-3 !bg-ds-emerald-success/15 !border-ds-emerald-success/30 text-ds-emerald-success text-sm font-medium flex items-center gap-2 shadow-2xl">
             <CheckCircle2 className="w-4 h-4" /> {toast}
           </motion.div>
         )}
@@ -205,17 +205,17 @@ export default function PipelinePage() {
 
       <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">ML Pipeline</h1>
-          <p className="text-sm text-surface-500 mt-1">XGBoost model training, monitoring & feature analysis</p>
+          <h1 className="text-2xl font-bold text-ds-text tracking-tight">ML Pipeline</h1>
+          <p className="text-sm text-ds-text-secondary mt-1">XGBoost model training, monitoring & feature analysis</p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={handleRetrain} disabled={isTraining || isPipelineRunning}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-surface-800/60 text-surface-300 hover:bg-surface-700/60 transition border border-surface-700/50 disabled:opacity-50 disabled:cursor-wait">
+            className="btn-apple btn-apple-soft text-xs h-9 px-4 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
             {isTraining ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
             {isTraining ? 'Training...' : 'Retrain'}
           </button>
           <button onClick={handleRunPipeline} disabled={isTraining || isPipelineRunning}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold gradient-primary text-white shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-wait">
+            className="btn-apple btn-apple-primary text-xs h-9 px-4 flex items-center gap-2 disabled:opacity-50 disabled:cursor-wait">
             {isPipelineRunning ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
             {isPipelineRunning ? 'Running...' : 'Run Pipeline'}
           </button>
@@ -223,20 +223,20 @@ export default function PipelinePage() {
       </motion.div>
 
       {!isLoading && trainingHistory.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-20 px-4 mt-8">
-          <Brain className="w-16 h-16 text-surface-600 mb-6" />
-          <h2 className="text-xl font-semibold text-surface-200 mb-2">No model has been trained yet.</h2>
-          <p className="text-surface-400 text-center max-w-md">
+        <div className="flex flex-col items-center justify-center py-20 px-4 mt-8 card-raised-1 rounded-2xl">
+          <Brain className="w-16 h-16 text-ds-text-muted mb-6" />
+          <h2 className="text-xl font-semibold text-ds-text mb-2">No model has been trained yet.</h2>
+          <p className="text-ds-text-secondary text-center max-w-md">
             Upload a dataset to automatically train your first demand forecasting model.
           </p>
         </div>
       ) : (
         <>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <KPICard title="Model Accuracy" value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : "No data"} change={trainingHistory.length > 0 ? 0.9 : undefined} icon={Brain} gradient="gradient-primary" delay={0} />
-        <KPICard title="MAE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : "No data"} change={trainingHistory.length > 0 ? -4.3 : undefined} icon={Activity} gradient="gradient-accent" delay={0.05} />
-        <KPICard title="RMSE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : "No data"} change={trainingHistory.length > 0 ? -4.2 : undefined} icon={Zap} gradient="gradient-warning" delay={0.1} />
-        <KPICard title="Last Trained" value={trainingHistory[0]?.date || 'No data'} icon={Clock} gradient="bg-cyan-500" delay={0.15} />
+        <KPICard title="Model Accuracy" value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : "No data"} change={trainingHistory.length > 0 ? 0.9 : undefined} icon={Brain} gradient="bg-ds-blue-action" delay={0} />
+        <KPICard title="MAE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : "No data"} change={trainingHistory.length > 0 ? -4.3 : undefined} icon={Activity} gradient="bg-ds-purple-ai" delay={0.05} />
+        <KPICard title="RMSE Score" value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : "No data"} change={trainingHistory.length > 0 ? -4.2 : undefined} icon={Zap} gradient="bg-ds-amber-warning" delay={0.1} />
+        <KPICard title="Last Trained" value={trainingHistory[0]?.date || 'No data'} icon={Clock} gradient="bg-ds-teal-teal" delay={0.15} />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -244,12 +244,12 @@ export default function PipelinePage() {
         <ChartCard title="Training Convergence" subtitle="MAE & RMSE over training iterations" delay={0.2}>
           <ResponsiveContainer width="100%" height={260}>
             <LineChart data={modelMetrics}>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(63,63,70,0.3)" />
-              <XAxis dataKey="epoch" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <Tooltip contentStyle={{ background: 'rgba(24,24,27,0.95)', border: '1px solid rgba(63,63,70,0.5)', borderRadius: '12px', fontSize: '12px' }} />
-              <Line type="monotone" dataKey="mae" name="MAE" stroke="#6366f1" strokeWidth={2.5} dot={{ r: 3 }} />
-              <Line type="monotone" dataKey="rmse" name="RMSE" stroke="#f59e0b" strokeWidth={2.5} dot={{ r: 3 }} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-border-subtle, rgba(120,120,128,0.15))" vertical={false} />
+              <XAxis dataKey="epoch" tick={{ fill: 'var(--ds-text-muted, #86868b)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: 'var(--ds-text-muted, #86868b)', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <Tooltip contentStyle={{ background: 'var(--ds-surface-elevated, #ffffff)', border: '1px solid var(--ds-border-subtle, rgba(120,120,128,0.2))', borderRadius: '12px', fontSize: '12px', boxShadow: 'var(--ds-raise-2)' }} />
+              <Line type="monotone" dataKey="mae" name="MAE" stroke="#007AFF" strokeWidth={2.5} dot={{ r: 3, fill: '#007AFF' }} />
+              <Line type="monotone" dataKey="rmse" name="RMSE" stroke="#FF9500" strokeWidth={2.5} dot={{ r: 3, fill: '#FF9500' }} />
             </LineChart>
           </ResponsiveContainer>
         </ChartCard>
@@ -260,13 +260,13 @@ export default function PipelinePage() {
             {featureImportance.map((f, i) => (
               <motion.div key={f.name} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 + i * 0.04 }}
                 className="flex items-center gap-3">
-                <span className="w-40 text-xs font-medium text-surface-300 font-mono truncate">{f.name}</span>
-                <div className="flex-1 h-2 bg-surface-800/50 rounded-full overflow-hidden">
+                <span className="w-40 text-xs font-medium text-ds-text font-mono truncate">{f.name}</span>
+                <div className="flex-1 h-2 bg-ds-surface-sunken rounded-full overflow-hidden">
                   <motion.div initial={{ width: 0 }} animate={{ width: `${(f.importance / (featureImportance[0]?.importance || 1)) * 100}%` }}
                     transition={{ duration: 0.8, delay: 0.4 + i * 0.05, ease: 'easeOut' }}
-                    className="h-full rounded-full gradient-primary" />
+                    className="h-full rounded-full bg-ds-blue-action" />
                 </div>
-                <span className="text-xs font-semibold text-surface-400 tabular-nums w-12 text-right">{(f.importance * 100).toFixed(1)}%</span>
+                <span className="text-xs font-semibold text-ds-text-secondary tabular-nums w-12 text-right">{(f.importance * 100).toFixed(1)}%</span>
               </motion.div>
             ))}
           </div>
@@ -274,32 +274,32 @@ export default function PipelinePage() {
       </div>
 
       {/* Training history table */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-surface-800/50">
-          <h3 className="text-sm font-semibold text-surface-200">Training History <span className="text-surface-500 font-normal">({trainingHistory.length} runs)</span></h3>
+      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }} className="card-raised-1 rounded-2xl overflow-hidden">
+        <div className="p-4 border-b border-ds-border-subtle">
+          <h3 className="text-sm font-semibold text-ds-text">Training History <span className="text-ds-text-secondary font-normal">({trainingHistory.length} runs)</span></h3>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-surface-800/50 bg-surface-900/50">
+              <tr className="border-b border-ds-border-subtle bg-ds-surface-sunken/40">
                 {['Version', 'Accuracy', 'MAE', 'RMSE', 'Duration', 'Date', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-surface-500 uppercase tracking-wider">{h}</th>
+                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-ds-text-muted uppercase tracking-wider">{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {trainingHistory.map((t, i) => (
                 <motion.tr key={t.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.35 + i * 0.03 }}
-                  className="border-b border-surface-800/30 hover:bg-surface-800/20 transition-colors">
-                  <td className="px-4 py-3 text-sm font-mono font-semibold text-primary-400">{t.version}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-accent-400">{t.accuracy}%</td>
-                  <td className="px-4 py-3 text-sm text-surface-300 tabular-nums">{t.mae}</td>
-                  <td className="px-4 py-3 text-sm text-surface-300 tabular-nums">{t.rmse}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{t.duration}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{t.date}</td>
+                  className="border-b border-ds-border-subtle/50 hover:bg-ds-surface-sunken/30 transition-colors">
+                  <td className="px-4 py-3 text-sm font-mono font-semibold text-ds-blue-action">{t.version}</td>
+                  <td className="px-4 py-3 text-sm font-bold text-ds-emerald-success">{t.accuracy}%</td>
+                  <td className="px-4 py-3 text-sm text-ds-text tabular-nums">{t.mae}</td>
+                  <td className="px-4 py-3 text-sm text-ds-text tabular-nums">{t.rmse}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary">{t.duration}</td>
+                  <td className="px-4 py-3 text-xs text-ds-text-secondary">{t.date}</td>
                   <td className="px-4 py-3">
-                    <span className={cn('px-2 py-1 rounded-md text-[10px] font-bold uppercase border',
-                      t.status === 'active' ? 'bg-accent-500/10 text-accent-400 border-accent-500/20' : 'bg-surface-700/50 text-surface-500 border-surface-600/50')}>
+                    <span className={cn('inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border',
+                      t.status === 'active' ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/20' : 'bg-ds-surface-sunken text-ds-text-muted border-ds-border-subtle')}>
                       {t.status === 'active' ? '● Active' : 'Archived'}
                     </span>
                   </td>

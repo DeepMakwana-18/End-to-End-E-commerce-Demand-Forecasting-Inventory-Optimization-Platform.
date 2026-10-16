@@ -1,0 +1,300 @@
+/**
+ * DESIGN.md — Apple Modern (Soft-Raised System)
+ * Design Tokens (§17 Light & §18 Dark)
+ *
+ * Theme wiring matches existing mechanism:
+ * - Default / :root / :root.dark = Dark Mode Tokens (§18)
+ * - :root.light = Light Mode Tokens (§17)
+ */
+
+/* ==========================================================================
+   1. DEFAULT & DARK THEME (:root, :root.dark) — from DESIGN.md §18
+   ========================================================================== */
+:root,
+:root.dark {
+  /* Neutrals */
+  --ds-canvas:           #000000;
+  --ds-surface:          #1C1C1E;
+  --ds-surface-alt:      #2C2C2E;
+  --ds-surface-sunken:   #111113;
+  --ds-ink:              #F5F5F7;
+  --ds-hairline:         rgba(255, 255, 255, 0.10);
+  --ds-border-strong:    #3A3A3C;
+  --ds-border-control:   #8E8E93;
+  --ds-gray-400:         #636366;
+  --ds-gray-500:         #98989D;
+
+  /* Text */
+  --ds-text-primary:     #F5F5F7;
+  --ds-text-secondary:   #EBEBF5;
+  --ds-text-muted:       #98989D;
+  --ds-text-disabled:    #636366;
+  --ds-text-inverse:     #FFFFFF;
+  --ds-btn-primary-bg:   #F5F5F7;
+  --ds-btn-primary-text: #1D1D1F;
+
+  /* Blue Accent */
+  --ds-blue:             #0A84FF;
+  --ds-blue-action:      #0071E3;
+  --ds-blue-strong:      #409CFF;
+  --ds-blue-text:        #64A9FF;
+  --ds-blue-surface:     rgba(10, 132, 255, 0.16);
+  --ds-blue-on-surface:  #99C8FF;
+
+  /* Semantic Status */
+  --ds-green:            #30D158;
+  --ds-green-strong:     #30D158;
+  --ds-green-surface:    rgba(48, 209, 88, 0.16);
+  --ds-green-text:       #7BE495;
+
+  --ds-orange:           #FF9F0A;
+  --ds-orange-strong:    #FF9F0A;
+  --ds-orange-surface:   rgba(255, 159, 10, 0.16);
+  --ds-orange-text:      #FFC266;
+
+  --ds-red:              #FF453A;
+  --ds-red-strong:       #FF453A;
+  --ds-red-surface:      rgba(255, 69, 58, 0.16);
+  --ds-red-text:         #FF8A82;
+
+  /* Materials */
+  --ds-surface-soft:     linear-gradient(145deg, #2C2C2E 0%, #1C1C1E 60%, #161618 100%);
+  --ds-mat-ink:          linear-gradient(160deg, #2C2C2E 0%, #1C1C1E 100%);
+  --ds-mat-gray:         linear-gradient(160deg, #636366 0%, #3A3A3C 100%);
+  --ds-mat-blue:         linear-gradient(160deg, #4DA3FF 0%, #007AFF 50%, #0060D6 100%);
+  --ds-glass:            rgba(28, 28, 30, 0.72);
+  --ds-glass-nav:        rgba(0, 0, 0, 0.72);
+  --ds-scrim:            rgba(0, 0, 0, 0.6);
+
+  /* Elevation (Soft-lit in dark mode) */
+  --ds-hl:               rgba(255, 255, 255, 0.06);
+  --ds-sd:               rgba(0, 0, 0, 0.65);
+  --ds-raise-1:          -2px -2px 6px var(--ds-hl), 2px 2px 8px var(--ds-sd);
+  --ds-raise-2:          -3px -3px 10px var(--ds-hl), 5px 5px 16px var(--ds-sd);
+  --ds-raise-3:          -5px -5px 16px var(--ds-hl), 10px 10px 26px var(--ds-sd);
+  --ds-raise-4:          -8px -8px 24px var(--ds-hl), 18px 18px 44px rgba(0, 0, 0, 0.85);
+  --ds-inset-1:          inset 1px 1px 3px var(--ds-sd), inset -1px -1px 3px var(--ds-hl);
+  --ds-inset-2:          inset 2px 2px 6px var(--ds-sd), inset -2px -2px 6px var(--ds-hl);
+  --ds-press:            inset 2px 2px 5px var(--ds-sd), inset -2px -2px 5px var(--ds-hl);
+  --ds-float-1:          0 4px 12px rgba(0, 0, 0, 0.35);
+  --ds-float-2:          0 12px 40px rgba(0, 0, 0, 0.50);
+  --ds-float-3:          0 24px 64px rgba(0, 0, 0, 0.60);
+  --ds-focus-ring:       0 0 0 2px var(--ds-canvas), 0 0 0 4px var(--ds-blue);
+
+  /* Radius tokens (fixed scale) */
+  --ds-r-xs:             8px;
+  --ds-r-sm:             12px;
+  --ds-r-md:             16px;
+  --ds-r-lg:             22px;
+  --ds-r-xl:             28px;
+  --ds-r-2xl:            36px;
+  --ds-r-pill:           999px;
+
+  /* Motion physics & durations */
+  --ds-ease-standard:    cubic-bezier(0.28, 0.11, 0.32, 1);
+  --ds-ease-out:         cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-sheet:       cubic-bezier(0.32, 0.72, 0, 1);
+  --ds-ease-in-out:      cubic-bezier(0.65, 0, 0.35, 1);
+  --ds-dur-instant:      100ms;
+  --ds-dur-fast:         160ms;
+  --ds-dur-base:         240ms;
+  --ds-dur-slow:         400ms;
+  --ds-dur-xslow:        700ms;
+  --ds-dur-hero:         1000ms;
+
+  /* Typography Stacks */
+  --ds-font-sans:        -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --ds-font-mono:        "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  /* Layout Containers */
+  --ds-container:        1200px;
+  --ds-container-wide:   1440px;
+  --ds-container-read:   680px;
+  --ds-container-form:   520px;
+  --ds-nav-h:            64px;
+
+  /* Direct Aliases for DESIGN.md Token Spec */
+  --canvas:              var(--ds-canvas);
+  --ink:                 var(--ds-ink);
+  --hairline:            var(--ds-hairline);
+  --border-strong:       var(--ds-border-strong);
+  --border-control:      var(--ds-border-control);
+  --gray-400:            var(--ds-gray-400);
+  --gray-500:            var(--ds-gray-500);
+
+  --text-primary:        var(--ds-text-primary);
+  --text-secondary:      var(--ds-text-secondary);
+  --text-muted:          var(--ds-text-muted);
+  --text-disabled:       var(--ds-text-disabled);
+  --text-inverse:        var(--ds-text-inverse);
+
+  --blue:                var(--ds-blue);
+  --blue-action:         var(--ds-blue-action);
+  --blue-strong:         var(--ds-blue-strong);
+  --blue-text:           var(--ds-blue-text);
+  --blue-surface:        var(--ds-blue-surface);
+  --blue-on-surface:     var(--ds-blue-on-surface);
+
+  --green:               var(--ds-green);
+  --green-strong:        var(--ds-green-strong);
+  --green-surface:       var(--ds-green-surface);
+  --green-text:          var(--ds-green-text);
+
+  --orange:              var(--ds-orange);
+  --orange-strong:       var(--ds-orange-strong);
+  --orange-surface:      var(--ds-orange-surface);
+  --orange-text:         var(--ds-orange-text);
+
+  --red:                 var(--ds-red);
+  --red-strong:          var(--ds-red-strong);
+  --red-surface:         var(--ds-red-surface);
+  --red-text:            var(--ds-red-text);
+
+  --surface-soft:        var(--ds-surface-soft);
+  --mat-ink:             var(--ds-mat-ink);
+  --mat-gray:            var(--ds-mat-gray);
+  --mat-blue:            var(--ds-mat-blue);
+  --glass:               var(--ds-glass);
+  --glass-nav:           var(--ds-glass-nav);
+  --scrim:               var(--ds-scrim);
+
+  --raise-1:             var(--ds-raise-1);
+  --raise-2:             var(--ds-raise-2);
+  --raise-3:             var(--ds-raise-3);
+  --raise-4:             var(--ds-raise-4);
+  --inset-1:             var(--ds-inset-1);
+  --inset-2:             var(--ds-inset-2);
+  --press:               var(--ds-press);
+  --float-1:             var(--ds-float-1);
+  --float-2:             var(--ds-float-2);
+  --float-3:             var(--ds-float-3);
+  --focus-ring:          var(--ds-focus-ring);
+
+  --r-xs:                var(--ds-r-xs);
+  --r-sm:                var(--ds-r-sm);
+  --r-md:                var(--ds-r-md);
+  --r-lg:                var(--ds-r-lg);
+  --r-xl:                var(--ds-r-xl);
+  --r-2xl:               var(--ds-r-2xl);
+  --r-pill:              var(--ds-r-pill);
+}
+
+/* ==========================================================================
+   2. LIGHT THEME (:root.light) — from DESIGN.md §17
+   ========================================================================== */
+:root.light {
+  /* Neutrals */
+  --ds-canvas:           #F5F5F7;
+  --ds-surface:          #FFFFFF;
+  --ds-surface-alt:      #EDEDF0;
+  --ds-surface-sunken:   #E8E8ED;
+  --ds-ink:              #1D1D1F;
+  --ds-hairline:         rgba(29, 29, 31, 0.08);
+  --ds-border-strong:    #D2D2D7;
+  --ds-border-control:   #86868B;
+  --ds-gray-400:         #AAAAAA;   /* decorative */
+  --ds-gray-500:         #86868B;   /* icons, large text */
+
+  /* Text */
+  --ds-text-primary:     #1D1D1F;
+  --ds-text-secondary:   #424245;
+  --ds-text-muted:       #6E6E73;
+  --ds-text-disabled:    #AAAAAA;
+  --ds-text-inverse:     #FFFFFF;
+  --ds-btn-primary-bg:   #1D1D1F;
+  --ds-btn-primary-text: #FFFFFF;
+
+  /* Blue Accent */
+  --ds-blue:             #007AFF;
+  --ds-blue-action:      #0071E3;
+  --ds-blue-strong:      #0058B8;
+  --ds-blue-text:        #0066CC;
+  --ds-blue-surface:     #E5F0FF;
+  --ds-blue-on-surface:  #0A4FA8;
+
+  /* Semantic Status */
+  --ds-green:            #34C759;
+  --ds-green-strong:     #248A3D;
+  --ds-green-surface:    #E3F6E8;
+  --ds-green-text:       #1E7B34;
+
+  --ds-orange:           #FF9500;
+  --ds-orange-strong:    #C25E00;
+  --ds-orange-surface:   #FFF1DB;
+  --ds-orange-text:      #9A5B00;
+
+  --ds-red:              #FF3B30;
+  --ds-red-strong:       #D70015;
+  --ds-red-surface:      #FFE8E6;
+  --ds-red-text:         #C4271B;
+
+  /* Materials */
+  --ds-surface-soft:     linear-gradient(145deg, #FFFFFF 0%, #F5F5F7 55%, #ECECEF 100%);
+  --ds-mat-ink:          linear-gradient(160deg, #3A3A3C 0%, #1D1D1F 55%, #000000 100%);
+  --ds-mat-gray:         linear-gradient(160deg, #C4C4C6 0%, #AAAAAA 55%, #8F8F92 100%);
+  --ds-mat-blue:         linear-gradient(160deg, #4DA3FF 0%, #007AFF 50%, #0060D6 100%);
+  --ds-glass:            rgba(255, 255, 255, 0.72);
+  --ds-glass-nav:        rgba(245, 245, 247, 0.72);
+  --ds-scrim:            rgba(29, 29, 31, 0.32);
+
+  /* Elevation (Soft-raised light from top-left) */
+  --ds-hl:               rgba(255, 255, 255, 0.95);
+  --ds-sd:               rgba(174, 174, 192, 0.32);
+  --ds-raise-1:          -3px -3px 8px var(--ds-hl), 3px 3px 10px var(--ds-sd);
+  --ds-raise-2:          -6px -6px 16px var(--ds-hl), 8px 8px 20px var(--ds-sd);
+  --ds-raise-3:          -10px -10px 28px var(--ds-hl), 14px 14px 32px var(--ds-sd);
+  --ds-raise-4:          -16px -16px 40px var(--ds-hl), 24px 24px 56px rgba(150, 150, 170, 0.36);
+  --ds-inset-1:          inset 2px 2px 5px var(--ds-sd), inset -2px -2px 5px var(--ds-hl);
+  --ds-inset-2:          inset 4px 4px 10px var(--ds-sd), inset -4px -4px 10px var(--ds-hl);
+  --ds-press:            inset 3px 3px 8px var(--ds-sd), inset -3px -3px 8px var(--ds-hl);
+  --ds-float-1:          0 4px 12px rgba(29, 29, 31, 0.08);
+  --ds-float-2:          0 12px 40px rgba(29, 29, 31, 0.12);
+  --ds-float-3:          0 24px 64px rgba(29, 29, 31, 0.18);
+  --ds-focus-ring:       0 0 0 2px var(--ds-canvas), 0 0 0 4px var(--ds-blue);
+}
+
+/* ==========================================================================
+   3. SAFE GLOBAL BASE STYLES (No layout, font, or color shift)
+   ========================================================================== */
+
+/* Universal Apple focus ring */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+/* Selection highlight */
+::selection {
+  background: #B3D4FF;
+  color: #1D1D1F;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast preference */
+@media (prefers-contrast: more) {
+  :root,
+  :root.dark,
+  :root.light {
+    --ds-hairline: var(--ds-border-control);
+    --ds-glass: var(--ds-surface);
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

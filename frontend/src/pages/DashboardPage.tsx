@@ -21,10 +21,10 @@ import api from '@/services/api';
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="glass-card p-3 !bg-surface-900/95 !border-surface-700/80 shadow-2xl">
-      <p className="text-xs font-medium text-surface-300 mb-1.5">{label}</p>
+    <div className="card-apple p-3 !bg-ds-surface/95 !border-ds-border/80 shadow-[var(--ds-raise-3)] backdrop-blur-xl">
+      <p className="text-xs font-medium text-ds-text-secondary mb-1.5">{label}</p>
       {payload.map((entry: any, i: number) => (
-        <p key={i} className="text-xs" style={{ color: entry.color }}>
+        <p key={i} className="text-xs font-medium" style={{ color: entry.color }}>
           <span className="font-semibold">{entry.name}: </span>
           {typeof entry.value === 'number' && entry.value > 10000
             ? formatCurrency(entry.value)
@@ -76,11 +76,11 @@ export default function DashboardPage() {
   const realAccuracy = kpis?.forecast_accuracy || 0;
 
   const inventoryHealthData = (charts?.inventory_health || []).map((entry: any) => {
-    let color = '#3f3f46';
-    if (entry.label === 'Healthy') color = '#10b981';
-    else if (entry.label === 'Low Stock') color = '#f59e0b';
-    else if (entry.label === 'Critical') color = '#ef4444';
-    else if (entry.label === 'Overstock') color = '#06b6d4';
+    let color = '#8E8E93';
+    if (entry.label === 'Healthy') color = '#34C759'; // Apple Green
+    else if (entry.label === 'Low Stock') color = '#FF9500'; // Apple Amber
+    else if (entry.label === 'Critical') color = '#FF3B30'; // Apple Red
+    else if (entry.label === 'Overstock') color = '#007AFF'; // Apple Blue
     
     return {
       ...entry,
@@ -98,13 +98,13 @@ export default function DashboardPage() {
         className="flex items-center justify-between"
       >
         <div>
-          <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Executive Dashboard</h1>
-          <p className="text-sm text-surface-500 mt-1">
+          <h1 className="text-2xl font-bold text-ds-text tracking-tight">Executive Dashboard</h1>
+          <p className="text-sm text-ds-text-secondary mt-1">
             AI-powered demand forecasting & inventory intelligence
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <span className="px-3 py-1.5 rounded-lg bg-accent-500/10 text-accent-400 text-xs font-semibold border border-accent-500/20">
+          <span className="badge-apple bg-ds-emerald-success/10 text-ds-emerald-success border border-ds-emerald-success/25 font-semibold">
             ● Live
           </span>
         </div>
@@ -194,41 +194,41 @@ export default function DashboardPage() {
             <AreaChart data={charts?.actual_vs_predicted || []}>
               <defs>
                 <linearGradient id="colorActual" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#007AFF" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#007AFF" stopOpacity={0.0} />
                 </linearGradient>
                 <linearGradient id="colorPredicted" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                  <stop offset="5%" stopColor="#5856D6" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#5856D6" stopOpacity={0.0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(63, 63, 70, 0.3)" />
-              <XAxis dataKey="label" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128, 128, 128, 0.15)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
               <Tooltip content={<CustomTooltip />} />
               <Legend
-                wrapperStyle={{ fontSize: '11px', color: '#a1a1aa' }}
+                wrapperStyle={{ fontSize: '11px', color: '#8E8E93' }}
               />
               <Area
                 type="monotone"
                 dataKey="actual"
                 name="Actual Demand"
-                stroke="#6366f1"
+                stroke="#007AFF"
                 strokeWidth={2.5}
                 fill="url(#colorActual)"
-                dot={{ fill: '#6366f1', r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5, stroke: '#6366f1', strokeWidth: 2, fill: '#1e1e22' }}
+                dot={{ fill: '#007AFF', r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 5, stroke: '#007AFF', strokeWidth: 2, fill: 'var(--ds-surface)' }}
               />
               <Area
                 type="monotone"
                 dataKey="predicted"
                 name="Predicted Demand"
-                stroke="#10b981"
+                stroke="#5856D6"
                 strokeWidth={2.5}
                 fill="url(#colorPredicted)"
                 strokeDasharray="5 5"
-                dot={{ fill: '#10b981', r: 3, strokeWidth: 0 }}
-                activeDot={{ r: 5, stroke: '#10b981', strokeWidth: 2, fill: '#1e1e22' }}
+                dot={{ fill: '#5856D6', r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 5, stroke: '#5856D6', strokeWidth: 2, fill: 'var(--ds-surface)' }}
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -243,20 +243,20 @@ export default function DashboardPage() {
             <BarChart data={charts?.revenue_trend || []}>
               <defs>
                 <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#6366f1" stopOpacity={1} />
-                  <stop offset="100%" stopColor="#8b5cf6" stopOpacity={0.6} />
+                  <stop offset="0%" stopColor="#007AFF" stopOpacity={1} />
+                  <stop offset="100%" stopColor="#5856D6" stopOpacity={0.8} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="rgba(63, 63, 70, 0.3)" />
-              <XAxis dataKey="label" tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fill: '#71717a', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
+              <CartesianGrid strokeDasharray="3 3" stroke="rgba(128, 128, 128, 0.15)" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fill: '#8E8E93', fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}K`} />
               <Tooltip content={<CustomTooltip />} />
               <Bar
                 dataKey="value"
                 name="Revenue"
                 fill="url(#barGradient)"
-                radius={[6, 6, 0, 0]}
-                maxBarSize={40}
+                radius={[8, 8, 0, 0]}
+                maxBarSize={36}
               />
             </BarChart>
           </ResponsiveContainer>
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                 cx="50%"
                 cy="50%"
                 innerRadius={60}
-                outerRadius={90}
+                outerRadius={88}
                 paddingAngle={4}
                 dataKey="value"
                 strokeWidth={0}
@@ -289,10 +289,12 @@ export default function DashboardPage() {
               <Tooltip
                 formatter={((value: any) => [`${value}%`, '']) as any}
                 contentStyle={{
-                  background: 'rgba(24, 24, 27, 0.95)',
-                  border: '1px solid rgba(63, 63, 70, 0.5)',
-                  borderRadius: '12px',
+                  background: 'var(--ds-surface)',
+                  border: '1px solid var(--ds-border)',
+                  borderRadius: '16px',
+                  boxShadow: 'var(--ds-raise-2)',
                   fontSize: '12px',
+                  color: 'var(--ds-text)',
                 }}
               />
             </PieChart>
@@ -301,7 +303,7 @@ export default function DashboardPage() {
             {inventoryHealthData.map((entry: any) => (
               <div key={entry.name} className="flex items-center gap-1.5">
                 <div className="w-2.5 h-2.5 rounded-full" style={{ background: entry.color }} />
-                <span className="text-[11px] text-surface-400">{entry.name}</span>
+                <span className="text-[11px] font-medium text-ds-text-secondary">{entry.name}</span>
               </div>
             ))}
           </div>
@@ -321,21 +323,21 @@ export default function DashboardPage() {
                 transition={{ delay: 0.4 + i * 0.05 }}
                 className="flex items-center gap-3"
               >
-                <span className="w-6 h-6 rounded-lg bg-surface-800/80 flex items-center justify-center text-[10px] font-bold text-surface-400">
+                <span className="w-6 h-6 rounded-full bg-ds-surface-sunken flex items-center justify-center text-[10px] font-bold text-ds-text-secondary border border-ds-border">
                   {i + 1}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-surface-200 truncate">{product.label}</p>
-                  <div className="mt-1 h-1.5 w-full bg-surface-800/50 rounded-full overflow-hidden">
+                  <p className="text-xs font-medium text-ds-text truncate">{product.label}</p>
+                  <div className="mt-1 h-1.5 w-full bg-ds-surface-sunken rounded-full overflow-hidden">
                     <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${((product.value || 0) / ((charts?.top_products?.[0]?.value) || 1)) * 100}%` }}
                       transition={{ duration: 0.8, delay: 0.5 + i * 0.05, ease: 'easeOut' }}
-                      className="h-full rounded-full gradient-primary"
+                      className="h-full rounded-full bg-ds-blue-action"
                     />
                   </div>
                 </div>
-                <span className="text-xs font-semibold text-surface-300 tabular-nums">
+                <span className="text-xs font-mono font-medium text-ds-text-secondary tabular-nums">
                   {formatNumber(product.value || 0)}
                 </span>
               </motion.div>
@@ -355,16 +357,16 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, x: 10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: 0.45 + i * 0.05 }}
-                className="flex items-start gap-3 p-2.5 rounded-xl bg-surface-800/30 hover:bg-surface-800/50 transition-colors"
+                className="flex items-start gap-3 p-3 rounded-2xl bg-ds-surface-sunken/40 hover:bg-ds-surface-sunken transition-all duration-200 border border-ds-border/60"
               >
-                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase border ${getSeverityBg(alert.severity)}`}>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase border ${getSeverityBg(alert.severity)}`}>
                   {alert.severity}
                 </span>
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-surface-200 truncate">{alert.product_name}</p>
-                  <p className="text-[11px] text-surface-500 mt-0.5 line-clamp-1">{alert.message}</p>
+                  <p className="text-xs font-medium text-ds-text truncate">{alert.product_name}</p>
+                  <p className="text-[11px] text-ds-text-secondary mt-0.5 line-clamp-1">{alert.message}</p>
                 </div>
-                <span className="text-[10px] text-surface-600 flex-shrink-0">
+                <span className="text-[10px] text-ds-text-secondary flex-shrink-0">
                   {new Date(alert.created_at).toLocaleDateString()}
                 </span>
               </motion.div>

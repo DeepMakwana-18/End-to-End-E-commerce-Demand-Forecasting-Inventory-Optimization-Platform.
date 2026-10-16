@@ -39,10 +39,10 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
     onChange({ severity: 'all', anomaly_type: 'all', include_resolved: false, search: '' });
 
   return (
-    <div className="glass-card p-3 flex flex-wrap items-center gap-3">
+    <div className="card-apple p-3.5 flex flex-wrap items-center gap-3 shadow-[var(--ds-raise-1)]">
       {/* Search */}
-      <div className="relative flex-1 min-w-[180px]">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-surface-500 pointer-events-none" />
+      <div className="relative flex-1 min-w-[200px]">
+        <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ds-text-secondary pointer-events-none" />
         <input
           id="anomaly-search"
           type="text"
@@ -50,16 +50,16 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
           onChange={(e) => onChange({ ...filters, search: e.target.value })}
           placeholder="Search explanations…"
           className={cn(
-            'w-full pl-8 pr-3 py-2 bg-surface-900/60 border border-surface-700/60 rounded-xl',
-            'text-sm text-surface-100 placeholder-surface-500',
-            'focus:outline-none focus:border-primary-500/60 focus:ring-1 focus:ring-primary-500/20',
+            'w-full pl-9 pr-8 py-2 bg-ds-surface-sunken border border-ds-border rounded-full',
+            'text-sm text-ds-text placeholder:text-ds-text-secondary',
+            'focus:outline-none focus:border-ds-blue-action focus:ring-2 focus:ring-ds-blue-action/20',
             'transition-all duration-200'
           )}
         />
         {filters.search && (
           <button
             onClick={() => onChange({ ...filters, search: '' })}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300"
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-ds-text-secondary hover:text-ds-text"
           >
             <X className="w-3.5 h-3.5" />
           </button>
@@ -72,8 +72,8 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
         value={filters.severity}
         onChange={(e) => onChange({ ...filters, severity: e.target.value as any })}
         className={cn(
-          'px-3 py-2 bg-surface-900/60 border border-surface-700/60 rounded-xl',
-          'text-sm text-surface-100 focus:outline-none focus:border-primary-500/60',
+          'px-3.5 py-2 bg-ds-surface-sunken border border-ds-border rounded-full',
+          'text-sm text-ds-text focus:outline-none focus:border-ds-blue-action',
           'transition-all duration-200 cursor-pointer'
         )}
       >
@@ -88,8 +88,8 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
         value={filters.anomaly_type}
         onChange={(e) => onChange({ ...filters, anomaly_type: e.target.value as any })}
         className={cn(
-          'px-3 py-2 bg-surface-900/60 border border-surface-700/60 rounded-xl',
-          'text-sm text-surface-100 focus:outline-none focus:border-primary-500/60',
+          'px-3.5 py-2 bg-ds-surface-sunken border border-ds-border rounded-full',
+          'text-sm text-ds-text focus:outline-none focus:border-ds-blue-action',
           'transition-all duration-200 cursor-pointer'
         )}
       >
@@ -106,28 +106,28 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
           aria-checked={filters.include_resolved}
           onClick={() => onChange({ ...filters, include_resolved: !filters.include_resolved })}
           className={cn(
-            'relative w-9 h-5 rounded-full border transition-all duration-200 cursor-pointer',
+            'relative w-10 h-5.5 rounded-full border transition-all duration-200 cursor-pointer',
             filters.include_resolved
-              ? 'bg-primary-500/30 border-primary-500/50'
-              : 'bg-surface-800 border-surface-700/60'
+              ? 'bg-ds-blue-action border-ds-blue-action'
+              : 'bg-ds-surface-sunken border-ds-border'
           )}
         >
           <div
             className={cn(
-              'absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow',
+              'absolute top-0.5 w-4 h-4 rounded-full transition-all duration-200 shadow-sm bg-white',
               filters.include_resolved
-                ? 'left-4 bg-primary-400'
-                : 'left-0.5 bg-surface-500'
+                ? 'left-5'
+                : 'left-0.5'
             )}
           />
         </div>
-        <span className="text-xs text-surface-400 group-hover:text-surface-200 transition-colors">
+        <span className="text-xs text-ds-text-secondary group-hover:text-ds-text transition-colors">
           Show resolved
         </span>
       </label>
 
       {/* Count */}
-      <span className="text-xs text-surface-600 font-mono ml-auto">
+      <span className="text-xs text-ds-text-secondary font-mono ml-auto">
         {total} result{total !== 1 ? 's' : ''}
       </span>
 
@@ -138,7 +138,7 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
           animate={{ opacity: 1, scale: 1 }}
           id="reset-filters"
           onClick={handleReset}
-          className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-surface-400 hover:text-danger-400 transition-colors"
+          className="btn-apple text-xs px-3 py-1.5 text-ds-red-danger hover:bg-ds-red-danger/10 transition-colors"
         >
           <X className="w-3.5 h-3.5" />
           Clear
@@ -150,7 +150,7 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
         id="refresh-anomalies"
         onClick={onRefresh}
         disabled={isLoading}
-        className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-medium border border-surface-700/60 text-surface-400 hover:text-surface-200 hover:bg-surface-800/50 transition-all duration-200"
+        className="btn-apple btn-apple-soft text-xs h-9 px-3.5"
       >
         <RefreshCw className={cn('w-3.5 h-3.5', isLoading && 'animate-spin')} />
         Refresh

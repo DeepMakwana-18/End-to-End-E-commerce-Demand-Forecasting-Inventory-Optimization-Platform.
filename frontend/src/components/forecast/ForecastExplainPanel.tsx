@@ -38,16 +38,16 @@ function ShapTooltip({ active, payload }: any) {
   if (!active || !payload?.length) return null;
   const d = payload[0].payload;
   return (
-    <div className="glass-card p-3 !bg-surface-900/95 !border-surface-700/80 shadow-2xl min-w-[180px]">
-      <p className="text-xs font-semibold text-surface-200 mb-1">{d.label}</p>
-      <p className="text-xs text-surface-400 mb-0.5">
-        Feature value: <span className="text-surface-200 font-medium">{
+    <div className="card-apple p-3 !bg-ds-surface/95 !border-ds-border/80 shadow-[var(--ds-raise-3)] backdrop-blur-xl min-w-[180px]">
+      <p className="text-xs font-semibold text-ds-text mb-1">{d.label}</p>
+      <p className="text-xs text-ds-text-secondary mb-0.5">
+        Feature value: <span className="text-ds-text font-medium">{
           typeof d.featureValue === 'number'
             ? (Number.isInteger(d.featureValue) ? d.featureValue : d.featureValue.toFixed(0))
             : '—'
         }</span>
       </p>
-      <p className={cn('text-xs font-semibold', d.value >= 0 ? 'text-accent-400' : 'text-danger-400')}>
+      <p className={cn('text-xs font-semibold font-mono', d.value >= 0 ? 'text-ds-emerald-success' : 'text-ds-red-danger')}>
         SHAP: {d.value >= 0 ? '+' : ''}{formatNumber(d.value)}
       </p>
     </div>
@@ -61,22 +61,22 @@ function DriverChip({ driver, rank }: {
   const isPos = driver.direction === 'positive';
   return (
     <div className={cn(
-      'flex items-center gap-2.5 px-3 py-2.5 rounded-xl border transition',
+      'flex items-center gap-2.5 px-3.5 py-2.5 rounded-full border transition-all duration-200',
       isPos
-        ? 'bg-accent-500/8 border-accent-500/20 hover:border-accent-500/40'
-        : 'bg-danger-500/8 border-danger-500/20 hover:border-danger-500/40'
+        ? 'bg-ds-emerald-success/10 border-ds-emerald-success/20 text-ds-emerald-success'
+        : 'bg-ds-red-danger/10 border-ds-red-danger/20 text-ds-red-danger'
     )}>
       <span className={cn(
-        'flex-shrink-0 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center',
-        isPos ? 'bg-accent-500/20 text-accent-400' : 'bg-danger-500/20 text-danger-400'
+        'flex-shrink-0 w-5 h-5 rounded-full text-xs font-bold flex items-center justify-center font-mono',
+        isPos ? 'bg-ds-emerald-success/20 text-ds-emerald-success' : 'bg-ds-red-danger/20 text-ds-red-danger'
       )}>
         {rank}
       </span>
       <div className="flex-1 min-w-0">
-        <p className="text-xs font-semibold text-surface-200 truncate">{featureLabel(driver.feature)}</p>
-        <p className="text-[10px] text-surface-500">{driver.feature}</p>
+        <p className="text-xs font-semibold text-ds-text truncate">{featureLabel(driver.feature)}</p>
+        <p className="text-[10px] text-ds-text-secondary">{driver.feature}</p>
       </div>
-      <span className={cn('text-xs font-bold flex-shrink-0', isPos ? 'text-accent-400' : 'text-danger-400')}>
+      <span className={cn('text-xs font-mono font-bold flex-shrink-0', isPos ? 'text-ds-emerald-success' : 'text-ds-red-danger')}>
         {isPos ? '+' : ''}{formatNumber(driver.value)}
       </span>
     </div>
@@ -91,10 +91,10 @@ function WeekTab({ week, selected, onClick }: {
       id={`shap-week-tab-${week}`}
       onClick={onClick}
       className={cn(
-        'flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200',
+        'flex-shrink-0 px-3.5 py-1.5 rounded-full text-xs font-semibold transition-all duration-200',
         selected
-          ? 'bg-primary-500/20 text-primary-300 border border-primary-500/40 shadow-sm shadow-primary-500/20'
-          : 'text-surface-500 hover:text-surface-300 hover:bg-surface-800/60 border border-transparent'
+          ? 'bg-ds-blue-action text-white shadow-[var(--ds-raise-1)]'
+          : 'text-ds-text-secondary hover:text-ds-text hover:bg-ds-surface-sunken border border-transparent'
       )}
     >
       W{week}
@@ -119,29 +119,31 @@ function PredictionBreakdown({
   const pctOff = prediction !== 0 ? (diff / Math.abs(prediction)) * 100 : 0;
 
   return (
-    <div className="mt-4 p-3 rounded-xl bg-surface-800/30 border border-surface-700/30">
-      <p className="text-xs font-semibold text-surface-400 mb-2.5 flex items-center gap-1.5">
+    <div className="mt-4 p-4 rounded-2xl bg-ds-surface-sunken/40 border border-ds-border/60">
+      <p className="text-xs font-semibold text-ds-text-secondary mb-2.5 flex items-center gap-1.5">
         <Info className="w-3.5 h-3.5" /> Prediction Breakdown
       </p>
       <div className="flex flex-wrap items-center gap-1.5 text-xs">
-        <span className="px-2 py-1 rounded-md bg-surface-700/50 text-surface-300">
-          Base: <span className="font-bold text-surface-100">{formatNumber(baseValue)}</span>
+        <span className="px-2.5 py-1 rounded-full bg-ds-surface border border-ds-border text-ds-text-secondary font-mono">
+          Base: <span className="font-bold text-ds-text">{formatNumber(baseValue)}</span>
         </span>
-        <span className="text-surface-600">+</span>
+        <span className="text-ds-text-secondary font-mono">+</span>
         {featureNames.map(f => {
           const v = shapValues[f] ?? 0;
           if (Math.abs(v) < 1) return null;
           return (
             <span key={f} className={cn(
-              'px-2 py-1 rounded-md font-medium',
-              v >= 0 ? 'bg-accent-500/15 text-accent-300' : 'bg-danger-500/15 text-danger-300'
+              'px-2.5 py-1 rounded-full font-medium font-mono border',
+              v >= 0
+                ? 'bg-ds-emerald-success/10 text-ds-emerald-success border-ds-emerald-success/25'
+                : 'bg-ds-red-danger/10 text-ds-red-danger border-ds-red-danger/25'
             )}>
               {featureLabel(f)}: {v >= 0 ? '+' : ''}{formatNumber(v)}
             </span>
           );
         })}
-        <span className="text-surface-600">=</span>
-        <span className="px-2 py-1 rounded-md bg-primary-500/15 text-primary-300 font-bold">
+        <span className="text-ds-text-secondary font-mono">=</span>
+        <span className="px-2.5 py-1 rounded-full bg-ds-blue-action/10 text-ds-blue-action border border-ds-blue-action/25 font-bold font-mono">
           {formatNumber(computedPred)}
         </span>
         {pctOff > 2 && (

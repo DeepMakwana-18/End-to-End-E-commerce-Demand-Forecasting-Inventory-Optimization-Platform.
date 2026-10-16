@@ -146,15 +146,15 @@ export default function ScenariosPage() {
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-surface-800/50 flex-shrink-0"
+        className="flex items-center justify-between px-6 py-4 border-b border-ds-border/60 flex-shrink-0 bg-ds-surface/60 backdrop-blur-md"
       >
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary-500/20">
+          <div className="w-9 h-9 rounded-2xl bg-ds-blue-action flex items-center justify-center text-white shadow-[var(--ds-raise-1)]">
             <FlaskConical className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-surface-50">Scenario Engine</h1>
-            <p className="text-xs text-surface-500 mt-0.5">
+            <h1 className="text-lg font-bold text-ds-text">Scenario Engine</h1>
+            <p className="text-xs text-ds-text-secondary mt-0.5">
               What-If simulations powered by the active ML model
             </p>
           </div>
@@ -162,9 +162,9 @@ export default function ScenariosPage() {
 
         <div className="flex items-center gap-2">
           {/* Info badge */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-900/60 border border-surface-800/50">
-            <Lightbulb className="w-3.5 h-3.5 text-warning-400" />
-            <span className="text-xs text-surface-400">
+          <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-ds-surface-sunken border border-ds-border">
+            <Lightbulb className="w-3.5 h-3.5 text-ds-amber-warning" />
+            <span className="text-xs text-ds-text-secondary">
               Changes are non-destructive — model is never retrained
             </span>
           </div>
@@ -173,9 +173,7 @@ export default function ScenariosPage() {
             id="refresh-scenarios"
             onClick={loadScenarios}
             disabled={isLoadingList}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium
-                       border border-surface-700/60 text-surface-400
-                       hover:bg-surface-800/50 hover:text-surface-200 transition-all duration-200"
+            className="btn-apple btn-apple-soft text-xs h-9 px-3.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
             Refresh
@@ -190,7 +188,7 @@ export default function ScenariosPage() {
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.05 }}
-          className="w-72 xl:w-80 flex-shrink-0 flex flex-col gap-3 p-4 border-r border-surface-800/50 overflow-y-auto"
+          className="w-72 xl:w-80 flex-shrink-0 flex flex-col gap-3 p-4 border-r border-ds-border/60 overflow-y-auto"
         >
           <ScenarioHistory
             scenarios={scenarios}

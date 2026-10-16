@@ -76,14 +76,14 @@ export function Header() {
     <header
       className={cn(
         'sticky top-0 z-30 h-16 flex items-center justify-between px-6',
-        'border-b border-surface-800/50',
-        'bg-surface-950/60 backdrop-blur-xl'
+        'border-b border-ds-hairline',
+        'backdrop-blur-2xl bg-ds-canvas/75'
       )}
     >
       {/* Search */}
       <div className="flex items-center gap-3 flex-1 max-w-md" ref={searchRef}>
         <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-gray-500" />
           <input
             type="text"
             value={searchQuery}
@@ -91,20 +91,20 @@ export function Header() {
             onFocus={() => searchQuery.trim() && setShowResults(true)}
             placeholder="Search products, forecasts, alerts..."
             className={cn(
-              'w-full pl-10 pr-10 py-2.5 rounded-xl text-sm',
-              'bg-surface-800/50 border border-surface-700/50',
-              'text-surface-200 placeholder:text-surface-500',
-              'focus:outline-none focus:ring-2 focus:ring-primary-500/30 focus:border-primary-500/50',
+              'w-full h-11 pl-10 pr-10 rounded-full text-sm',
+              'bg-ds-surface-sunken border border-ds-hairline',
+              'text-ds-text-primary placeholder:text-ds-text-muted',
+              'focus:outline-none focus:border-ds-blue focus:ring-2 focus:ring-ds-blue/30',
               'transition-all duration-200'
             )}
           />
           {searchQuery ? (
             <button onClick={() => { setSearchQuery(''); setShowResults(false); }}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-surface-500 hover:text-surface-300">
+              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ds-text-muted hover:text-ds-text-primary">
               <X className="w-4 h-4" />
             </button>
           ) : (
-            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border border-surface-600 bg-surface-800 px-1.5 font-mono text-[10px] font-medium text-surface-400">
+            <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded-md border border-ds-hairline bg-ds-surface-alt px-1.5 font-mono text-[10px] font-medium text-ds-text-muted">
               ⌘K
             </kbd>
           )}
@@ -114,12 +114,12 @@ export function Header() {
             {showResults && filteredResults.length > 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full mt-2 w-full glass-card !bg-surface-900/95 shadow-2xl border border-surface-700/80 py-2 z-50 max-h-64 overflow-y-auto">
+                className="absolute top-full mt-2 w-full glass-card shadow-2xl py-2 z-50 max-h-64 overflow-y-auto">
                 {filteredResults.map((item, i) => (
                   <button key={i} onClick={() => handleSelect(item.path)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-surface-300 hover:bg-surface-800/60 hover:text-primary-400 transition flex items-center justify-between">
+                    className="w-full text-left px-4 py-2.5 text-sm text-ds-text-secondary hover:bg-ds-blue-surface hover:text-ds-blue-on-surface transition flex items-center justify-between">
                     <span>{item.label}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-surface-800/80 text-surface-500 uppercase">{item.type}</span>
+                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-ds-surface-sunken text-ds-text-muted uppercase">{item.type}</span>
                   </button>
                 ))}
               </motion.div>
@@ -127,8 +127,8 @@ export function Header() {
             {showResults && searchQuery.trim().length > 0 && filteredResults.length === 0 && (
               <motion.div
                 initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full mt-2 w-full glass-card !bg-surface-900/95 shadow-2xl border border-surface-700/80 p-4 z-50 text-center">
-                <p className="text-xs text-surface-500">No results found for "{searchQuery}"</p>
+                className="absolute top-full mt-2 w-full glass-card shadow-2xl p-4 z-50 text-center">
+                <p className="text-xs text-ds-text-muted">No results found for "{searchQuery}"</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -136,16 +136,16 @@ export function Header() {
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2.5">
         {/* Theme toggle */}
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={cycleTheme}
-          className="p-2.5 rounded-xl text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
+          className="p-2.5 rounded-full text-ds-text-muted hover:text-ds-text-primary bg-ds-surface-alt/60 hover:bg-ds-surface-alt border border-ds-hairline shadow-sm transition-all"
           title={`Theme: ${theme}`}
         >
-          <ThemeIcon className="w-5 h-5" />
+          <ThemeIcon className="w-4 h-4" />
         </motion.button>
 
         {/* WS status + Notifications */}
@@ -153,50 +153,50 @@ export function Header() {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={() => navigate('/alerts')}
-          className="relative p-2.5 rounded-xl text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
+          className="relative p-2.5 rounded-full text-ds-text-muted hover:text-ds-text-primary bg-ds-surface-alt/60 hover:bg-ds-surface-alt border border-ds-hairline shadow-sm transition-all"
           title={isConnected ? 'Realtime: Connected' : 'Realtime: Disconnected'}
         >
-          <Bell className="w-5 h-5" />
+          <Bell className="w-4 h-4" />
           {/* Notification dot */}
-          <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-danger-500 border-2 border-surface-950 animate-pulse" />
+          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-ds-red border border-ds-canvas animate-pulse" />
         </motion.button>
 
         {/* WS live indicator */}
         <motion.div
           title={isConnected ? 'Realtime connected' : 'Realtime disconnected — reconnecting…'}
           className={cn(
-            'flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-semibold transition-colors cursor-default select-none',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-colors cursor-default select-none border border-ds-hairline',
             isConnected
-              ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-              : 'bg-surface-800/60 text-surface-500 border border-surface-700/40',
+              ? 'bg-ds-green-surface text-ds-green-text'
+              : 'bg-ds-surface-sunken text-ds-text-muted',
           )}
         >
           {isConnected ? (
             <>
               <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-ds-green opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-ds-green" />
               </span>
-              <Wifi className="w-3 h-3" />
+              <Wifi className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Live</span>
             </>
           ) : (
             <>
-              <span className="w-2 h-2 rounded-full bg-surface-600" />
-              <WifiOff className="w-3 h-3" />
+              <span className="w-2 h-2 rounded-full bg-ds-gray-400" />
+              <WifiOff className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Offline</span>
             </>
           )}
         </motion.div>
 
         {/* User avatar */}
-        <div className="flex items-center gap-3 ml-2 pl-3 border-l border-surface-800/50">
-          <div className="w-8 h-8 rounded-xl gradient-primary flex items-center justify-center text-white text-sm font-bold shadow-lg shadow-primary-500/10">
+        <div className="flex items-center gap-3 ml-2 pl-3 border-l border-ds-hairline">
+          <div className="w-9 h-9 rounded-full bg-ds-ink text-ds-text-inverse flex items-center justify-center text-sm font-bold shadow-md">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="hidden md:block">
-            <p className="text-sm font-medium text-surface-200 leading-none">{user?.name || 'User'}</p>
-            <p className="text-[11px] text-surface-500 mt-0.5 capitalize">{user?.role || 'viewer'}</p>
+            <p className="text-sm font-semibold text-ds-text-primary leading-none">{user?.name || 'User'}</p>
+            <p className="text-[11px] text-ds-text-muted mt-1 capitalize">{user?.role || 'viewer'}</p>
           </div>
         </div>
       </div>

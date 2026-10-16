@@ -141,7 +141,7 @@ function MessageBubble({
       className={`flex ${isUser ? 'justify-end' : 'justify-start'} mb-4`}
     >
       {!isUser && (
-        <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 mr-2 mt-1">
+        <div className="w-7 h-7 rounded-full bg-ds-blue-surface border border-ds-hairline flex items-center justify-center flex-shrink-0 mr-2 mt-1">
           <span className="text-xs">🧠</span>
         </div>
       )}
@@ -150,7 +150,7 @@ function MessageBubble({
         {/* Intent badge */}
         {!isUser && message.intent && message.intent !== 'unknown' && (
           <div className="mb-1.5">
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${INTENT_LABELS[message.intent]?.color || 'bg-surface-600/30 text-surface-300'}`}>
+            <span className="text-xs px-2.5 py-0.5 rounded-full font-medium bg-ds-blue-surface text-ds-blue-on-surface border border-ds-hairline">
               {INTENT_LABELS[message.intent]?.label || message.intent}
             </span>
           </div>
@@ -160,10 +160,10 @@ function MessageBubble({
         <div
           className={`rounded-2xl px-4 py-3 ${
             isUser
-              ? 'bg-indigo-600/80 text-white rounded-tr-sm ml-auto'
+              ? 'bg-ds-blue-action text-white rounded-tr-sm ml-auto shadow-sm'
               : message.isError
-              ? 'bg-red-900/30 border border-red-500/20 rounded-tl-sm'
-              : 'bg-surface-800/60 border border-surface-700/40 rounded-tl-sm'
+              ? 'bg-ds-red-surface border border-ds-red/30 text-ds-red-text rounded-tl-sm shadow-sm'
+              : 'bg-ds-surface border border-ds-hairline text-ds-text-primary rounded-tl-sm shadow-sm'
           }`}
         >
           {message.isLoading ? (
@@ -171,7 +171,7 @@ function MessageBubble({
           ) : isUser ? (
             <p className="text-sm leading-relaxed">{message.content}</p>
           ) : (
-            <div className="prose-sm space-y-0">
+            <div className="prose-sm space-y-0 text-ds-text-primary">
               {renderMarkdown(message.content)}
             </div>
           )}
@@ -184,7 +184,7 @@ function MessageBubble({
               <button
                 key={idx}
                 onClick={() => onFollowup(followup)}
-                className="text-xs px-2.5 py-1 rounded-full border border-indigo-500/30 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 transition-all duration-150"
+                className="text-xs px-3 py-1 rounded-full border border-ds-hairline bg-ds-surface text-ds-text-secondary hover:bg-ds-blue-surface hover:text-ds-blue-on-surface transition-all duration-150 shadow-sm"
               >
                 {followup.length > 45 ? followup.slice(0, 45) + '…' : followup}
               </button>
@@ -193,13 +193,13 @@ function MessageBubble({
         )}
 
         {/* Timestamp */}
-        <div className={`text-xs mt-1 text-surface-500 ${isUser ? 'text-right' : 'text-left'}`}>
+        <div className={`text-xs mt-1 text-ds-text-muted ${isUser ? 'text-right' : 'text-left'}`}>
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
 
       {isUser && (
-        <div className="w-7 h-7 rounded-full bg-surface-600 flex items-center justify-center flex-shrink-0 ml-2 mt-1">
+        <div className="w-7 h-7 rounded-full bg-ds-ink text-ds-text-inverse flex items-center justify-center flex-shrink-0 ml-2 mt-1">
           <span className="text-xs">👤</span>
         </div>
       )}
@@ -330,21 +330,19 @@ export function AICopilotDrawer() {
         onClick={() => setIsOpen(true)}
         className={`
           fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full
-          bg-gradient-to-br from-indigo-500 to-purple-600
-          shadow-lg shadow-indigo-500/30
+          bg-ds-blue-action text-white
+          shadow-ds-float-2 border border-ds-hairline
           flex items-center justify-center
-          hover:shadow-xl hover:shadow-indigo-500/40
-          transition-shadow duration-200
+          hover:bg-ds-blue-strong
+          transition-all duration-200
           ${isOpen ? 'hidden' : 'flex'}
         `}
-        whileHover={{ scale: 1.08 }}
+        whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         title="AI Supply Chain Analyst"
         aria-label="Open AI Copilot"
       >
         <span className="text-2xl" role="img" aria-label="AI">🧠</span>
-        {/* Pulse ring */}
-        <span className="absolute inset-0 rounded-full border border-indigo-400/40 animate-ping opacity-50" />
       </motion.button>
 
       {/* ── Backdrop ── */}
@@ -356,7 +354,7 @@ export function AICopilotDrawer() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-40 bg-black/20 backdrop-blur-sm"
+            className="fixed inset-0 z-40 bg-ds-canvas/40 backdrop-blur-sm"
           />
         )}
       </AnimatePresence>
@@ -374,27 +372,27 @@ export function AICopilotDrawer() {
               fixed right-0 top-0 bottom-0 z-50
               w-full sm:w-[420px] lg:w-[460px]
               flex flex-col
-              bg-surface-900/95 backdrop-blur-xl
-              border-l border-surface-700/40
-              shadow-2xl shadow-black/50
+              bg-ds-surface-alt/95 backdrop-blur-2xl
+              border-l border-ds-hairline
+              shadow-ds-float-3
             `}
           >
             {/* Header */}
-            <div className="flex items-center justify-between px-4 py-4 border-b border-surface-700/40 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 py-4 border-b border-ds-hairline flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                <div className="w-9 h-9 rounded-full bg-ds-blue-surface border border-ds-hairline flex items-center justify-center shadow-sm">
                   <span className="text-lg">🧠</span>
                 </div>
                 <div>
-                  <h2 className="text-sm font-bold text-white">AI Supply Chain Analyst</h2>
-                  <p className="text-xs text-indigo-300">Powered by Platform Intelligence</p>
+                  <h2 className="text-sm font-bold text-ds-text-primary">AI Supply Chain Analyst</h2>
+                  <p className="text-xs text-ds-blue-text font-medium">Powered by Platform Intelligence</p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 {messages.length > 0 && (
                   <button
                     onClick={clearChat}
-                    className="text-xs text-surface-400 hover:text-surface-200 px-2 py-1 rounded-lg hover:bg-surface-700/50 transition-all"
+                    className="text-xs text-ds-text-muted hover:text-ds-text-primary px-3 py-1 rounded-full border border-ds-hairline hover:bg-ds-surface transition-all"
                     title="Clear conversation"
                   >
                     Clear
@@ -402,7 +400,7 @@ export function AICopilotDrawer() {
                 )}
                 <button
                   onClick={() => setIsOpen(false)}
-                  className="w-8 h-8 flex items-center justify-center rounded-lg text-surface-400 hover:text-white hover:bg-surface-700/60 transition-all"
+                  className="w-8 h-8 flex items-center justify-center rounded-full text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface transition-all"
                   aria-label="Close AI Copilot"
                 >
                   ✕
@@ -462,7 +460,7 @@ export function AICopilotDrawer() {
             </div>
 
             {/* Input area */}
-            <div className="border-t border-surface-700/40 px-4 py-4 flex-shrink-0">
+            <div className="border-t border-ds-hairline px-4 py-4 flex-shrink-0">
               {/* Quick prompts when conversation is active */}
               {messages.length > 0 && starterPrompts.length > 0 && (
                 <div className="flex gap-1.5 mb-3 overflow-x-auto pb-1 scrollbar-none">
@@ -471,7 +469,7 @@ export function AICopilotDrawer() {
                       key={idx}
                       onClick={() => sendMessage(prompt.prompt)}
                       disabled={isLoading}
-                      className="flex-shrink-0 flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border border-surface-600/50 text-surface-300 hover:border-indigo-500/40 hover:text-indigo-300 hover:bg-indigo-500/10 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex-shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border border-ds-hairline bg-ds-surface text-ds-text-secondary hover:border-ds-blue/40 hover:text-ds-blue-text hover:bg-ds-blue-surface transition-all disabled:opacity-40 disabled:cursor-not-allowed shadow-sm"
                     >
                       <span>{prompt.icon}</span>
                       <span>{prompt.label}</span>
@@ -491,9 +489,9 @@ export function AICopilotDrawer() {
                   disabled={isLoading}
                   rows={1}
                   className={`
-                    flex-1 resize-none bg-surface-800/60 border border-surface-600/50
-                    rounded-xl px-3 py-2.5 text-sm text-white placeholder-surface-500
-                    focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/20
+                    flex-1 resize-none bg-ds-surface-sunken border border-ds-hairline
+                    rounded-2xl px-4 py-2.5 text-sm text-ds-text-primary placeholder:text-ds-text-muted
+                    focus:outline-none focus:border-ds-blue focus:ring-2 focus:ring-ds-blue/20
                     transition-all duration-150 leading-relaxed
                     disabled:opacity-50 disabled:cursor-not-allowed
                     min-h-[42px] max-h-[120px]
@@ -508,11 +506,11 @@ export function AICopilotDrawer() {
                   disabled={!inputValue.trim() || isLoading}
                   whileTap={{ scale: 0.92 }}
                   className={`
-                    w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                    w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0
                     transition-all duration-150
                     ${inputValue.trim() && !isLoading
-                      ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                      : 'bg-surface-700/50 text-surface-500 cursor-not-allowed'
+                      ? 'bg-ds-blue-action hover:bg-ds-blue-strong text-white shadow-md'
+                      : 'bg-ds-surface-sunken text-ds-text-muted cursor-not-allowed border border-ds-hairline'
                     }
                   `}
                   aria-label="Send message"
@@ -528,7 +526,7 @@ export function AICopilotDrawer() {
                 </motion.button>
               </div>
 
-              <p className="text-xs text-surface-600 mt-2 text-center">
+              <p className="text-xs text-ds-text-muted mt-2 text-center">
                 Responses use live data from your platform • Press Enter to send
               </p>
             </div>

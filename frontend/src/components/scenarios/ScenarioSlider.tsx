@@ -42,44 +42,44 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
   const valueColor =
     value > config.defaultValue
       ? unit === 'days' || unit === '×'
-        ? 'text-warning-400'
-        : 'text-accent-400'
+        ? 'text-ds-orange-text'
+        : 'text-ds-green-text'
       : value < config.defaultValue
       ? unit === 'days' || unit === '×'
-        ? 'text-accent-400'
-        : 'text-danger-400'
-      : 'text-surface-300';
+        ? 'text-ds-green-text'
+        : 'text-ds-red-text'
+      : 'text-ds-text-muted';
 
-  const trackColor =
+  const trackBg =
     value > config.defaultValue
       ? unit === 'days' || unit === '×'
-        ? 'from-warning-500 to-warning-400'
-        : 'from-accent-600 to-accent-400'
+        ? 'bg-ds-orange'
+        : 'bg-ds-green'
       : value < config.defaultValue
       ? unit === 'days' || unit === '×'
-        ? 'from-accent-600 to-accent-400'
-        : 'from-danger-600 to-danger-400'
-      : 'from-primary-600 to-primary-400';
+        ? 'bg-ds-green'
+        : 'bg-ds-red'
+      : 'bg-ds-blue';
 
   return (
     <div className={cn('group', disabled && 'opacity-50 pointer-events-none')}>
       <div className="flex items-start justify-between mb-2.5">
         <div className="flex items-center gap-2">
           {icon && (
-            <span className="text-surface-400 group-hover:text-primary-400 transition-colors">
+            <span className="text-ds-gray-500 group-hover:text-ds-blue transition-colors">
               {icon}
             </span>
           )}
           <div>
-            <label htmlFor={id} className="text-sm font-semibold text-surface-100 cursor-pointer">
+            <label htmlFor={id} className="text-sm font-semibold text-ds-text-primary cursor-pointer">
               {label}
             </label>
-            <p className="text-xs text-surface-500 mt-0.5">{description}</p>
+            <p className="text-xs text-ds-text-muted mt-0.5">{description}</p>
           </div>
         </div>
         <motion.div
           key={formatted}
-          initial={{ scale: 1.15, opacity: 0.7 }}
+          initial={{ scale: 1.1, opacity: 0.8 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.15 }}
           className={cn(
@@ -94,13 +94,13 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
       {/* Track + thumb */}
       <div className="relative h-6 flex items-center">
         {/* Background track */}
-        <div className="absolute inset-y-0 top-1/2 -translate-y-1/2 w-full h-1.5 bg-surface-800 rounded-full" />
+        <div className="absolute inset-y-0 top-1/2 -translate-y-1/2 w-full h-1.5 bg-ds-surface-sunken rounded-full border border-ds-hairline" />
 
         {/* Filled track */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-gradient-to-r transition-all duration-150',
-            trackColor
+            'absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full transition-all duration-150',
+            trackBg
           )}
           style={{ width: `${pct}%` }}
         />
@@ -122,10 +122,9 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
         {/* Visual thumb */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-lg',
-            'transition-transform duration-150 group-hover:scale-110',
-            'bg-gradient-to-br pointer-events-none',
-            trackColor
+            'absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-white shadow-md',
+            'transition-transform duration-150 group-hover:scale-125',
+            'pointer-events-none border border-ds-hairline'
           )}
           style={{ left: `calc(${pct}% - 8px)` }}
         />
@@ -133,10 +132,10 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
 
       {/* Min / Max labels */}
       <div className="flex justify-between mt-1.5">
-        <span className="text-[10px] text-surface-600">
+        <span className="text-[10px] text-ds-text-muted font-mono">
           {unit === '%' ? `${min}%` : unit === 'days' ? `${min}d` : unit === '×' ? `${min}×` : min}
         </span>
-        <span className="text-[10px] text-surface-600">
+        <span className="text-[10px] text-ds-text-muted font-mono">
           {unit === '%' ? `${max}%` : unit === 'days' ? `${max}d` : unit === '×' ? `${max}×` : max}
         </span>
       </div>
