@@ -10,6 +10,7 @@ import {
 import { cn, formatNumber } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { inventoryApi, systemApi } from '@/services/api';
+import { useAppStore } from '@/stores/appStore';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
@@ -18,23 +19,23 @@ import {
 const statusConfig: Record<string, { label: string; color: string; bg: string }> = {
   healthy: {
     label: 'Healthy',
-    color: 'text-emerald-700 dark:text-ds-emerald-success',
-    bg: 'bg-emerald-50 dark:bg-ds-emerald-success/15 border-emerald-200/80 dark:border-ds-emerald-success/30',
+    color: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200/80 dark:border-emerald-800/40',
   },
   low: {
     label: 'Low Stock',
-    color: 'text-amber-700 dark:text-ds-amber-warning',
-    bg: 'bg-amber-50 dark:bg-ds-amber-warning/15 border-amber-200/80 dark:border-ds-amber-warning/30',
+    color: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-50 dark:bg-amber-950/40 border-amber-200/80 dark:border-amber-800/40',
   },
   critical: {
     label: 'Critical',
-    color: 'text-rose-700 dark:text-ds-red-danger',
-    bg: 'bg-rose-50 dark:bg-ds-red-danger/15 border-rose-200/80 dark:border-ds-red-danger/30',
+    color: 'text-rose-700 dark:text-rose-400',
+    bg: 'bg-rose-50 dark:bg-rose-950/40 border-rose-200/80 dark:border-rose-800/40',
   },
   overstock: {
     label: 'Overstock',
-    color: 'text-blue-700 dark:text-ds-blue-action',
-    bg: 'bg-blue-50 dark:bg-ds-blue-action/15 border-blue-200/80 dark:border-ds-blue-action/30',
+    color: 'text-blue-700 dark:text-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-950/40 border-blue-200/80 dark:border-blue-800/40',
   },
 };
 
@@ -75,17 +76,17 @@ function InventoryKpiCard({
       transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
       whileHover={{ y: -2, transition: { duration: 0.2 } }}
       className={cn(
-        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
+        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[142px] shadow-2xs hover:shadow-xs transition-all duration-200 bg-white dark:bg-ds-surface',
         cardBg,
         border
       )}
     >
       <div className="flex items-start justify-between relative z-10 w-full gap-3">
         <div className="flex-1 min-w-0">
-          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider mb-1.5 truncate">
+          <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-secondary uppercase tracking-wider mb-1.5 truncate">
             {title}
           </p>
-          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
+          <p className={cn('text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
             {value}
           </p>
 
@@ -94,11 +95,11 @@ function InventoryKpiCard({
               <span
                 className={cn(
                   'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums border shadow-2xs',
-                  isPositive && 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20',
-                  isNegative && 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-ds-red-surface dark:text-ds-red-text dark:border-ds-red/20'
+                  isPositive && 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40',
+                  isNegative && 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/40'
                 )}
               >
-                {isPositive ? <TrendingUp className="w-3 h-3 text-emerald-600" /> : <TrendingDown className="w-3 h-3 text-rose-600" />}
+                {isPositive ? <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" /> : <TrendingDown className="w-3 h-3 text-rose-600 dark:text-rose-400" />}
                 {isPositive && '+'}
                 {change.toFixed(1)}%
               </span>
@@ -106,13 +107,13 @@ function InventoryKpiCard({
             </div>
           ) : sub ? (
             <div className="mt-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border" />
               <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted truncate">{sub}</span>
             </div>
           ) : null}
         </div>
 
-        <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105', iconBg)}>
+        <div className={cn('w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border', iconBg)}>
           <Icon className={cn('w-5 h-5', iconColor)} />
         </div>
       </div>
@@ -120,7 +121,23 @@ function InventoryKpiCard({
   );
 }
 
+const TABLE_COLUMNS: { label: string; key: SortKey | ''; align: 'left' | 'right' | 'center'; minWidth: string }[] = [
+  { label: 'Product', key: 'name', align: 'left', minWidth: 'min-w-[190px]' },
+  { label: 'SKU', key: '', align: 'left', minWidth: 'min-w-[120px]' },
+  { label: 'Category', key: '', align: 'left', minWidth: 'min-w-[110px]' },
+  { label: 'Current Stock', key: 'current_stock', align: 'right', minWidth: 'min-w-[110px]' },
+  { label: 'Safety Stock', key: '', align: 'right', minWidth: 'min-w-[105px]' },
+  { label: 'Reorder Point', key: '', align: 'right', minWidth: 'min-w-[105px]' },
+  { label: 'Rec. Order Qty', key: '', align: 'right', minWidth: 'min-w-[115px]' },
+  { label: 'Lead Time', key: '', align: 'right', minWidth: 'min-w-[95px]' },
+  { label: 'Status', key: 'status', align: 'center', minWidth: 'min-w-[110px]' },
+  { label: 'Health', key: 'health_score', align: 'right', minWidth: 'min-w-[115px]' },
+];
+
 export default function InventoryPage() {
+  const { theme } = useAppStore();
+  const isDark = theme === 'dark' || (theme === 'system' && typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+
   const { data: systemStatus } = useQuery({
     queryKey: ['system-status'],
     queryFn: async () => {
@@ -175,7 +192,11 @@ export default function InventoryPage() {
 
   const healthChartData = useMemo(() => {
     return filteredItems.map(item => ({
-      name: item.name.length > 14 ? item.name.substring(0, 14) + '…' : item.name,
+      name: item.name.length > 22 ? item.name.substring(0, 22) + '…' : item.name,
+      fullName: item.name,
+      sku: item.sku,
+      category: item.category,
+      current_stock: item.current_stock,
       score: item.health_score,
       status: item.status,
     }));
@@ -203,7 +224,7 @@ export default function InventoryPage() {
   const sortIndicator = (key: SortKey) => sortKey === key ? (sortAsc ? ' ↑' : ' ↓') : '';
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Toast notification */}
       <AnimatePresence>
         {toast && (
@@ -211,9 +232,9 @@ export default function InventoryPage() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl bg-teal-50 dark:bg-accent-500/10 border border-teal-200 dark:border-accent-500/30 text-teal-800 dark:text-accent-400 text-sm font-medium flex items-center gap-2 shadow-xl"
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl bg-teal-50 dark:bg-emerald-950/40 border border-teal-200 dark:border-emerald-800/40 text-teal-800 dark:text-emerald-300 text-sm font-medium flex items-center gap-2 shadow-xl"
           >
-            <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-accent-400" />
+            <CheckCircle2 className="w-4 h-4 text-teal-600 dark:text-emerald-400" />
             {toast}
           </motion.div>
         )}
@@ -254,14 +275,14 @@ export default function InventoryPage() {
               className={cn(
                 'btn-apple text-xs h-9 px-3.5 border transition-all shadow-2xs flex items-center gap-1.5',
                 (showFilters || statusFilter !== 'all')
-                  ? 'bg-teal-50 text-teal-700 border-teal-300 dark:bg-ds-blue-action dark:text-white dark:border-transparent font-semibold'
+                  ? 'bg-teal-50 text-teal-700 border-teal-300 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40 font-semibold'
                   : 'bg-white dark:bg-ds-surface border-slate-200/90 dark:border-ds-border text-slate-700 dark:text-ds-text hover:bg-slate-50 dark:hover:bg-ds-surface-sunken'
               )}
             >
               <Filter className="w-3.5 h-3.5" />
               <span>Filter</span>
               {statusFilter !== 'all' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-white" />
+                <span className="w-1.5 h-1.5 rounded-full bg-teal-600 dark:bg-teal-400" />
               )}
             </button>
             <AnimatePresence>
@@ -313,18 +334,18 @@ export default function InventoryPage() {
         </div>
       </motion.div>
 
-      {/* ── KPI Cards: Soft Tinted Gradients ─────────────────────────── */}
+      {/* ── KPI Cards: 4 Columns on Desktop ─────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <InventoryKpiCard
           title="Total SKUs"
           value={formatNumber(totalSKUs)}
           sub="Monitored in catalog"
           icon={Package}
-          cardBg="bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
-          border="border-indigo-200/80 dark:border-ds-border"
-          iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
+          cardBg="bg-white dark:bg-ds-surface"
+          border="border-slate-200/90 dark:border-ds-border"
+          iconBg="bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-800/40"
           iconColor="text-indigo-600 dark:text-indigo-400"
-          valueColor="text-indigo-950 dark:text-ds-text-primary"
+          valueColor="text-slate-900 dark:text-ds-text"
           delay={0}
         />
         <InventoryKpiCard
@@ -333,11 +354,11 @@ export default function InventoryPage() {
           change={totalSKUs > 0 ? (healthyStockPercent >= 50 ? 3.2 : -1.5) : undefined}
           changeLabel="vs target"
           icon={ShieldCheck}
-          cardBg="bg-gradient-to-b from-teal-50/70 via-emerald-50/30 to-white dark:bg-ds-surface"
-          border="border-teal-200/80 dark:border-ds-border"
-          iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400"
+          cardBg="bg-white dark:bg-ds-surface"
+          border="border-slate-200/90 dark:border-ds-border"
+          iconBg="bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400 border-teal-200/60 dark:border-teal-800/40"
           iconColor="text-teal-600 dark:text-teal-400"
-          valueColor="text-teal-950 dark:text-ds-text-primary"
+          valueColor="text-teal-700 dark:text-teal-400"
           delay={0.05}
         />
         <InventoryKpiCard
@@ -345,11 +366,11 @@ export default function InventoryPage() {
           value={String(reorderNeededCount)}
           sub={reorderNeededCount > 0 ? 'Replenishment recommended' : 'Optimal buffer levels'}
           icon={RotateCcw}
-          cardBg="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
-          border="border-amber-200/80 dark:border-ds-border"
-          iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+          cardBg="bg-white dark:bg-ds-surface"
+          border="border-slate-200/90 dark:border-ds-border"
+          iconBg="bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border-amber-200/60 dark:border-amber-800/40"
           iconColor="text-amber-600 dark:text-amber-400"
-          valueColor="text-amber-950 dark:text-ds-text-primary"
+          valueColor="text-amber-700 dark:text-amber-400"
           delay={0.1}
         />
         <InventoryKpiCard
@@ -359,11 +380,11 @@ export default function InventoryPage() {
           changeLabel="immediate risk"
           sub={criticalItemsCount === 0 ? 'Zero stockout risk' : undefined}
           icon={AlertTriangle}
-          cardBg="bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-ds-surface"
-          border="border-rose-200/80 dark:border-ds-border"
-          iconBg="bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
+          cardBg="bg-white dark:bg-ds-surface"
+          border="border-slate-200/90 dark:border-ds-border"
+          iconBg="bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border-rose-200/60 dark:border-rose-800/40"
           iconColor="text-rose-600 dark:text-rose-400"
-          valueColor="text-rose-950 dark:text-ds-text-primary"
+          valueColor="text-rose-700 dark:text-rose-400"
           delay={0.15}
         />
       </div>
@@ -381,7 +402,7 @@ export default function InventoryPage() {
               <Activity className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text tracking-tight">
                 Inventory Health Scores
               </h3>
               <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
@@ -410,26 +431,69 @@ export default function InventoryPage() {
               </p>
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={Math.min(320, Math.max(180, healthChartData.length * 28))}>
-              <BarChart data={healthChartData} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
-                <XAxis type="number" domain={[0, 100]} tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }} axisLine={{ stroke: '#CBD5E1' }} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={110} tick={{ fill: '#334155', fontSize: 11, fontWeight: 500 }} axisLine={false} tickLine={false} />
+            <ResponsiveContainer width="100%" height={Math.max(280, healthChartData.length * 32)}>
+              <BarChart data={healthChartData} layout="vertical" margin={{ top: 10, right: 30, left: 15, bottom: 10 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#334155' : '#E2E8F0'} horizontal={false} strokeOpacity={0.6} />
+                <XAxis
+                  type="number"
+                  domain={[0, 100]}
+                  ticks={[0, 25, 50, 75, 100]}
+                  tick={{ fill: isDark ? '#CBD5E1' : '#475569', fontSize: 11, fontWeight: 600 }}
+                  axisLine={{ stroke: isDark ? '#475569' : '#CBD5E1' }}
+                  tickLine={false}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="name"
+                  width={185}
+                  interval={0}
+                  tick={(tickProps: any) => {
+                    const { x, y, payload } = tickProps;
+                    return (
+                      <text
+                        x={x - 8}
+                        y={y + 4}
+                        textAnchor="end"
+                        fill={isDark ? '#F8FAFC' : '#0F172A'}
+                        fontSize={11}
+                        fontWeight={600}
+                        style={{ fontFamily: 'inherit' }}
+                      >
+                        {payload.value}
+                      </text>
+                    );
+                  }}
+                  axisLine={{ stroke: isDark ? '#475569' : '#E2E8F0' }}
+                  tickLine={false}
+                />
                 <Tooltip
-                  cursor={{ fill: 'rgba(13, 148, 136, 0.05)' }}
+                  cursor={{ fill: isDark ? 'rgba(20, 184, 166, 0.12)' : 'rgba(13, 148, 136, 0.06)' }}
                   content={({ active, payload }) => {
                     if (active && payload && payload.length) {
                       const data = payload[0].payload;
                       const color = getHealthColor(data.score);
+                      const sc = statusConfig[data.status] || statusConfig.healthy;
                       return (
-                        <div className="p-3 bg-white dark:bg-ds-surface rounded-xl border border-slate-200 dark:border-ds-border shadow-lg text-xs">
-                          <p className="font-bold text-slate-900 dark:text-ds-text mb-1">{data.name}</p>
-                          <div className="flex items-center gap-2">
-                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                            <span className="text-slate-500 dark:text-ds-text-secondary">Health Score:</span>
-                            <span className="font-bold font-mono text-slate-900 dark:text-ds-text" style={{ color }}>{data.score}/100</span>
+                        <div className="p-3.5 bg-white dark:bg-ds-surface rounded-xl border border-slate-200/90 dark:border-ds-border shadow-xl text-xs min-w-[220px]">
+                          <p className="font-bold text-slate-900 dark:text-ds-text mb-1 text-sm">{data.fullName}</p>
+                          <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary font-mono mb-2">{data.sku} · {data.category}</p>
+                          
+                          <div className="flex items-center justify-between py-1 border-t border-slate-100 dark:border-ds-border">
+                            <span className="text-slate-500 dark:text-ds-text-secondary font-medium">Health Score:</span>
+                            <span className="font-extrabold font-mono text-sm" style={{ color }}>{data.score} / 100</span>
                           </div>
-                          <p className="text-[10px] text-slate-400 capitalize mt-1">Status: {data.status}</p>
+                          <div className="flex items-center justify-between py-1">
+                            <span className="text-slate-500 dark:text-ds-text-secondary font-medium">Current Stock:</span>
+                            <span className={cn('font-bold font-mono', data.current_stock === 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-ds-text')}>
+                              {formatNumber(data.current_stock)} units
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between pt-1">
+                            <span className="text-slate-500 dark:text-ds-text-secondary font-medium">Stock Status:</span>
+                            <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border shadow-2xs', sc.bg, sc.color)}>
+                              {sc.label}
+                            </span>
+                          </div>
                         </div>
                       );
                     }
@@ -454,11 +518,11 @@ export default function InventoryPage() {
         transition={{ delay: 0.25 }}
         className="rounded-2xl border border-slate-200/90 dark:border-ds-border overflow-hidden bg-white dark:bg-ds-surface shadow-2xs"
       >
-        <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-ds-border/60 flex items-center justify-between flex-wrap gap-3 bg-slate-50/40 dark:bg-ds-surface">
+        <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-ds-border flex items-center justify-between flex-wrap gap-3 bg-slate-50/50 dark:bg-ds-surface">
           <div>
             <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text flex items-center gap-2">
               <span>Inventory Items</span>
-              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-ds-surface-sunken text-slate-600 dark:text-ds-text-secondary font-mono border border-slate-200/60 dark:border-transparent">
+              <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-slate-100 dark:bg-ds-surface-sunken text-slate-600 dark:text-ds-text-secondary font-mono border border-slate-200/60 dark:border-ds-border">
                 {filteredItems.length}
               </span>
             </h3>
@@ -467,13 +531,13 @@ export default function InventoryPage() {
             </p>
           </div>
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-ds-text-secondary" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-ds-text-muted" />
             <input
               id="inventory-search-input"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search products, SKU, category..."
-              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border text-slate-900 dark:text-ds-text placeholder:text-slate-400 dark:placeholder:text-ds-text-secondary focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950 transition-all shadow-2xs"
+              className="w-full pl-9 pr-4 py-2 rounded-xl text-xs bg-white dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border text-slate-900 dark:text-ds-text placeholder:text-slate-400 dark:placeholder:text-ds-text-muted focus:outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:focus:ring-teal-950 transition-all shadow-2xs"
             />
           </div>
         </div>
@@ -481,17 +545,28 @@ export default function InventoryPage() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-slate-200/90 dark:border-ds-border/60 bg-slate-50/90 dark:bg-ds-surface-sunken/60">
-                {([['Product', 'name'], ['SKU', ''], ['Category', ''], ['Current Stock', 'current_stock'], ['Safety Stock', ''], ['Reorder Point', ''], ['Rec. Order Qty', ''], ['Lead Time', ''], ['Status', 'status'], ['Health', 'health_score']] as [string, string][]).map(([h, key]) => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-bold text-slate-600 dark:text-ds-text-secondary uppercase tracking-wider whitespace-nowrap">
+              <tr className="border-b border-slate-200/90 dark:border-ds-border bg-slate-50/90 dark:bg-ds-surface-sunken/80">
+                {TABLE_COLUMNS.map((col) => (
+                  <th
+                    key={col.label}
+                    className={cn(
+                      'px-4 py-3 text-[11px] font-bold text-slate-700 dark:text-ds-text uppercase tracking-wider whitespace-nowrap',
+                      col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
+                      col.minWidth
+                    )}
+                  >
                     <div
-                      className={cn('flex items-center gap-1.5 select-none', key && 'cursor-pointer hover:text-slate-900 dark:hover:text-ds-text transition-colors')}
-                      onClick={() => key && handleSort(key as SortKey)}
+                      className={cn(
+                        'flex items-center gap-1.5 select-none',
+                        col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start',
+                        col.key && 'cursor-pointer hover:text-teal-600 dark:hover:text-teal-400 transition-colors'
+                      )}
+                      onClick={() => col.key && handleSort(col.key as SortKey)}
                     >
-                      <span>{h}</span>
-                      {key && (
+                      <span>{col.label}</span>
+                      {col.key && (
                         <span className="text-slate-400 dark:text-ds-text-muted">
-                          {sortIndicator(key as SortKey) || <ArrowUpDown className="w-3 h-3 opacity-60" />}
+                          {sortIndicator(col.key as SortKey) || <ArrowUpDown className="w-3 h-3 opacity-60" />}
                         </span>
                       )}
                     </div>
@@ -499,7 +574,7 @@ export default function InventoryPage() {
                 ))}
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-slate-100 dark:divide-ds-border">
               {filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="px-4 py-12 text-center text-sm text-slate-500 dark:text-ds-text-secondary">
@@ -521,36 +596,79 @@ export default function InventoryPage() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.15 + Math.min(i * 0.02, 0.4) }}
-                    className="border-b border-slate-200/60 dark:border-ds-border/30 hover:bg-teal-50/30 dark:hover:bg-ds-surface-sunken/30 transition-colors"
+                    className="hover:bg-teal-50/30 dark:hover:bg-ds-surface-sunken/40 transition-colors"
                   >
-                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-ds-text whitespace-nowrap">{item.name}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500 dark:text-ds-text-secondary font-mono">{item.sku}</td>
-                    <td className="px-4 py-3 text-xs text-slate-600 dark:text-ds-text-secondary">{item.category}</td>
-                    <td className={cn('px-4 py-3 text-sm font-bold font-sans tabular-nums', sc.color)}>{formatNumber(item.current_stock)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-ds-text-secondary font-sans tabular-nums">{formatNumber(item.safety_stock)}</td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-ds-text-secondary font-sans tabular-nums">{formatNumber(item.reorder_point)}</td>
-                    <td className="px-4 py-3 text-sm font-bold font-sans text-slate-900 dark:text-ds-text tabular-nums">
-                      {item.recommended_qty > 0 ? (
-                        <span className="text-amber-700 dark:text-amber-400 font-bold">{formatNumber(item.recommended_qty)}</span>
+                    {/* Product Name */}
+                    <td className="px-4 py-3 text-sm font-semibold text-slate-900 dark:text-ds-text min-w-[190px]">
+                      {item.name}
+                    </td>
+
+                    {/* SKU */}
+                    <td className="px-4 py-3 text-xs text-slate-500 dark:text-ds-text-secondary font-mono min-w-[120px] whitespace-nowrap">
+                      {item.sku}
+                    </td>
+
+                    {/* Category */}
+                    <td className="px-4 py-3 text-xs text-slate-600 dark:text-ds-text-secondary min-w-[110px] whitespace-nowrap">
+                      {item.category}
+                    </td>
+
+                    {/* Current Stock (Right-aligned with warning badge if 0) */}
+                    <td className="px-4 py-3 text-sm font-mono tabular-nums text-right min-w-[110px] whitespace-nowrap">
+                      {item.current_stock === 0 ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold text-rose-700 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 border border-rose-200/80 dark:border-rose-800/40">
+                          0
+                        </span>
                       ) : (
-                        <span className="text-slate-400">—</span>
+                        <span className={cn('font-bold', sc.color)}>
+                          {formatNumber(item.current_stock)}
+                        </span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-ds-text-secondary font-sans tabular-nums">{item.lead_time}w</td>
-                    <td className="px-4 py-3 whitespace-nowrap">
+
+                    {/* Safety Stock (Right-aligned) */}
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-ds-text-secondary font-mono tabular-nums text-right min-w-[105px] whitespace-nowrap">
+                      {formatNumber(item.safety_stock)}
+                    </td>
+
+                    {/* Reorder Point (Right-aligned) */}
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-ds-text-secondary font-mono tabular-nums text-right min-w-[105px] whitespace-nowrap">
+                      {formatNumber(item.reorder_point)}
+                    </td>
+
+                    {/* Rec. Order Qty (Right-aligned) */}
+                    <td className="px-4 py-3 text-sm font-mono tabular-nums text-right min-w-[115px] whitespace-nowrap">
+                      {item.recommended_qty > 0 ? (
+                        <span className="text-amber-700 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-950/30 px-2 py-0.5 rounded-md border border-amber-200/60 dark:border-amber-800/40">
+                          {formatNumber(item.recommended_qty)}
+                        </span>
+                      ) : (
+                        <span className="text-slate-400 dark:text-ds-text-muted">—</span>
+                      )}
+                    </td>
+
+                    {/* Lead Time (Right-aligned) */}
+                    <td className="px-4 py-3 text-sm text-slate-600 dark:text-ds-text-secondary font-mono tabular-nums text-right min-w-[95px] whitespace-nowrap">
+                      {item.lead_time}w
+                    </td>
+
+                    {/* Status (Centered) */}
+                    <td className="px-4 py-3 text-center min-w-[110px] whitespace-nowrap">
                       <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider border shadow-2xs', sc.bg, sc.color)}>
                         {sc.label}
                       </span>
                     </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-16 h-2 bg-slate-100 dark:bg-ds-surface-sunken rounded-full overflow-hidden border border-slate-200/50 dark:border-transparent">
+
+                    {/* Health (Right-aligned) */}
+                    <td className="px-4 py-3 min-w-[115px] whitespace-nowrap text-right">
+                      <div className="flex items-center justify-end gap-2.5">
+                        <div className="w-14 h-2 bg-slate-100 dark:bg-ds-surface-sunken rounded-full overflow-hidden border border-slate-200/50 dark:border-ds-border">
                           <div
                             className="h-full rounded-full transition-all duration-500"
                             style={{ width: `${item.health_score}%`, backgroundColor: getHealthColor(item.health_score) }}
                           />
                         </div>
-                        <span className="text-xs font-bold font-sans tabular-nums" style={{ color: getHealthColor(item.health_score) }}>
+                        <span className="text-xs font-bold font-mono tabular-nums w-7 text-right" style={{ color: getHealthColor(item.health_score) }}>
                           {item.health_score}
                         </span>
                       </div>
