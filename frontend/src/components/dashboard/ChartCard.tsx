@@ -2,7 +2,6 @@
 
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-
 interface ChartCardProps {
   title: string;
   subtitle?: string;
@@ -10,9 +9,42 @@ interface ChartCardProps {
   className?: string;
   delay?: number;
   actions?: React.ReactNode;
+  headerVariant?: 'default' | 'tinted';
 }
 
-export function ChartCard({ title, subtitle, children, className, delay = 0, actions }: ChartCardProps) {
+export function ChartCard({
+  title,
+  subtitle,
+  children,
+  className,
+  delay = 0,
+  actions,
+  headerVariant = 'default',
+}: ChartCardProps) {
+  if (headerVariant === 'tinted') {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
+        className={cn('card-apple overflow-hidden flex flex-col', className)}
+      >
+        <div className="px-5 py-4 sm:px-6 sm:py-4.5 border-b border-ds-hairline bg-ds-surface-sunken/60 flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-ds-text-primary tracking-tight">{title}</h3>
+            {subtitle && (
+              <p className="text-xs text-ds-text-muted mt-0.5 font-medium">{subtitle}</p>
+            )}
+          </div>
+          {actions && <div className="flex items-center gap-2">{actions}</div>}
+        </div>
+        <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
+          {children}
+        </div>
+      </motion.div>
+    );
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -33,6 +65,7 @@ export function ChartCard({ title, subtitle, children, className, delay = 0, act
     </motion.div>
   );
 }
+
 
 /** Skeleton loader for chart cards */
 export function ChartCardSkeleton() {
