@@ -26,7 +26,7 @@ import { AnomalyTypeBreakdown } from '@/components/anomalies/AnomalySummaryCards
 import anomalyApi from '@/services/anomalyApi';
 import { toast } from '@/hooks/useToast';
 import type {
-  Anomaly, AnomalyListResponse, AnomalySummary,
+  Anomaly, AnomalySummary,
   AnomalyFilters, AnomalyDetectRequest, AnomalyDetectResponse,
 } from '@/types/anomaly';
 
@@ -211,21 +211,28 @@ export default function AnomaliesPage() {
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-ds-border/60 flex-shrink-0 bg-ds-surface/60 backdrop-blur-md"
+        className="relative flex items-center justify-between px-6 py-4 border-b border-ds-border/60 flex-shrink-0 bg-ds-surface/60 backdrop-blur-md overflow-hidden"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-ds-red-danger flex items-center justify-center text-white shadow-[var(--ds-raise-1)]">
+        {/* Subtle indigo decorative accent glow */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs">
             <Activity className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-ds-text flex items-center gap-2">
-              Anomaly Intelligence
-              <span className="badge-apple bg-ds-blue-action/10 border-ds-blue-action/25 text-ds-blue-action font-semibold">
-                & Investigation Center
-              </span>
-            </h1>
-            <p className="text-xs text-ds-text-secondary mt-0.5">
-              Rolling z-score detection across demand, inventory & forecast data
+            <div className="flex items-center gap-2.5">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 inline-block" />
+              <h1 className="text-lg font-bold text-ds-text flex items-center gap-2 tracking-tight">
+                Anomaly Intelligence
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                  <Brain className="w-3 h-3 text-indigo-600" />
+                  Investigation Center
+                </span>
+              </h1>
+            </div>
+            <p className="text-xs text-ds-text-muted mt-0.5 ml-3.5">
+              Rolling z-score detection across demand, inventory &amp; forecast data
             </p>
           </div>
         </div>
@@ -234,7 +241,7 @@ export default function AnomaliesPage() {
           id="refresh-all-btn"
           onClick={handleRefresh}
           disabled={isLoadingList}
-          className="btn-apple btn-apple-soft text-xs h-9 px-3.5"
+          className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs hover:shadow-xs transition-all"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
           Refresh
