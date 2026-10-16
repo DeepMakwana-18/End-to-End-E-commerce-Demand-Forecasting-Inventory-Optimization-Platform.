@@ -63,19 +63,19 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
     : 'bg-gradient-to-r from-red-500 to-rose-600';
 
   return (
-    <div className={cn('group select-none', disabled && 'opacity-50 pointer-events-none')}>
-      <div className="flex items-start justify-between mb-2 gap-2">
-        <div className="flex items-center gap-2 min-w-0">
+    <div className={cn('group select-none py-1', disabled && 'opacity-50 pointer-events-none')}>
+      <div className="flex items-start justify-between mb-2 gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
           {icon && (
-            <span className="text-ds-text-muted group-hover:text-ds-blue transition-colors flex-shrink-0">
+            <span className="p-1 rounded-lg bg-slate-100 dark:bg-ds-surface-sunken text-slate-500 dark:text-ds-text-secondary group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-shrink-0">
               {icon}
             </span>
           )}
           <div className="min-w-0">
-            <label htmlFor={id} className="text-xs font-bold text-ds-text-primary cursor-pointer truncate block">
+            <label htmlFor={id} className="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-ds-text-heading cursor-pointer truncate block">
               {label}
             </label>
-            <p className="text-[10px] text-ds-text-muted truncate mt-0.5">{description}</p>
+            <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary truncate mt-0.5 leading-tight">{description}</p>
           </div>
         </div>
         <motion.div
@@ -84,7 +84,7 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.15 }}
           className={cn(
-            'px-2 py-0.5 rounded-md text-xs font-bold font-sans tabular-nums border shadow-2xs flex-shrink-0',
+            'px-2.5 py-0.5 rounded-lg text-xs font-bold font-sans tabular-nums border shadow-2xs flex-shrink-0 ring-1 ring-black/5 dark:ring-white/5',
             badgeStyle
           )}
         >
@@ -93,20 +93,20 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
       </div>
 
       {/* Track + thumb */}
-      <div className="relative h-6 flex items-center">
+      <div className="relative h-7 flex items-center">
         {/* Background track */}
-        <div className="absolute inset-y-0 top-1/2 -translate-y-1/2 w-full h-2 bg-ds-surface-sunken rounded-full border border-ds-hairline shadow-inner" />
+        <div className="absolute inset-y-0 top-1/2 -translate-y-1/2 w-full h-2.5 bg-slate-200/90 dark:bg-slate-700/80 rounded-full border border-slate-300/60 dark:border-slate-600/60 shadow-inner" />
 
         {/* Filled track */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 h-2 rounded-full transition-all duration-100 shadow-xs',
+            'absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full transition-all duration-75 shadow-xs',
             trackBg
           )}
           style={{ width: `${pct}%` }}
         />
 
-        {/* Native range input (invisible but interactive) */}
+        {/* Native range input (accessible and interactive) */}
         <input
           id={id}
           type="range"
@@ -116,26 +116,27 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           disabled={disabled}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full z-10"
+          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-full"
+          aria-label={label}
         />
 
         {/* Visual thumb */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white shadow-md border-2 border-blue-600',
-            'transition-transform duration-100 group-hover:scale-110',
+            'absolute top-1/2 -translate-y-1/2 w-5.5 h-5.5 rounded-full bg-white dark:bg-slate-100 shadow-md border-2 border-indigo-600 dark:border-blue-500',
+            'transition-transform duration-100 group-hover:scale-110 ring-2 ring-indigo-500/20 dark:ring-blue-400/25',
             'pointer-events-none'
           )}
-          style={{ left: `calc(${pct}% - 10px)` }}
+          style={{ left: `calc(${pct}% - 11px)` }}
         />
       </div>
 
       {/* Min / Max labels */}
-      <div className="flex justify-between mt-1 px-0.5">
-        <span className="text-[10px] text-ds-text-muted font-mono font-medium">
+      <div className="flex justify-between mt-0.5 px-0.5">
+        <span className="text-[11px] text-slate-400 dark:text-ds-text-muted font-mono font-medium">
           {unit === '%' ? `${min}%` : unit === 'days' ? `${min}d` : unit === '×' ? `${min}×` : min}
         </span>
-        <span className="text-[10px] text-ds-text-muted font-mono font-medium">
+        <span className="text-[11px] text-slate-400 dark:text-ds-text-muted font-mono font-medium">
           {unit === '%' ? `${max}%` : unit === 'days' ? `${max}d` : unit === '×' ? `${max}×` : max}
         </span>
       </div>

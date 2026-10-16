@@ -43,9 +43,7 @@ export function Header() {
   const searchRef = useRef<HTMLDivElement>(null);
 
   const cycleTheme = () => {
-    const themes: ThemeMode[] = ['dark', 'light', 'system'];
-    const currentIndex = themes.indexOf(theme);
-    const nextTheme = themes[(currentIndex + 1) % themes.length];
+    const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
     setTheme(nextTheme);
   };
 

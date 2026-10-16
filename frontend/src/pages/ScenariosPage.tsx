@@ -153,12 +153,12 @@ export default function ScenariosPage() {
   }, [activeScenario, loadScenarios]);
 
   return (
-    <div className="flex flex-col gap-0 h-full min-h-0">
+    <div className="flex flex-col gap-6 w-full pb-16">
       {/* 1. Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden mb-5"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
         {/* Subtle indigo-to-blue decorative glow */}
         <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
@@ -199,31 +199,14 @@ export default function ScenariosPage() {
         </div>
       </motion.div>
 
-      {/* 2. Responsive Layout: 3 distinct cards with clean gap spacing */}
-      <div className="flex flex-col lg:flex-row flex-1 min-h-0 gap-5 overflow-y-auto lg:overflow-hidden pb-4">
-        {/* ── Left Column: History ── */}
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.05 }}
-          className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col p-4 rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs overflow-y-auto"
-        >
-          <ScenarioHistory
-            scenarios={scenarios}
-            activeId={activeScenario?.id ?? null}
-            isLoading={isLoadingList}
-            onSelect={handleSelect}
-            onRun={handleQuickRun}
-            onDelete={handleDelete}
-          />
-        </motion.div>
-
-        {/* ── Mid Column: Builder ── */}
+      {/* 2. Main Workspace: Two Columns (Left ~42% Builder, Right ~58% Results) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── Left Column: Builder (lg:col-span-5 ~41.7%) ── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col p-4 rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs overflow-y-auto"
+          transition={{ delay: 0.05 }}
+          className="lg:col-span-5 flex flex-col"
         >
           <ScenarioBuilder
             onRun={handleRun}
@@ -231,12 +214,12 @@ export default function ScenariosPage() {
           />
         </motion.div>
 
-        {/* ── Right Column: Results ── */}
+        {/* ── Right Column: Results (lg:col-span-7 ~58.3%) ── */}
         <motion.div
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-          className="flex-1 min-w-0 flex flex-col gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-hairline bg-white dark:bg-ds-surface shadow-2xs overflow-y-auto"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="lg:col-span-7 flex flex-col gap-6"
         >
           <ScenarioResultPanel
             result={activeResult}
@@ -253,6 +236,23 @@ export default function ScenariosPage() {
           )}
         </motion.div>
       </div>
+
+      {/* 3. Full-Width Bottom Section: Scenario History */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="w-full"
+      >
+        <ScenarioHistory
+          scenarios={scenarios}
+          activeId={activeScenario?.id ?? null}
+          isLoading={isLoadingList}
+          onSelect={handleSelect}
+          onRun={handleQuickRun}
+          onDelete={handleDelete}
+        />
+      </motion.div>
     </div>
   );
 }

@@ -146,54 +146,77 @@ export function ScenarioResultPanel({ result, isRunning, scenarioName }: Props) 
     <div className="flex flex-col gap-4">
       {/* Running state */}
       <AnimatePresence mode="wait">
+        {/* Running state */}
         {isRunning && (
           <motion.div
             key="running"
             initial={{ opacity: 0, scale: 0.98 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.98 }}
-            className="card-apple p-10 flex flex-col items-center justify-center gap-3 text-center bg-white dark:bg-surface-900 border border-ds-border shadow-xs"
+            className="card-apple p-10 sm:p-12 flex flex-col items-center justify-center gap-3.5 text-center bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border shadow-2xs rounded-2xl"
           >
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center shadow-md shadow-indigo-500/25">
-              <Zap className="w-6 h-6 text-white" />
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center shadow-md shadow-indigo-500/25">
+              <Zap className="w-7 h-7 text-white animate-pulse" />
             </div>
             <div>
-              <p className="text-sm font-bold text-ds-text-heading">Running Scenario Simulation</p>
-              <p className="text-xs text-ds-text-muted mt-1">Inference calculations in progress…</p>
+              <p className="text-base font-bold text-slate-900 dark:text-ds-text-heading">Running Simulation Inference</p>
+              <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-1">Applying ML model weights and computing trajectory delta…</p>
             </div>
-            <div className="flex gap-1.5 mt-1">
+            <div className="flex gap-2 mt-2">
               {[0, 1, 2].map((i) => (
                 <motion.div
                   key={i}
-                  animate={{ scale: [1, 1.3, 1], opacity: [0.4, 1, 0.4] }}
+                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 1, 0.3] }}
                   transition={{ duration: 1, delay: i * 0.2, repeat: Infinity }}
-                  className="w-2 h-2 bg-indigo-600 rounded-full"
+                  className="w-2.5 h-2.5 bg-indigo-600 rounded-full"
                 />
               ))}
             </div>
           </motion.div>
         )}
 
-        {/* Empty state: No Simulation Yet */}
+        {/* Empty state: Ready to Simulate */}
         {!isRunning && !result && (
           <motion.div
             key="empty"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="card-apple p-10 sm:p-14 flex flex-col items-center justify-center gap-3 text-center bg-gradient-to-b from-[#F0F5FF]/80 via-[#F8FAFF]/80 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/60 dark:border-ds-border shadow-xs rounded-2xl"
+            className="card-apple p-8 sm:p-10 flex flex-col items-center justify-center gap-4 text-center bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border shadow-2xs rounded-2xl"
           >
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/15 via-indigo-500/15 to-teal-500/15 border border-blue-300/30 flex items-center justify-center shadow-inner relative mb-2">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500/10 via-indigo-500/10 to-teal-500/10 border border-blue-200/60 dark:border-blue-500/20 flex items-center justify-center shadow-inner relative">
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 text-white flex items-center justify-center shadow-md shadow-blue-500/25">
-                <BarChart2 className="w-5 h-5" />
+                <BarChart2 className="w-5 h-5 text-white" />
               </div>
             </div>
-            <div>
-              <p className="text-base font-extrabold text-ds-text-heading tracking-tight">
-                No Simulation Yet
+            <div className="max-w-md">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-50 dark:bg-blue-950/40 text-blue-700 dark:text-blue-300 border border-blue-200/80 dark:border-blue-500/25 text-[11px] font-bold mb-2">
+                <span>Simulation Workspace Ready</span>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
+                No Simulation Executed Yet
+              </h3>
+              <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-1.5 leading-relaxed">
+                Adjust assumptions in the <strong className="font-semibold text-slate-700 dark:text-ds-text-primary">Scenario Builder</strong> on the left and click <strong className="font-semibold text-blue-600 dark:text-blue-400">Run Simulation</strong> to evaluate demand trajectory, stockout risk, and revenue deltas.
               </p>
-              <p className="text-xs text-ds-text-secondary mt-1.5 max-w-sm leading-relaxed">
-                Adjust the scenario variables on the left and click <strong className="font-bold text-ds-text-primary">Run Simulation</strong> to see how your changes impact demand and stock.
-              </p>
+            </div>
+
+            {/* Feature highlights previewing what simulation produces */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 w-full max-w-lg mt-2 pt-4 border-t border-slate-100 dark:border-ds-hairline">
+              <div className="flex flex-col items-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-ds-surface-sunken/40 border border-slate-200/60 dark:border-ds-hairline text-center">
+                <TrendingUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400 mb-1" />
+                <span className="text-[11px] font-bold text-slate-800 dark:text-ds-text-primary">Forecast Delta</span>
+                <span className="text-[10px] text-slate-400 dark:text-ds-text-muted mt-0.5">Baseline vs simulated</span>
+              </div>
+              <div className="flex flex-col items-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-ds-surface-sunken/40 border border-slate-200/60 dark:border-ds-hairline text-center">
+                <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400 mb-1" />
+                <span className="text-[11px] font-bold text-slate-800 dark:text-ds-text-primary">Revenue & Stock</span>
+                <span className="text-[10px] text-slate-400 dark:text-ds-text-muted mt-0.5">Net inventory impact</span>
+              </div>
+              <div className="flex flex-col items-center p-2.5 rounded-xl bg-slate-50/80 dark:bg-ds-surface-sunken/40 border border-slate-200/60 dark:border-ds-hairline text-center">
+                <Zap className="w-4 h-4 text-amber-500 dark:text-amber-400 mb-1" />
+                <span className="text-[11px] font-bold text-slate-800 dark:text-ds-text-primary">SHAP Drivers</span>
+                <span className="text-[10px] text-slate-400 dark:text-ds-text-muted mt-0.5">Feature attribution</span>
+              </div>
             </div>
           </motion.div>
         )}
@@ -207,32 +230,32 @@ export function ScenarioResultPanel({ result, isRunning, scenarioName }: Props) 
             className="flex flex-col gap-4"
           >
             {/* Title bar */}
-            <div className="card-apple px-4 py-3 bg-gradient-to-r from-blue-50/70 via-indigo-50/40 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/60 dark:border-ds-border flex items-center justify-between shadow-2xs flex-wrap gap-2">
+            <div className="card-apple px-5 py-4 bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl flex items-center justify-between shadow-2xs flex-wrap gap-3">
               <div>
-                <p className="text-[10px] uppercase font-bold text-ds-text-muted tracking-wider">
-                  Simulation Results
+                <p className="text-[10px] uppercase font-bold text-slate-500 dark:text-ds-text-muted tracking-wider">
+                  Simulation Outcome
                 </p>
-                <p className="text-sm font-bold text-ds-text-heading">{scenarioName || 'Scenario Run'}</p>
+                <p className="text-base font-bold text-slate-900 dark:text-ds-text-heading">{scenarioName || 'Scenario Run'}</p>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 {modelInfo && (
                   <div className="text-right">
-                    <p className="text-[9px] uppercase font-bold text-ds-text-muted">Model</p>
-                    <span className="text-xs font-bold text-ds-blue-text bg-ds-blue-surface px-2 py-0.5 rounded-md border border-ds-blue/20">
+                    <p className="text-[9px] uppercase font-bold text-slate-400 dark:text-ds-text-muted">Model</p>
+                    <span className="text-xs font-bold text-blue-700 dark:text-ds-blue-text bg-blue-50 dark:bg-ds-blue-surface px-2.5 py-0.5 rounded-lg border border-blue-200 dark:border-ds-blue/20">
                       {modelInfo.version_tag ?? modelInfo.source}
                     </span>
                   </div>
                 )}
                 {result.computation_seconds !== null && (
                   <div className="text-right hidden sm:block">
-                    <p className="text-[9px] uppercase font-bold text-ds-text-muted">Compute Time</p>
-                    <p className="text-xs font-mono font-semibold text-ds-text-primary">
+                    <p className="text-[9px] uppercase font-bold text-slate-400 dark:text-ds-text-muted">Compute Time</p>
+                    <p className="text-xs font-mono font-bold text-slate-700 dark:text-ds-text-primary">
                       {result.computation_seconds?.toFixed(2)}s
                     </p>
                   </div>
                 )}
-                <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ds-green-surface text-ds-green-text border border-ds-green/20 text-xs font-semibold shadow-2xs">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-ds-green" />
+                <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20 text-xs font-semibold shadow-2xs">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-ds-green" />
                   <span>Completed</span>
                 </div>
               </div>
@@ -286,12 +309,12 @@ export function ScenarioResultPanel({ result, isRunning, scenarioName }: Props) 
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="card-apple p-5 bg-white dark:bg-surface-900 border border-ds-border shadow-xs"
+                className="card-apple p-5 bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl shadow-2xs"
               >
-                <div className="flex items-center justify-between pb-3 mb-4 border-b border-ds-hairline flex-wrap gap-2">
+                <div className="flex items-center justify-between pb-3 mb-4 border-b border-slate-200/80 dark:border-ds-hairline flex-wrap gap-2">
                   <div>
-                    <h3 className="text-sm font-bold text-ds-text-heading">Forecast Comparison</h3>
-                    <p className="text-xs text-ds-text-muted mt-0.5">Baseline vs simulated demand with confidence interval</p>
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-heading">Forecast Comparison</h3>
+                    <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5">Baseline vs simulated demand with confidence interval</p>
                   </div>
                   <div className="flex items-center gap-3 text-[11px] font-semibold">
                     <span className="flex items-center gap-1.5">
@@ -414,11 +437,11 @@ export function ScenarioResultPanel({ result, isRunning, scenarioName }: Props) 
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 }}
-                className="card-apple p-4 bg-white dark:bg-surface-900 border border-ds-border shadow-xs"
+                className="card-apple p-5 bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl shadow-2xs"
               >
                 <div className="flex items-center gap-2 mb-3">
-                  <Info className="w-4 h-4 text-ds-blue" />
-                  <h3 className="text-sm font-bold text-ds-text-heading">Prescriptive Recommendations</h3>
+                  <Info className="w-4 h-4 text-blue-600 dark:text-ds-blue" />
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-heading">Prescriptive Recommendations</h3>
                 </div>
                 <div className="flex flex-col gap-2">
                   {recommendations.map((rec, i) => (

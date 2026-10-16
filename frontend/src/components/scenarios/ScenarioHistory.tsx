@@ -1,46 +1,51 @@
-/** ScenarioHistory — list of saved scenarios with status badges and quick-run. */
+/** ScenarioHistory — full-width responsive grid of saved scenarios with rich metadata, status badges, and quick actions. */
 
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play, Trash2, Clock, CheckCircle2, XCircle, Loader2,
-  ChevronRight, TrendingUp, TrendingDown, Minus, History
+  TrendingUp, TrendingDown, Minus, History, Eye
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Scenario } from '@/types/scenario';
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; icon: React.ElementType; color: string; bg: string }
+  { label: string; icon: React.ElementType; color: string; bg: string; badge: string }
 > = {
   draft: {
     label: 'Draft',
     icon: Clock,
-    color: 'text-ds-text-muted',
-    bg: 'bg-ds-surface-sunken border-ds-border',
+    color: 'text-slate-500 dark:text-ds-text-muted',
+    bg: 'bg-slate-100 dark:bg-ds-surface-sunken border-slate-200 dark:border-ds-border',
+    badge: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-ds-surface-sunken dark:text-ds-text-muted dark:border-ds-hairline',
   },
   running: {
     label: 'Running',
     icon: Loader2,
-    color: 'text-ds-blue-text',
-    bg: 'bg-ds-blue-surface border-ds-blue/20',
+    color: 'text-blue-600 dark:text-ds-blue-text',
+    bg: 'bg-blue-50 dark:bg-ds-blue-surface border-blue-200 dark:border-ds-blue/20',
+    badge: 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-ds-blue-surface dark:text-ds-blue-text dark:border-ds-blue/20',
   },
   completed: {
     label: 'Completed',
     icon: CheckCircle2,
-    color: 'text-ds-green-text',
-    bg: 'bg-ds-green-surface border-ds-green/20',
+    color: 'text-emerald-600 dark:text-ds-green-text',
+    bg: 'bg-emerald-50 dark:bg-ds-green-surface border-emerald-200 dark:border-ds-green/20',
+    badge: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20',
   },
   failed: {
     label: 'Failed',
     icon: XCircle,
-    color: 'text-ds-red-text',
-    bg: 'bg-ds-red-surface border-ds-red/20',
+    color: 'text-rose-600 dark:text-ds-red-text',
+    bg: 'bg-rose-50 dark:bg-ds-red-surface border-rose-200 dark:border-ds-red/20',
+    badge: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-ds-red-surface dark:text-ds-red-text dark:border-ds-red/20',
   },
   archived: {
     label: 'Archived',
     icon: Trash2,
-    color: 'text-ds-text-muted',
-    bg: 'bg-ds-surface-sunken border-ds-border',
+    color: 'text-slate-500 dark:text-ds-text-muted',
+    bg: 'bg-slate-100 dark:bg-ds-surface-sunken border-slate-200 dark:border-ds-border',
+    badge: 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-ds-surface-sunken dark:text-ds-text-muted dark:border-ds-hairline',
   },
 };
 
@@ -66,13 +71,16 @@ export function ScenarioHistory({
 }: Props) {
   if (isLoading) {
     return (
-      <div className="card-apple p-4 bg-white dark:bg-surface-900 border border-ds-border shadow-xs">
-        <p className="text-[11px] text-ds-text-muted mb-3 font-bold uppercase tracking-wider">
-          Scenario History
-        </p>
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="h-14 skeleton rounded-xl bg-ds-surface-sunken" />
+      <div className="card-apple p-5 sm:p-6 bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl shadow-2xs">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-ds-hairline">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-slate-200 dark:bg-ds-surface-sunken animate-pulse" />
+            <div className="h-5 w-36 bg-slate-200 dark:bg-ds-surface-sunken rounded animate-pulse" />
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="h-36 rounded-xl bg-slate-100 dark:bg-ds-surface-sunken animate-pulse border border-slate-200/60 dark:border-ds-hairline" />
           ))}
         </div>
       </div>
@@ -80,28 +88,42 @@ export function ScenarioHistory({
   }
 
   return (
-    <div className="card-apple p-4 flex flex-col h-full bg-gradient-to-b from-white via-[#F8FAFC] to-[#F1F5F9]/60 dark:from-surface-900 dark:to-surface-950 border border-ds-border shadow-xs">
-      <div className="flex items-center justify-between mb-3 pb-2 border-b border-ds-hairline">
-        <p className="text-[11px] text-ds-text-primary font-bold uppercase tracking-wider">
-          Scenario History
-        </p>
-        <span className="text-[10px] text-ds-text-muted font-mono font-medium px-2 py-0.5 rounded-full bg-ds-surface-sunken border border-ds-hairline">
-          {scenarios.length} {scenarios.length === 1 ? 'scenario' : 'scenarios'}
-        </span>
+    <div className="card-apple p-5 sm:p-6 bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl shadow-2xs">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 pb-4 border-b border-slate-100 dark:border-ds-hairline">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <History className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-bold text-slate-900 dark:text-ds-text-heading">
+                Scenario History
+              </h2>
+              <span className="text-xs font-bold text-slate-600 dark:text-ds-text-secondary font-mono px-2.5 py-0.5 rounded-full bg-slate-100 dark:bg-ds-surface-sunken border border-slate-200 dark:border-ds-hairline">
+                {scenarios.length} {scenarios.length === 1 ? 'scenario' : 'saved scenarios'}
+              </span>
+            </div>
+            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5">
+              Select any past scenario to inspect projected demand trajectory and recommendations
+            </p>
+          </div>
+        </div>
       </div>
 
+      {/* Body */}
       {scenarios.length === 0 ? (
-        <div className="text-center py-10 px-2 flex flex-col items-center justify-center">
-          <div className="w-12 h-12 rounded-2xl bg-ds-blue-surface text-ds-blue flex items-center justify-center mb-3 shadow-2xs border border-ds-blue/20">
+        <div className="text-center py-12 px-4 flex flex-col items-center justify-center rounded-xl bg-slate-50/50 dark:bg-ds-surface-sunken/20 border border-dashed border-slate-200 dark:border-ds-hairline">
+          <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-ds-blue-surface text-blue-600 dark:text-ds-blue flex items-center justify-center mb-3 shadow-2xs border border-blue-200/60 dark:border-ds-blue/20">
             <History className="w-6 h-6" />
           </div>
-          <p className="text-xs font-bold text-ds-text-primary">No Saved Scenarios</p>
-          <p className="text-[11px] text-ds-text-muted mt-1 max-w-[200px] leading-relaxed">
-            Configure parameters in the builder and run a simulation to record outcomes.
+          <p className="text-sm font-bold text-slate-900 dark:text-ds-text-heading">No Saved Scenarios Yet</p>
+          <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-1 max-w-sm leading-relaxed">
+            Configure assumptions in the Scenario Builder above and run a simulation to preserve outcomes and comparisons here.
           </p>
         </div>
       ) : (
-        <div className="flex flex-col gap-2 max-h-[460px] overflow-y-auto pr-0.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           <AnimatePresence initial={false}>
             {scenarios.map((s, idx) => {
               const cfg = STATUS_CONFIG[s.status] ?? STATUS_CONFIG.draft;
@@ -113,84 +135,97 @@ export function ScenarioHistory({
               return (
                 <motion.div
                   key={s.id}
-                  initial={{ opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, x: 8 }}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
                   transition={{ delay: idx * 0.03 }}
                   onClick={() => onSelect(s)}
                   className={cn(
-                    'group relative flex items-center gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer',
-                    'border transition-all duration-150',
+                    'group relative flex flex-col justify-between p-4 rounded-xl cursor-pointer',
+                    'border transition-all duration-150 shadow-2xs',
                     isActive
-                      ? 'bg-gradient-to-r from-blue-50/90 to-indigo-50/80 dark:from-blue-950/40 dark:to-indigo-950/30 border-blue-400 dark:border-blue-500/50 shadow-xs ring-1 ring-blue-500/20'
-                      : 'bg-white dark:bg-surface-800/60 border-ds-hairline hover:bg-ds-surface-sunken hover:border-ds-border hover:shadow-2xs'
+                      ? 'bg-gradient-to-br from-blue-50/90 via-indigo-50/60 to-white dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-surface-800 border-blue-500 dark:border-blue-500/70 shadow-xs ring-2 ring-blue-500/25'
+                      : 'bg-white dark:bg-surface-800/60 border-slate-200/90 dark:border-ds-hairline hover:bg-slate-50 dark:hover:bg-ds-surface-sunken hover:border-slate-300 dark:hover:border-ds-border hover:shadow-xs'
                   )}
                 >
-                  {/* Status indicator */}
-                  <div className={cn('flex-shrink-0 w-6 h-6 rounded-lg border flex items-center justify-center', cfg.bg)}>
-                    <StatusIcon
-                      className={cn('w-3 h-3', cfg.color, s.status === 'running' && 'animate-spin')}
-                    />
-                  </div>
+                  {/* Top Row: Status + Delta/Metric */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-2.5">
+                      <div className={cn('flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-bold border', cfg.badge)}>
+                        <StatusIcon className={cn('w-3 h-3', cfg.color, s.status === 'running' && 'animate-spin')} />
+                        <span>{cfg.label}</span>
+                      </div>
 
-                  {/* Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className={cn('text-xs font-bold truncate', isActive ? 'text-ds-blue-text' : 'text-ds-text-primary')}>
+                      {/* Delta Badge */}
+                      {delta !== null && s.status === 'completed' && (
+                        <div className={cn(
+                          'flex items-center gap-1 text-[11px] font-bold font-sans tabular-nums px-2 py-0.5 rounded-md border shadow-2xs',
+                          delta > 0.5 ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20' :
+                          delta < -0.5 ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-ds-red-surface dark:text-ds-red-text dark:border-ds-red/20' :
+                          'bg-slate-100 text-slate-600 border-slate-200 dark:bg-ds-surface-sunken dark:text-ds-text-muted dark:border-ds-border'
+                        )}>
+                          {delta > 0.5 ? <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-ds-green" /> :
+                           delta < -0.5 ? <TrendingDown className="w-3 h-3 text-rose-600 dark:text-ds-red" /> :
+                           <Minus className="w-3 h-3 text-slate-400" />}
+                          <span>{delta > 0 ? '+' : ''}{delta.toFixed(1)}%</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Scenario Name (Full name, readable, no truncation) */}
+                    <h3
+                      className={cn(
+                        'text-sm font-bold line-clamp-2 leading-snug tracking-tight mb-2',
+                        isActive ? 'text-blue-700 dark:text-ds-blue-text' : 'text-slate-900 dark:text-ds-text-heading'
+                      )}
+                      title={s.name}
+                    >
                       {s.name}
-                    </p>
-                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                      <span className="text-[10px] font-semibold text-ds-text-secondary bg-ds-surface-sunken border border-ds-hairline px-1.5 py-0.5 rounded-md">
+                    </h3>
+
+                    {/* Metadata chips */}
+                    <div className="flex items-center gap-1.5 flex-wrap text-[10px] mb-3">
+                      <span className="font-semibold text-slate-600 dark:text-ds-text-secondary bg-slate-100 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-hairline px-2 py-0.5 rounded-md">
                         {TYPE_LABELS[s.scenario_type] ?? s.scenario_type}
                       </span>
-                      <span className="text-[10px] text-ds-text-muted font-mono">v{s.version}</span>
-                      <span className="text-[10px] text-ds-text-muted">·</span>
-                      <span className="text-[10px] text-ds-text-muted font-medium">{s.horizon_weeks}w</span>
+                      <span className="text-slate-400 dark:text-ds-text-muted font-mono font-medium">v{s.version}</span>
+                      <span className="text-slate-300 dark:text-ds-text-muted">·</span>
+                      <span className="text-slate-500 dark:text-ds-text-secondary font-medium">{s.horizon_weeks}w horizon</span>
                     </div>
                   </div>
 
-                  {/* Delta badge */}
-                  {delta !== null && s.status === 'completed' && (
-                    <div className={cn(
-                      'flex items-center gap-0.5 text-[10px] font-bold font-sans tabular-nums px-2 py-0.5 rounded-md border',
-                      delta > 0.5 ? 'bg-ds-green-surface text-ds-green-text border-ds-green/20' :
-                      delta < -0.5 ? 'bg-ds-red-surface text-ds-red-text border-ds-red/20' :
-                      'bg-ds-surface-sunken text-ds-text-muted border-ds-border'
-                    )}>
-                      {delta > 0.5 ? <TrendingUp className="w-2.5 h-2.5 text-ds-green" /> :
-                       delta < -0.5 ? <TrendingDown className="w-2.5 h-2.5 text-ds-red" /> :
-                       <Minus className="w-2.5 h-2.5 text-ds-text-muted" />}
-                      <span>{delta > 0 ? '+' : ''}{delta.toFixed(1)}%</span>
-                    </div>
-                  )}
+                  {/* Bottom Action Footer */}
+                  <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-ds-hairline mt-auto">
+                    <span className="flex items-center gap-1 text-[11px] font-bold text-blue-600 dark:text-ds-blue group-hover:underline">
+                      <Eye className="w-3 h-3" />
+                      <span>{isActive ? 'Loaded' : 'Inspect'}</span>
+                    </span>
 
-                  {/* Action buttons (visible on hover or active) */}
-                  <div className={cn(
-                    'flex items-center gap-1 transition-opacity',
-                    isActive ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  )}>
-                    {s.status !== 'running' && (
+                    <div className="flex items-center gap-1.5">
+                      {s.status !== 'running' && (
+                        <button
+                          type="button"
+                          id={`run-scenario-${s.id}`}
+                          onClick={(e) => { e.stopPropagation(); onRun(s.id); }}
+                          className="w-7 h-7 flex items-center justify-center rounded-lg bg-blue-50 hover:bg-blue-600 text-blue-700 hover:text-white dark:bg-ds-blue-surface dark:hover:bg-ds-blue dark:text-ds-blue-text dark:hover:text-white border border-blue-200/80 dark:border-ds-blue/20 transition-all shadow-2xs"
+                          title="Run simulation"
+                          aria-label={`Run simulation for ${s.name}`}
+                        >
+                          <Play className="w-3 h-3 fill-current" />
+                        </button>
+                      )}
                       <button
-                        id={`run-scenario-${s.id}`}
-                        onClick={(e) => { e.stopPropagation(); onRun(s.id); }}
-                        className="w-6 h-6 flex items-center justify-center rounded-lg bg-ds-blue-surface hover:bg-ds-blue text-ds-blue-text hover:text-white border border-ds-blue/20 transition-all shadow-2xs"
-                        title="Run simulation"
+                        type="button"
+                        id={`delete-scenario-${s.id}`}
+                        onClick={(e) => { e.stopPropagation(); onDelete(s.id); }}
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-rose-50 text-slate-500 hover:text-rose-600 dark:bg-ds-surface-sunken dark:hover:bg-ds-red-surface dark:text-ds-text-muted dark:hover:text-ds-red-text border border-slate-200 dark:border-ds-hairline hover:border-rose-200 dark:hover:border-rose-500/20 transition-all shadow-2xs"
+                        title="Archive scenario"
+                        aria-label={`Archive scenario ${s.name}`}
                       >
-                        <Play className="w-2.5 h-2.5" />
+                        <Trash2 className="w-3 h-3" />
                       </button>
-                    )}
-                    <button
-                      id={`delete-scenario-${s.id}`}
-                      onClick={(e) => { e.stopPropagation(); onDelete(s.id); }}
-                      className="w-6 h-6 flex items-center justify-center rounded-lg bg-ds-surface-sunken hover:bg-ds-red-surface text-ds-text-muted hover:text-ds-red-text border border-ds-hairline hover:border-ds-red/20 transition-all shadow-2xs"
-                      title="Archive scenario"
-                    >
-                      <Trash2 className="w-2.5 h-2.5" />
-                    </button>
+                    </div>
                   </div>
-
-                  {isActive && (
-                    <ChevronRight className="w-3.5 h-3.5 text-ds-blue flex-shrink-0" />
-                  )}
                 </motion.div>
               );
             })}
