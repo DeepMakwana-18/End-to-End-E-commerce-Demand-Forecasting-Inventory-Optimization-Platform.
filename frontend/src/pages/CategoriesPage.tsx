@@ -1,7 +1,13 @@
 /**
  * Category Analytics Page - Category demand, growth, and seasonal analysis.
- * Light Mode Refinement: High contrast data visualization, Apple Modern aesthetic,
- * cohesive palette, readable radar grid lines, and purposeful empty states.
+ * Enterprise SaaS UI/UX refinement:
+ * - 4 Refined KPI cards with consistent metric typography and verified definitions.
+ * - Category Demand Distribution: high-contrast donut with centered units total & count, theme-aware tooltips.
+ * - Category Performance Radar: expanded height, high-contrast angle/scale labels in light & dark modes, subtle gridlines, unified category colors.
+ * - Seasonal Category Demand: theme-aware stacked quarterly chart with shared category color mapping.
+ * - Balanced Category Summary Grid: responsive 3 columns x 2 rows (desktop), 2 x 3 (tablet), 1 x 6 (mobile).
+ * - Clear momentum baseline indicators replacing confusing '0%' values.
+ * - Floating assistant bottom clearance (pb-24).
  */
 
 import { useMemo } from 'react';
@@ -11,10 +17,11 @@ import {
   TrendingUp,
   BarChart3,
   Layers,
-  TrendingDown,
   Minus,
   Sparkles,
   Inbox,
+  Activity,
+  Package,
 } from 'lucide-react';
 import {
   PieChart,
@@ -37,8 +44,9 @@ import {
 import { cn, formatNumber } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, systemApi } from '@/services/api';
+import { useAppStore } from '@/stores/appStore';
 
-// Coordinated, accessible palette with high distinction in light and dark modes
+// Unified, accessible palette with high distinction in light and dark modes
 const CATEGORY_PALETTE = [
   { stroke: '#4F46E5', fill: '#6366F1', name: 'Indigo' },
   { stroke: '#0D9488', fill: '#14B8A6', name: 'Teal' },
@@ -120,7 +128,7 @@ function CategoryKPICard({
                 )}
               >
                 {isPositive && <TrendingUp className="w-3 h-3 text-emerald-600" />}
-                {isNegative && <TrendingDown className="w-3 h-3 text-rose-600" />}
+                {isNegative && <TrendingUp className="w-3 h-3 text-rose-600 rotate-180" />}
                 {isNeutral && <Minus className="w-3 h-3 text-slate-500" />}
                 {isPositive && '+'}
                 {change.toFixed(1)}%
@@ -129,7 +137,7 @@ function CategoryKPICard({
             </div>
           ) : sub ? (
             <div className="mt-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control" />
+              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control flex-shrink-0" />
               <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted truncate">{sub}</span>
             </div>
           ) : null}
@@ -149,6 +157,13 @@ function CategoryKPICard({
 }
 
 export default function CategoriesPage() {
+  const { theme } = useAppStore();
+  const isDark =
+    theme === 'dark' ||
+    (theme === 'system' &&
+      typeof window !== 'undefined' &&
+      window.matchMedia('(prefers-color-scheme: dark)').matches);
+
   const { data: systemStatus } = useQuery({
     queryKey: ['system-status'],
     queryFn: async () => {
@@ -176,18 +191,38 @@ export default function CategoriesPage() {
     [rawCategories]
   );
 
+  // Category Color Map ensuring unified colors across donut, radar, seasonal, and cards
+  const categoryColorMap = useMemo(() => {
+    const map: Record<string, { fill: string; stroke: string }> = {};
+    rawCategories.forEach((c, i) => {
+      map[c.category] = {
+        fill: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].fill,
+        stroke: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].stroke,
+      };
+    });
+    return map;
+  }, [rawCategories]);
+
   const categoryData = useMemo(() => {
     return rawCategories.map((c, i) => ({
       name: c.category,
       value: totalSales > 0 ? Math.round((c.total_sales / totalSales) * 100) : 0,
-      color: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].fill,
-      strokeColor: CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].stroke,
+      color: categoryColorMap[c.category]?.fill || CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].fill,
+      strokeColor: categoryColorMap[c.category]?.stroke || CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].stroke,
       demand: c.total_sales,
+      revenue: c.total_revenue,
       growth: 0,
       productCount: c.product_count,
     }));
-  }, [rawCategories, totalSales]);
+  }, [rawCategories, totalSales, categoryColorMap]);
 
+  // Top category accurately ranked by actual demand volume
+  const topCategory = useMemo(() => {
+    if (!categoryData.length) return null;
+    return [...categoryData].sort((a, b) => b.demand - a.demand)[0];
+  }, [categoryData]);
+
+  // Quarterly seasonal demand breakdown
   const seasonalByCategory = useMemo(() => [
     { quarter: 'Q1', ...Object.fromEntries(rawCategories.map((c) => [c.category, Math.round(c.total_sales * 0.22)])) },
     { quarter: 'Q2', ...Object.fromEntries(rawCategories.map((c) => [c.category, Math.round(c.total_sales * 0.24)])) },
@@ -204,6 +239,7 @@ export default function CategoriesPage() {
     [rawCategories]
   );
 
+  // Radar metrics normalized to 0-100 across volume, revenue, product diversity, and average price
   const radarData = useMemo(() => [
     { metric: 'Volume', ...Object.fromEntries(rawCategories.map((c) => [c.category, Math.round((c.total_sales / maxSales) * 100)])) },
     { metric: 'Revenue', ...Object.fromEntries(rawCategories.map((c) => [c.category, Math.round((c.total_revenue / maxRevenue) * 100)])) },
@@ -212,19 +248,23 @@ export default function CategoriesPage() {
   ], [rawCategories, maxSales, maxRevenue]);
 
   const categoriesList = useMemo(() => categoryData.map((c) => c.name), [categoryData]);
-  const avgGrowth = categoryData.length
-    ? (categoryData.reduce((acc, c) => acc + c.growth, 0) / categoryData.length).toFixed(1)
-    : '0.0';
+
+  // Radar top segments (top 3 by demand volume)
+  const topRadarCategories = useMemo(() => {
+    return [...categoryData]
+      .sort((a, b) => b.demand - a.demand)
+      .slice(0, 3)
+      .map((c) => c.name);
+  }, [categoryData]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* ── 1. PAGE HEADER (with Subtle Indigo/Purple Visual Accent) ──── */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         className="relative flex items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
-        {/* Subtle decorative indigo/purple gradient glow */}
         <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-purple-500/5 to-transparent pointer-events-none" />
 
         <div className="relative flex items-center gap-3.5">
@@ -247,18 +287,18 @@ export default function CategoriesPage() {
         <div className="relative flex items-center gap-2.5">
           <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50/80 dark:bg-indigo-950/30 border border-indigo-200/60 dark:border-indigo-800/40 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
             <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
-            Active Segments
+            {categoryData.length} Active Categories
           </div>
         </div>
       </motion.div>
 
-      {/* ── 2. KPI CARDS (Indigo, Teal, Amber, Blue) ─────────────────── */}
+      {/* ── 2. KPI CARDS (Four Refined Cards with Verified Definitions) ── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Categories - Indigo */}
         <CategoryKPICard
           title="Total Categories"
           value={categoryData.length.toString()}
-          sub={categoryData.length > 0 ? `${categoryData.length} active segments` : 'No categories found'}
+          sub={categoryData.length > 0 ? `${categoryData.length} catalog segments tracked` : 'No categories found'}
           icon={Layers}
           iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400 border-indigo-200/60 dark:border-indigo-500/30"
           iconColor="text-indigo-700 dark:text-indigo-400"
@@ -270,8 +310,8 @@ export default function CategoriesPage() {
         {/* Top Category - Teal */}
         <CategoryKPICard
           title="Top Category"
-          value={categoryData.length ? categoryData[0].name : '—'}
-          sub={categoryData.length ? `${categoryData[0].value}% of total volume` : 'No category data'}
+          value={topCategory ? topCategory.name : '—'}
+          sub={topCategory ? `${topCategory.value}% of volume (${formatNumber(topCategory.demand)} units)` : 'No category data'}
           icon={PieIcon}
           iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400 border-teal-200/60 dark:border-teal-500/30"
           iconColor="text-teal-700 dark:text-teal-400"
@@ -283,10 +323,8 @@ export default function CategoriesPage() {
         {/* Average Growth - Amber */}
         <CategoryKPICard
           title="Average Growth"
-          value={categoryData.length ? `${avgGrowth}%` : '—'}
-          change={categoryData.length > 0 ? (parseFloat(avgGrowth) > 0 ? 4.2 : -2.1) : undefined}
-          changeLabel="vs prior cycle"
-          sub={categoryData.length === 0 ? 'Baseline model active' : undefined}
+          value="0.0%"
+          sub="Baseline cycle (steady demand)"
           icon={TrendingUp}
           iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400 border-amber-200/60 dark:border-amber-500/30"
           iconColor="text-amber-700 dark:text-amber-400"
@@ -298,10 +336,8 @@ export default function CategoriesPage() {
         {/* Total Demand - Blue */}
         <CategoryKPICard
           title="Total Demand"
-          value={formatNumber(categoryData.reduce((acc, c) => acc + c.demand, 0))}
-          change={categoryData.length > 0 ? 8.1 : undefined}
-          changeLabel="units aggregated"
-          sub={categoryData.length === 0 ? '0 units recorded' : undefined}
+          value={formatNumber(totalSales)}
+          sub={`Aggregated across ${categoryData.length} categories`}
           icon={BarChart3}
           iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400 border-blue-200/60 dark:border-blue-500/30"
           iconColor="text-blue-700 dark:text-blue-400"
@@ -318,7 +354,7 @@ export default function CategoriesPage() {
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.2 }}
-          className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[440px]"
+          className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[460px]"
         >
           {/* Card Header */}
           <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
@@ -333,7 +369,7 @@ export default function CategoriesPage() {
             {categoryData.length > 0 && (
               <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200/60 dark:border-indigo-800/40 text-xs font-semibold text-indigo-700 dark:text-indigo-300">
                 <Sparkles className="w-3 h-3 text-indigo-500" />
-                {formatNumber(totalSales)} units
+                {formatNumber(totalSales)} units total
               </span>
             )}
           </div>
@@ -354,22 +390,22 @@ export default function CategoriesPage() {
               </div>
             ) : (
               <>
-                <div className="relative w-full h-[270px]">
+                <div className="relative w-full h-[280px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
                         data={categoryData}
                         cx="50%"
                         cy="50%"
-                        innerRadius={68}
-                        outerRadius={105}
+                        innerRadius={72}
+                        outerRadius={110}
                         paddingAngle={3}
                         dataKey="value"
-                        stroke="#ffffff"
+                        stroke={isDark ? '#1E293B' : '#ffffff'}
                         strokeWidth={2}
                       >
-                        {categoryData.map((entry, i) => (
-                          <Cell key={`cell-${i}`} fill={entry.color} />
+                        {categoryData.map((entry) => (
+                          <Cell key={`cell-${entry.name}`} fill={entry.color} />
                         ))}
                       </Pie>
                       <Tooltip
@@ -380,35 +416,42 @@ export default function CategoriesPage() {
                             color: string;
                             value: number;
                             demand: number;
+                            revenue: number;
                             productCount: number;
                           };
                           return (
-                            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-lg p-3 text-xs">
-                              <div className="flex items-center gap-2 mb-1.5">
+                            <div className="bg-white/95 dark:bg-ds-surface/95 backdrop-blur-md border border-slate-200/90 dark:border-ds-border rounded-xl shadow-lg p-3 text-xs min-w-[170px]">
+                              <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-slate-100 dark:border-ds-border">
                                 <span
                                   className="w-2.5 h-2.5 rounded-full"
                                   style={{ backgroundColor: data.color }}
                                 />
-                                <span className="font-bold text-slate-900 dark:text-slate-100">
+                                <span className="font-bold text-slate-900 dark:text-ds-text-primary">
                                   {data.name}
                                 </span>
                               </div>
-                              <div className="space-y-1 text-slate-600 dark:text-slate-300">
+                              <div className="space-y-1.5 text-slate-600 dark:text-ds-text-secondary">
                                 <div className="flex justify-between gap-4">
-                                  <span className="text-slate-500 dark:text-slate-400">Share:</span>
-                                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                                  <span className="text-slate-500 dark:text-ds-text-muted">Demand Share:</span>
+                                  <span className="font-bold text-slate-900 dark:text-ds-text-primary">
                                     {data.value}%
                                   </span>
                                 </div>
                                 <div className="flex justify-between gap-4">
-                                  <span className="text-slate-500 dark:text-slate-400">Demand:</span>
-                                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                                  <span className="text-slate-500 dark:text-ds-text-muted">Total Units:</span>
+                                  <span className="font-bold text-slate-900 dark:text-ds-text-primary">
                                     {formatNumber(data.demand)} units
                                   </span>
                                 </div>
                                 <div className="flex justify-between gap-4">
-                                  <span className="text-slate-500 dark:text-slate-400">Products:</span>
-                                  <span className="font-bold text-slate-900 dark:text-slate-100">
+                                  <span className="text-slate-500 dark:text-ds-text-muted">Revenue:</span>
+                                  <span className="font-bold text-slate-900 dark:text-ds-text-primary">
+                                    ${formatNumber(data.revenue)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between gap-4">
+                                  <span className="text-slate-500 dark:text-ds-text-muted">Catalog SKUs:</span>
+                                  <span className="font-bold text-slate-900 dark:text-ds-text-primary">
                                     {data.productCount} SKUs
                                   </span>
                                 </div>
@@ -420,33 +463,33 @@ export default function CategoriesPage() {
                     </PieChart>
                   </ResponsiveContainer>
 
-                  {/* Centered Donut Badge */}
+                  {/* Centered Donut Summary Label showing Total Units & Category Count */}
                   <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                     <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tabular-nums tracking-tight">
-                      {categoryData.length}
+                      {formatNumber(totalSales)}
                     </span>
-                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                      Categories
+                    <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mt-0.5">
+                      Units • {categoryData.length} Categories
                     </span>
                   </div>
                 </div>
 
-                {/* Legend pill items */}
-                <div className="flex flex-wrap justify-center gap-2 pt-3 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                {/* Compact Legend Pills */}
+                <div className="flex flex-wrap justify-center gap-2 pt-3 border-t border-slate-100 dark:border-ds-border mt-1">
                   {categoryData.map((c) => (
                     <div
                       key={c.name}
-                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-200/80 dark:border-slate-700/60 text-xs shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-border text-xs shadow-2xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                     >
                       <span
                         className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: c.color }}
                       />
-                      <span className="font-semibold text-slate-800 dark:text-slate-200">
+                      <span className="font-semibold text-slate-800 dark:text-ds-text-primary">
                         {c.name}
                       </span>
-                      <span className="text-slate-500 dark:text-slate-400 font-mono font-medium">
-                        ({c.value}%)
+                      <span className="text-slate-500 dark:text-ds-text-muted font-mono font-medium">
+                        {c.value}%
                       </span>
                     </div>
                   ))}
@@ -456,12 +499,12 @@ export default function CategoriesPage() {
           </div>
         </motion.div>
 
-        {/* 4. CATEGORY PERFORMANCE RADAR */}
+        {/* 4. CATEGORY PERFORMANCE RADAR (HIGH PRIORITY IMPROVEMENTS) */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.35, delay: 0.25 }}
-          className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[440px]"
+          className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[460px]"
         >
           {/* Card Header */}
           <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
@@ -473,9 +516,10 @@ export default function CategoriesPage() {
                 Multi-metric comparison normalized across categories (0-100)
               </p>
             </div>
-            {categoriesList.length > 0 && (
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
-                Top {Math.min(3, categoriesList.length)} Segments
+            {topRadarCategories.length > 0 && (
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-teal-50 dark:bg-teal-950/40 border border-teal-200/60 dark:border-teal-800/40 text-xs font-semibold text-teal-700 dark:text-teal-300">
+                <Activity className="w-3 h-3 text-teal-500" />
+                Top {topRadarCategories.length} Volume Leaders
               </span>
             )}
           </div>
@@ -483,7 +527,7 @@ export default function CategoriesPage() {
           {/* Card Body */}
           <div className="p-5 flex-1 flex flex-col justify-between">
             {categoriesList.length === 0 ? (
-              <div className="w-full h-[320px] flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
+              <div className="w-full h-[340px] flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
                 <div className="w-12 h-12 rounded-2xl bg-teal-50 dark:bg-teal-950/40 flex items-center justify-center text-teal-600 dark:text-teal-400 mb-3 border border-teal-100 dark:border-teal-900/30">
                   <Inbox className="w-6 h-6" />
                 </div>
@@ -495,30 +539,41 @@ export default function CategoriesPage() {
                 </p>
               </div>
             ) : (
-              <div className="w-full h-[320px]">
+              <div className="w-full h-[340px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <RadarChart cx="50%" cy="50%" outerRadius="72%" data={radarData}>
-                    {/* Clear grid line contrast in light and dark mode */}
-                    <PolarGrid stroke="#CBD5E1" strokeDasharray="3 3" />
+                  <RadarChart cx="50%" cy="50%" outerRadius="75%" data={radarData}>
+                    {/* Clear, subtle grid lines for light and dark modes */}
+                    <PolarGrid stroke={isDark ? '#334155' : '#E2E8F0'} strokeDasharray="3 3" />
+                    {/* High contrast angle labels */}
                     <PolarAngleAxis
                       dataKey="metric"
-                      tick={{ fill: '#334155', fontSize: 11, fontWeight: 600 }}
+                      tick={{
+                        fill: isDark ? '#F8FAFC' : '#0F172A',
+                        fontSize: 12,
+                        fontWeight: 700,
+                      }}
                     />
+                    {/* Clear scale axis */}
                     <PolarRadiusAxis
                       angle={30}
                       domain={[0, 100]}
-                      tick={{ fill: '#94A3B8', fontSize: 10 }}
+                      tick={{
+                        fill: isDark ? '#94A3B8' : '#64748B',
+                        fontSize: 9,
+                        fontWeight: 500,
+                      }}
+                      stroke={isDark ? '#334155' : '#E2E8F0'}
                       axisLine={false}
                     />
                     <Tooltip
                       content={({ active, payload, label }) => {
                         if (!active || !payload?.length) return null;
                         return (
-                          <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-lg p-3 text-xs min-w-[140px]">
-                            <p className="font-bold text-slate-900 dark:text-slate-100 mb-1.5 pb-1 border-b border-slate-100 dark:border-slate-800">
-                              {label} Metric
+                          <div className="bg-white/95 dark:bg-ds-surface/95 backdrop-blur-md border border-slate-200/90 dark:border-ds-border rounded-xl shadow-lg p-3 text-xs min-w-[160px]">
+                            <p className="font-bold text-slate-900 dark:text-ds-text-primary mb-1.5 pb-1 border-b border-slate-100 dark:border-ds-border">
+                              {label} (Normalized 0-100)
                             </p>
-                            <div className="space-y-1">
+                            <div className="space-y-1.5">
                               {payload.map((entry) => (
                                 <div
                                   key={entry.name}
@@ -526,14 +581,14 @@ export default function CategoriesPage() {
                                 >
                                   <div className="flex items-center gap-1.5">
                                     <span
-                                      className="w-2 h-2 rounded-full"
+                                      className="w-2.5 h-2.5 rounded-full"
                                       style={{ backgroundColor: entry.color }}
                                     />
-                                    <span className="font-medium text-slate-700 dark:text-slate-300">
+                                    <span className="font-semibold text-slate-700 dark:text-ds-text-secondary">
                                       {entry.name}
                                     </span>
                                   </div>
-                                  <span className="font-bold text-slate-900 dark:text-slate-100 font-mono">
+                                  <span className="font-bold text-slate-900 dark:text-ds-text-primary font-mono">
                                     {entry.value}/100
                                   </span>
                                 </div>
@@ -543,24 +598,25 @@ export default function CategoriesPage() {
                         );
                       }}
                     />
-                    {categoriesList.slice(0, 3).map((cat, i) => (
+                    {/* Plotted polygons with unified colors from categoryColorMap */}
+                    {topRadarCategories.map((cat) => (
                       <Radar
                         key={cat}
                         name={cat}
                         dataKey={cat}
-                        stroke={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].stroke}
-                        fill={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].fill}
+                        stroke={categoryColorMap[cat]?.stroke || '#6366F1'}
+                        fill={categoryColorMap[cat]?.fill || '#6366F1'}
                         fillOpacity={0.22}
-                        strokeWidth={2}
+                        strokeWidth={2.5}
                       />
                     ))}
                     <Legend
                       wrapperStyle={{
                         fontSize: '11px',
-                        paddingTop: '8px',
+                        paddingTop: '12px',
                       }}
                       formatter={(val: string) => (
-                        <span className="text-slate-700 dark:text-slate-300 font-semibold px-1">
+                        <span className="text-slate-800 dark:text-slate-200 font-semibold px-1">
                           {val}
                         </span>
                       )}
@@ -608,15 +664,15 @@ export default function CategoriesPage() {
             <div className="w-full h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={seasonalByCategory} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" vertical={false} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={isDark ? '#1E293B' : '#E2E8F0'} vertical={false} />
                   <XAxis
                     dataKey="quarter"
-                    tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
-                    axisLine={{ stroke: '#CBD5E1' }}
+                    tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 600 }}
+                    axisLine={{ stroke: isDark ? '#334155' : '#CBD5E1' }}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fill: '#64748B', fontSize: 11, fontWeight: 500 }}
+                    tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(val: number) => (val >= 1000 ? `${(val / 1000).toFixed(0)}k` : `${val}`)}
@@ -626,9 +682,9 @@ export default function CategoriesPage() {
                       if (!active || !payload?.length) return null;
                       const quarterTotal = payload.reduce((acc, p) => acc + (Number(p.value) || 0), 0);
                       return (
-                        <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-lg p-3 text-xs min-w-[160px]">
-                          <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-800">
-                            <span className="font-bold text-slate-900 dark:text-slate-100">{label} Demand</span>
+                        <div className="bg-white/95 dark:bg-ds-surface/95 backdrop-blur-md border border-slate-200/90 dark:border-ds-border rounded-xl shadow-lg p-3 text-xs min-w-[170px]">
+                          <div className="flex items-center justify-between pb-1.5 mb-1.5 border-b border-slate-100 dark:border-ds-border">
+                            <span className="font-bold text-slate-900 dark:text-ds-text-primary">{label} Total Demand</span>
                             <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">
                               {formatNumber(quarterTotal)}
                             </span>
@@ -638,14 +694,14 @@ export default function CategoriesPage() {
                               <div key={entry.name} className="flex items-center justify-between gap-3">
                                 <div className="flex items-center gap-1.5">
                                   <span
-                                    className="w-2 h-2 rounded-full"
+                                    className="w-2.5 h-2.5 rounded-full"
                                     style={{ backgroundColor: entry.color }}
                                   />
-                                  <span className="text-slate-700 dark:text-slate-300 font-medium">
+                                  <span className="text-slate-700 dark:text-ds-text-secondary font-medium">
                                     {entry.name}
                                   </span>
                                 </div>
-                                <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                                <span className="font-mono font-bold text-slate-900 dark:text-ds-text-primary">
                                   {formatNumber(Number(entry.value) || 0)}
                                 </span>
                               </div>
@@ -658,7 +714,7 @@ export default function CategoriesPage() {
                   <Legend
                     wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
                     formatter={(val: string) => (
-                      <span className="text-slate-700 dark:text-slate-300 font-semibold px-1">
+                      <span className="text-slate-700 dark:text-ds-text-secondary font-semibold px-1">
                         {val}
                       </span>
                     )}
@@ -668,7 +724,7 @@ export default function CategoriesPage() {
                       key={cat}
                       dataKey={cat}
                       stackId="a"
-                      fill={CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].fill}
+                      fill={categoryColorMap[cat]?.fill || CATEGORY_PALETTE[i % CATEGORY_PALETTE.length].fill}
                       radius={i === categoriesList.length - 1 ? [6, 6, 0, 0] : [0, 0, 0, 0]}
                     />
                   ))}
@@ -679,57 +735,87 @@ export default function CategoriesPage() {
         </div>
       </motion.div>
 
-      {/* ── 6. CATEGORY CARDS BREAKDOWN ─────────────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {categoryData.map((cat, i) => (
-          <motion.div
-            key={cat.name}
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 + i * 0.04 }}
-            className="p-4.5 rounded-2xl bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-default flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-center justify-between gap-2 mb-2.5">
-                <div className="flex items-center gap-2 min-w-0">
-                  <div
-                    className="w-3 h-3 rounded-full flex-shrink-0 shadow-2xs"
-                    style={{ background: cat.color }}
-                  />
-                  <h4 className="text-sm font-bold text-slate-900 dark:text-ds-text truncate">
-                    {cat.name}
-                  </h4>
+      {/* ── 6. CATEGORY CARDS BREAKDOWN (HIGHEST STRUCTURAL PRIORITY: 3x2 Grid) ── */}
+      <div>
+        <div className="flex items-center justify-between mb-3.5">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+              Category Summary &amp; SKU Performance
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
+              Individual category breakdown with demand volume, catalog diversity, and revenue
+            </p>
+          </div>
+          <span className="text-xs font-semibold text-slate-500 dark:text-ds-text-muted">
+            {categoryData.length} Total Segments
+          </span>
+        </div>
+
+        {/* 3 columns x 2 rows on desktop, 2 x 3 on tablet, 1 x 6 on mobile */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4.5">
+          {categoryData.map((cat, i) => (
+            <motion.div
+              key={cat.name}
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.35 + i * 0.04 }}
+              className="p-5 rounded-2xl bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border shadow-2xs hover:shadow-sm hover:border-slate-300 dark:hover:border-ds-border-control transition-all duration-200 cursor-default flex flex-col justify-between min-h-[175px]"
+            >
+              <div>
+                {/* Top: Category name + Category share badge */}
+                <div className="flex items-center justify-between gap-3 mb-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="w-3.5 h-3.5 rounded-full flex-shrink-0 shadow-2xs ring-2 ring-white dark:ring-slate-900"
+                      style={{ backgroundColor: cat.color }}
+                    />
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary truncate">
+                      {cat.name}
+                    </h4>
+                  </div>
+                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold font-mono bg-slate-100 dark:bg-ds-surface-sunken text-slate-700 dark:text-ds-text-secondary border border-slate-200/80 dark:border-ds-border">
+                    {cat.value}% share
+                  </span>
                 </div>
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 font-mono">
-                  {cat.value}%
+
+                {/* Middle: Prominent Demand Value */}
+                <div className="my-2.5">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-3xl font-bold font-sans text-slate-900 dark:text-ds-text-primary tabular-nums tracking-tight">
+                      {formatNumber(cat.demand)}
+                    </span>
+                    <span className="text-xs font-semibold text-slate-500 dark:text-ds-text-muted">
+                      Units Demand
+                    </span>
+                  </div>
+                  {/* Below: SKU count and Revenue */}
+                  <div className="flex items-center gap-2 mt-1.5 text-xs text-slate-500 dark:text-ds-text-secondary font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      <Package className="w-3.5 h-3.5 text-slate-400" />
+                      {cat.productCount} SKUs
+                    </span>
+                    <span className="text-slate-300 dark:text-ds-border-control">•</span>
+                    <span>${formatNumber(cat.revenue)} revenue</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Bottom: Momentum Indicator (Clear Baseline State) */}
+              <div className="pt-3 border-t border-slate-100 dark:border-ds-border flex items-center justify-between text-xs mt-2">
+                <span className="text-[11px] font-medium text-slate-500 dark:text-ds-text-muted">
+                  Demand Momentum
+                </span>
+                <span
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[11px] font-semibold tabular-nums border bg-slate-50 text-slate-600 border-slate-200/80 dark:bg-ds-surface-sunken dark:text-ds-text-secondary dark:border-ds-border"
+                  title="Single ingested cycle telemetry; historical multi-period comparison baseline"
+                >
+                  <Minus className="w-3 h-3 text-slate-400 dark:text-slate-500" />
+                  Baseline (Active)
                 </span>
               </div>
-
-              <p className="text-xl font-bold font-sans text-slate-900 dark:text-ds-text tabular-nums tracking-tight">
-                {formatNumber(cat.demand)}
-              </p>
-              <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 font-medium">
-                units demand • {cat.productCount} SKUs
-              </p>
-            </div>
-
-            <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between">
-              <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400">
-                Momentum
-              </span>
-              <div
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-bold font-sans tabular-nums border shadow-2xs',
-                  cat.growth > 0
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/30 dark:text-emerald-400 dark:border-emerald-800/40'
-                    : 'bg-slate-50 text-slate-600 border-slate-200/80 dark:bg-ds-surface-sunken dark:text-ds-text-secondary dark:border-ds-border'
-                )}
-              >
-                {cat.growth > 0 ? '↑' : '—'} {Math.abs(cat.growth)}%
-              </div>
-            </div>
-          </motion.div>
-        ))}
+            </motion.div>
+          ))}
+        </div>
       </div>
     </div>
   );
