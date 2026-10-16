@@ -148,6 +148,8 @@ export function Header() {
       <div className="flex items-center gap-2.5">
         {/* Theme toggle */}
         <motion.button
+          id="theme-toggle-button"
+          aria-label="Toggle theme"
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={cycleTheme}

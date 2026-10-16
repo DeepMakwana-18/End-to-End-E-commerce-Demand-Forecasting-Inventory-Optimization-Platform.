@@ -28,9 +28,15 @@
   --ds-gray-400:         #94A3B8;
   --ds-gray-500:         #A9B7CC;
 
+  /* Sidebar Active Navigation Tokens */
+  --ds-sidebar-active:          #1E3553;
+  --ds-sidebar-active-text:     #FFFFFF;
+  --ds-sidebar-active-border:   rgba(96, 165, 250, 0.40);
+  --ds-sidebar-active-indicator:#3B82F6;
+
   /* Text - Section 4.2 */
   --ds-text-primary:     #F1F5F9;   /* Primary text */
-  --ds-text-secondary:   #A9B7CC;   /* Secondary text */
+  --ds-text-secondary:   #CBD5E1;   /* Brighter secondary text in dark mode */
   --ds-text-muted:       #94A3B8;   /* Muted text */
   --ds-text-disabled:    #64748B;
   --ds-text-inverse:     #0F1117;
@@ -227,13 +233,19 @@
   --ds-gray-400:         #94A3B8;
   --ds-gray-500:         #64748B;
 
+  /* Sidebar Active Navigation Tokens */
+  --ds-sidebar-active:          #EFF6FF;
+  --ds-sidebar-active-text:     #1D4ED8;
+  --ds-sidebar-active-border:   #BFDBFE;
+  --ds-sidebar-active-indicator:#2563EB;
+
   /* Typography - Section 4.1 */
   --ds-text:             #17233B;   /* Main text */
   --ds-text-heading:     #17233B;
   --ds-text-primary:     #17233B;
-  --ds-text-body:        #53657E;   /* Secondary text */
-  --ds-text-secondary:   #53657E;
-  --ds-text-muted:       #64748B;   /* Muted text */
+  --ds-text-body:        #475569;   /* Darker secondary text for contrast in light mode */
+  --ds-text-secondary:   #475569;
+  --ds-text-muted:       #475569;   /* Darker muted text for high readability */
   --ds-text-disabled:    #94A3B8;
   --ds-text-inverse:     #FFFFFF;
   --ds-btn-primary-bg:   #2563EB;

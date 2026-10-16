@@ -93,7 +93,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1">
         <div className="mb-4">
           {!sidebarCollapsed && (
-            <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-ds-text-muted">
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Main Menu
             </p>
           )}
@@ -104,11 +104,11 @@ export function Sidebar() {
               end={item.path === '/app'}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
                   'group relative',
                   isActive
-                    ? 'bg-gradient-to-r from-blue-50/90 to-indigo-50/40 text-blue-700 dark:bg-ds-blue-surface dark:text-ds-blue-on-surface border border-blue-200/70 dark:border-ds-blue/20 shadow-2xs'
-                    : 'text-slate-600 dark:text-ds-text-secondary hover:text-slate-900 dark:hover:text-ds-text-primary hover:bg-slate-100/70 dark:hover:bg-ds-surface-alt/60'
+                    ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
+                    : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
                 )
               }
             >
@@ -117,13 +117,13 @@ export function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600"
+                      className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
                       transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
                   <item.icon className={cn(
                     'w-4.5 h-4.5 flex-shrink-0 transition-colors',
-                    isActive ? 'text-blue-600 dark:text-ds-blue' : 'text-slate-400 dark:text-ds-gray-500 group-hover:text-slate-700 dark:group-hover:text-ds-text-primary'
+                    isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
                   )} />
                   <AnimatePresence>
                     {!sidebarCollapsed && (
@@ -147,7 +147,7 @@ export function Sidebar() {
         {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst') && (
           <div>
             {!sidebarCollapsed && (
-              <p className="px-3 mb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-ds-text-muted">
+              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                 Administration
               </p>
             )}
@@ -157,11 +157,11 @@ export function Sidebar() {
                 to={item.path}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-semibold transition-all duration-200',
+                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
                     'group relative',
                     isActive
-                      ? 'bg-gradient-to-r from-blue-50/90 to-indigo-50/40 text-blue-700 dark:bg-ds-blue-surface dark:text-ds-blue-on-surface border border-blue-200/70 dark:border-ds-blue/20 shadow-2xs'
-                      : 'text-slate-600 dark:text-ds-text-secondary hover:text-slate-900 dark:hover:text-ds-text-primary hover:bg-slate-100/70 dark:hover:bg-ds-surface-alt/60'
+                      ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
+                      : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
                   )
                 }
               >
@@ -170,13 +170,13 @@ export function Sidebar() {
                     {isActive && (
                       <motion.div
                         layoutId="activeNav"
-                        className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600"
+                        className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
                         transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                       />
                     )}
                     <item.icon className={cn(
                       'w-4.5 h-4.5 flex-shrink-0 transition-colors',
-                      isActive ? 'text-blue-600 dark:text-ds-blue' : 'text-slate-400 dark:text-ds-gray-500 group-hover:text-slate-700 dark:group-hover:text-ds-text-primary'
+                      isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
                     )} />
                     <AnimatePresence>
                       {!sidebarCollapsed && (
@@ -203,7 +203,7 @@ export function Sidebar() {
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
-          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-ds-text-muted hover:text-slate-800 dark:hover:text-ds-text-primary hover:bg-slate-100/80 dark:hover:bg-ds-surface-alt/60 transition-all border border-transparent hover:border-slate-200/60"
+          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-ds-surface-alt/60 transition-all border border-transparent hover:border-slate-200/60"
         >
           {sidebarCollapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -218,7 +218,7 @@ export function Sidebar() {
         {/* User / Logout */}
         <button
           onClick={logout}
-          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-500 dark:text-ds-text-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:text-ds-red dark:hover:bg-ds-red-surface transition-all border border-transparent hover:border-rose-100 dark:hover:border-transparent"
+          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-ds-red dark:hover:bg-ds-red-surface transition-all border border-transparent hover:border-rose-100 dark:hover:border-transparent"
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
           <AnimatePresence>
