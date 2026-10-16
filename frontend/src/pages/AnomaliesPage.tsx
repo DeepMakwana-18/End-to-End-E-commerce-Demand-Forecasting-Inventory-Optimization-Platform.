@@ -21,7 +21,6 @@ import { AnomalyFilterBar } from '@/components/anomalies/AnomalyFilterBar';
 import { AnomalyTable } from '@/components/anomalies/AnomalyTable';
 import { AnomalyTimeline } from '@/components/anomalies/AnomalyTimeline';
 import { AnomalyInvestigationDrawer } from '@/components/anomalies/AnomalyInvestigationDrawer';
-import { AnomalyTypeBreakdown } from '@/components/anomalies/AnomalySummaryCards';
 
 import anomalyApi from '@/services/anomalyApi';
 import { toast } from '@/hooks/useToast';
@@ -258,7 +257,7 @@ export default function AnomaliesPage() {
       </motion.div>
 
       {/* ── Scrollable content ────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 flex flex-col gap-5">
 
         {/* Section 1: Executive Intelligence Header */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
@@ -275,7 +274,7 @@ export default function AnomaliesPage() {
           <AnomalyDetectPanel onDetect={handleDetect} isRunning={isDetecting} />
         </motion.div>
 
-        {/* Section 3: Anomaly Breakdown Dashboard */}
+        {/* Section 3: Anomaly Breakdown Dashboard (2x2 Grid) */}
         <AnomalyDashboardCharts
           summary={summary}
           anomalies={allAnomalies}
@@ -283,13 +282,8 @@ export default function AnomaliesPage() {
           isLoadingAnomalies={isLoadingAll}
         />
 
-        {/* Type Breakdown (legacy — kept for compatibility) */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <AnomalyTypeBreakdown summary={summary} isLoading={isLoadingSummary} />
-        </motion.div>
-
         {/* Filter + Table | Timeline split layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           {/* Left: Filter + Table (2/3 width on xl) */}
           <div className="xl:col-span-2 flex flex-col gap-4">
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>

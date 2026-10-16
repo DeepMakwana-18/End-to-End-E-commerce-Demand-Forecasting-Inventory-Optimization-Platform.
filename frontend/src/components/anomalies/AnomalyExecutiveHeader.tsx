@@ -104,27 +104,35 @@ function KpiCard({ label, value, sub, icon: Icon, color, bgIcon, cardBg, border,
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay, duration: 0.3 }}
       className={cn(
-        'p-3.5 rounded-2xl flex flex-col justify-between gap-2.5 border relative overflow-hidden transition-all duration-200 shadow-2xs hover:shadow-xs hover:-translate-y-0.5 dark:bg-none dark:bg-[#1B202A] dark:border-[#353D4D]',
-        cardBg,
-        border
+        'p-4 sm:p-5 rounded-2xl flex flex-col justify-between gap-3 border relative overflow-hidden transition-all duration-200 shadow-2xs hover:shadow-xs hover:-translate-y-0.5',
+        'bg-white dark:bg-ds-surface border-slate-200/90 dark:border-ds-border',
+        cardBg
       )}
     >
       <div className="flex items-start justify-between relative">
-        <div className={cn('w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs', bgIcon)}>
-          <Icon className="w-4 h-4" />
+        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs', bgIcon)}>
+          <Icon className="w-4.5 h-4.5" />
         </div>
         {pulse && (
-          <span className="flex h-2 w-2 mt-1">
-            <span className="animate-ping absolute inline-flex h-2 w-2 rounded-full opacity-75 bg-rose-400" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-rose-500" />
+          <span className="flex h-2.5 w-2.5 mt-0.5">
+            <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full opacity-75 bg-rose-400" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
           </span>
         )}
       </div>
 
       <div className="relative">
-        <p className="text-[10.5px] font-semibold uppercase tracking-wider text-slate-500 dark:text-ds-text-muted mb-1 leading-none">{label}</p>
-        <div className={cn('text-2xl font-bold font-sans tabular-nums tracking-tight leading-tight', color)}>{value}</div>
-        {sub && <p className="text-[10px] text-slate-500 dark:text-ds-text-muted mt-1 leading-tight line-clamp-1">{sub}</p>}
+        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary mb-1 leading-none">
+          {label}
+        </p>
+        <div className={cn('text-2xl sm:text-3xl font-extrabold font-sans tabular-nums tracking-tight leading-tight', color)}>
+          {value}
+        </div>
+        {sub && (
+          <p className="text-xs text-slate-400 dark:text-ds-text-muted mt-1 leading-tight line-clamp-1">
+            {sub}
+          </p>
+        )}
       </div>
     </motion.div>
   );
@@ -142,9 +150,9 @@ interface Props {
 export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadingAnomalies }: Props) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2.5">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="glass-card p-4 h-28 skeleton rounded-2xl" />
+          <div key={i} className="card-apple p-5 h-32 skeleton rounded-2xl bg-slate-100 dark:bg-ds-surface-sunken" />
         ))}
       </div>
     );
@@ -159,96 +167,88 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
     {
       label: 'Critical',
       value: summary.critical_count,
-      sub: summary.critical_count > 0 ? 'Immediate action' : 'Zero active',
+      sub: summary.critical_count > 0 ? 'Immediate action required' : 'Zero active critical',
       icon: Flame,
       color: 'text-rose-600 dark:text-rose-400',
-      bgIcon: 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400',
-      cardBg: 'bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-rose-500/10',
-      border: 'border-rose-200/80 dark:border-rose-500/25',
+      bgIcon: 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40',
+      cardBg: 'hover:border-rose-300 dark:hover:border-rose-700/50',
+      border: 'border-slate-200/90 dark:border-ds-border',
       pulse: summary.critical_count > 0,
       delay: 0,
     },
     {
       label: 'Medium',
       value: summary.medium_count,
-      sub: summary.medium_count > 0 ? 'Prompt review' : 'No medium risk',
+      sub: summary.medium_count > 0 ? 'Review & investigate' : 'No medium risk',
       icon: AlertTriangle,
-      color: 'text-amber-700 dark:text-amber-400',
-      bgIcon: 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400',
-      cardBg: 'bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-amber-500/10',
-      border: 'border-amber-200/80 dark:border-amber-500/20',
+      color: 'text-amber-600 dark:text-amber-400',
+      bgIcon: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40',
+      cardBg: 'hover:border-amber-300 dark:hover:border-amber-700/50',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.04,
     },
     {
       label: 'Low',
       value: summary.low_count,
-      sub: 'Monitor closely',
+      sub: summary.low_count > 0 ? 'Track trend drift' : 'No low variance',
       icon: Info,
-      color: 'text-blue-700 dark:text-primary-400',
-      bgIcon: 'bg-blue-100 text-blue-600 dark:bg-primary-500/20 dark:text-primary-400',
-      cardBg: 'bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white dark:bg-primary-500/10',
-      border: 'border-blue-200/80 dark:border-primary-500/20',
+      color: 'text-blue-600 dark:text-blue-400',
+      bgIcon: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40',
+      cardBg: 'hover:border-blue-300 dark:hover:border-blue-700/50',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.08,
     },
     {
       label: 'Total Active',
       value: summary.total_active,
       sub: summary.latest_detected_at
-        ? `Last: ${new Date(summary.latest_detected_at).toLocaleDateString()}`
-        : hasEvaluated ? 'Zero anomalies' : 'Awaiting scan',
+        ? `Last scan: ${new Date(summary.latest_detected_at).toLocaleDateString()}`
+        : hasEvaluated ? 'Zero anomalies' : 'Awaiting initial scan',
       icon: Activity,
-      color: 'text-slate-800 dark:text-surface-100',
-      bgIcon: 'bg-slate-100 text-slate-700 dark:bg-surface-700 dark:text-surface-200',
-      cardBg: 'bg-gradient-to-b from-slate-50/80 via-slate-50/40 to-white dark:bg-surface-800/40',
-      border: 'border-slate-200/90 dark:border-surface-700/30',
+      color: 'text-slate-900 dark:text-ds-text-heading',
+      bgIcon: 'bg-slate-100 text-slate-700 dark:bg-ds-surface-sunken dark:text-ds-text-primary border border-slate-200 dark:border-ds-hairline',
+      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.12,
     },
     {
-      label: 'Confidence',
+      label: 'Detection Confidence',
       value: detectionConfidence != null ? `${detectionConfidence}%` : '—',
       sub: detectionConfidence != null
-        ? (detectionConfidence > 85 ? 'Very High' : detectionConfidence > 70 ? 'High' : 'Moderate')
-        : 'Awaiting scan',
+        ? (detectionConfidence > 85 ? 'High confidence detection' : detectionConfidence > 70 ? 'Moderate confidence' : 'Low confidence')
+        : 'Awaiting scan evaluation',
       icon: Shield,
-      color: 'text-indigo-700 dark:text-indigo-400',
-      bgIcon: 'bg-indigo-100 text-indigo-600 dark:bg-indigo-500/20 dark:text-indigo-400',
-      cardBg: 'bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-indigo-500/10',
-      border: 'border-indigo-200/80 dark:border-indigo-500/20',
+      color: 'text-indigo-600 dark:text-indigo-400',
+      bgIcon: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/40',
+      cardBg: 'hover:border-indigo-300 dark:hover:border-indigo-700/50',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.16,
     },
     {
-      label: 'Avg Severity',
+      label: 'Average Severity',
       value: avgSeverityScore != null ? `${avgSeverityScore}%` : '—',
       sub: avgSeverityScore != null
-        ? (avgSeverityScore > 60 ? 'High Risk' : avgSeverityScore > 30 ? 'Moderate Risk' : 'Low Risk')
+        ? (avgSeverityScore > 60 ? 'Critical bias' : avgSeverityScore > 30 ? 'Moderate severity' : 'Low severity bias')
         : 'No baseline data',
       icon: Gauge,
       color: avgSeverityScore != null && avgSeverityScore > 60
-        ? 'text-rose-600 dark:text-danger-400'
+        ? 'text-rose-600 dark:text-rose-400'
         : avgSeverityScore != null && avgSeverityScore > 30
-          ? 'text-amber-700 dark:text-warning-400'
-          : 'text-teal-700 dark:text-teal-400',
+          ? 'text-amber-600 dark:text-amber-400'
+          : 'text-teal-600 dark:text-teal-400',
       bgIcon: avgSeverityScore != null && avgSeverityScore > 60
-        ? 'bg-rose-100 text-rose-600 dark:bg-danger-500/20 dark:text-danger-400'
+        ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
         : avgSeverityScore != null && avgSeverityScore > 30
-          ? 'bg-amber-100 text-amber-600 dark:bg-warning-500/20 dark:text-warning-400'
-          : 'bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400',
-      cardBg: avgSeverityScore != null && avgSeverityScore > 60
-        ? 'bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-danger-500/10'
-        : avgSeverityScore != null && avgSeverityScore > 30
-          ? 'bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-warning-500/10'
-          : 'bg-gradient-to-b from-teal-50/70 via-teal-50/30 to-white dark:bg-teal-500/10',
-      border: avgSeverityScore != null && avgSeverityScore > 60
-        ? 'border-rose-200/80 dark:border-danger-500/20'
-        : avgSeverityScore != null && avgSeverityScore > 30
-          ? 'border-amber-200/80 dark:border-warning-500/20'
-          : 'border-teal-200/80 dark:border-teal-500/20',
+          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
+          : 'bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400 border border-teal-200/60 dark:border-teal-800/40',
+      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.20,
     },
     {
       label: 'Deviation Exposure',
       value: exposureLoading ? (
-        <Skeleton className="h-6 w-16 my-0.5 rounded" />
+        <Skeleton className="h-7 w-20 my-0.5 rounded" />
       ) : deviationExposure != null && deviationExposure > 0 ? (
         `${(deviationExposure / 1000).toFixed(1)}k`
       ) : deviationExposure === 0 ? (
@@ -257,80 +257,60 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
         '—'
       ),
       sub: deviationExposure != null && deviationExposure > 0
-        ? 'Weighted impact'
+        ? 'Weighted volume exposure'
         : deviationExposure === 0
           ? 'No active deviation'
           : 'Awaiting scan',
       icon: DollarSign,
       color: deviationExposure != null && deviationExposure > 50000
-        ? 'text-rose-600 dark:text-danger-400'
+        ? 'text-rose-600 dark:text-rose-400'
         : deviationExposure != null && deviationExposure > 5000
-          ? 'text-amber-700 dark:text-warning-400'
-          : 'text-slate-700 dark:text-surface-300',
+          ? 'text-amber-600 dark:text-amber-400'
+          : 'text-slate-800 dark:text-ds-text-heading',
       bgIcon: deviationExposure != null && deviationExposure > 50000
-        ? 'bg-rose-100 text-rose-600 dark:bg-danger-500/20 dark:text-danger-400'
+        ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
         : deviationExposure != null && deviationExposure > 5000
-          ? 'bg-amber-100 text-amber-600 dark:bg-warning-500/20 dark:text-warning-400'
-          : 'bg-slate-100 text-slate-600 dark:bg-surface-700 dark:text-surface-300',
-      cardBg: deviationExposure != null && deviationExposure > 50000
-        ? 'bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-danger-500/10'
-        : deviationExposure != null && deviationExposure > 5000
-          ? 'bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-warning-500/10'
-          : 'bg-gradient-to-b from-slate-50/70 via-slate-50/30 to-white dark:bg-surface-800/40',
-      border: deviationExposure != null && deviationExposure > 50000
-        ? 'border-rose-200/80 dark:border-danger-500/20'
-        : deviationExposure != null && deviationExposure > 5000
-          ? 'border-amber-200/80 dark:border-warning-500/20'
-          : 'border-slate-200/80 dark:border-surface-700/30',
+          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
+          : 'bg-slate-100 text-slate-700 dark:bg-ds-surface-sunken dark:text-ds-text-primary border border-slate-200 dark:border-ds-hairline',
+      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.24,
     },
     {
-      label: 'Reliability',
+      label: 'Forecast Reliability',
       value: forecastReliability != null ? `${forecastReliability}%` : '—',
       sub: forecastReliability != null
         ? (summary.total_active === 0
-            ? '0 active misses'
+            ? '0 active forecast misses'
             : forecastReliability > 80
-              ? 'On target'
+              ? 'Forecast models on target'
               : forecastReliability > 60
-                ? 'Needs review'
-                : 'Action required')
+                ? 'Model drift detected'
+                : 'Attention required')
         : 'Awaiting baseline',
       icon: Target,
       color: forecastReliability != null && forecastReliability > 80
-        ? 'text-emerald-700 dark:text-emerald-400'
+        ? 'text-emerald-600 dark:text-emerald-400'
         : forecastReliability != null && forecastReliability > 60
-          ? 'text-amber-700 dark:text-warning-400'
+          ? 'text-amber-600 dark:text-amber-400'
           : forecastReliability != null
-            ? 'text-rose-600 dark:text-danger-400'
-            : 'text-slate-500 dark:text-surface-400',
+            ? 'text-rose-600 dark:text-rose-400'
+            : 'text-slate-500 dark:text-ds-text-muted',
       bgIcon: forecastReliability != null && forecastReliability > 80
-        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400'
+        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40'
         : forecastReliability != null && forecastReliability > 60
-          ? 'bg-amber-100 text-amber-600 dark:bg-warning-500/20 dark:text-warning-400'
+          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
           : forecastReliability != null
-            ? 'bg-rose-100 text-rose-600 dark:bg-danger-500/20 dark:text-danger-400'
-            : 'bg-slate-100 text-slate-500 dark:bg-surface-700 dark:text-surface-400',
-      cardBg: forecastReliability != null && forecastReliability > 80
-        ? 'bg-gradient-to-b from-emerald-50/70 via-emerald-50/30 to-white dark:bg-emerald-500/10'
-        : forecastReliability != null && forecastReliability > 60
-          ? 'bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-warning-500/10'
-          : forecastReliability != null
-            ? 'bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-danger-500/10'
-            : 'bg-gradient-to-b from-slate-50/70 via-slate-50/30 to-white dark:bg-surface-800/40',
-      border: forecastReliability != null && forecastReliability > 80
-        ? 'border-emerald-200/80 dark:border-emerald-500/20'
-        : forecastReliability != null && forecastReliability > 60
-          ? 'border-amber-200/80 dark:border-warning-500/20'
-          : forecastReliability != null
-            ? 'border-rose-200/80 dark:border-danger-500/20'
-            : 'border-slate-200/80 dark:border-surface-700/30',
+            ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
+            : 'bg-slate-100 text-slate-500 dark:bg-ds-surface-sunken dark:text-ds-text-muted border border-slate-200 dark:border-ds-hairline',
+      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
+      border: 'border-slate-200/90 dark:border-ds-border',
       delay: 0.28,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-8 gap-2.5">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
       {cards.map((c) => (
         <KpiCard key={c.label} {...c} />
       ))}

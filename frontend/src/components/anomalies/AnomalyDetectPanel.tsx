@@ -63,44 +63,57 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
   const confidence = lastResult ? getConfidenceScore(lastResult) : null;
 
   return (
-    <div className="rounded-2xl overflow-hidden border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs">
-      {/* Header (always visible) */}
+    <div className={cn(
+      'rounded-2xl overflow-hidden border transition-all duration-200 shadow-2xs bg-white dark:bg-ds-surface',
+      open
+        ? 'border-indigo-300/90 dark:border-indigo-500/40 ring-2 ring-indigo-500/10 shadow-xs'
+        : 'border-slate-200/90 dark:border-ds-border hover:border-slate-300 dark:hover:border-slate-700'
+    )}>
+      {/* Header (Accordion Trigger) */}
       <button
         id="detect-panel-toggle"
         onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center justify-between px-5 py-3.5 bg-gradient-to-r from-slate-50/90 via-indigo-50/30 to-white dark:bg-none dark:bg-ds-surface-sunken/60 hover:from-slate-100/90 hover:to-indigo-50/50 transition-all border-b border-transparent data-[open=true]:border-slate-200/80 dark:data-[open=true]:border-ds-border"
+        className={cn(
+          'w-full flex items-center justify-between px-5 py-4 transition-all text-left',
+          open
+            ? 'bg-gradient-to-r from-indigo-50/60 via-slate-50/40 to-white dark:bg-none dark:bg-ds-surface-sunken/80 border-b border-indigo-100 dark:border-ds-border'
+            : 'bg-white dark:bg-ds-surface hover:bg-slate-50/70 dark:hover:bg-ds-surface-sunken/40'
+        )}
         data-open={open}
       >
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs">
-            <ScanSearch className="w-4 h-4 text-white" />
+        <div className="flex items-center gap-3.5">
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <ScanSearch className="w-4.5 h-4.5 text-white" />
           </div>
-          <div className="text-left">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold text-slate-900 dark:text-surface-100">Detection Control Center</span>
+          <div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-bold text-slate-900 dark:text-ds-text-heading">Detection Control Center</span>
+              <span className="text-[10px] px-2 py-0.5 rounded-full bg-slate-100 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-border text-slate-600 dark:text-ds-text-secondary font-medium">
+                Rolling Baseline
+              </span>
               {lastResult && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-accent-500/15 dark:border-accent-500/20 dark:text-accent-400 font-semibold shadow-2xs">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200/80 text-emerald-700 dark:bg-emerald-950/40 dark:border-emerald-800/40 dark:text-emerald-400 font-semibold shadow-2xs">
                   Last: {lastResult.detected} found
                 </span>
               )}
               {sweep && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-primary-500/15 dark:border-primary-500/20 dark:text-primary-400 font-semibold flex items-center gap-1 shadow-2xs">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-950/40 dark:border-indigo-800/40 dark:text-indigo-400 font-semibold flex items-center gap-1 shadow-2xs">
                   <Layers className="w-2.5 h-2.5" />
                   Sweep Active
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-surface-400 hidden sm:block">
+            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 hidden sm:block">
               Configure rolling z-score baseline windows, sigma thresholds, and deep sweeps
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-indigo-600 dark:text-indigo-400 hidden sm:inline">
+        <div className="flex items-center gap-2.5 flex-shrink-0">
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 dark:bg-indigo-950/50 dark:text-indigo-300 border border-indigo-200/60 dark:border-indigo-800/40 hidden sm:inline-flex items-center gap-1.5 transition-colors">
             {open ? 'Hide Controls' : 'Configure Scanner'}
           </span>
-          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-surface-800 flex items-center justify-center text-slate-600 dark:text-surface-300">
-            {open ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+          <div className="w-7 h-7 rounded-lg bg-slate-100 dark:bg-ds-surface-sunken flex items-center justify-center text-slate-600 dark:text-ds-text-muted border border-slate-200/60 dark:border-ds-border">
+            {open ? <ChevronUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" /> : <ChevronDown className="w-4 h-4" />}
           </div>
         </div>
       </button>
@@ -114,11 +127,11 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
             transition={{ duration: 0.25 }}
             className="overflow-hidden"
           >
-            <div className="p-5 border-t border-slate-200/80 dark:border-surface-800/50 space-y-5 bg-white dark:bg-transparent">
+            <div className="p-5 space-y-5 bg-white dark:bg-ds-surface">
 
               {/* Lookback Selector */}
               <div>
-                <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-surface-400 block mb-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary block mb-2">
                   Lookback Window Baseline
                 </label>
                 <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
@@ -131,8 +144,8 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
                       className={cn(
                         'flex flex-col items-center py-2.5 px-1.5 rounded-xl border text-center transition-all duration-200 shadow-2xs',
                         lookback === opt.value && !sweep
-                          ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold ring-1 ring-indigo-400/30 dark:bg-primary-500/15 dark:border-primary-500/40 dark:text-primary-300'
-                          : 'bg-white dark:bg-surface-900/60 border-slate-200/90 dark:border-surface-700/40 text-slate-600 dark:text-surface-400 hover:border-slate-300 hover:bg-slate-50/80 hover:text-slate-900',
+                          ? 'bg-indigo-50 border-indigo-400 text-indigo-700 font-bold ring-1 ring-indigo-400/30 dark:bg-indigo-950/50 dark:border-indigo-500/50 dark:text-indigo-300'
+                          : 'bg-white dark:bg-ds-surface-sunken border-slate-200/90 dark:border-ds-border text-slate-600 dark:text-ds-text-secondary hover:border-slate-300 dark:hover:border-slate-600 hover:bg-slate-50/80 hover:text-slate-900 dark:hover:text-ds-text-heading',
                         sweep && 'opacity-40 cursor-not-allowed'
                       )}
                     >
@@ -142,24 +155,24 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
                   ))}
                 </div>
                 {!sweep && (
-                  <p className="text-[11px] text-slate-500 dark:text-surface-400 mt-2">
-                    Scanning last <span className="text-indigo-600 dark:text-primary-400 font-semibold">{selectedOption.label} ({selectedOption.sublabel})</span> of historical data as the anomaly baseline.
+                  <p className="text-[11px] text-slate-500 dark:text-ds-text-muted mt-2">
+                    Scanning last <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{selectedOption.label} ({selectedOption.sublabel})</span> of historical data as the anomaly baseline.
                   </p>
                 )}
               </div>
 
               {/* Threshold Inputs */}
               <div>
-                <label className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 dark:text-surface-400 block mb-2">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary block mb-2">
                   Sigma (σ) Detection Thresholds
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   {[
-                    { id: 'thresh-low', label: 'Low Severity Threshold', value: threshLow, set: setThreshLow, color: 'text-blue-700 dark:text-primary-400', icon: Info },
-                    { id: 'thresh-med', label: 'Medium Severity Threshold', value: threshMed, set: setThreshMed, color: 'text-amber-700 dark:text-warning-400', icon: AlertTriangle },
-                    { id: 'thresh-crit', label: 'Critical Severity Threshold', value: threshCrit, set: setThreshCrit, color: 'text-rose-600 dark:text-danger-400', icon: Flame },
+                    { id: 'thresh-low', label: 'Low Severity Threshold', value: threshLow, set: setThreshLow, color: 'text-blue-700 dark:text-blue-400', icon: Info },
+                    { id: 'thresh-med', label: 'Medium Severity Threshold', value: threshMed, set: setThreshMed, color: 'text-amber-700 dark:text-amber-400', icon: AlertTriangle },
+                    { id: 'thresh-crit', label: 'Critical Severity Threshold', value: threshCrit, set: setThreshCrit, color: 'text-rose-600 dark:text-rose-400', icon: Flame },
                   ].map(({ id, label, value, set, color, icon: Icon }) => (
-                    <div key={id} className="p-3 rounded-xl border border-slate-200/80 dark:border-surface-700/40 bg-slate-50/40 dark:bg-surface-900/40">
+                    <div key={id} className="p-3 rounded-xl border border-slate-200/80 dark:border-ds-border bg-slate-50/40 dark:bg-ds-surface-sunken/60">
                       <label htmlFor={id} className={cn('text-[11px] font-semibold block mb-1.5 flex items-center gap-1.5', color)}>
                         <Icon className="w-3.5 h-3.5" />
                         {label}
@@ -173,9 +186,9 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
                           step={0.1}
                           value={value}
                           onChange={(e) => set(parseFloat(e.target.value) || 0)}
-                          className="w-full px-3 py-2 bg-white dark:bg-surface-900/60 border border-slate-200/90 dark:border-surface-700/60 rounded-xl text-sm text-slate-900 dark:text-surface-100 font-mono shadow-2xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all"
+                          className="w-full px-3 py-2 bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border rounded-xl text-sm text-slate-900 dark:text-ds-text-heading font-mono shadow-2xs focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950 transition-all"
                         />
-                        <span className="text-xs text-slate-500 font-mono font-semibold flex-shrink-0">σ</span>
+                        <span className="text-xs text-slate-500 dark:text-ds-text-muted font-mono font-semibold flex-shrink-0">σ</span>
                       </div>
                     </div>
                   ))}
@@ -195,22 +208,22 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
                     id="sweep-toggle"
                     checked={sweep}
                     onChange={(e) => setSweep(e.target.checked)}
-                    className="w-4 h-4 mt-0.5 rounded border-slate-300 dark:border-surface-700 text-indigo-600 focus:ring-indigo-500/50 flex-shrink-0 cursor-pointer"
+                    className="w-4 h-4 mt-0.5 rounded border-slate-300 dark:border-ds-border text-indigo-600 focus:ring-indigo-500/50 flex-shrink-0 cursor-pointer"
                   />
                   <div>
-                    <label htmlFor="sweep-toggle" className="text-sm font-bold text-slate-900 dark:text-surface-200 select-none cursor-pointer flex items-center gap-2">
-                      <Layers className="w-4 h-4 text-indigo-600 dark:text-primary-400" />
+                    <label htmlFor="sweep-toggle" className="text-sm font-bold text-slate-900 dark:text-ds-text-heading select-none cursor-pointer flex items-center gap-2">
+                      <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                       Comprehensive Sweep Mode
                     </label>
-                    <p className="text-xs text-slate-600 dark:text-surface-400 mt-1 leading-relaxed">
-                      Executes detection across <span className="text-indigo-600 dark:text-primary-400 font-semibold">all 8 lookback windows</span> (4w → 520w), 
+                    <p className="text-xs text-slate-600 dark:text-ds-text-muted mt-1 leading-relaxed">
+                      Executes detection across <span className="text-indigo-600 dark:text-indigo-400 font-semibold">all 8 lookback windows</span> (4w → 520w), 
                       aggregates all findings, deduplicates by highest z-score, and retains maximum severity results.
                       Guarantees no anomaly is missed regardless of baseline.
                     </p>
                     {sweep && (
                       <div className="flex flex-wrap items-center gap-1.5 mt-2.5">
                         {[4, 8, 12, 26, 52, 104, 260, 520].map((w) => (
-                          <span key={w} className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-primary-500/15 text-indigo-700 dark:text-primary-400 font-mono font-medium border border-indigo-200/80 dark:border-primary-500/20 shadow-2xs">
+                          <span key={w} className="text-[10px] px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950/40 text-indigo-700 dark:text-indigo-300 font-mono font-medium border border-indigo-200/80 dark:border-indigo-800/40 shadow-2xs">
                             {w}w
                           </span>
                         ))}
@@ -229,7 +242,7 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
                   className={cn(
                     'flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 shadow-2xs',
                     isRunning
-                      ? 'bg-slate-200 text-slate-400 dark:bg-surface-800 dark:text-surface-500 cursor-not-allowed'
+                      ? 'bg-slate-200 text-slate-400 dark:bg-ds-surface-sunken dark:text-ds-text-muted cursor-not-allowed'
                       : 'bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white shadow-xs hover:shadow-sm hover:scale-[1.005]'
                   )}
                 >
@@ -252,37 +265,37 @@ export function AnomalyDetectPanel({ onDetect, isRunning }: Props) {
                 <motion.div
                   initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="space-y-3 pt-3 border-t border-slate-200/80 dark:border-surface-800/40"
+                  className="space-y-3 pt-3 border-t border-slate-200/80 dark:border-ds-border"
                 >
                   {/* Scan Stats Row */}
-                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-surface-400">
+                  <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500 dark:text-ds-text-muted">
                     <span className="flex items-center gap-1.5">
                       <Clock className="w-3.5 h-3.5 text-slate-400" />
-                      Completed in <span className="text-slate-900 dark:text-surface-200 font-semibold font-mono">{lastResult.computation_seconds.toFixed(2)}s</span>
+                      Completed in <span className="text-slate-900 dark:text-ds-text-heading font-semibold font-mono">{lastResult.computation_seconds.toFixed(2)}s</span>
                     </span>
-                    <span className="text-slate-300 dark:text-surface-700">·</span>
+                    <span className="text-slate-300 dark:text-ds-border">·</span>
                     <span className="flex items-center gap-1.5">
                       <Shield className="w-3.5 h-3.5 text-indigo-500" />
-                      Confidence: <span className="text-indigo-600 dark:text-primary-400 font-semibold">{confidence}%</span>
+                      Confidence: <span className="text-indigo-600 dark:text-indigo-400 font-semibold">{confidence}%</span>
                     </span>
-                    <span className="text-slate-300 dark:text-surface-700">·</span>
+                    <span className="text-slate-300 dark:text-ds-border">·</span>
                     <span>
-                      <span className="text-emerald-600 dark:text-accent-400 font-semibold font-mono">{lastResult.detected}</span> anomalies in window
+                      <span className="text-emerald-600 dark:text-emerald-400 font-semibold font-mono">{lastResult.detected}</span> anomalies in window
                     </span>
                   </div>
 
                   {/* Result Cards */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
                     {[
-                      { label: 'Critical', value: lastResult.critical, icon: Flame, color: 'text-rose-600 dark:text-danger-400', bg: 'bg-rose-50 dark:bg-danger-500/10', border: 'border-rose-200 dark:border-danger-500/20' },
-                      { label: 'Medium', value: lastResult.medium, icon: AlertTriangle, color: 'text-amber-700 dark:text-warning-400', bg: 'bg-amber-50 dark:bg-warning-500/10', border: 'border-amber-200 dark:border-warning-500/20' },
-                      { label: 'Low', value: lastResult.low, icon: Info, color: 'text-blue-700 dark:text-primary-400', bg: 'bg-blue-50 dark:bg-primary-500/10', border: 'border-blue-200 dark:border-primary-500/20' },
-                      { label: 'Total', value: lastResult.detected, icon: CheckCircle2, color: 'text-emerald-700 dark:text-accent-400', bg: 'bg-emerald-50 dark:bg-accent-500/10', border: 'border-emerald-200 dark:border-accent-500/20' },
+                      { label: 'Critical', value: lastResult.critical, icon: Flame, color: 'text-rose-600 dark:text-rose-400', bg: 'bg-rose-50 dark:bg-rose-950/20', border: 'border-rose-200 dark:border-rose-800/30' },
+                      { label: 'Medium', value: lastResult.medium, icon: AlertTriangle, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-950/20', border: 'border-amber-200 dark:border-amber-800/30' },
+                      { label: 'Low', value: lastResult.low, icon: Info, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-950/20', border: 'border-blue-200 dark:border-blue-800/30' },
+                      { label: 'Total', value: lastResult.detected, icon: CheckCircle2, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-950/20', border: 'border-emerald-200 dark:border-emerald-800/30' },
                     ].map(({ label, value, icon: Icon, color, bg, border }) => (
                       <div key={label} className={cn('border rounded-xl p-3 text-center shadow-2xs', bg, border)}>
                         <Icon className={cn('w-4 h-4 mx-auto mb-1', color)} />
                         <p className={cn('text-lg font-bold font-mono leading-none my-1', color)}>{value}</p>
-                        <p className="text-[11px] text-slate-500 dark:text-surface-400 uppercase font-medium">{label}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-ds-text-muted uppercase font-medium">{label}</p>
                       </div>
                     ))}
                   </div>

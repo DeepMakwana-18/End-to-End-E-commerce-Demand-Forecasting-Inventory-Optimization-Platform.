@@ -79,12 +79,12 @@ export function SeverityBadge({ severity }: { severity: AnomalySeverity }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border whitespace-nowrap shadow-2xs',
         cfg.color, cfg.bg, cfg.border
       )}
     >
-      <Icon className="w-3 h-3" />
-      {cfg.label}
+      <Icon className="w-3 h-3 flex-shrink-0" />
+      <span>{cfg.label}</span>
     </span>
   );
 }
@@ -97,12 +97,12 @@ export function TypeBadge({ type }: { type: AnomalyType }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-ds-hairline',
+        'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold border border-slate-200/80 dark:border-ds-hairline whitespace-nowrap shadow-2xs',
         cfg.color, cfg.bg
       )}
     >
-      <Icon className="w-3 h-3" />
-      {cfg.label}
+      <Icon className="w-3 h-3 flex-shrink-0" />
+      <span>{cfg.label}</span>
     </span>
   );
 }
