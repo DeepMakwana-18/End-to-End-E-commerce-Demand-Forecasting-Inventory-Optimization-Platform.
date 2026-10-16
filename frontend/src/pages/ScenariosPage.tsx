@@ -31,10 +31,11 @@ export default function ScenariosPage() {
 
   // ── Load list ────────────────────────────────────────────────────────
   const loadScenarios = useCallback(async () => {
+    setIsLoadingList(true);
     try {
       const { data } = await scenarioApi.list({ per_page: 50 });
       setScenarios(data.scenarios);
-    } catch (err) {
+    } catch {
       toast.error('Load failed', 'Could not fetch scenarios');
     } finally {
       setIsLoadingList(false);
@@ -42,8 +43,19 @@ export default function ScenariosPage() {
   }, []);
 
   useEffect(() => {
-    loadScenarios();
-  }, [loadScenarios]);
+    let isMounted = true;
+    (async () => {
+      try {
+        const { data } = await scenarioApi.list({ per_page: 50 });
+        if (isMounted) setScenarios(data.scenarios);
+      } catch {
+        if (isMounted) toast.error('Load failed', 'Could not fetch scenarios');
+      } finally {
+        if (isMounted) setIsLoadingList(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
   // ── Select a scenario from history ────────────────────────────────────
   const handleSelect = useCallback(async (s: Scenario) => {
@@ -93,8 +105,8 @@ export default function ScenariosPage() {
       await loadScenarios();
 
       toast.success('Simulation complete', `${name} finished in ${result.computation_seconds?.toFixed(2)}s`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Simulation failed';
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Simulation failed';
       toast.error('Simulation error', typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setIsRunning(false);
@@ -117,8 +129,8 @@ export default function ScenariosPage() {
       setExplainHorizonWeeks(s.horizon_weeks ?? 12);
       await loadScenarios();
       toast.success('Simulation complete', `${s.name} finished`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Simulation failed';
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Simulation failed';
       toast.error('Simulation error', typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setIsRunning(false);
@@ -142,53 +154,57 @@ export default function ScenariosPage() {
 
   return (
     <div className="flex flex-col gap-0 h-full min-h-0">
-      {/* Page header */}
+      {/* 1. Page Header */}
       <motion.div
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-ds-border/60 flex-shrink-0 bg-ds-surface/60 backdrop-blur-md"
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-6 py-4 border-b border-ds-hairline flex-shrink-0 bg-ds-surface/90 backdrop-blur-md relative overflow-hidden"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-2xl bg-ds-blue-action flex items-center justify-center text-white shadow-[var(--ds-raise-1)]">
+        {/* Subtle indigo-to-blue decorative glow */}
+        <div className="absolute -top-6 -left-6 w-48 h-20 bg-gradient-to-r from-indigo-500/10 via-blue-500/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+
+        <div className="flex items-center gap-3 relative z-10">
+          <div className="w-2.5 h-7 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 shadow-sm flex-shrink-0" />
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
             <FlaskConical className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-ds-text">Scenario Engine</h1>
-            <p className="text-xs text-ds-text-secondary mt-0.5">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-ds-text-heading tracking-tight">
+              Scenario Engine
+            </h1>
+            <p className="text-xs sm:text-sm font-medium text-ds-text-secondary mt-0.5">
               What-If simulations powered by the active ML model
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Info badge */}
-          <div className="hidden md:flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-ds-surface-sunken border border-ds-border">
-            <Lightbulb className="w-3.5 h-3.5 text-ds-amber-warning" />
-            <span className="text-xs text-ds-text-secondary">
-              Changes are non-destructive — model is never retrained
-            </span>
+        <div className="flex items-center gap-2.5 relative z-10 self-start sm:self-auto">
+          {/* Informational non-destructive badge */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-ds-blue-surface text-ds-blue-text border border-ds-blue/20 text-xs font-semibold shadow-2xs">
+            <Lightbulb className="w-3.5 h-3.5 text-ds-blue flex-shrink-0" />
+            <span>Non-destructive simulation — model is never retrained</span>
           </div>
 
           <button
             id="refresh-scenarios"
             onClick={loadScenarios}
             disabled={isLoadingList}
-            className="btn-apple btn-apple-soft text-xs h-9 px-3.5"
+            className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-ds-border hover:bg-ds-surface-sunken"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-ds-blue' : ''}`} />
+            <span>Refresh</span>
           </button>
         </div>
       </motion.div>
 
-      {/* Three-column layout */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* ── Left: History ── */}
+      {/* 2. Responsive Layout: 3 columns on desktop, clean stacking on tablet/mobile */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 overflow-y-auto lg:overflow-hidden bg-ds-surface-sunken/30">
+        {/* ── Left Column: History ── */}
         <motion.div
           initial={{ opacity: 0, x: -12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.05 }}
-          className="w-72 xl:w-80 flex-shrink-0 flex flex-col gap-3 p-4 border-r border-ds-border/60 overflow-y-auto"
+          className="w-full lg:w-72 xl:w-80 flex-shrink-0 flex flex-col p-4 border-b lg:border-b-0 lg:border-r border-ds-hairline overflow-y-auto bg-ds-surface/50"
         >
           <ScenarioHistory
             scenarios={scenarios}
@@ -200,12 +216,12 @@ export default function ScenariosPage() {
           />
         </motion.div>
 
-        {/* ── Mid: Builder ── */}
+        {/* ── Mid Column: Builder ── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="w-80 xl:w-96 flex-shrink-0 flex flex-col p-4 border-r border-surface-800/50 overflow-y-auto"
+          className="w-full lg:w-80 xl:w-96 flex-shrink-0 flex flex-col p-4 border-b lg:border-b-0 lg:border-r border-ds-hairline overflow-y-auto bg-ds-surface/30"
         >
           <ScenarioBuilder
             onRun={handleRun}
@@ -213,12 +229,12 @@ export default function ScenariosPage() {
           />
         </motion.div>
 
-        {/* ── Right: Results ── */}
+        {/* ── Right Column: Results ── */}
         <motion.div
           initial={{ opacity: 0, x: 12 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.15 }}
-          className="flex-1 min-w-0 flex flex-col gap-4 p-4 overflow-y-auto"
+          className="flex-1 min-w-0 flex flex-col gap-4 p-4 overflow-y-auto bg-ds-surface/20"
         >
           <ScenarioResultPanel
             result={activeResult}
