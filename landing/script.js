@@ -185,6 +185,16 @@ if (core && window.matchMedia("(pointer:fine)").matches) {
   });
 }
 
+const pipelineStages = [...document.querySelectorAll(".pipeline-stage")];
+if (pipelineStages.length) {
+  pipelineStages.forEach(stage => {
+    stage.addEventListener("pointerenter", () => {
+      pipelineStages.forEach(s => s.classList.remove("active"));
+      stage.classList.add("active");
+    });
+  });
+}
+
 const tabs = [...document.querySelectorAll("[data-module]")];
 const fields = {
   kicker: document.querySelector("#module-kicker"),

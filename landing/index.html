@@ -143,27 +143,173 @@
           <p>No maze of dashboards. Titan moves every dataset through one understandable, visible intelligence loop.</p>
         </div>
 
-        <div class="flow-visual reveal" aria-label="Titan AI workflow: Upload, Analyze, Predict, Act">
-          <div class="flow-track" aria-hidden="true"><span></span></div>
-          <article class="flow-step active" data-step="01">
-            <div class="step-icon upload-icon"><span>CSV</span><i>↑</i></div>
-            <div><small>01</small><h3>Upload</h3><p>Bring sales and inventory data into one secure workspace.</p></div>
+        <div class="flow-pipeline reveal" aria-label="Titan AI workflow: Upload, Analyze, Predict, Act">
+          <div class="pipeline-connector-line" aria-hidden="true"><span class="pipeline-pulse-beam"></span></div>
+
+          <!-- STAGE 01: UPLOAD -->
+          <article class="pipeline-stage active" data-flow-stage="upload">
+            <div class="stage-stepper">
+              <span class="stage-num">01</span>
+              <span class="stage-tag">UPLOAD</span>
+              <i class="stage-pip"></i>
+            </div>
+            <div class="stage-canvas canvas-upload">
+              <div class="dataset-card">
+                <div class="dataset-meta">
+                  <span class="dataset-badge"><i class="csv-dot"></i> sales_history.csv</span>
+                  <small>12,480 ROWS</small>
+                </div>
+                <div class="dataset-table" role="table" aria-label="Illustrative CSV data">
+                  <div class="dt-head" role="row">
+                    <span>date</span><span>sku</span><span>qty</span><span>stock</span>
+                  </div>
+                  <div class="dt-row" role="row">
+                    <span>10-14</span><b>SKU-204</b><span>420</span><span>1,240</span>
+                  </div>
+                  <div class="dt-row dt-highlight" role="row">
+                    <span>10-15</span><b>SKU-204</b><span class="qty-surge">610</span><span class="stock-dip">630</span>
+                  </div>
+                  <div class="dt-row" role="row">
+                    <span>10-16</span><b>SKU-108</b><span>185</span><span>2,100</span>
+                  </div>
+                </div>
+                <div class="dataset-scanner"></div>
+              </div>
+            </div>
+            <div class="stage-info">
+              <h3>Raw Dataset Intake</h3>
+              <p>Ingest daily sales records, SKU catalog orders, and warehouse balances without manual cleanup.</p>
+            </div>
           </article>
-          <article class="flow-step" data-step="02">
-            <div class="step-icon scan-icon"><i></i><i></i><i></i></div>
-            <div><small>02</small><h3>Analyze</h3><p>Titan cleans the signal and finds patterns, gaps, and anomalies.</p></div>
+
+          <!-- STAGE 02: ANALYZE -->
+          <article class="pipeline-stage" data-flow-stage="analyze">
+            <div class="stage-stepper">
+              <span class="stage-num">02</span>
+              <span class="stage-tag">ANALYZE</span>
+              <i class="stage-pip"></i>
+            </div>
+            <div class="stage-canvas canvas-analyze">
+              <div class="synthesizer-card">
+                <div class="syn-header">
+                  <span>SIGNAL SYNTHESIS</span>
+                  <b class="syn-health">99.8% CLEAN</b>
+                </div>
+                <div class="signal-stream">
+                  <div class="sig-node">
+                    <span>Demand Velocity</span>
+                    <div class="sig-bar-wrap"><div class="sig-bar bar-velocity" style="width: 78%;"></div></div>
+                    <b>+18.4%</b>
+                  </div>
+                  <div class="sig-node">
+                    <span>Lead-Time Drift</span>
+                    <div class="sig-bar-wrap"><div class="sig-bar bar-drift" style="width: 45%;"></div></div>
+                    <b>8 Days</b>
+                  </div>
+                  <div class="sig-node">
+                    <span>Seasonality Anchor</span>
+                    <div class="sig-bar-wrap"><div class="sig-bar bar-season" style="width: 92%;"></div></div>
+                    <b>Q4 Peak</b>
+                  </div>
+                </div>
+                <div class="syn-conduits">
+                  <span class="conduit-dot cd-1"></span>
+                  <span class="conduit-dot cd-2"></span>
+                  <span class="conduit-dot cd-3"></span>
+                </div>
+              </div>
+            </div>
+            <div class="stage-info">
+              <h3>Signal Synthesis</h3>
+              <p>Filter out noise, detect sudden velocity shifts, and calibrate supplier lead times automatically.</p>
+            </div>
           </article>
-          <article class="flow-step" data-step="03">
-            <div class="step-icon predict-icon"><svg viewBox="0 0 60 40" aria-hidden="true"><path d="M2 34C11 30 12 15 22 20s13 10 20-2S52 8 58 5" /></svg></div>
-            <div><small>03</small><h3>Predict</h3><p>Forecast future demand and reveal the risk behind each SKU.</p></div>
+
+          <!-- STAGE 03: PREDICT -->
+          <article class="pipeline-stage" data-flow-stage="predict">
+            <div class="stage-stepper">
+              <span class="stage-num">03</span>
+              <span class="stage-tag">PREDICT</span>
+              <i class="stage-pip"></i>
+            </div>
+            <div class="stage-canvas canvas-predict">
+              <div class="forecast-card">
+                <div class="fc-header">
+                  <span>DEMAND HORIZON</span>
+                  <span class="fc-badge">94.2% ACCURACY</span>
+                </div>
+                <div class="fc-chart-wrap">
+                  <svg viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true">
+                    <defs>
+                      <linearGradient id="flowFcArea" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#a9f27b" stop-opacity="0.35" />
+                        <stop offset="100%" stop-color="#a9f27b" stop-opacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path class="fc-hist" d="M10 58 Q45 52 80 40 T100 36" />
+                    <line x1="100" y1="8" x2="100" y2="72" class="fc-cutoff-line" />
+                    <path class="fc-area" d="M100 36 Q130 20 160 14 T190 22 L190 75 L100 75 Z" />
+                    <path class="fc-pred" d="M100 36 Q130 20 160 14 T190 22" />
+                    <circle cx="160" cy="14" r="3.5" class="fc-peak-dot" />
+                  </svg>
+                  <div class="fc-cutoff-label">TODAY</div>
+                  <div class="fc-peak-badge">Peak: 12,480</div>
+                </div>
+                <div class="fc-axis">
+                  <span>12W HISTORY</span>
+                  <span>12W FORECAST</span>
+                </div>
+              </div>
+            </div>
+            <div class="stage-info">
+              <h3>Neural Forecast Horizon</h3>
+              <p>Project future demand curves with a distinct cutoff between past sales and ML horizon.</p>
+            </div>
           </article>
-          <article class="flow-step" data-step="04">
-            <div class="step-icon act-icon"><span>✓</span></div>
-            <div><small>04</small><h3>Act</h3><p>Turn insights into confident purchasing and inventory decisions.</p></div>
+
+          <!-- STAGE 04: ACT -->
+          <article class="pipeline-stage" data-flow-stage="act">
+            <div class="stage-stepper">
+              <span class="stage-num">04</span>
+              <span class="stage-tag">ACT</span>
+              <i class="stage-pip"></i>
+            </div>
+            <div class="stage-canvas canvas-act">
+              <div class="action-card">
+                <div class="act-tile tile-reorder">
+                  <div class="tile-icon">✓</div>
+                  <div class="tile-text">
+                    <small>REORDER TRIGGER</small>
+                    <strong>320 Units · SKU-204</strong>
+                  </div>
+                </div>
+                <div class="act-tile tile-alert">
+                  <div class="tile-icon">!</div>
+                  <div class="tile-text">
+                    <small>RISK SHIELD</small>
+                    <strong>Stockout Threat Prevented</strong>
+                  </div>
+                </div>
+                <div class="act-tile tile-scenario">
+                  <div class="tile-icon">◇</div>
+                  <div class="tile-text">
+                    <small>SCENARIO LAB</small>
+                    <strong>94% Target Service Level</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="stage-info">
+              <h3>Confident Executive Action</h3>
+              <p>Convert predictions directly into purchase orders, safety buffers, and risk mitigations.</p>
+            </div>
           </article>
         </div>
 
-        <div class="workflow-caption"><span>TITAN SIGNAL ENGINE</span><p>Upload → Analyze → Predict → Act</p></div>
+        <div class="workflow-caption">
+          <span>TITAN SIGNAL PIPELINE · END-TO-END EXECUTION</span>
+          <p class="demo-disclaimer">* Illustrative demonstration data · Simulated supply-chain transactions</p>
+        </div>
       </section>
 
       <section class="product scene scene-light" id="product" aria-labelledby="product-title">
