@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Titan AI turns sales data into demand forecasts, inventory signals, risk alerts, and smarter supply-chain decisions." />
-    <meta name="theme-color" content="#f3ede2" />
     <title>Titan AI — See what's coming</title>
+    <link rel="stylesheet" href="./styles.css" />
     <link rel="stylesheet" href="/landing/styles.css" />
   </head>
   <body>
@@ -34,65 +34,95 @@
           <h1 id="hero-title">See what’s coming.<br /><em>Stay ahead.</em></h1>
           <p class="hero-dek">Titan turns everyday sales data into a living view of demand, inventory, risk, and the next best action.</p>
           <div class="hero-actions">
-            <a class="button button-dark" href="#product">Explore the intelligence <span>↗</span></a>
-            <a class="text-link" href="#how">See how it works <span>↓</span></a>
+            <a class="button button-dark" href="/auth"><span>Launch Titan AI</span> <i>↗</i></a>
+            <a class="button button-ghost" href="#product"><span>Explore Intelligence</span> <i>↓</i></a>
           </div>
         </div>
 
         <div class="hero-stage reveal" aria-label="Animated Titan intelligence overview">
+          <div class="ambient-chroma"></div>
           <div class="core-glow"></div>
+          
           <div class="intelligence-core" data-core>
+            <div class="core-diaphragm"></div>
             <div class="core-orbit-ring ring-outer"></div>
             <div class="core-orbit-ring ring-mid"></div>
             <div class="core-ring ring-one"></div>
             <div class="core-ring ring-two"></div>
+
+            <svg class="core-forecast-spline" viewBox="0 0 500 500" preserveAspectRatio="none" aria-hidden="true">
+              <defs>
+                <linearGradient id="splineGlow" x1="0" y1="0" x2="1" y2="1">
+                  <stop offset="0%" stop-color="#a9f27b" stop-opacity="0.3" />
+                  <stop offset="50%" stop-color="#66d7a0" stop-opacity="0.95" />
+                  <stop offset="100%" stop-color="#a9f27b" stop-opacity="1" />
+                </linearGradient>
+              </defs>
+              <path class="spline-ribbon" d="M30,370 C120,330 180,400 260,320 C340,240 390,140 470,110" />
+              <path class="spline-main" d="M20,360 Q140,350 230,300 T380,170 T480,85" />
+              <circle cx="230" cy="300" r="4.5" class="spline-node" />
+              <circle cx="380" cy="170" r="6" class="spline-node pulse" />
+              <circle cx="480" cy="85" r="4.5" class="spline-node" />
+            </svg>
+
             <div class="core-center">
-              <span class="live-pill">LIVE CORE</span>
+              <span class="live-pill"><i class="core-pulse-dot"></i> LIVE CORE</span>
               <strong>TITAN</strong>
               <small>INTELLIGENCE ENGINE</small>
+              <span class="core-metric-badge">94.2% ML ACCURACY</span>
             </div>
+
             <div class="orbit-node node-forecast">
               <span class="node-dot"></span>
-              <span class="node-label">DEMAND</span>
-              <b class="node-val">+18.4%</b>
+              <div class="node-content">
+                <span class="node-label">DEMAND HORIZON</span>
+                <b class="node-val">+18.4%</b>
+                <span class="node-sub">Peak W10</span>
+              </div>
             </div>
             <div class="orbit-node node-inventory">
               <span class="node-dot dot-mint"></span>
-              <span class="node-label">INVENTORY</span>
-              <b class="node-val">BALANCED</b>
+              <div class="node-content">
+                <span class="node-label">RESTOCK ACTION</span>
+                <b class="node-val">320 UNITS</b>
+                <span class="node-sub">Protected</span>
+              </div>
             </div>
             <div class="orbit-node node-risk">
               <span class="node-dot dot-peach"></span>
-              <span class="node-label">RISK SHIELD</span>
-              <b class="node-val">03 ALERTS</b>
+              <div class="node-content">
+                <span class="node-label">RISK RADAR</span>
+                <b class="node-val">03 ALERTS</b>
+                <span class="node-sub">Resolved</span>
+              </div>
             </div>
           </div>
 
           <div class="telemetry-dock glass-card">
             <div class="dock-header">
-              <span class="dock-status"><i class="live-pulse"></i> Real-time telemetry</span>
-              <span class="dock-tag">SKU-204 · 30D HORIZON</span>
+              <span class="dock-status"><i class="live-pulse"></i> Real-time Telemetry Stream</span>
+              <span class="dock-tag">SKU-204 · 30-DAY HORIZON</span>
             </div>
             <div class="dock-body">
               <div class="dock-spark">
-                <svg viewBox="0 0 240 54" role="img" preserveAspectRatio="none">
+                <svg viewBox="0 0 240 50" role="img" preserveAspectRatio="none">
                   <defs>
                     <linearGradient id="dockArea" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stop-color="#68d8a0" stop-opacity=".4" />
-                      <stop offset="1" stop-color="#68d8a0" stop-opacity="0" />
+                      <stop offset="0" stop-color="#66d7a0" stop-opacity=".4" />
+                      <stop offset="1" stop-color="#66d7a0" stop-opacity="0" />
                     </linearGradient>
                   </defs>
-                  <path class="area" d="M0,48 Q40,42 80,28 T160,22 T240,6 L240,54 L0,54 Z" />
-                  <path class="line" d="M0,48 Q40,42 80,28 T160,22 T240,6" />
+                  <path class="area" d="M0,45 Q40,40 80,26 T160,20 T240,6 L240,50 L0,50 Z" />
+                  <path class="line" d="M0,45 Q40,40 80,26 T160,20 T240,6" />
                 </svg>
               </div>
               <div class="dock-stats">
-                <div>
+                <div class="dock-stat-group">
                   <small>PREDICTED PEAK</small>
                   <strong>12,480 <span class="trend-up">↑ 18.4%</span></strong>
                 </div>
                 <div class="dock-action-chip">
-                  <i>✓</i> <span>Stockout Protected</span>
+                  <i>✓</i> <span>Stockout Shield Active</span>
                 </div>
               </div>
             </div>
@@ -434,6 +464,6 @@
       <span>Decision workspace preview</span>
       <button type="button" aria-label="Dismiss notification">×</button>
     </div>
-    <script src="/landing/script.js"></script>
+    <script src="./script.js" onerror="this.onerror=null;this.src='/landing/script.js'"></script>
   </body>
 </html>
