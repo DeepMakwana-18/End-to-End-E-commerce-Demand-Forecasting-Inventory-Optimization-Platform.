@@ -1,16 +1,13 @@
 /**
  * Admin - Data Upload Page with CSV ETL pipeline and live task progress.
  *
- * Titan AI Page 11 Refinement:
- * - High-contrast 6-stage ETL stepper with 5 distinct semantic states:
- *   (Pending, Active, Action Required, Completed, Failed)
- * - Compact, accessible drag-and-drop CSV upload zone with prominent 50 MB limit
- * - Schema Alignment workflow with column auto-matching suggestions, inline sample data previews,
- *   field requirement badges, and explicit validation feedback
- * - Ingestion logs with distinct Run IDs, human-readable file sizes (B/KB/MB),
- *   timestamp resolution, and semantic status pills
- * - Floating AI assistant bottom clearance (pb-28 sm:pb-32)
- * - Cohesive Light & Dark mode support
+ * Titan AI Page 11 Final Refinements:
+ * - Truthful auto-matching messaging (reflects actual candidate match count vs manual mapping notice)
+ * - Dynamic required field progress feedback ("X of Y required fields mapped")
+ * - Calm initial validation styling (neutral state until submit is attempted; clear green on valid mapped rows)
+ * - Rich field requirement tooltips/popovers (? button) detailing expected data types, formats, examples, and pipeline role
+ * - Duplicate source column assignment detection and short-CSV column warnings
+ * - Preserved 6-step ETL stepper, 50 MB limit, and bottom AI assistant clearance (pb-28 sm:pb-32)
  */
 
 import { useState, useRef, useMemo } from 'react';
@@ -31,6 +28,9 @@ import {
   Check,
   RotateCcw,
   Info,
+  HelpCircle,
+  X,
+  AlertCircle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
@@ -60,6 +60,16 @@ interface UploadRecord {
   file_size_bytes?: number;
 }
 
+interface SystemColumnDefinition {
+  id: string;
+  label: string;
+  required: boolean;
+  dataType: string;
+  expectedFormat: string;
+  example: string;
+  purpose: string;
+}
+
 const pipelineSteps = [
   { id: 'uploading', icon: Upload, label: 'Upload', desc: 'CSV received', stepIdx: 0 },
   { id: 'validating', icon: FileSpreadsheet, label: 'Validate', desc: 'Check schema', stepIdx: 1 },
@@ -69,13 +79,53 @@ const pipelineSteps = [
   { id: 'completed', icon: CheckCircle2, label: 'Done', desc: 'Data ready', stepIdx: 5 },
 ];
 
-// System target fields with requirement constraints and descriptions
-const systemColumns = [
-  { id: 'transaction_date', label: 'Transaction Date', required: true, hint: 'Date of sale (e.g. YYYY-MM-DD)' },
-  { id: 'product_sku', label: 'Product SKU', required: true, hint: 'Unique stock keeping unit identifier' },
-  { id: 'quantity_sold', label: 'Quantity Sold', required: true, hint: 'Number of units sold (integer)' },
-  { id: 'unit_price', label: 'Unit Price', required: true, hint: 'Selling price per unit (numeric)' },
-  { id: 'category', label: 'Category', required: false, hint: 'Product category or merchandise department' },
+// System target fields with explicit format specifications and pipeline roles
+const systemColumns: SystemColumnDefinition[] = [
+  {
+    id: 'transaction_date',
+    label: 'Transaction Date',
+    required: true,
+    dataType: 'Timestamp / ISO Date',
+    expectedFormat: 'YYYY-MM-DD or YYYY-MM-DD HH:mm:ss',
+    example: '2026-01-15 18:30:00',
+    purpose: 'Orders and resamples demand telemetry into weekly time-series intervals for ML lag feature engineering.',
+  },
+  {
+    id: 'product_sku',
+    label: 'Product SKU',
+    required: true,
+    dataType: 'Alphanumeric Code',
+    expectedFormat: 'Unique SKU identifier string (e.g. ABC-123)',
+    example: 'TECH-KB-001',
+    purpose: 'Maps demand and reorder parameters to individual product variants in catalog and inventory records.',
+  },
+  {
+    id: 'quantity_sold',
+    label: 'Quantity Sold',
+    required: true,
+    dataType: 'Positive Integer',
+    expectedFormat: 'Numeric volume units sold (integer > 0)',
+    example: '14',
+    purpose: 'Primary demand metric used as the target regression variable during ML training and loss evaluation.',
+  },
+  {
+    id: 'unit_price',
+    label: 'Unit Price',
+    required: true,
+    dataType: 'Decimal Currency',
+    expectedFormat: 'Numeric price per unit ($ / € / £)',
+    example: '89.99',
+    purpose: 'Computes inventory holding valuation, stockout loss severity, and revenue impact predictions.',
+  },
+  {
+    id: 'category',
+    label: 'Category',
+    required: false,
+    dataType: 'Text String (Optional)',
+    expectedFormat: 'Product family or department name',
+    example: 'Electronics',
+    purpose: 'Enables category-level aggregation, demand rollups, and cross-category cannibalization modeling.',
+  },
 ];
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB limit
@@ -98,6 +148,8 @@ export default function UploadPage() {
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
   const [columnSamples, setColumnSamples] = useState<Record<string, string>>({});
   const [suggestedMappings, setSuggestedMappings] = useState<Record<string, string>>({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [activeHelpColumn, setActiveHelpColumn] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -219,6 +271,8 @@ export default function UploadPage() {
 
       setSuggestedMappings(proposed);
       setMappings(proposed);
+      setHasAttemptedSubmit(false);
+      setActiveHelpColumn(null);
 
       // Transition to Step 3: Schema Alignment Required
       setState({ file, status: 'queued', progress: 15 });
@@ -234,6 +288,13 @@ export default function UploadPage() {
   // resumePipeline — called after schema mapping confirmation
   const resumePipeline = async () => {
     if (!state.file) return;
+
+    if (!allRequiredMapped) {
+      setHasAttemptedSubmit(true);
+      toast.error('Required mappings missing', `Please map all 4 required fields (${missingRequired.join(', ')}) to continue.`);
+      return;
+    }
+
     setState((s) => ({ ...s, status: 'uploading', progress: 25 }));
 
     try {
@@ -267,6 +328,13 @@ export default function UploadPage() {
     setMappings((prev) => ({ ...prev, [sysCol]: csvCol }));
   };
 
+  // Dynamic progress derivation
+  const requiredCount = useMemo(() => systemColumns.filter((c) => c.required).length, []);
+  const mappedRequiredCount = useMemo(
+    () => systemColumns.filter((c) => c.required && mappings[c.id]).length,
+    [mappings]
+  );
+
   // Derive missing required fields for explicit user feedback
   const missingRequired = useMemo(() => {
     return systemColumns
@@ -275,6 +343,18 @@ export default function UploadPage() {
   }, [mappings]);
 
   const allRequiredMapped = missingRequired.length === 0;
+
+  // Number of auto-suggested matches
+  const suggestedCount = useMemo(() => Object.keys(suggestedMappings).length, [suggestedMappings]);
+
+  // Duplicate source column assignment check
+  const duplicateSourceColumns = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(mappings).forEach((col) => {
+      if (col) counts[col] = (counts[col] || 0) + 1;
+    });
+    return Object.keys(counts).filter((col) => counts[col] > 1);
+  }, [mappings]);
 
   // Derive visual state for each of the 6 ETL stepper stages
   const getStepVisualState = (stepIndex: number): StepVisualState => {
@@ -291,7 +371,6 @@ export default function UploadPage() {
     }
 
     if (effectiveStatus === 'queued') {
-      // CSV received (Step 0) & Schema Checked (Step 1) are complete; Mapping is paused awaiting user action
       if (stepIndex < 2) return 'completed';
       if (stepIndex === 2) return 'action_required';
       return 'pending';
@@ -593,6 +672,7 @@ export default function UploadPage() {
                     setMappings({});
                     setDetectedColumns([]);
                     setColumnSamples({});
+                    setHasAttemptedSubmit(false);
                   }}
                   className="mt-5 h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all active:scale-95 inline-flex items-center gap-1.5"
                 >
@@ -705,20 +785,74 @@ export default function UploadPage() {
 
             {/* Mapping Field Alignment Rows */}
             <div className="p-5 sm:p-6 space-y-4">
-              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-ds-border pb-2.5">
-                <span className="font-semibold">Review and confirm target schema alignment:</span>
-                <span className="text-[11px] font-medium text-blue-600 dark:text-blue-400 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  Auto-matching suggestions applied for review
-                </span>
+              {/* Header Action Bar: Dynamic Auto-Matching Notification & Mapping Progress */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 dark:border-ds-border pb-3">
+                {/* Dynamic Auto-Matching Feedback */}
+                <div className="flex items-center gap-2">
+                  {suggestedCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 shadow-2xs">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>{suggestedCount} of {systemColumns.length} fields auto-suggested for review</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                      <Info className="w-3.5 h-3.5 text-slate-400" />
+                      <span>No automatic column matches detected — select matching headers below</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Compact Mapping Progress Pill */}
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border transition-colors shadow-2xs',
+                      allRequiredMapped
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                        : mappedRequiredCount > 0
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
+                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                    )}
+                  >
+                    {allRequiredMapped ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    )}
+                    <span>{mappedRequiredCount} of {requiredCount} required fields mapped</span>
+                  </span>
+                </div>
               </div>
 
+              {/* Duplicate source column alert (if user mapped same column to multiple fields) */}
+              {duplicateSourceColumns.length > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                  <span>
+                    Warning: CSV column <strong>"{duplicateSourceColumns.join('", "')}"</strong> is mapped to multiple system fields. Each system field should ideally map to a distinct CSV column.
+                  </span>
+                </div>
+              )}
+
+              {/* Short CSV warning if file has fewer headers than required fields */}
+              {detectedColumns.length < 4 && (
+                <div className="p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 flex items-center gap-2.5 text-xs text-rose-800 dark:text-rose-200">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                  <span>
+                    This CSV contains only <strong>{detectedColumns.length}</strong> column headers. Titan AI requires at least 4 distinct columns (Transaction Date, SKU, Quantity, and Unit Price) for valid forecasting.
+                  </span>
+                </div>
+              )}
+
+              {/* Field Rows with Calm Initial State */}
               <div className="space-y-2.5">
                 {systemColumns.map((col) => {
                   const currentMappedVal = mappings[col.id] || '';
                   const isMapped = Boolean(currentMappedVal);
                   const sampleVal = currentMappedVal ? columnSamples[currentMappedVal] : null;
                   const isSuggested = suggestedMappings[col.id] && suggestedMappings[col.id] === currentMappedVal;
+                  const isMissingAfterSubmit = hasAttemptedSubmit && col.required && !isMapped;
+                  const isHelpOpen = activeHelpColumn === col.id;
 
                   return (
                     <div
@@ -726,14 +860,14 @@ export default function UploadPage() {
                       className={cn(
                         'p-3.5 rounded-xl border transition-all duration-150',
                         isMapped
-                          ? 'bg-slate-50/70 dark:bg-ds-surface-sunken/50 border-slate-200 dark:border-ds-border'
-                          : col.required
-                          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60'
-                          : 'bg-slate-50/40 dark:bg-ds-surface-sunken/30 border-slate-200 dark:border-ds-border'
+                          ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-200/90 dark:border-emerald-800/60 shadow-2xs'
+                          : isMissingAfterSubmit
+                          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 ring-2 ring-rose-400/20'
+                          : 'bg-white dark:bg-ds-surface border-slate-200 dark:border-ds-border hover:border-slate-300 dark:hover:border-slate-700'
                       )}
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-[220px_auto_1fr] items-center gap-3">
-                        {/* System Target Field Information */}
+                      <div className="grid grid-cols-1 md:grid-cols-[230px_auto_1fr] items-center gap-3">
+                        {/* System Target Field Information & Interactive Help Button */}
                         <div>
                           <div className="flex items-center gap-1.5">
                             <span className="text-xs font-bold text-slate-900 dark:text-ds-text">
@@ -748,9 +882,17 @@ export default function UploadPage() {
                                 Optional
                               </span>
                             )}
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpColumn(isHelpOpen ? null : col.id)}
+                              title="Click for field requirements & format specification"
+                              className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-0.5 cursor-pointer"
+                            >
+                              <HelpCircle className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                           <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {col.hint}
+                            {col.dataType} • {col.expectedFormat}
                           </p>
                         </div>
 
@@ -766,10 +908,12 @@ export default function UploadPage() {
                               value={currentMappedVal}
                               onChange={(e) => handleMappingChange(col.id, e.target.value)}
                               className={cn(
-                                'w-full px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none transition-all shadow-2xs border appearance-none pr-8',
+                                'w-full px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none transition-all shadow-2xs border appearance-none pr-8 cursor-pointer',
                                 isMapped
-                                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-blue-300 dark:border-blue-700 focus:ring-2 focus:ring-blue-500/20'
-                                  : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-rose-500/20'
+                                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-blue-400 dark:border-blue-600 focus:ring-2 focus:ring-blue-500/20'
+                                  : isMissingAfterSubmit
+                                  ? 'bg-rose-50/50 dark:bg-slate-800 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500/20'
                               )}
                             >
                               <option value="" disabled>
@@ -791,7 +935,7 @@ export default function UploadPage() {
                             {isMapped && sampleVal && (
                               <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-mono border border-slate-200 dark:border-slate-700">
                                 <span className="text-slate-400 font-sans text-[10px]">Sample:</span>
-                                <span className="font-semibold truncate max-w-[140px]">"{sampleVal}"</span>
+                                <span className="font-semibold truncate max-w-[130px]">"{sampleVal}"</span>
                               </div>
                             )}
 
@@ -803,17 +947,54 @@ export default function UploadPage() {
                             )}
 
                             {isMapped ? (
-                              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0">
+                              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0" title="Valid mapped column">
                                 <Check className="w-3.5 h-3.5" />
                               </div>
                             ) : (
-                              <div className="w-6 h-6 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-400 flex items-center justify-center flex-shrink-0 text-xs font-bold">
-                                ?
+                              <div
+                                className={cn(
+                                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold',
+                                  isMissingAfterSubmit
+                                    ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-300'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                )}
+                                title={col.required ? 'Field required for ingestion' : 'Optional field'}
+                              >
+                                {col.required ? '!' : '—'}
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
+
+                      {/* Interactive Field Help Specification Card */}
+                      {isHelpOpen && (
+                        <div className="mt-3 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between font-bold text-blue-900 dark:text-blue-200">
+                            <span>{col.label} — Specification &amp; Pipeline Requirements</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpColumn(null)}
+                              className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                            {col.purpose}
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                            <div>
+                              <span className="text-slate-400 font-sans">Expected format: </span>
+                              <strong className="text-slate-800 dark:text-slate-200">{col.expectedFormat}</strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 font-sans">Example accepted value: </span>
+                              <strong className="text-slate-800 dark:text-slate-200">"{col.example}"</strong>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -828,9 +1009,9 @@ export default function UploadPage() {
                       <span>All 4 required system fields successfully mapped</span>
                     </div>
                   ) : (
-                    <div className="flex items-center gap-1.5 text-rose-600 dark:text-rose-400 font-semibold">
-                      <Info className="w-4 h-4 text-rose-500" />
-                      <span>Missing required: {missingRequired.join(', ')}</span>
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
+                      <Info className="w-4 h-4 text-amber-500" />
+                      <span>{missingRequired.length} required {missingRequired.length === 1 ? 'field' : 'fields'} remaining: {missingRequired.join(', ')}</span>
                     </div>
                   )}
                 </div>
@@ -842,8 +1023,10 @@ export default function UploadPage() {
                       setMappings({});
                       setDetectedColumns([]);
                       setColumnSamples({});
+                      setHasAttemptedSubmit(false);
+                      setActiveHelpColumn(null);
                     }}
-                    className="h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-all active:scale-95"
+                    className="h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer"
                   >
                     Cancel Upload
                   </button>
@@ -852,9 +1035,9 @@ export default function UploadPage() {
                     onClick={resumePipeline}
                     disabled={!allRequiredMapped}
                     title={!allRequiredMapped ? `Please map: ${missingRequired.join(', ')}` : undefined}
-                    className="h-9 px-5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition-all duration-150 active:scale-95 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="h-9 px-5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition-all duration-150 active:scale-95 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    <span>Confirm Mapping &amp; Ingest</span>
+                    <span>Confirm Mapping &amp; Ingest ({mappedRequiredCount}/{requiredCount} Required Mapped)</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
