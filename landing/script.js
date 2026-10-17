@@ -51,8 +51,10 @@ const modules = {
 
 const header = document.querySelector("[data-header]");
 const darkScenes = [...document.querySelectorAll(".scene-dark")];
+const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 const updateHeader = () => {
+  if (!header) return;
   header.classList.toggle("scrolled", window.scrollY > 38);
   const y = 46;
   const isDark = darkScenes.some(scene => {
@@ -62,8 +64,10 @@ const updateHeader = () => {
   header.classList.toggle("on-dark", isDark);
 };
 
-window.addEventListener("scroll", updateHeader, { passive: true });
-updateHeader();
+const observerOptions = {
+  threshold: prefersReducedMotion ? 0 : 0.08,
+  rootMargin: "0px 0px -40px 0px"
+};
 
 const revealObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => {
@@ -72,8 +76,12 @@ const revealObserver = new IntersectionObserver(entries => {
       revealObserver.unobserve(entry.target);
     }
   });
-}, { threshold: 0.12 });
-document.querySelectorAll(".reveal").forEach(el => revealObserver.observe(el));
+}, observerOptions);
+
+document.querySelectorAll(".reveal, .decision-orbit").forEach(el => {
+  if (prefersReducedMotion) el.classList.add("visible");
+  else revealObserver.observe(el);
+});
 
 const popObserver = new IntersectionObserver(entries => {
   entries.forEach(entry => {
@@ -82,8 +90,12 @@ const popObserver = new IntersectionObserver(entries => {
       popObserver.unobserve(entry.target);
     }
   });
-}, { threshold: 0.18 });
-document.querySelectorAll(".pop-card").forEach(el => popObserver.observe(el));
+}, observerOptions);
+
+document.querySelectorAll(".pop-card").forEach(el => {
+  if (prefersReducedMotion) el.classList.add("visible");
+  else popObserver.observe(el);
+});
 
 const heroScene = document.querySelector(".hero");
 const heroStage = document.querySelector(".hero-stage");
@@ -91,14 +103,21 @@ const operationsScene = document.querySelector("[data-scroll-scene]");
 const operationCards = [...document.querySelectorAll("[data-ops-card]")];
 const nfSteps = [...document.querySelectorAll(".nf-step")];
 const nexusStatus = document.querySelector("#nexus-status");
-const operationThresholds = [0.07, 0.29, 0.51, 0.73];
+const operationThresholds = [0.08, 0.32, 0.56, 0.80];
 
 const clamp = value => Math.min(1, Math.max(0, value));
+
 const updateCinematicScroll = () => {
+  if (prefersReducedMotion) {
+    operationCards.forEach(card => card.classList.add("active"));
+    return;
+  }
+
   if (heroScene && heroStage) {
     const heroProgress = clamp(window.scrollY / Math.max(heroScene.offsetHeight, 1));
-    heroStage.style.setProperty("--hero-scale", String(1 + heroProgress * .05));
-    heroStage.style.setProperty("--hero-y", `${heroProgress * 24}px`);
+    heroStage.style.setProperty("--hero-scale", String((1 - heroProgress * 0.08).toFixed(3)));
+    heroStage.style.setProperty("--hero-y", `${(heroProgress * 48).toFixed(1)}px`);
+    heroStage.style.setProperty("--hero-fade", String((1 - heroProgress * 0.85).toFixed(3)));
   }
 
   if (!operationsScene) return;
@@ -111,7 +130,7 @@ const updateCinematicScroll = () => {
   const progress = clamp((window.scrollY - operationsScene.offsetTop) / Math.max(maxTravel, 1));
   operationsScene.style.setProperty("--ops-progress", progress.toFixed(3));
   operationsScene.style.setProperty("--ops-width", `${(progress * 100).toFixed(1)}%`);
-  operationsScene.style.setProperty("--ops-orbit-scale", String(.88 + progress * .12));
+  operationsScene.style.setProperty("--ops-orbit-scale", String((0.88 + progress * 0.12).toFixed(3)));
 
   operationCards.forEach((card, index) => {
     const isActive = progress >= operationThresholds[index];
@@ -119,13 +138,13 @@ const updateCinematicScroll = () => {
   });
 
   if (nexusStatus && nfSteps.length) {
-    if (progress >= 0.73) {
+    if (progress >= 0.80) {
       nexusStatus.textContent = "SHARED CLARITY · PO ISSUED";
       nfSteps.forEach((s, i) => s.classList.toggle("active", true));
-    } else if (progress >= 0.51) {
+    } else if (progress >= 0.56) {
       nexusStatus.textContent = "OPTIMAL ACTION: REORDER 320";
       nfSteps.forEach((s, i) => s.classList.toggle("active", i <= 2));
-    } else if (progress >= 0.29) {
+    } else if (progress >= 0.32) {
       nexusStatus.textContent = "TITAN RISK ANALYSIS";
       nfSteps.forEach((s, i) => s.classList.toggle("active", i <= 1));
     } else {
@@ -135,9 +154,21 @@ const updateCinematicScroll = () => {
   }
 };
 
-window.addEventListener("scroll", updateCinematicScroll, { passive: true });
-window.addEventListener("resize", updateCinematicScroll);
-updateCinematicScroll();
+let scrollTicking = false;
+const handleScroll = () => {
+  if (!scrollTicking) {
+    window.requestAnimationFrame(() => {
+      updateHeader();
+      updateCinematicScroll();
+      scrollTicking = false;
+    });
+    scrollTicking = true;
+  }
+};
+
+window.addEventListener("scroll", handleScroll, { passive: true });
+window.addEventListener("resize", handleScroll);
+handleScroll();
 
 const core = document.querySelector("[data-core]");
 if (core && window.matchMedia("(pointer:fine)").matches) {
