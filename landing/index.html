@@ -42,34 +42,61 @@
         <div class="hero-stage reveal" aria-label="Animated Titan intelligence overview">
           <div class="core-glow"></div>
           <div class="intelligence-core" data-core>
+            <div class="core-orbit-ring ring-outer"></div>
+            <div class="core-orbit-ring ring-mid"></div>
             <div class="core-ring ring-one"></div>
             <div class="core-ring ring-two"></div>
             <div class="core-center">
-              <span>LIVE</span>
+              <span class="live-pill">LIVE CORE</span>
               <strong>TITAN</strong>
-              <small>INTELLIGENCE CORE</small>
+              <small>INTELLIGENCE ENGINE</small>
             </div>
-            <div class="signal signal-a"><span>Demand</span><b>+18%</b></div>
-            <div class="signal signal-b"><span>Risk</span><b>03 alerts</b></div>
-            <div class="signal signal-c"><span>Inventory</span><b>Optimized</b></div>
-          </div>
-          <div class="forecast-card glass-card">
-            <div class="card-topline"><span>Demand pulse</span><span class="live-dot">Live</span></div>
-            <div class="sparkline" aria-hidden="true">
-              <svg viewBox="0 0 320 100" role="img">
-                <defs>
-                  <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0" stop-color="#68d8a0" stop-opacity=".45" />
-                    <stop offset="1" stop-color="#68d8a0" stop-opacity="0" />
-                  </linearGradient>
-                </defs>
-                <path class="area" d="M0,83 C28,76 36,63 62,67 C88,71 95,52 123,56 C153,61 161,32 188,39 C218,47 225,21 253,28 C283,35 292,10 320,12 L320,100 L0,100Z" />
-                <path class="line" d="M0,83 C28,76 36,63 62,67 C88,71 95,52 123,56 C153,61 161,32 188,39 C218,47 225,21 253,28 C283,35 292,10 320,12" />
-              </svg>
+            <div class="orbit-node node-forecast">
+              <span class="node-dot"></span>
+              <span class="node-label">DEMAND</span>
+              <b class="node-val">+18.4%</b>
             </div>
-            <div class="forecast-meta"><strong>12,480</strong><span>Next 30 days</span></div>
+            <div class="orbit-node node-inventory">
+              <span class="node-dot dot-mint"></span>
+              <span class="node-label">INVENTORY</span>
+              <b class="node-val">BALANCED</b>
+            </div>
+            <div class="orbit-node node-risk">
+              <span class="node-dot dot-peach"></span>
+              <span class="node-label">RISK SHIELD</span>
+              <b class="node-val">03 ALERTS</b>
+            </div>
           </div>
-          <div class="risk-chip glass-card"><i></i><span>Stockout avoided</span><b>SKU-204</b></div>
+
+          <div class="telemetry-dock glass-card">
+            <div class="dock-header">
+              <span class="dock-status"><i class="live-pulse"></i> Real-time telemetry</span>
+              <span class="dock-tag">SKU-204 · 30D HORIZON</span>
+            </div>
+            <div class="dock-body">
+              <div class="dock-spark">
+                <svg viewBox="0 0 240 54" role="img" preserveAspectRatio="none">
+                  <defs>
+                    <linearGradient id="dockArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0" stop-color="#68d8a0" stop-opacity=".4" />
+                      <stop offset="1" stop-color="#68d8a0" stop-opacity="0" />
+                    </linearGradient>
+                  </defs>
+                  <path class="area" d="M0,48 Q40,42 80,28 T160,22 T240,6 L240,54 L0,54 Z" />
+                  <path class="line" d="M0,48 Q40,42 80,28 T160,22 T240,6" />
+                </svg>
+              </div>
+              <div class="dock-stats">
+                <div>
+                  <small>PREDICTED PEAK</small>
+                  <strong>12,480 <span class="trend-up">↑ 18.4%</span></strong>
+                </div>
+                <div class="dock-action-chip">
+                  <i>✓</i> <span>Stockout Protected</span>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="hero-foot">
@@ -113,10 +140,13 @@
         <div class="scene-number dark-number">03 / THE INTELLIGENCE</div>
         <div class="product-heading reveal">
           <div>
-            <p class="eyebrow"><span></span> One system. Four clear views.</p>
+            <p class="eyebrow"><span></span> One connected system · Four clear views</p>
             <h2 id="product-title">Know what matters.<br /><em>Before it matters.</em></h2>
           </div>
-          <p>Explore the connected intelligence inside Titan. Each view answers a different business question without losing the bigger picture.</p>
+          <div class="product-heading-meta">
+            <p>Explore the connected intelligence inside Titan. Each view answers a different business question without losing the operational supply chain picture.</p>
+            <div class="product-badge"><i class="badge-dot"></i><span>INTERACTIVE INTELLIGENCE SUITE</span></div>
+          </div>
         </div>
 
         <div class="product-shell reveal">
@@ -138,26 +168,94 @@
           <div class="module-stage" id="module-panel" role="tabpanel" tabindex="0">
             <div class="stage-header">
               <div><span class="status-dot"></span><small id="module-kicker">Demand forecast</small></div>
-              <span class="stage-range">NEXT 12 WEEKS</span>
+              <span class="stage-range" id="module-range">HORIZON: 12 WEEKS · DAILY GRANULARITY</span>
             </div>
             <div class="stage-copy">
-              <p id="module-question">What will demand look like next?</p>
+              <div class="stage-questions">
+                <p id="module-question">What will demand look like next?</p>
+                <div class="decision-pill" id="module-decision"><span>DECISION</span> <b>Forecast volume 12 weeks out so purchasing acts ahead of supplier lead times.</b></div>
+              </div>
               <h3 id="module-title">See the curve before it becomes the quarter.</h3>
             </div>
             <div class="stage-visual" id="stage-visual" data-mode="forecast">
-              <svg class="chart-main" viewBox="0 0 760 280" preserveAspectRatio="none" aria-hidden="true">
-                <g class="grid"><path d="M0 40H760M0 105H760M0 170H760M0 235H760" /></g>
-                <path class="history" d="M0 222C44 212 67 176 113 187S182 214 225 164 298 130 346 144 420 84 474 102" />
-                <path class="future-area" d="M474 102C520 120 557 56 601 67S670 38 760 24L760 280H474Z" />
-                <path class="future" d="M474 102C520 120 557 56 601 67S670 38 760 24" />
-                <path class="future-soft" d="M474 102C530 143 563 109 610 122S684 96 760 92" />
-              </svg>
-              <div class="chart-label chart-label-a"><span>Expected peak</span><b>Week 10</b></div>
-              <div class="chart-label chart-label-b"><span>Forecast</span><b>+18.4%</b></div>
-              <div class="chart-axis"><span>History</span><span>Today</span><span>Predicted</span></div>
+              <!-- Mode 1: Demand Forecast View -->
+              <div class="chart-canvas canvas-forecast">
+                <svg class="chart-main" viewBox="0 0 760 260" preserveAspectRatio="none" aria-hidden="true">
+                  <g class="grid"><path d="M0 35H760M0 95H760M0 155H760M0 215H760" /></g>
+                  <path class="history" d="M0 205C44 195 67 160 113 172S182 200 225 150 298 116 346 130 420 74 474 92" />
+                  <path class="future-area" d="M474 92C520 110 557 48 601 58S670 30 760 18L760 260H474Z" />
+                  <path class="future" d="M474 92C520 110 557 48 601 58S670 30 760 18" />
+                  <path class="future-soft" d="M474 92C530 132 563 98 610 110S684 86 760 82" />
+                </svg>
+                <div class="chart-label chart-label-a"><span>Predicted Peak</span><b>Week 10 (+18.4%)</b></div>
+                <div class="chart-label chart-label-b"><span>Today Cutoff</span><b>Neural Transition</b></div>
+                <div class="chart-axis"><span>12 WEEKS PAST</span><span>TODAY</span><span>12 WEEKS FORECAST</span></div>
+              </div>
+
+              <!-- Mode 2: Inventory Health View -->
+              <div class="chart-canvas canvas-inventory">
+                <div class="inventory-bars-wrap">
+                  <div class="inv-row">
+                    <div class="inv-meta"><span>SKU-204 · Prime Footwear</span><b class="status-warn">11 Days (Near Reorder)</b></div>
+                    <div class="inv-bar"><div class="inv-fill warn-fill" style="width: 32%"></div><span class="safety-marker" style="left: 45%" title="Safety Stock Threshold"><i></i>Safety Stock</span></div>
+                  </div>
+                  <div class="inv-row">
+                    <div class="inv-meta"><span>SKU-108 · Active Hoodie</span><b class="status-ok">28 Days (Balanced)</b></div>
+                    <div class="inv-bar"><div class="inv-fill ok-fill" style="width: 68%"></div><span class="safety-marker" style="left: 40%"><i></i>Safety Stock</span></div>
+                  </div>
+                  <div class="inv-row">
+                    <div class="inv-meta"><span>SKU-312 · Ergonomic Pack</span><b class="status-surplus">64 Days (Surplus Buffer)</b></div>
+                    <div class="inv-bar"><div class="inv-fill surplus-fill" style="width: 88%"></div><span class="safety-marker" style="left: 35%"><i></i>Safety Stock</span></div>
+                  </div>
+                </div>
+                <div class="chart-axis"><span>0 UNITS</span><span>SAFETY THRESHOLD</span><span>MAX CAPACITY</span></div>
+              </div>
+
+              <!-- Mode 3: Risk Radar View -->
+              <div class="chart-canvas canvas-risk">
+                <div class="risk-radar-stage">
+                  <div class="radar-circle radar-c3"></div>
+                  <div class="radar-circle radar-c2"></div>
+                  <div class="radar-circle radar-c1"></div>
+                  <div class="radar-sweep"></div>
+                  <div class="risk-node node-critical" style="top: 28%; left: 62%;">
+                    <span class="pulse-ring"></span>
+                    <i class="dot"></i>
+                    <div class="node-tooltip"><b>SKU-204</b><span>High Stockout Threat (8d Lead Time)</span></div>
+                  </div>
+                  <div class="risk-node node-watch" style="top: 65%; left: 34%;">
+                    <i class="dot"></i>
+                    <div class="node-tooltip"><b>SKU-108</b><span>Demand Anomaly (+22%)</span></div>
+                  </div>
+                  <div class="risk-node node-safe" style="top: 45%; left: 22%;">
+                    <i class="dot"></i>
+                    <div class="node-tooltip"><b>SKU-312</b><span>Stable Flow</span></div>
+                  </div>
+                </div>
+                <div class="chart-axis"><span>NOMINAL ZONE</span><span>WATCHLIST</span><span>CRITICAL RISK THRESHOLD</span></div>
+              </div>
+
+              <!-- Mode 4: Scenario Lab View -->
+              <div class="chart-canvas canvas-scenario">
+                <svg class="chart-main" viewBox="0 0 760 260" preserveAspectRatio="none" aria-hidden="true">
+                  <g class="grid"><path d="M0 35H760M0 95H760M0 155H760M0 215H760" /></g>
+                  <!-- Baseline -->
+                  <path class="scenario-line sc-base" d="M0 160 Q200 150 400 135 T760 115" />
+                  <!-- Promotion Surge -->
+                  <path class="scenario-line sc-promo" d="M0 160 Q200 130 400 70 T760 40" />
+                  <!-- Supplier Disruption -->
+                  <path class="scenario-line sc-delay" d="M0 160 Q200 170 400 200 T760 230" />
+                </svg>
+                <div class="scenario-legend">
+                  <div class="sc-item sc-item-promo"><i class="sc-color"></i><span>Scenario A: Summer Promo</span><b>+24% Demand · Needs +320 Units</b></div>
+                  <div class="sc-item sc-item-base"><i class="sc-color"></i><span>Scenario B: Baseline Run</span><b>+4% Baseline</b></div>
+                  <div class="sc-item sc-item-delay"><i class="sc-color"></i><span>Scenario C: Port Delay</span><b>-14% Supply Shock</b></div>
+                </div>
+                <div class="chart-axis"><span>SIMULATION START</span><span>MID-CYCLE</span><span>TARGET HORIZON</span></div>
+              </div>
             </div>
             <div class="stage-footer">
-              <div><small>CONFIDENCE</small><strong id="module-metric-a">92%</strong></div>
+              <div><small id="module-metric-a-label">CONFIDENCE</small><strong id="module-metric-a">92%</strong></div>
               <div><small id="module-metric-b-label">PEAK DEMAND</small><strong id="module-metric-b">1,840</strong></div>
               <p id="module-insight"><i></i> Demand is likely to rise in the next four weeks.</p>
             </div>
@@ -177,7 +275,28 @@
           </div>
 
           <div class="operations-stage" aria-label="A sequence showing how Titan handles a supply-chain signal">
-            <div class="ops-orbit" aria-hidden="true"></div>
+            <div class="ops-nexus" aria-hidden="true">
+              <div class="nexus-glow"></div>
+              <div class="nexus-ring nexus-ring-outer"></div>
+              <div class="nexus-ring nexus-ring-inner"></div>
+              <svg class="nexus-conduits" viewBox="0 0 600 600" preserveAspectRatio="none">
+                <path class="conduit-path path-1" d="M120 120 Q300 240 300 300" />
+                <path class="conduit-path path-2" d="M480 180 Q340 260 300 300" />
+                <path class="conduit-path path-3" d="M140 480 Q260 360 300 300" />
+                <path class="conduit-path path-4" d="M460 480 Q340 360 300 300" />
+              </svg>
+              <div class="nexus-core">
+                <span class="nexus-tag">TITAN DECISION ENGINE</span>
+                <strong class="nexus-stage-title" id="nexus-status">LIVE JOURNEY</strong>
+                <div class="nexus-flow-strip">
+                  <span class="nf-step nf-1">Demand Spike</span>
+                  <i>→</i>
+                  <span class="nf-step nf-2">Titan Signal</span>
+                  <i>→</i>
+                  <span class="nf-step nf-3">Restock PO</span>
+                </div>
+              </div>
+            </div>
             <article class="ops-card ops-card-a" data-ops-card="0">
               <div class="ops-time"><span>09:05</span><i></i></div>
               <small>DEMAND SIGNAL</small>
