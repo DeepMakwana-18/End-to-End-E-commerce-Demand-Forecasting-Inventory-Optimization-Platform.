@@ -1,51 +1,51 @@
 const modules = {
   forecast: {
-    kicker: "Demand forecast",
-    range: "HORIZON: 12 WEEKS · DAILY GRANULARITY",
-    question: "What will demand look like next?",
-    decision: "Forecast volume 12 weeks out so purchasing acts ahead of supplier lead times.",
-    title: "See the curve before it becomes the quarter.",
-    metricA: "92%",
-    metricALabel: "CONFIDENCE",
-    metricBLabel: "PEAK DEMAND",
-    metricB: "1,840",
-    insight: "Demand is likely to rise in the next four weeks."
+    kicker: "Demand forecast intelligence",
+    range: "HORIZON: 12 WEEKS · CONFIDENCE: 95%",
+    question: "What demand is coming?",
+    decision: "Forecast volume 12 weeks out with confidence bands to schedule POs ahead of supplier lead times.",
+    title: "Quantify future demand with bounded uncertainty.",
+    metricA: "±6.4%",
+    metricALabel: "CONFIDENCE BAND",
+    metricBLabel: "PROJECTED PEAK",
+    metricB: "+18.4%",
+    insight: "Upper confidence band warrants +240 safety stock buffer in Week 10."
   },
   inventory: {
-    kicker: "Inventory intelligence",
-    range: "PORTFOLIO: 1,420 SKUS · 4 REGIONAL HUBS",
-    question: "Where is inventory out of balance?",
-    decision: "Detect safety-stock breaches early and balance replenishment across warehouses.",
-    title: "Know what to replenish, hold, and move.",
-    metricA: "86%",
-    metricALabel: "SERVICE LEVEL",
-    metricBLabel: "AT-RISK SKUS",
-    metricB: "14",
-    insight: "Three fast-moving SKUs are approaching safety stock threshold."
+    kicker: "Inventory health & replenishment",
+    range: "COVERAGE TRACKER · SAFETY BUFFER WATCH",
+    question: "What needs restocking?",
+    decision: "Trigger prioritized reorders for SKUs approaching stockout thresholds before lead times lapse.",
+    title: "Identify stock warnings and trigger timely replenishment.",
+    metricA: "11 Days",
+    metricALabel: "CRITICAL RUNWAY",
+    metricBLabel: "REORDER NEEDED",
+    metricB: "350 Units",
+    insight: "SKU-204 breached 18-day safety threshold; immediate PO generation advised."
   },
   risk: {
-    kicker: "Risk radar",
-    range: "VELOCITY MONITOR: REAL-TIME ANOMALY SCAN",
-    question: "What needs attention right now?",
-    decision: "Pinpoint SKU anomalies, velocity drops, and stockout hazards before they escalate.",
-    title: "Turn hidden anomalies into visible priorities.",
-    metricA: "89%",
-    metricALabel: "DETECTION ACCURACY",
-    metricBLabel: "ACTIVE ALERTS",
-    metricB: "03",
-    insight: "SKU-204 has highest stockout exposure this week due to 8d supplier lead time."
+    kicker: "Anomaly detection & risk radar",
+    range: "STATISTICAL DEVIATION: +3.2σ SPIKE DETECTED",
+    question: "What unusual changes require attention?",
+    decision: "Isolate uncharacteristic demand spikes from seasonal variance to protect fulfillment.",
+    title: "Separate true market shocks from baseline noise.",
+    metricA: "+3.2σ",
+    metricALabel: "ANOMALY SEVERITY",
+    metricBLabel: "UNPLANNED SURGE",
+    metricB: "+48%",
+    insight: "Regional flash promotion caused +3.2σ spike; cross-depot transfer auto-triggered."
   },
   scenario: {
-    kicker: "Scenario lab",
-    range: "SIMULATION ENGINE: MONTE CARLO STRESS TEST",
-    question: "What changes if the market shifts?",
-    decision: "Simulate promotion surges, freight delays, and capital trade-offs before issuing POs.",
-    title: "Test the decision before you commit to it.",
-    metricA: "4",
-    metricALabel: "SCENARIOS TESTED",
-    metricBLabel: "BEST SCENARIO",
-    metricB: "+12%",
-    insight: "A 320-unit reorder best balances service level and holding cost."
+    kicker: "Scenario lab & what-if engine",
+    range: "SIMULATION ENGINE · MULTI-VARIABLE STRESS TEST",
+    question: "What happens if demand, pricing or supply conditions change?",
+    decision: "Simulate demand shifts, price elasticity, and freight delays before capital is committed.",
+    title: "Stress-test outcomes across demand, pricing, and supply.",
+    metricA: "+24%",
+    metricALabel: "DEMAND DELTA",
+    metricBLabel: "SERVICE LEVEL",
+    metricB: "98.2%",
+    insight: "Expediting +320 units under promotion preserves target service level without over-stocking."
   }
 };
 
@@ -233,6 +233,82 @@ tabs.forEach((tab, index) => {
     const next = tabs[(index + direction + tabs.length) % tabs.length];
     next.focus();
     selectModule(next.dataset.module);
+  });
+});
+
+const scenarioPresets = {
+  promo: {
+    title: "Summer Promotion (+20%)",
+    legend: "Simulated: Promo Surge",
+    areaD: "M 20 114 C 120 90, 240 46, 360 34 C 430 26, 465 22, 490 18 L 490 86 C 450 88, 400 92, 300 98 C 200 102, 100 110, 20 114 Z",
+    lineD: "M 20 114 C 120 90, 240 46, 360 34 C 430 26, 465 22, 490 18",
+    demandDelta: "+24% Lift",
+    stockoutRisk: "HIGH (Day 9)",
+    riskClass: true,
+    action: "Expedite +320 units via air freight to preserve 98.2% customer service level.",
+    metricA: "+24%",
+    metricB: "98.2%",
+    insight: "Expediting +320 units under promotion preserves target service level without over-stocking."
+  },
+  price: {
+    title: "Price Reduction (-15%)",
+    legend: "Simulated: Elasticity Lift",
+    areaD: "M 20 114 C 120 100, 240 68, 360 56 C 430 48, 465 44, 490 40 L 490 86 C 450 88, 400 92, 300 98 C 200 102, 100 110, 20 114 Z",
+    lineD: "M 20 114 C 120 100, 240 68, 360 56 C 430 48, 465 44, 490 40",
+    demandDelta: "+16% Volume",
+    stockoutRisk: "MODERATE (Day 18)",
+    riskClass: false,
+    action: "Schedule second replenishment run 10 days early; holding costs increase +4.2%.",
+    metricA: "+16%",
+    metricB: "96.5%",
+    insight: "Price elasticity model predicts +16% volume lift with balanced inventory run rate."
+  },
+  delay: {
+    title: "Port Disruption (+10d Lead Time)",
+    legend: "Simulated: Supply Delay Shock",
+    areaD: "M 20 114 C 120 128, 240 142, 360 148 C 430 154, 465 158, 490 162 L 490 86 C 450 88, 400 92, 300 98 C 200 102, 100 110, 20 114 Z",
+    lineD: "M 20 114 C 120 128, 240 142, 360 148 C 430 154, 465 158, 490 162",
+    demandDelta: "-18% Supply Flow",
+    stockoutRisk: "CRITICAL (Day 6)",
+    riskClass: true,
+    action: "Re-route in-transit purchase orders to West Coast port; release safety reserve.",
+    metricA: "-18%",
+    metricB: "81.4%",
+    insight: "Supplier lead time extension of 10 days breaches safety stock unless rerouted immediately."
+  }
+};
+
+const scenarioButtons = [...document.querySelectorAll("[data-scenario]")];
+const scAreaPath = document.querySelector("#sc-area-path");
+const scLinePath = document.querySelector("#sc-line-path");
+const scLegendLabel = document.querySelector("#sc-sim-legend-label");
+const scTitle = document.querySelector("#sc-condition-title");
+const scDelta = document.querySelector("#sc-demand-delta");
+const scRisk = document.querySelector("#sc-stockout-risk");
+const scAction = document.querySelector("#sc-prescribed-action");
+
+scenarioButtons.forEach(btn => {
+  btn.addEventListener("click", () => {
+    const scKey = btn.dataset.scenario;
+    const data = scenarioPresets[scKey];
+    if (!data) return;
+    scenarioButtons.forEach(b => {
+      b.classList.toggle("active", b === btn);
+      b.setAttribute("aria-pressed", String(b === btn));
+    });
+    if (scAreaPath) scAreaPath.setAttribute("d", data.areaD);
+    if (scLinePath) scLinePath.setAttribute("d", data.lineD);
+    if (scLegendLabel) scLegendLabel.textContent = data.legend;
+    if (scTitle) scTitle.textContent = data.title;
+    if (scDelta) scDelta.textContent = data.demandDelta;
+    if (scRisk) {
+      scRisk.textContent = data.stockoutRisk;
+      scRisk.classList.toggle("risk-badge-text", data.riskClass);
+    }
+    if (scAction) scAction.textContent = data.action;
+    if (fields.metricA) fields.metricA.textContent = data.metricA;
+    if (fields.metricB) fields.metricB.textContent = data.metricB;
+    if (fields.insight) fields.insight.innerHTML = `<i></i>${data.insight}`;
   });
 });
 

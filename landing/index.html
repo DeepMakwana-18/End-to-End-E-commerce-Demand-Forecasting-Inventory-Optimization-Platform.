@@ -5,8 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Titan AI turns sales data into demand forecasts, inventory signals, risk alerts, and smarter supply-chain decisions." />
     <title>Titan AI — See what's coming</title>
-    <link rel="stylesheet" href="./styles.css" />
-    <link rel="stylesheet" href="/landing/styles.css" />
+    <link rel="stylesheet" href="./styles.css?v=task4_showcase" />
+    <link rel="stylesheet" href="/landing/styles.css?v=task4_showcase" />
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -327,113 +327,319 @@
 
         <div class="product-shell reveal">
           <div class="module-tabs" role="tablist" aria-label="Titan intelligence modules">
-            <button role="tab" aria-selected="true" aria-controls="module-panel" data-module="forecast">
-              <span>01</span><b>Forecast</b><small>What will sell?</small>
+            <button role="tab" aria-selected="true" aria-controls="module-panel" id="tab-forecast" data-module="forecast">
+              <span>01</span><b>Forecast</b><small>What demand is coming?</small>
             </button>
-            <button role="tab" aria-selected="false" aria-controls="module-panel" data-module="inventory">
-              <span>02</span><b>Inventory</b><small>What should move?</small>
+            <button role="tab" aria-selected="false" aria-controls="module-panel" id="tab-inventory" data-module="inventory">
+              <span>02</span><b>Inventory</b><small>What needs restocking?</small>
             </button>
-            <button role="tab" aria-selected="false" aria-controls="module-panel" data-module="risk">
-              <span>03</span><b>Risk radar</b><small>What needs attention?</small>
+            <button role="tab" aria-selected="false" aria-controls="module-panel" id="tab-risk" data-module="risk">
+              <span>03</span><b>Risk Radar</b><small>What unusual changes require attention?</small>
             </button>
-            <button role="tab" aria-selected="false" aria-controls="module-panel" data-module="scenario">
-              <span>04</span><b>Scenario lab</b><small>What if things change?</small>
+            <button role="tab" aria-selected="false" aria-controls="module-panel" id="tab-scenario" data-module="scenario">
+              <span>04</span><b>Scenario Lab</b><small>What if conditions change?</small>
             </button>
           </div>
 
           <div class="module-stage" id="module-panel" role="tabpanel" tabindex="0">
             <div class="stage-header">
-              <div><span class="status-dot"></span><small id="module-kicker">Demand forecast</small></div>
-              <span class="stage-range" id="module-range">HORIZON: 12 WEEKS · DAILY GRANULARITY</span>
+              <div><span class="status-dot"></span><small id="module-kicker">Demand forecast intelligence</small></div>
+              <span class="stage-range" id="module-range">HORIZON: 12 WEEKS · CONFIDENCE: 95%</span>
             </div>
             <div class="stage-copy">
               <div class="stage-questions">
-                <p id="module-question">What will demand look like next?</p>
-                <div class="decision-pill" id="module-decision"><span>DECISION</span> <b>Forecast volume 12 weeks out so purchasing acts ahead of supplier lead times.</b></div>
+                <p id="module-question">What demand is coming?</p>
+                <div class="decision-pill" id="module-decision"><span>DECISION</span> <b>Forecast volume 12 weeks out with confidence bands to schedule POs ahead of supplier lead times.</b></div>
               </div>
-              <h3 id="module-title">See the curve before it becomes the quarter.</h3>
+              <h3 id="module-title">Quantify future demand with bounded uncertainty.</h3>
             </div>
             <div class="stage-visual" id="stage-visual" data-mode="forecast">
               <!-- Mode 1: Demand Forecast View -->
               <div class="chart-canvas canvas-forecast">
-                <svg class="chart-main" viewBox="0 0 760 260" preserveAspectRatio="none" aria-hidden="true">
-                  <g class="grid"><path d="M0 35H760M0 95H760M0 155H760M0 215H760" /></g>
-                  <path class="history" d="M0 205C44 195 67 160 113 172S182 200 225 150 298 116 346 130 420 74 474 92" />
-                  <path class="future-area" d="M474 92C520 110 557 48 601 58S670 30 760 18L760 260H474Z" />
-                  <path class="future" d="M474 92C520 110 557 48 601 58S670 30 760 18" />
-                  <path class="future-soft" d="M474 92C530 132 563 98 610 110S684 86 760 82" />
+                <div class="forecast-legend-bar">
+                  <div class="legend-chip"><i class="chip-color actuals-color"></i><span>Historical Actuals</span></div>
+                  <div class="legend-chip"><i class="chip-color ci-color"></i><span>95% Confidence Interval (±6.4%)</span></div>
+                  <div class="legend-chip"><i class="chip-color forecast-color"></i><span>Predicted Demand (Neural Mean)</span></div>
+                </div>
+                <svg class="chart-main chart-pearl" viewBox="0 0 760 215" preserveAspectRatio="none" aria-hidden="true">
+                  <defs>
+                    <linearGradient id="ci-gradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#2d854e" stop-opacity="0.18" />
+                      <stop offset="100%" stop-color="#2d854e" stop-opacity="0.04" />
+                    </linearGradient>
+                  </defs>
+                  <g class="grid-pearl">
+                    <line x1="36" y1="28" x2="740" y2="28" />
+                    <line x1="36" y1="76" x2="740" y2="76" />
+                    <line x1="36" y1="124" x2="740" y2="124" />
+                    <line x1="36" y1="172" x2="740" y2="172" />
+                    <line x1="436" y1="14" x2="436" y2="188" class="cutoff-line" />
+                  </g>
+                  <g class="axis-y-pearl" font-size="8" fill="#728479" font-weight="600">
+                    <text x="30" y="31" text-anchor="end">2,000</text>
+                    <text x="30" y="79" text-anchor="end">1,500</text>
+                    <text x="30" y="127" text-anchor="end">1,000</text>
+                    <text x="30" y="175" text-anchor="end">500</text>
+                  </g>
+                  <!-- 95% Confidence Interval Band (bounded upper and lower) -->
+                  <path class="ci-area" fill="url(#ci-gradient)" d="M436 96 C482 82 532 42 582 30 C632 18 682 32 740 24 L740 96 C682 108 632 96 582 88 C532 100 482 110 436 96 Z" />
+                  <path class="ci-boundary" fill="none" d="M436 96 C482 82 532 42 582 30 C632 18 682 32 740 24" />
+                  <path class="ci-boundary" fill="none" d="M436 96 C482 110 532 100 582 88 C632 96 682 108 740 96" />
+                  <!-- Historical Actuals -->
+                  <path class="curve-history" fill="none" d="M36 168 C80 156 120 188 165 146 C210 106 252 162 298 136 C342 112 382 142 412 110 L436 96" />
+                  <!-- Predicted Mean Curve -->
+                  <path class="curve-forecast" fill="none" d="M436 96 C482 88 532 64 582 56 C632 50 682 60 740 54" />
+                  <!-- Predicted Peak Marker -->
+                  <circle cx="582" cy="56" r="4.5" class="peak-dot" />
+                  <circle cx="582" cy="56" r="10" class="peak-ring" />
+                  <!-- Today Cutoff Dot -->
+                  <circle cx="436" cy="96" r="4" class="cutoff-dot" />
                 </svg>
-                <div class="chart-label chart-label-a"><span>Predicted Peak</span><b>Week 10 (+18.4%)</b></div>
-                <div class="chart-label chart-label-b"><span>Today Cutoff</span><b>Neural Transition</b></div>
-                <div class="chart-axis"><span>12 WEEKS PAST</span><span>TODAY</span><span>12 WEEKS FORECAST</span></div>
+                <div class="pearl-tooltip tooltip-today">
+                  <span>TODAY CUTOFF</span>
+                  <b>Neural Transition</b>
+                </div>
+                <div class="pearl-tooltip tooltip-peak">
+                  <span>PREDICTED PEAK</span>
+                  <b>W10 (+18.4% · 1,840)</b>
+                </div>
+                <div class="pearl-tooltip tooltip-ci">
+                  <span>CONFIDENCE BAND</span>
+                  <b>95% CI [1,720 – 1,960]</b>
+                </div>
+                <div class="chart-axis-pearl">
+                  <span>-12 WEEKS (ACTUALS)</span>
+                  <span>-6 WEEKS</span>
+                  <span class="axis-highlight">TODAY</span>
+                  <span>+6 WEEKS</span>
+                  <span>+12 WEEKS FORECAST</span>
+                </div>
               </div>
 
               <!-- Mode 2: Inventory Health View -->
               <div class="chart-canvas canvas-inventory">
-                <div class="inventory-bars-wrap">
-                  <div class="inv-row">
-                    <div class="inv-meta"><span>SKU-204 · Prime Footwear</span><b class="status-warn">11 Days (Near Reorder)</b></div>
-                    <div class="inv-bar"><div class="inv-fill warn-fill" style="width: 32%"></div><span class="safety-marker" style="left: 45%" title="Safety Stock Threshold"><i></i>Safety Stock</span></div>
+                <div class="inv-table-header">
+                  <span>SKU & ITEM NAME</span>
+                  <span>DAYS REMAINING</span>
+                  <span>STOCK BUFFER RUNWAY</span>
+                  <span>RECOMMENDED ACTION</span>
+                </div>
+                <div class="inv-rows-wrapper">
+                  <!-- Row 1: Critical -->
+                  <div class="inv-sku-row row-critical">
+                    <div class="sku-identity">
+                      <span class="sku-id">SKU-204</span>
+                      <b class="sku-title">Apex Sprint Footwear</b>
+                    </div>
+                    <div class="sku-metric-cell">
+                      <span class="metric-days warn-text">11 Days</span>
+                      <small class="metric-note">Target: 18d</small>
+                    </div>
+                    <div class="sku-track-wrap">
+                      <div class="sku-progress-track">
+                        <div class="track-fill fill-warn" style="width: 32%;"></div>
+                        <div class="safety-pin" style="left: 54%;" title="Safety Stock Target: 18 Days">
+                          <i></i><span>Safety Min (18d)</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sku-action-cell">
+                      <span class="badge-action badge-critical">🚨 REORDER +350 UNITS (Lead: 8d)</span>
+                    </div>
                   </div>
-                  <div class="inv-row">
-                    <div class="inv-meta"><span>SKU-108 · Active Hoodie</span><b class="status-ok">28 Days (Balanced)</b></div>
-                    <div class="inv-bar"><div class="inv-fill ok-fill" style="width: 68%"></div><span class="safety-marker" style="left: 40%"><i></i>Safety Stock</span></div>
+
+                  <!-- Row 2: Balanced -->
+                  <div class="inv-sku-row row-healthy">
+                    <div class="sku-identity">
+                      <span class="sku-id">SKU-108</span>
+                      <b class="sku-title">Merino Active Layer</b>
+                    </div>
+                    <div class="sku-metric-cell">
+                      <span class="metric-days ok-text">28 Days</span>
+                      <small class="metric-note">Target: 20d</small>
+                    </div>
+                    <div class="sku-track-wrap">
+                      <div class="sku-progress-track">
+                        <div class="track-fill fill-ok" style="width: 68%;"></div>
+                        <div class="safety-pin" style="left: 48%;" title="Safety Stock Target: 20 Days">
+                          <i></i><span>Safety Min (20d)</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sku-action-cell">
+                      <span class="badge-action badge-ok">✓ OPTIMAL · Next PO in 14 Days</span>
+                    </div>
                   </div>
-                  <div class="inv-row">
-                    <div class="inv-meta"><span>SKU-312 · Ergonomic Pack</span><b class="status-surplus">64 Days (Surplus Buffer)</b></div>
-                    <div class="inv-bar"><div class="inv-fill surplus-fill" style="width: 88%"></div><span class="safety-marker" style="left: 35%"><i></i>Safety Stock</span></div>
+
+                  <!-- Row 3: Surplus -->
+                  <div class="inv-sku-row row-surplus">
+                    <div class="sku-identity">
+                      <span class="sku-id">SKU-312</span>
+                      <b class="sku-title">Ergonomic Commute Pack</b>
+                    </div>
+                    <div class="sku-metric-cell">
+                      <span class="metric-days surplus-text">64 Days</span>
+                      <small class="metric-note">Target: 25d</small>
+                    </div>
+                    <div class="sku-track-wrap">
+                      <div class="sku-progress-track">
+                        <div class="track-fill fill-surplus" style="width: 88%;"></div>
+                        <div class="safety-pin" style="left: 35%;" title="Safety Stock Target: 25 Days">
+                          <i></i><span>Safety Min (25d)</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="sku-action-cell">
+                      <span class="badge-action badge-surplus">⏸ HOLD REORDER · Surplus buffer</span>
+                    </div>
                   </div>
                 </div>
-                <div class="chart-axis"><span>0 UNITS</span><span>SAFETY THRESHOLD</span><span>MAX CAPACITY</span></div>
+                <div class="inv-summary-strip">
+                  <span class="inv-summary-badge">RESTOCK NOTICE</span>
+                  <p>1 of 3 monitored SKUs is below safety threshold. PO of <strong>350 units</strong> recommended before Day 12 to prevent stockout.</p>
+                </div>
               </div>
 
               <!-- Mode 3: Risk Radar View -->
               <div class="chart-canvas canvas-risk">
-                <div class="risk-radar-stage">
-                  <div class="radar-circle radar-c3"></div>
-                  <div class="radar-circle radar-c2"></div>
-                  <div class="radar-circle radar-c1"></div>
-                  <div class="radar-sweep"></div>
-                  <div class="risk-node node-critical" style="top: 28%; left: 62%;">
-                    <span class="pulse-ring"></span>
-                    <i class="dot"></i>
-                    <div class="node-tooltip"><b>SKU-204</b><span>High Stockout Threat (8d Lead Time)</span></div>
+                <div class="risk-dual-pane">
+                  <!-- Left: Time-series Anomaly Visual -->
+                  <div class="risk-chart-pane">
+                    <div class="pane-tag-bar">
+                      <span class="tag-title">STATISTICAL VELOCITY MONITOR</span>
+                      <span class="tag-alert">SPIKE DETECTED (+3.2σ)</span>
+                    </div>
+                    <svg class="risk-anomaly-svg" viewBox="0 0 420 170" preserveAspectRatio="none" aria-hidden="true">
+                      <!-- Expected +/-2.0 sigma corridor -->
+                      <path class="normal-band" d="M 10 90 C 60 85, 110 96, 160 88 C 210 78, 260 84, 310 82 C 360 80, 390 82, 410 80 L 410 130 C 390 132, 360 130, 310 134 C 260 138, 210 132, 160 140 C 110 148, 60 138, 10 142 Z" />
+                      <path class="band-edge" fill="none" d="M 10 90 C 60 85, 110 96, 160 88 C 210 78, 260 84, 310 82 C 360 80, 390 82, 410 80" />
+                      <path class="band-edge" fill="none" d="M 10 142 C 60 138, 110 148, 160 140 C 210 132, 260 138, 310 134 C 360 130, 390 132, 410 130" />
+                      <!-- Actual trajectory with dramatic spike -->
+                      <path class="risk-normal-path" fill="none" d="M 10 118 C 50 114, 90 120, 130 110 C 170 102, 200 108, 220 104" />
+                      <path class="risk-spike-path" fill="none" d="M 220 104 Q 252 20, 270 24 T 310 94 C 345 100, 380 105, 410 108" />
+                      <!-- Spike Peak Marker -->
+                      <circle cx="264" cy="24" r="5" class="spike-dot" />
+                      <circle cx="264" cy="24" r="12" class="spike-ring" />
+                    </svg>
+                    <div class="risk-chart-axis">
+                      <span>DAY 01</span>
+                      <span>DAY 07</span>
+                      <span class="spike-axis-tag">DAY 14 (SPIKE)</span>
+                      <span>DAY 21</span>
+                      <span>DAY 30</span>
+                    </div>
                   </div>
-                  <div class="risk-node node-watch" style="top: 65%; left: 34%;">
-                    <i class="dot"></i>
-                    <div class="node-tooltip"><b>SKU-108</b><span>Demand Anomaly (+22%)</span></div>
-                  </div>
-                  <div class="risk-node node-safe" style="top: 45%; left: 22%;">
-                    <i class="dot"></i>
-                    <div class="node-tooltip"><b>SKU-312</b><span>Stable Flow</span></div>
+
+                  <!-- Right: Detection Explanation & Root Cause -->
+                  <div class="risk-diagnostic-pane">
+                    <div class="diagnostic-card">
+                      <div class="diag-header">
+                        <span class="diag-badge">DETECTION EXPLANATION</span>
+                        <b class="diag-sku">SKU-204 · Demand Surge</b>
+                      </div>
+                      <div class="diag-items">
+                        <div class="diag-row">
+                          <small>ANOMALY PATTERN</small>
+                          <b>+48% Demand Spike (+3.2σ above baseline)</b>
+                        </div>
+                        <div class="diag-row">
+                          <small>DETECTED ROOT CAUSE</small>
+                          <p>Unannounced regional flash promotion launched without ERP supply synchronization.</p>
+                        </div>
+                        <div class="diag-row">
+                          <small>OPERATIONAL RESPONSE</small>
+                          <p>Emergency stock transfer (+200 units from North Hub) queued to prevent Day 12 stockout.</p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div class="chart-axis"><span>NOMINAL ZONE</span><span>WATCHLIST</span><span>CRITICAL RISK THRESHOLD</span></div>
               </div>
 
               <!-- Mode 4: Scenario Lab View -->
               <div class="chart-canvas canvas-scenario">
-                <svg class="chart-main" viewBox="0 0 760 260" preserveAspectRatio="none" aria-hidden="true">
-                  <g class="grid"><path d="M0 35H760M0 95H760M0 155H760M0 215H760" /></g>
-                  <!-- Baseline -->
-                  <path class="scenario-line sc-base" d="M0 160 Q200 150 400 135 T760 115" />
-                  <!-- Promotion Surge -->
-                  <path class="scenario-line sc-promo" d="M0 160 Q200 130 400 70 T760 40" />
-                  <!-- Supplier Disruption -->
-                  <path class="scenario-line sc-delay" d="M0 160 Q200 170 400 200 T760 230" />
-                </svg>
-                <div class="scenario-legend">
-                  <div class="sc-item sc-item-promo"><i class="sc-color"></i><span>Scenario A: Summer Promo</span><b>+24% Demand · Needs +320 Units</b></div>
-                  <div class="sc-item sc-item-base"><i class="sc-color"></i><span>Scenario B: Baseline Run</span><b>+4% Baseline</b></div>
-                  <div class="sc-item sc-item-delay"><i class="sc-color"></i><span>Scenario C: Port Delay</span><b>-14% Supply Shock</b></div>
+                <!-- Controls Bar -->
+                <div class="scenario-controls-bar">
+                  <span class="sc-label">SIMULATE CONDITIONS:</span>
+                  <div class="sc-button-group" role="group" aria-label="Scenario condition controls">
+                    <button type="button" class="sc-btn active" data-scenario="promo" aria-pressed="true">
+                      <span>A</span><b>Promo Surge (+20% Demand)</b>
+                    </button>
+                    <button type="button" class="sc-btn" data-scenario="price" aria-pressed="false">
+                      <span>B</span><b>Price Cut (-15% Elasticity)</b>
+                    </button>
+                    <button type="button" class="sc-btn" data-scenario="delay" aria-pressed="false">
+                      <span>C</span><b>Port Delay (+10d Lead Time)</b>
+                    </button>
+                  </div>
                 </div>
-                <div class="chart-axis"><span>SIMULATION START</span><span>MID-CYCLE</span><span>TARGET HORIZON</span></div>
+
+                <div class="scenario-body-split">
+                  <!-- SVG chart showing baseline vs simulated -->
+                  <div class="scenario-chart-wrap">
+                    <svg class="chart-main chart-scenario-svg" viewBox="0 0 510 170" preserveAspectRatio="none" aria-hidden="true">
+                      <defs>
+                        <linearGradient id="sc-area-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stop-color="#1e7e46" stop-opacity="0.22" />
+                          <stop offset="100%" stop-color="#1e7e46" stop-opacity="0.02" />
+                        </linearGradient>
+                      </defs>
+                      <g class="grid-pearl">
+                        <line x1="20" y1="28" x2="490" y2="28" />
+                        <line x1="20" y1="74" x2="490" y2="74" />
+                        <line x1="20" y1="120" x2="490" y2="120" />
+                      </g>
+                      <!-- Baseline curve (constant) -->
+                      <path class="sc-baseline-curve" fill="none" d="M 20 114 C 100 110, 200 102, 300 98 C 400 92, 450 88, 490 86" />
+                      <!-- Simulated area -->
+                      <path id="sc-area-path" class="sc-sim-area" fill="url(#sc-area-grad)" d="M 20 114 C 120 90, 240 46, 360 34 C 430 26, 465 22, 490 18 L 490 86 C 450 88, 400 92, 300 98 C 200 102, 100 110, 20 114 Z" />
+                      <!-- Simulated dynamic curve -->
+                      <path id="sc-line-path" class="sc-sim-curve" fill="none" d="M 20 114 C 120 90, 240 46, 360 34 C 430 26, 465 22, 490 18" />
+                    </svg>
+                    <div class="scenario-axis-bar">
+                      <span>TODAY</span>
+                      <span>+4 WEEKS</span>
+                      <span>+8 WEEKS</span>
+                      <span>+12 WEEKS HORIZON</span>
+                    </div>
+                    <div class="sc-chart-legend">
+                      <div class="sc-leg-item"><i class="sc-dot dot-base"></i><span>Baseline Plan</span></div>
+                      <div class="sc-leg-item"><i class="sc-dot dot-sim"></i><span id="sc-sim-legend-label">Simulated: Promo Surge</span></div>
+                    </div>
+                  </div>
+
+                  <!-- Outcome Readout Panel -->
+                  <div class="scenario-outcome-card">
+                    <div class="outcome-header">
+                      <span class="outcome-badge">SIMULATED OUTCOME</span>
+                      <b id="sc-condition-title">Summer Promotion (+20%)</b>
+                    </div>
+                    <div class="outcome-stats">
+                      <div class="outcome-stat">
+                        <small>DEMAND DELTA</small>
+                        <strong id="sc-demand-delta">+24% Lift</strong>
+                      </div>
+                      <div class="outcome-stat">
+                        <small>STOCKOUT RISK</small>
+                        <strong id="sc-stockout-risk" class="risk-badge-text">HIGH (Day 9)</strong>
+                      </div>
+                    </div>
+                    <div class="outcome-action-box">
+                      <small>OPTIMAL MITIGATION</small>
+                      <p id="sc-prescribed-action">Expedite +320 units via air freight to preserve 98.2% customer service level.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
             <div class="stage-footer">
-              <div><small id="module-metric-a-label">CONFIDENCE</small><strong id="module-metric-a">92%</strong></div>
-              <div><small id="module-metric-b-label">PEAK DEMAND</small><strong id="module-metric-b">1,840</strong></div>
-              <p id="module-insight"><i></i> Demand is likely to rise in the next four weeks.</p>
+              <div><small id="module-metric-a-label">CONFIDENCE BAND</small><strong id="module-metric-a">±6.4%</strong></div>
+              <div><small id="module-metric-b-label">PROJECTED PEAK</small><strong id="module-metric-b">+18.4%</strong></div>
+              <p id="module-insight"><i></i> Upper confidence band warrants +240 safety stock buffer in Week 10.</p>
+            </div>
+            <div class="stage-disclaimer">
+              <span class="disclaimer-mark">*</span>
+              <span>Illustrative demonstration data · Simulated platform analytics</span>
             </div>
           </div>
         </div>
@@ -610,6 +816,6 @@
       <span>Decision workspace preview</span>
       <button type="button" aria-label="Dismiss notification">×</button>
     </div>
-    <script src="./script.js" onerror="this.onerror=null;this.src='/landing/script.js'"></script>
+    <script src="./script.js?v=task4_showcase" onerror="this.onerror=null;this.src='/landing/script.js?v=task4_showcase'"></script>
   </body>
 </html>
