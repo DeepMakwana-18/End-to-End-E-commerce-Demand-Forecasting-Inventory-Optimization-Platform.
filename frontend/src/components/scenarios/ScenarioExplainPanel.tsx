@@ -63,7 +63,7 @@ function DriverBar({ item, maxAbs }: { item: ScenarioDriverSummaryItem; maxAbs: 
             }`}
           />
         </div>
-        <span className={`text-xs font-mono font-semibold w-16 text-right flex-shrink-0 ${
+        <span className={`text-xs font-sans tabular-nums font-semibold w-16 text-right flex-shrink-0 ${
           isPos ? 'text-emerald-400' : 'text-rose-400'
         }`}>
           {fmtDelta(item.mean_delta)}
@@ -109,7 +109,7 @@ function WeekDeltaBar({ feature, delta, maxAbs }: { feature: string; delta: numb
           }`}
         />
       </div>
-      <span className={`text-xs font-mono w-14 text-right flex-shrink-0 ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <span className={`text-xs font-sans tabular-nums w-14 text-right flex-shrink-0 ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
         {fmtDelta(delta)}
       </span>
     </div>
@@ -169,7 +169,7 @@ function WeekDrilldown({ week }: { week: ScenarioWeekExplanation }) {
               {drivers.map(d => (
                 <div key={d.feature} className="flex items-center justify-between py-0.5">
                   <span className="text-xs text-surface-300">{featureLabel(d.feature)}</span>
-                  <span className="text-xs font-mono text-emerald-400">{fmtDelta(d.delta)}</span>
+                  <span className="text-xs font-sans tabular-nums text-emerald-400">{fmtDelta(d.delta)}</span>
                 </div>
               ))}
             </div>
@@ -183,7 +183,7 @@ function WeekDrilldown({ week }: { week: ScenarioWeekExplanation }) {
               {suppressors.map(d => (
                 <div key={d.feature} className="flex items-center justify-between py-0.5">
                   <span className="text-xs text-surface-300">{featureLabel(d.feature)}</span>
-                  <span className="text-xs font-mono text-rose-400">{fmtDelta(d.delta)}</span>
+                  <span className="text-xs font-sans tabular-nums text-rose-400">{fmtDelta(d.delta)}</span>
                 </div>
               ))}
             </div>

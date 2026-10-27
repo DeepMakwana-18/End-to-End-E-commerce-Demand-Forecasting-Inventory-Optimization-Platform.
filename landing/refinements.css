@@ -1,0 +1,238 @@
+/* TITAN AI v8 — curated visual enhancement layer.
+   Loaded after styles.css to preserve the original interactive components.
+   Design: warm editorial hero → immersive navy evidence → pearl exploration → midnight finale. */
+:root {
+  --paper: #f6f2ea;
+  --paper-2: #ede7da;
+  --ink: #14201c;
+  --navy: #101d25;
+  --green: #bcf58d;
+  --mint: #7cddae;
+  --deep-green: #24573e;
+  --ease: cubic-bezier(.16,1,.3,1);
+}
+html { scroll-padding-top: 88px; }
+body { background: #ffffff; }
+/* A single compact floating navigator with context-aware contrast. */
+.site-header {
+  width: min(1040px, calc(100% - 34px));
+  top: 18px;
+  height: 58px;
+  padding: 0 10px 0 20px;
+  background: rgba(255,255,255,.88);
+  border: 1px solid rgba(18,38,30,.15);
+  box-shadow: 0 12px 40px rgba(24,42,31,.11), inset 0 1px rgba(255,255,255,.5);
+  backdrop-filter: blur(22px) saturate(1.3);
+}
+.site-header.scrolled { background: rgba(255,255,255,.96); }
+.site-header.on-dark, .site-header.on-dark.scrolled {
+  color: #eef5ed;
+  background: rgba(12,28,33,.91);
+  border-color: rgba(223,251,229,.18);
+  box-shadow: 0 20px 50px rgba(0,0,0,.22);
+}
+.site-header.on-dark .nav-cta { background: var(--green); color: #102219; }
+.site-header.on-dark .nav-links a:hover,
+.site-header.on-dark .nav-links a.active { color: var(--green); }
+.site-header:not(.on-dark) .nav-links a.active { color: #245b3d; }
+.nav-links { gap: clamp(13px,2vw,27px); opacity: 1; }
+.nav-links a { font-size: 12px; font-weight: 620; }
+.nav-cta { padding: 11px 18px; font-size: 12px; }
+.brand { font-weight: 800; font-size: 14px; }
+/* Hero: art and typography are designed as one strong first-screen composition. */
+.hero.hero-v3 {
+  min-height: 0; max-height: none;
+  height: 100svh; height: 100dvh;
+  padding: clamp(87px, 12vh, 120px) clamp(24px,5.3vw,92px) 0;
+  grid-template-columns: minmax(0,.95fr) minmax(0,1.05fr);
+  grid-template-rows: minmax(0,1fr) auto;
+  gap: clamp(12px,2vw,36px);
+  background:
+    radial-gradient(ellipse at 86% 31%,rgba(182,229,189,.39),transparent 36%),
+    radial-gradient(ellipse at 12% 68%,rgba(223,202,244,.26),transparent 44%),
+    linear-gradient(122deg,#faf7f0 0%,#f5f0e6 53%,#ececde 100%);
+}
+.hero::after { opacity: .45; background-size: 66px 66px; }
+.hero-v3 .hero-copy { max-width: 610px; align-self: center; padding-bottom: clamp(22px,3vh,36px); }
+.hero .eyebrow { color: #38694a; font-size: clamp(9px,.76vw,11px); letter-spacing: .19em; }
+.hero-v3 h1 {
+  font-size: clamp(54px, min(5.7vw, 10.5svh), 96px);
+  font-weight: 570; letter-spacing: -.073em;
+  line-height: .99; max-width: 13ch;
+  margin-bottom: clamp(18px,2.5vh,30px);
+  text-wrap: balance;
+}
+.hero-v3 h1 em { font-weight: 400; color: #286043; white-space: nowrap; background-image: linear-gradient(90deg,#3c7d5c,#a5d883); }
+.hero-v3 .hero-dek { max-width: 38ch; color: #4d6256; font-size: clamp(14px,1.15vw,17px); line-height: 1.64; }
+.hero-actions { gap: 12px; }
+.hero .button { min-height: 47px; font-size: 12px; padding: 12px 22px; }
+.hero .button-dark { background: #17362d; border-color: #17362d; }
+.hero .button-dark:hover { background: #245642; }
+.hero-v3 .hero-stage { width: min(110%, calc((100svh - 175px) * 1.42)); justify-self: center; transform-origin: center; }
+.thread-scene { filter: drop-shadow(0 45px 45px rgba(25,49,35,.12)); }
+.thread-plane { box-shadow: 0 22px 68px rgba(23,59,37,.10), inset 0 1px 1px rgba(255,255,255,.8); }
+.thread-chip { box-shadow: 0 20px 45px rgba(26,45,36,.13); }
+.thread-demo { letter-spacing: .045em; }
+.hero-v3 .hero-foot { display: flex; justify-content: space-between; position: static; padding: 0 0 clamp(14px,2.2svh,28px); font-size: 10px; }
+.hero-foot .scroll-cue { text-decoration: none; color: #315b42; }
+.hero-foot .scroll-cue:hover { color: #122f22; }
+/* A compact narrative bridge, not a second feature grid. */
+.signal-strip {
+  padding-block: clamp(14px,2.5vw,25px);
+  background: #112a27;
+  border-color: rgba(255,255,255,.08);
+}
+.signal-strip li { background: rgba(255,255,255,.025); border-color: rgba(255,255,255,.1); }
+/* Story: shorten the pin while retaining four actual scroll states. */
+.story { height: 235svh; background:
+  radial-gradient(ellipse at 75% 35%, rgba(38,99,78,.17),transparent 57%),
+  #0b1d23; }
+.story-pin { padding-top: clamp(78px,10vh,110px); padding-bottom: 38px; }
+.story h2 { max-width: 13ch; }
+.story-chart { padding: clamp(10px,2vw,24px); border:1px solid rgba(198,245,213,.12); border-radius: 28px; background:linear-gradient(140deg,rgba(255,255,255,.055),rgba(255,255,255,.015)); box-shadow: 0 34px 90px rgba(0,0,0,.15); }
+.beat { border-left-color:rgba(213,247,220,.22); }
+.beat.on { border-color: #b4ec94; }
+.story-takeaway { margin-top: 18px; }
+/* Section 03 - How it works: GREEN theme */
+.how { background: radial-gradient(ellipse 85% 65% at 50% 10%, rgba(36,92,64,.38), transparent 60%), #0d211a; border-bottom: 1px solid rgba(255,255,255,.07); position: relative; }
+.how-inner { padding-top: clamp(105px, 13svh, 140px); padding-bottom: clamp(65px, 8svh, 95px); }
+.how::before, .how::after, .loop::before, .loop::after { display: none !important; }
+.how-head { margin-bottom: clamp(18px,3svh,28px); }
+.wipe { height: clamp(300px,42svh,400px); border:1px solid rgba(227,248,228,.17); box-shadow:0 20px 55px rgba(0,0,0,.24); }
+.how-steps { margin-top: 22px; }
+/* Section 04 - Product: WHITE theme */
+.product { background: #ffffff; padding: clamp(65px,8svh,98px) clamp(22px,5vw,86px) clamp(65px,8svh,100px); border-top: 1px solid rgba(20,32,28,.08); border-bottom: 1px solid rgba(20,32,28,.08); }
+.product h2 { font-size: clamp(44px,5.9vw,88px); }
+.product-heading { gap:clamp(24px,4vw,60px); align-items:center; }
+.product-shell { margin-top: clamp(26px,3vw,38px); min-height: 0; background: #ffffff; border: 1px solid rgba(23,59,39,.12); box-shadow: 0 20px 60px rgba(18,38,28,.07), 0 2px 4px rgba(18,38,28,.03); }
+.module-tabs button[aria-selected="true"] { box-shadow:inset 3px 0 0 #3a7956; }
+.stage-visual { overflow:hidden; height: 315px; min-height: 315px; }
+.stage-disclaimer { font-style:normal; font-weight:600; }
+/* Section 05 - In practice: the action demo remains interactive and explicitly illustrative */
+.day { background:radial-gradient(ellipse at 88% 23%,rgba(84,130,109,.16),transparent 40%),#0d1c22; }
+.day-inner { padding-block:clamp(75px,8.5svh,115px); }
+.day-disclaimer { font-size:11px!important; line-height:1.55!important; opacity:.78; margin-top: 0!important; }
+.feed-card { border-radius:22px; }
+.feed-card:hover { transform:translateX(-3px); }
+/* Section 06 - Outcome / Loop: GREEN theme */
+.loop { min-height:0; background:linear-gradient(165deg,#133a2d,#0b1f18); border-bottom: 1px solid rgba(255,255,255,.07); position: relative; }
+.loop-inner { padding-top:clamp(75px,9svh,105px); padding-bottom:clamp(65px,8svh,92px); }
+.loop-summary { margin-top:14px; padding: 18px 22px; }
+.loop-grid { gap: 14px; }
+.loop-col { padding: 20px; }
+/* Section 07 - FAQ: WHITE theme */
+.faq { padding:clamp(65px,7.5svh,92px) clamp(24px,6vw,96px); background: #ffffff; border-top: 1px solid rgba(20,32,28,.08); border-bottom: 1px solid rgba(20,32,28,.08); }
+.faq h2 { font-size: clamp(38px,4.7vw,66px); }
+.faq summary { padding-block: 16px; }
+/* Section 08 - Finale: GREEN theme */
+.closing.scene-dark, .closing.scene-light {
+  color:#f2f6ed;
+  background: radial-gradient(ellipse 80% 65% at 50% 35%, rgba(42,105,72,.48), transparent 65%), #091712;
+  border-top: 1px solid rgba(42,105,72,.3);
+  box-shadow:none;
+  min-height: min(780px,100svh);
+  padding-top:clamp(110px,14vh,145px);
+}
+.closing h2 { color:#f7f6ee; font-size:clamp(52px,8.6vw,128px); }
+.closing h2 em { color:#b4ee8b; }
+.closing .eyebrow { color:#b4ee8b; }
+.closing .eyebrow span { background:#b4ee8b; }
+.closing-inner > p:not(.eyebrow) { color:#bdd1c8; }
+.closing .button-dark { background:#b7f28f; color:#10231a; border-color:#b7f28f; animation:none; }
+.closing .button-dark:hover { background:#d3faae; color:#10231a; }
+.closing-glow { background:radial-gradient(ellipse,rgba(79,165,108,.38),rgba(46,110,80,.18) 42%,transparent 70%); filter:blur(28px); }
+.closing-points span { background:rgba(255,255,255,.05); border-color:rgba(255,255,255,.14); color:#c2d6c9; }
+.closing footer { color:#a6c3b2; border-color:rgba(255,255,255,.15); }
+.closing footer .brand { color:#eaf8ed; }
+.closing footer .brand b { color:#b4ee8b; }
+.closing footer a:hover { color:#e1facf; }
+/* Dark header must remain readable while passing the final scene. */
+.scene-dark :focus-visible, .closing :focus-visible { outline-color:#c2f392; }
+@media (max-height: 740px) and (min-width: 901px) {
+  .hero.hero-v3 { padding-top:80px; }
+  .hero-v3 h1 { font-size:clamp(48px, min(5.2vw,9svh),76px); }
+  .hero .eyebrow { margin-bottom:12px; }
+  .hero-dek { margin-bottom:17px; }
+  .hero-v3 .hero-stage { width:min(104%,calc((100svh - 155px) * 1.4)); }
+  .hero-v3 .hero-foot { padding-bottom:10px; }
+  .story-pin { padding-top:72px; }
+}
+@media (max-width: 1100px) and (min-width:901px) {
+  .hero.hero-v3 { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+  .hero-v3 h1 { font-size:clamp(48px,5.9vw,70px); }
+}
+@media (max-width: 900px) {
+  .hero.hero-v3 { height:auto; min-height:100svh; max-height:none; padding:105px 28px 26px; grid-template-columns:1fr; grid-template-rows:auto auto auto; gap:16px; }
+  .hero-v3 .hero-copy { max-width:700px; text-align:center; margin:0 auto; padding-bottom:0; }
+  .hero-v3 h1 { max-width:none; font-size:clamp(48px,8vw,74px); }
+  .hero-v3 .hero-dek { max-width:48ch; margin-inline:auto; }
+  .hero-v3 .hero-stage { width:min(100%,590px); margin:0 auto; }
+  .hero-v3 .hero-foot { grid-row:auto; padding-bottom:2px; }
+  .story { height:auto; }
+  .story-pin { position:static; min-height:0; height:auto; padding-top:95px; padding-bottom:65px; }
+  .story [data-s] { opacity:1; }
+  .story path[data-draw] { stroke-dashoffset:0; }
+  .beat { opacity:1; }
+  .beat span { max-height:none; opacity:1; margin-top:5px; }
+  .wipe { height:clamp(310px,52vw,420px); }
+  .product-shell { min-height:0; }
+  .closing.scene-light { min-height:75svh; }
+}
+@media (max-width: 560px) {
+  .site-header { top:10px; width:calc(100% - 20px); padding:0 8px 0 13px; height:56px; }
+  .hero.hero-v3 { padding:92px 17px 23px; gap:10px; }
+  .hero-v3 h1 { font-size:clamp(41px,11vw,56px); line-height:.98; margin-bottom:16px; }
+  .hero-v3 .hero-dek { font-size:14px; line-height:1.55; max-width:38ch; }
+  .hero-actions { flex-direction:row; justify-content:center; gap:8px; }
+  .hero-actions .button { width:auto; min-height:44px; padding:10px 13px; font-size:11px; }
+  .hero-v3 .hero-stage { width:100%; max-width:430px; }
+  .hero-v3 .hero-foot { display:flex; font-size:9px; gap:8px; }
+  .hero-foot > span:first-child { display:none; }
+  .hero-foot .scroll-cue { margin:auto; }
+  .thread-chip { font-size:clamp(9px,2.5vw,12px); }
+  .chip-action { top:4%; right:1%; }
+  .chip-action b { font-size:1.1em; }
+  .thread-demo { font-size:7px; padding:4px 6px; }
+  .signal-strip ul { grid-template-columns:1fr 1fr; }
+  .signal-strip li { padding:9px 11px; }
+  .story h2 { font-size:clamp(36px,9vw,52px); }
+  .story-pin { padding:88px 18px 50px; }
+  .story-chart { padding:0; background:transparent; border:0; box-shadow:none; }
+  .story-chart svg { overflow:visible; }
+  .how-inner,.day-inner,.loop-inner { padding-inline:18px; }
+  .how { min-height:0; }
+  .wipe { height:350px; }
+  .wipe-layer { padding:14px; }
+  .wipe-file { display:none; }
+  .csv-row { font-size:10px; padding:7px 2px; }
+  .bcard { padding:8px; }
+  .product { padding:72px 18px; }
+  .product h2 { font-size:clamp(43px,10vw,57px); }
+  .product-heading-meta > p { font-size:13px; }
+  .product-shell { margin-inline:0; border-radius:22px; }
+  .module-tabs { grid-template-columns:1fr 1fr; }
+  .module-tabs button[aria-selected="true"] { box-shadow:inset 0 3px 0 #3a7956; }
+  .stage-visual { height:480px; min-height:480px; }
+  .canvas-forecast .pearl-tooltip { display:none; }
+  .story-note { display:block; font-size:10px; margin:12px 0 0; }
+  .closing.scene-dark, .closing.scene-light { padding:104px 20px 25px; min-height:75svh; }
+  .closing h2 { font-size:clamp(48px,12.3vw,70px); }
+  .closing-points { margin-top:15px; }
+  .closing footer { gap:10px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .closing .button-dark, .closing-glow, .hero .thread-scene * { animation:none!important; }
+  .story [data-s]{ opacity:1!important; }
+  .story path[data-draw]{ stroke-dashoffset:0!important; }
+  .hero-stage,.hero-stage.reveal.visible { transform:none!important;opacity:1!important; }
+}
+/* Very narrow phones: protect the one-screen hero height and keep both CTAs legible. */
+@media (max-width: 360px) and (max-height: 740px) {
+  .hero.hero-v3 { padding-top:78px; padding-bottom:14px; gap:6px; }
+  .hero-v3 h1 { font-size:clamp(37px,10.3vw,42px); margin-bottom:11px; }
+  .hero-v3 .hero-dek { font-size:12.5px; line-height:1.45; margin-bottom:12px; }
+  .hero .eyebrow { margin-bottom:9px; font-size:8px; }
+  .hero-actions .button { min-height:40px; font-size:10px; padding:9px 10px; }
+  .hero-v3 .hero-stage { width:96%; }
+  .hero-v3 .hero-foot { padding-bottom:0; }
+}

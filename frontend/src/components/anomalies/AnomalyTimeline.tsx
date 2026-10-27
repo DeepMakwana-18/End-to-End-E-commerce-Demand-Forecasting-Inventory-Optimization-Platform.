@@ -1,11 +1,12 @@
 /**
  * AnomalyTimeline — Section 8
  * Vertical event timeline showing anomaly history by date/type/severity
+ * Enhanced with multiline descriptions, clear node connector, and refined badges.
  */
 
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { ChevronDown, ChevronUp, Clock, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { SeverityBadge, TypeBadge, SEVERITY_CONFIG } from './AnomalyBadges';
 import type { Anomaly } from '@/types/anomaly';
@@ -26,18 +27,18 @@ export function AnomalyTimeline({ anomalies, isLoading, onSelect }: Props) {
     return db - da;
   });
 
-  const displayed = showAll ? sorted : sorted.slice(0, 12);
+  const displayed = showAll ? sorted : sorted.slice(0, 10);
 
   if (isLoading) {
     return (
-      <div className="glass-card p-4">
-        <div className="h-4 w-32 skeleton mb-4" />
+      <div className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface p-4 sm:p-5 shadow-2xs">
+        <div className="h-4 w-36 skeleton mb-4 rounded" />
         {[1, 2, 3, 4].map((i) => (
-          <div key={i} className="flex gap-3 mb-3">
-            <div className="w-8 h-8 rounded-full skeleton flex-shrink-0" />
-            <div className="flex-1 space-y-1.5">
-              <div className="h-3 skeleton w-1/3" />
-              <div className="h-2.5 skeleton w-2/3" />
+          <div key={i} className="flex gap-3 mb-4">
+            <div className="w-9 h-9 rounded-xl skeleton flex-shrink-0" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 skeleton w-1/2 rounded" />
+              <div className="h-3 skeleton w-3/4 rounded" />
             </div>
           </div>
         ))}
@@ -48,74 +49,93 @@ export function AnomalyTimeline({ anomalies, isLoading, onSelect }: Props) {
   if (anomalies.length === 0) return null;
 
   return (
-    <div className="glass-card p-4">
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-          Anomaly Event Timeline
-        </p>
-        <span className="text-[10px] text-surface-600 font-mono">{sorted.length} events</span>
+    <div className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface p-4 sm:p-5 shadow-2xs flex flex-col h-full">
+      <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100 dark:border-ds-border">
+        <div>
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary">
+            Anomaly Event Timeline
+          </p>
+          <p className="text-xs text-slate-400 dark:text-ds-text-muted mt-0.5">
+            Chronological audit log
+          </p>
+        </div>
+        <span className="text-xs text-slate-500 dark:text-ds-text-muted font-mono font-medium px-2 py-0.5 rounded-lg bg-slate-100 dark:bg-ds-surface-sunken border border-slate-200/60 dark:border-ds-border">
+          {sorted.length} events
+        </span>
       </div>
 
-      <div className="relative">
-        {/* Vertical line */}
-        <div className="absolute left-4 top-0 bottom-0 w-px bg-surface-800/60" />
+      <div className="relative flex-1">
+        {/* Continuous vertical connector line */}
+        <div className="absolute left-4.5 top-4 bottom-4 w-0.5 bg-slate-200 dark:bg-ds-border" />
 
-        <div className="space-y-0">
+        <div className="space-y-3">
           {displayed.map((a, idx) => {
             const sevCfg = SEVERITY_CONFIG[a.severity];
             const SevIcon = sevCfg.icon;
-            const dateStr = a.event_date ?? new Date(a.detected_at).toLocaleDateString();
+            const dateStr = a.event_date ?? (a.detected_at ? new Date(a.detected_at).toLocaleDateString() : '—');
 
             return (
               <motion.div
                 key={a.id}
-                initial={{ opacity: 0, x: -8 }}
+                initial={{ opacity: 0, x: -6 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: idx * 0.03 }}
+                transition={{ delay: Math.min(idx * 0.03, 0.3) }}
                 onClick={() => onSelect(a)}
                 className={cn(
-                  'relative flex gap-3 pl-2 pr-3 py-2.5 rounded-xl cursor-pointer group',
-                  'hover:bg-surface-800/30 transition-colors duration-150',
-                  a.is_resolved && 'opacity-50'
+                  'relative flex items-start gap-3.5 p-3 rounded-xl cursor-pointer group transition-all duration-150',
+                  'border border-transparent hover:border-slate-200 dark:hover:border-ds-border hover:bg-slate-50/80 dark:hover:bg-ds-surface-sunken/60 hover:shadow-2xs',
+                  a.is_resolved && 'opacity-65'
                 )}
               >
                 {/* Timeline node */}
                 <div className={cn(
-                  'relative z-10 w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 border',
+                  'relative z-10 w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 border shadow-2xs mt-0.5',
                   sevCfg.bg, sevCfg.border
                 )}>
-                  <SevIcon className={cn('w-3.5 h-3.5', sevCfg.color)} />
+                  <SevIcon className={cn('w-4 h-4', sevCfg.color)} />
                 </div>
 
                 {/* Content */}
-                <div className="flex-1 min-w-0 pt-0.5">
-                  <div className="flex items-start gap-2 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
                     <TypeBadge type={a.anomaly_type} />
                     <SeverityBadge severity={a.severity} />
                     {a.is_resolved && (
-                      <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-accent-500/10 text-accent-500 border border-accent-500/20">
+                      <span className="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 font-semibold border border-emerald-200/60 dark:border-emerald-800/40">
+                        <CheckCircle2 className="w-2.5 h-2.5" />
                         Resolved
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-surface-500 mt-1">
-                    {dateStr}
+
+                  <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 dark:text-ds-text-muted">
+                    <span className="flex items-center gap-1 font-mono">
+                      <Clock className="w-3 h-3 text-slate-400" />
+                      {dateStr}
+                    </span>
                     {a.deviation_pct != null && (
-                      <span className={cn('ml-2 font-semibold', a.deviation_pct > 0 ? 'text-accent-400' : 'text-danger-400')}>
+                      <span className={cn(
+                        'font-bold font-mono px-1.5 py-0.2 rounded',
+                        a.deviation_pct > 0
+                          ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                          : 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400'
+                      )}>
                         {a.deviation_pct > 0 ? '+' : ''}{a.deviation_pct.toFixed(1)}%
                       </span>
                     )}
-                  </p>
+                  </div>
+
+                  {/* Multiline description (NOT truncated) */}
                   {a.explanation && (
-                    <p className="text-[10px] text-surface-500 mt-0.5 truncate group-hover:text-surface-400 transition-colors">
+                    <p className="text-xs text-slate-600 dark:text-ds-text-secondary mt-1.5 leading-relaxed line-clamp-3 group-hover:text-slate-900 dark:group-hover:text-ds-text-heading transition-colors">
                       {a.explanation}
                     </p>
                   )}
                 </div>
 
-                {/* Hover caret */}
+                {/* Hover arrow */}
                 <div className="flex-shrink-0 self-center opacity-0 group-hover:opacity-100 transition-opacity">
-                  <ChevronDown className="w-3 h-3 text-surface-500 -rotate-90" />
+                  <ChevronDown className="w-4 h-4 text-slate-400 -rotate-90" />
                 </div>
               </motion.div>
             );
@@ -124,16 +144,16 @@ export function AnomalyTimeline({ anomalies, isLoading, onSelect }: Props) {
       </div>
 
       {/* Show More / Less */}
-      {sorted.length > 12 && (
+      {sorted.length > 10 && (
         <button
           id="timeline-show-more"
           onClick={() => setShowAll((v) => !v)}
-          className="mt-3 w-full flex items-center justify-center gap-1.5 py-2 text-xs text-surface-500 hover:text-surface-300 border border-surface-800/50 rounded-xl hover:border-surface-700/60 transition-all duration-200"
+          className="mt-3.5 w-full flex items-center justify-center gap-1.5 py-2 text-xs font-semibold text-slate-600 dark:text-ds-text-secondary hover:text-slate-900 dark:hover:text-ds-text-heading border border-slate-200/80 dark:border-ds-border rounded-xl hover:bg-slate-50 dark:hover:bg-ds-surface-sunken transition-all shadow-2xs"
         >
           {showAll ? (
-            <><ChevronUp className="w-3.5 h-3.5" /> Show less</>
+            <><ChevronUp className="w-3.5 h-3.5" /> Show fewer events</>
           ) : (
-            <><ChevronDown className="w-3.5 h-3.5" /> Show {sorted.length - 12} more events</>
+            <><ChevronDown className="w-3.5 h-3.5" /> Show {sorted.length - 10} more events</>
           )}
         </button>
       )}

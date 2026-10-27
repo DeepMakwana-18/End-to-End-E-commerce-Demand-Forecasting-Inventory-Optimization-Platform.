@@ -1,0 +1,426 @@
+/**
+ * DESIGN.md — Apple Modern (Soft-Raised System)
+ * Design Tokens (§17 Light & §18 Dark)
+ *
+ * Theme wiring matches existing mechanism:
+ * - Default / :root / :root.dark = Dark Mode Tokens (§18)
+ * - :root.light = Light Mode Tokens (§17)
+ */
+
+/* ==========================================================================
+   1. DEFAULT & DARK THEME (:root, :root.dark) — from DESIGN.md §18
+   ========================================================================== */
+:root,
+:root.dark {
+  /* Neutrals & Surfaces - Section 4.2 */
+  --ds-canvas:           #0F1117;   /* Application background */
+  --ds-sidebar-surface:  #151922;   /* Sidebar background */
+  --ds-surface:          #1B202A;   /* Primary card */
+  --ds-surface-alt:      #242A36;   /* Secondary card */
+  --ds-surface-elevated: #2A3240;   /* Elevated surface */
+  --ds-surface-sunken:   #151922;   /* Sunken / background panel */
+  --ds-ink:              #F1F5F9;
+  --ds-hairline:         #353D4D;   /* Border */
+  --ds-border:           #353D4D;   /* Border */
+  --ds-border-subtle:    #242A36;
+  --ds-border-strong:    #475369;
+  --ds-border-control:   #64748B;
+  --ds-gray-400:         #94A3B8;
+  --ds-gray-500:         #A9B7CC;
+
+  /* Sidebar Active Navigation Tokens */
+  --ds-sidebar-active:          #1E3553;
+  --ds-sidebar-active-text:     #FFFFFF;
+  --ds-sidebar-active-border:   rgba(96, 165, 250, 0.40);
+  --ds-sidebar-active-indicator:#3B82F6;
+
+  /* Text - Section 4.2 */
+  --ds-text-primary:     #F1F5F9;   /* Primary text */
+  --ds-text-secondary:   #CBD5E1;   /* Brighter secondary text in dark mode */
+  --ds-text-muted:       #94A3B8;   /* Muted text */
+  --ds-text-disabled:    #64748B;
+  --ds-text-inverse:     #0F1117;
+  --ds-btn-primary-bg:   #60A5FA;
+  --ds-btn-primary-text: #0F1117;
+
+  /* Primary Blue - Section 4.2 */
+  --ds-blue:             #60A5FA;
+  --ds-blue-action:      #3B82F6;
+  --ds-blue-strong:      #60A5FA;
+  --ds-blue-text:        #60A5FA;
+  --ds-blue-surface:     rgba(96, 165, 250, 0.15);
+  --ds-blue-on-surface:  #93C5FD;
+
+  /* Indigo - Section 4.2 */
+  --ds-indigo:           #818CF8;
+  --ds-indigo-surface:   rgba(129, 140, 248, 0.15);
+  --ds-indigo-text:      #A5B4FC;
+
+  /* Teal - Section 4.2 */
+  --ds-teal:             #2DD4BF;
+  --ds-teal-surface:     rgba(45, 212, 191, 0.15);
+  --ds-teal-text:        #5EEAD4;
+
+  /* Success / Green - Section 4.2 */
+  --ds-green:            #34D399;
+  --ds-green-strong:     #34D399;
+  --ds-green-surface:    rgba(52, 211, 153, 0.15);
+  --ds-green-text:       #6EE7B7;
+  --ds-emerald:          #34D399;
+  --ds-emerald-success:  #34D399;
+
+  /* Warning / Amber - Section 4.2 */
+  --ds-amber:            #FBBF24;
+  --ds-orange:           #FBBF24;
+  --ds-orange-strong:    #FBBF24;
+  --ds-orange-surface:   rgba(251, 191, 36, 0.15);
+  --ds-orange-text:      #FCD34D;
+  --ds-amber-warning:    #FBBF24;
+
+  /* Critical / Red - Section 4.2 */
+  --ds-red:              #FB7185;
+  --ds-red-strong:       #FB7185;
+  --ds-red-surface:      rgba(251, 113, 133, 0.15);
+  --ds-red-text:         #FDA4AF;
+  --ds-red-danger:       #FB7185;
+
+  /* Materials - Solid Charcoal Cards (NO white-to-gray vertical gradients!) */
+  --ds-surface-soft:     #1B202A;
+  --ds-mat-ink:          #1B202A;
+  --ds-mat-gray:         #242A36;
+  --ds-mat-blue:         #1B202A;
+  --ds-glass:            rgba(27, 32, 42, 0.95);
+  --ds-glass-nav:        rgba(15, 17, 23, 0.90);
+  --ds-scrim:            rgba(0, 0, 0, 0.70);
+
+  /* Elevation (Soft-lit in dark mode) */
+  --ds-hl:               rgba(255, 255, 255, 0.04);
+  --ds-sd:               rgba(0, 0, 0, 0.65);
+  --ds-card-shadow:      0 2px 8px 0 rgba(0, 0, 0, 0.40), 0 8px 24px -4px rgba(0, 0, 0, 0.50);
+  --ds-card-hover:       0 4px 14px 0 rgba(0, 0, 0, 0.50), 0 16px 36px -4px rgba(0, 0, 0, 0.60);
+  --ds-raise-1:          0 1px 3px 0 rgba(0, 0, 0, 0.35);
+  --ds-raise-2:          0 2px 8px 0 rgba(0, 0, 0, 0.40), 0 8px 24px -4px rgba(0, 0, 0, 0.50);
+  --ds-raise-3:          0 4px 14px 0 rgba(0, 0, 0, 0.50), 0 16px 36px -4px rgba(0, 0, 0, 0.60);
+  --ds-raise-4:          0 8px 24px 0 rgba(0, 0, 0, 0.60), 0 24px 48px -4px rgba(0, 0, 0, 0.75);
+  --ds-inset-1:          inset 1px 1px 3px var(--ds-sd);
+  --ds-inset-2:          inset 2px 2px 6px var(--ds-sd);
+  --ds-press:            inset 2px 2px 5px var(--ds-sd);
+  --ds-float-1:          0 4px 12px rgba(0, 0, 0, 0.35);
+  --ds-float-2:          0 12px 40px rgba(0, 0, 0, 0.50);
+  --ds-float-3:          0 24px 64px rgba(0, 0, 0, 0.60);
+  --ds-focus-ring:       0 0 0 2px var(--ds-canvas), 0 0 0 4px var(--ds-blue);
+
+  /* Radius tokens (fixed scale) */
+  --ds-r-xs:             8px;
+  --ds-r-sm:             12px;
+  --ds-r-md:             16px;
+  --ds-r-lg:             22px;
+  --ds-r-xl:             28px;
+  --ds-r-2xl:            36px;
+  --ds-r-pill:           999px;
+
+  /* Motion physics & durations */
+  --ds-ease-standard:    cubic-bezier(0.28, 0.11, 0.32, 1);
+  --ds-ease-out:         cubic-bezier(0.22, 1, 0.36, 1);
+  --ds-ease-out-expo:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ds-ease-sheet:       cubic-bezier(0.32, 0.72, 0, 1);
+  --ds-ease-in-out:      cubic-bezier(0.65, 0, 0.35, 1);
+  --ds-dur-instant:      100ms;
+  --ds-dur-fast:         160ms;
+  --ds-dur-base:         240ms;
+  --ds-dur-slow:         400ms;
+  --ds-dur-xslow:        700ms;
+  --ds-dur-hero:         1000ms;
+
+  /* Typography Stacks */
+  --ds-font-sans:        -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Inter", "Helvetica Neue", Arial, sans-serif;
+  --ds-font-mono:        "SF Mono", "JetBrains Mono", ui-monospace, Menlo, monospace;
+
+  /* Layout Containers */
+  --ds-container:        1200px;
+  --ds-container-wide:   1440px;
+  --ds-container-read:   680px;
+  --ds-container-form:   520px;
+  --ds-nav-h:            64px;
+
+  /* Direct Aliases & Extended Tokens */
+  --ds-text:             var(--ds-text-primary);
+  --ds-text-heading:     var(--ds-text-primary);
+  --ds-text-body:        var(--ds-text-secondary);
+
+  --canvas:              var(--ds-canvas);
+  --ink:                 var(--ds-ink);
+  --hairline:            var(--ds-hairline);
+  --border-strong:       var(--ds-border-strong);
+  --border-control:      var(--ds-border-control);
+  --gray-400:            var(--ds-gray-400);
+  --gray-500:            var(--ds-gray-500);
+
+  --text-primary:        var(--ds-text-primary);
+  --text-secondary:      var(--ds-text-secondary);
+  --text-muted:          var(--ds-text-muted);
+  --text-disabled:       var(--ds-text-disabled);
+  --text-inverse:        var(--ds-text-inverse);
+
+  --blue:                var(--ds-blue);
+  --blue-action:         var(--ds-blue-action);
+  --blue-strong:         var(--ds-blue-strong);
+  --blue-text:           var(--ds-blue-text);
+  --blue-surface:        var(--ds-blue-surface);
+  --blue-on-surface:     var(--ds-blue-on-surface);
+
+  --green:               var(--ds-green);
+  --green-strong:        var(--ds-green-strong);
+  --green-surface:       var(--ds-green-surface);
+  --green-text:          var(--ds-green-text);
+
+  --orange:              var(--ds-orange);
+  --orange-strong:       var(--ds-orange-strong);
+  --orange-surface:      var(--ds-orange-surface);
+  --orange-text:         var(--ds-orange-text);
+
+  --red:                 var(--ds-red);
+  --red-strong:          var(--ds-red-strong);
+  --red-surface:         var(--ds-red-surface);
+  --red-text:            var(--ds-red-text);
+
+  --surface-soft:        var(--ds-surface-soft);
+  --mat-ink:             var(--ds-mat-ink);
+  --mat-gray:            var(--ds-mat-gray);
+  --mat-blue:            var(--ds-mat-blue);
+  --glass:               var(--ds-glass);
+  --glass-nav:           var(--ds-glass-nav);
+  --scrim:               var(--ds-scrim);
+
+  --raise-1:             var(--ds-raise-1);
+  --raise-2:             var(--ds-raise-2);
+  --raise-3:             var(--ds-raise-3);
+  --raise-4:             var(--ds-raise-4);
+  --inset-1:             var(--ds-inset-1);
+  --inset-2:             var(--ds-inset-2);
+  --press:               var(--ds-press);
+  --float-1:             var(--ds-float-1);
+  --float-2:             var(--ds-float-2);
+  --float-3:             var(--ds-float-3);
+  --focus-ring:          var(--ds-focus-ring);
+
+  --r-xs:                var(--ds-r-xs);
+  --r-sm:                var(--ds-r-sm);
+  --r-md:                var(--ds-r-md);
+  --r-lg:                var(--ds-r-lg);
+  --r-xl:                var(--ds-r-xl);
+  --r-2xl:               var(--ds-r-2xl);
+  --r-pill:              var(--ds-r-pill);
+}
+
+/* ==========================================================================
+   2. LIGHT THEME (:root.light) — Titan AI Enterprise SaaS Light Mode
+   ========================================================================== */
+:root.light {
+  /* Backgrounds & Surfaces - Section 4.1 */
+  --ds-canvas:           #F3F6FC;   /* Application background */
+  --ds-sidebar-surface:  #EDF2FA;   /* Sidebar background */
+  --ds-surface:          #FFFFFF;   /* Primary card */
+  --ds-surface-alt:      #F8FAFF;   /* Secondary surface */
+  --ds-surface-elevated: #FFFFFF;
+  --ds-surface-sunken:   #EAF0F9;   /* Subtle section background */
+  --ds-ink:              #17233B;
+  --ds-hairline:         #DCE5F2;   /* Border */
+  --ds-border:           #DCE5F2;   /* Border */
+  --ds-border-subtle:    #EEF3FA;
+  --ds-border-strong:    #CBD5E1;
+  --ds-border-control:   #94A3B8;
+  --ds-gray-400:         #94A3B8;
+  --ds-gray-500:         #64748B;
+
+  /* Sidebar Active Navigation Tokens */
+  --ds-sidebar-active:          #EFF6FF;
+  --ds-sidebar-active-text:     #1D4ED8;
+  --ds-sidebar-active-border:   #BFDBFE;
+  --ds-sidebar-active-indicator:#2563EB;
+
+  /* Typography - Section 4.1 */
+  --ds-text:             #17233B;   /* Main text */
+  --ds-text-heading:     #17233B;
+  --ds-text-primary:     #17233B;
+  --ds-text-body:        #475569;   /* Darker secondary text for contrast in light mode */
+  --ds-text-secondary:   #475569;
+  --ds-text-muted:       #475569;   /* Darker muted text for high readability */
+  --ds-text-disabled:    #94A3B8;
+  --ds-text-inverse:     #FFFFFF;
+  --ds-btn-primary-bg:   #2563EB;
+  --ds-btn-primary-text: #FFFFFF;
+
+  /* Primary Palette - Section 4.1 */
+  --ds-blue:             #2563EB;
+  --ds-blue-action:      #2563EB;
+  --ds-blue-strong:      #1D4ED8;
+  --ds-blue-text:        #1D4ED8;
+  --ds-blue-surface:     #EFF6FF;
+  --ds-blue-on-surface:  #1E40AF;
+
+  --ds-indigo:           #6366F1;
+  --ds-indigo-surface:   #EEF2FF;
+  --ds-indigo-text:      #4338CA;
+
+  --ds-teal:             #0D9488;
+  --ds-teal-surface:     #F0FDFA;
+  --ds-teal-text:        #0F766E;
+
+  --ds-emerald:          #059669;
+  --ds-green:            #059669;
+  --ds-green-strong:     #047857;
+  --ds-green-surface:    #ECFDF5;
+  --ds-green-text:       #065F46;
+  --ds-emerald-success:  #059669;
+
+  --ds-amber:            #D97706;
+  --ds-orange:           #D97706;
+  --ds-orange-strong:    #B45309;
+  --ds-orange-surface:   #FFFBEB;
+  --ds-orange-text:      #92400E;
+  --ds-amber-warning:    #D97706;
+
+  --ds-red:              #DC2626;
+  --ds-red-strong:       #B91C1C;
+  --ds-red-surface:      #FEF2F2;
+  --ds-red-text:         #991B1B;
+  --ds-red-danger:       #DC2626;
+
+  /* Card Surfaces & Gradients */
+  --ds-surface-soft:     #FFFFFF;
+  --ds-mat-ink:          linear-gradient(160deg, #17233B 0%, #0F172A 100%);
+  --ds-mat-gray:         linear-gradient(160deg, #F8FAFC 0%, #E2E8F0 100%);
+  --ds-mat-blue:         linear-gradient(160deg, #3B82F6 0%, #2563EB 50%, #1D4ED8 100%);
+  --ds-glass:            rgba(255, 255, 255, 0.98);
+  --ds-glass-nav:        rgba(255, 255, 255, 0.92);
+  --ds-scrim:            rgba(15, 23, 42, 0.40);
+
+  /* Card Shadows & Elevation */
+  --ds-hl:               rgba(255, 255, 255, 1);
+  --ds-sd:               rgba(15, 23, 42, 0.08);
+  --ds-card-shadow:      0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 14px -2px rgba(15, 23, 42, 0.06);
+  --ds-card-hover:       0 4px 8px -1px rgba(15, 23, 42, 0.06), 0 14px 28px -4px rgba(15, 23, 42, 0.09);
+  --ds-raise-1:          0 1px 2px 0 rgba(15, 23, 42, 0.04), 0 1px 3px 0 rgba(15, 23, 42, 0.03);
+  --ds-raise-2:          0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 4px 14px -2px rgba(15, 23, 42, 0.06);
+  --ds-raise-3:          0 4px 8px -1px rgba(15, 23, 42, 0.06), 0 14px 28px -4px rgba(15, 23, 42, 0.09);
+  --ds-raise-4:          0 8px 16px -2px rgba(15, 23, 42, 0.08), 0 24px 44px -4px rgba(15, 23, 42, 0.12);
+  --ds-inset-1:          inset 1px 1px 3px rgba(15, 23, 42, 0.06);
+  --ds-inset-2:          inset 2px 2px 6px rgba(15, 23, 42, 0.08);
+  --ds-press:            inset 1px 1px 4px rgba(15, 23, 42, 0.10);
+  --ds-float-1:          0 4px 14px rgba(15, 23, 42, 0.06);
+  --ds-float-2:          0 12px 32px rgba(15, 23, 42, 0.10);
+  --ds-float-3:          0 24px 54px rgba(15, 23, 42, 0.14);
+  --ds-focus-ring:       0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB;
+
+  /* Card Radius (18–22px) */
+  --ds-r-xs:             8px;
+  --ds-r-sm:             12px;
+  --ds-r-md:             16px;
+  --ds-r-lg:             18px;
+  --ds-r-xl:             20px;
+  --ds-r-2xl:            26px;
+  --ds-r-pill:           999px;
+
+  /* Legacy direct aliases for Light Theme */
+  --canvas:              var(--ds-canvas);
+  --ink:                 var(--ds-ink);
+  --hairline:            var(--ds-hairline);
+  --border-strong:       var(--ds-border-strong);
+  --border-control:      var(--ds-border-control);
+  --gray-400:            var(--ds-gray-400);
+  --gray-500:            var(--ds-gray-500);
+  --text-primary:        var(--ds-text-primary);
+  --text-secondary:      var(--ds-text-secondary);
+  --text-muted:          var(--ds-text-muted);
+  --text-disabled:       var(--ds-text-disabled);
+  --text-inverse:        var(--ds-text-inverse);
+  --blue:                var(--ds-blue);
+  --blue-action:         var(--ds-blue-action);
+  --blue-strong:         var(--ds-blue-strong);
+  --blue-text:           var(--ds-blue-text);
+  --blue-surface:        var(--ds-blue-surface);
+  --blue-on-surface:     var(--ds-blue-on-surface);
+  --green:               var(--ds-green);
+  --green-strong:        var(--ds-green-strong);
+  --green-surface:       var(--ds-green-surface);
+  --green-text:          var(--ds-green-text);
+  --orange:              var(--ds-orange);
+  --orange-strong:       var(--ds-orange-strong);
+  --orange-surface:      var(--ds-orange-surface);
+  --orange-text:         var(--ds-orange-text);
+  --red:                 var(--ds-red);
+  --red-strong:          var(--ds-red-strong);
+  --red-surface:         var(--ds-red-surface);
+  --red-text:            var(--ds-red-text);
+  --surface-soft:        var(--ds-surface-soft);
+  --mat-ink:             var(--ds-mat-ink);
+  --mat-gray:            var(--ds-mat-gray);
+  --mat-blue:            var(--ds-mat-blue);
+  --glass:               var(--ds-glass);
+  --glass-nav:           var(--ds-glass-nav);
+  --scrim:               var(--ds-scrim);
+  --raise-1:             var(--ds-raise-1);
+  --raise-2:             var(--ds-raise-2);
+  --raise-3:             var(--ds-raise-3);
+  --raise-4:             var(--ds-raise-4);
+  --inset-1:             var(--ds-inset-1);
+  --inset-2:             var(--ds-inset-2);
+  --press:               var(--ds-press);
+  --float-1:             var(--ds-float-1);
+  --float-2:             var(--ds-float-2);
+  --float-3:             var(--ds-float-3);
+  --focus-ring:          var(--ds-focus-ring);
+  --r-xs:                var(--ds-r-xs);
+  --r-sm:                var(--ds-r-sm);
+  --r-md:                var(--ds-r-md);
+  --r-lg:                var(--ds-r-lg);
+  --r-xl:                var(--ds-r-xl);
+  --r-2xl:               var(--ds-r-2xl);
+  --r-pill:              var(--ds-r-pill);
+}
+
+/* ==========================================================================
+   3. SAFE GLOBAL BASE STYLES (No layout, font, or color shift)
+   ========================================================================== */
+
+/* Universal Apple focus ring */
+:focus-visible {
+  outline: none;
+  box-shadow: var(--ds-focus-ring);
+}
+
+/* Selection highlight */
+::selection {
+  background: #B3D4FF;
+  color: #1D1D1F;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast preference */
+@media (prefers-contrast: more) {
+  :root,
+  :root.dark,
+  :root.light {
+    --ds-hairline: var(--ds-border-control);
+    --ds-glass: var(--ds-surface);
+  }
+}
+
+/* Forced colors mode (Windows High Contrast) */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid Highlight;
+  }
+}

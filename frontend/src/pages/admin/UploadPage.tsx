@@ -1,15 +1,46 @@
-/** Admin - Data Upload Page with CSV ETL pipeline and live task progress. */
+/**
+ * Admin - Data Upload Page with CSV ETL pipeline and live task progress.
+ *
+ * Titan AI Page 11 Final Refinements:
+ * - Truthful auto-matching messaging (reflects actual candidate match count vs manual mapping notice)
+ * - Dynamic required field progress feedback ("X of Y required fields mapped")
+ * - Calm initial validation styling (neutral state until submit is attempted; clear green on valid mapped rows)
+ * - Rich field requirement tooltips/popovers (? button) detailing expected data types, formats, examples, and pipeline role
+ * - Duplicate source column assignment detection and short-CSV column warnings
+ * - Preserved 6-step ETL stepper, 50 MB limit, and bottom AI assistant clearance (pb-28 sm:pb-32)
+ */
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Upload, FileText, CheckCircle2, Loader2, FileSpreadsheet, Database, Cpu, AlertTriangle, ArrowRight, Link } from 'lucide-react';
+import {
+  Upload,
+  CheckCircle2,
+  Loader2,
+  FileSpreadsheet,
+  Database,
+  Cpu,
+  AlertTriangle,
+  ArrowRight,
+  Link as LinkIcon,
+  HardDrive,
+  FileUp,
+  Sparkles,
+  Check,
+  RotateCcw,
+  Info,
+  HelpCircle,
+  X,
+  AlertCircle,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
 import { useTaskProgress } from '@/hooks/useTaskProgress';
 import api from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
+import { toast } from '@/hooks/useToast';
 
 type UploadStatus = 'idle' | 'uploading' | 'queued' | 'processing' | 'completed' | 'error';
+type StepVisualState = 'pending' | 'active' | 'action_required' | 'completed' | 'failed';
 
 interface UploadState {
   file: File | null;
@@ -17,32 +48,112 @@ interface UploadState {
   progress: number;
 }
 
+interface UploadRecord {
+  id: number;
+  filename: string;
+  rows_processed: number;
+  status: string;
+  date: string;
+  time?: string;
+  created_at?: string | null;
+  size: string;
+  file_size_bytes?: number;
+}
+
+interface SystemColumnDefinition {
+  id: string;
+  label: string;
+  required: boolean;
+  dataType: string;
+  expectedFormat: string;
+  example: string;
+  purpose: string;
+}
+
 const pipelineSteps = [
-  { id: 'uploading', icon: Upload, label: 'Upload', desc: 'CSV file upload', stepIdx: 0 },
-  { id: 'validating', icon: FileSpreadsheet, label: 'Validate', desc: 'Schema validation', stepIdx: 1 },
-  { id: 'mapping', icon: Link, label: 'Map Data', desc: 'Column alignment', stepIdx: 2 },
+  { id: 'uploading', icon: Upload, label: 'Upload', desc: 'CSV received', stepIdx: 0 },
+  { id: 'validating', icon: FileSpreadsheet, label: 'Validate', desc: 'Check schema', stepIdx: 1 },
+  { id: 'mapping', icon: LinkIcon, label: 'Map Data', desc: 'Align columns', stepIdx: 2 },
   { id: 'processing', icon: Database, label: 'ETL', desc: 'Transform & load', stepIdx: 3 },
   { id: 'ml', icon: Cpu, label: 'ML', desc: 'Retrain models', stepIdx: 4 },
   { id: 'completed', icon: CheckCircle2, label: 'Done', desc: 'Data ready', stepIdx: 5 },
 ];
 
-// System required columns
-const systemColumns = [
-  { id: 'transaction_date', label: 'Transaction Date', required: true },
-  { id: 'product_sku', label: 'Product SKU', required: true },
-  { id: 'quantity_sold', label: 'Quantity Sold', required: true },
-  { id: 'unit_price', label: 'Unit Price', required: true },
-  { id: 'category', label: 'Category', required: false },
+// System target fields with explicit format specifications and pipeline roles
+const systemColumns: SystemColumnDefinition[] = [
+  {
+    id: 'transaction_date',
+    label: 'Transaction Date',
+    required: true,
+    dataType: 'Timestamp / ISO Date',
+    expectedFormat: 'YYYY-MM-DD or YYYY-MM-DD HH:mm:ss',
+    example: '2026-01-15 18:30:00',
+    purpose: 'Orders and resamples demand telemetry into weekly time-series intervals for ML lag feature engineering.',
+  },
+  {
+    id: 'product_sku',
+    label: 'Product SKU',
+    required: true,
+    dataType: 'Alphanumeric Code',
+    expectedFormat: 'Unique SKU identifier string (e.g. ABC-123)',
+    example: 'TECH-KB-001',
+    purpose: 'Maps demand and reorder parameters to individual product variants in catalog and inventory records.',
+  },
+  {
+    id: 'quantity_sold',
+    label: 'Quantity Sold',
+    required: true,
+    dataType: 'Positive Integer',
+    expectedFormat: 'Numeric volume units sold (integer > 0)',
+    example: '14',
+    purpose: 'Primary demand metric used as the target regression variable during ML training and loss evaluation.',
+  },
+  {
+    id: 'unit_price',
+    label: 'Unit Price',
+    required: true,
+    dataType: 'Decimal Currency',
+    expectedFormat: 'Numeric price per unit ($ / € / £)',
+    example: '89.99',
+    purpose: 'Computes inventory holding valuation, stockout loss severity, and revenue impact predictions.',
+  },
+  {
+    id: 'category',
+    label: 'Category',
+    required: false,
+    dataType: 'Text String (Optional)',
+    expectedFormat: 'Product family or department name',
+    example: 'Electronics',
+    purpose: 'Enables category-level aggregation, demand rollups, and cross-category cannibalization modeling.',
+  },
 ];
+
+const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB limit
+
+// Human-readable file size formatter
+function formatFileSize(bytes?: number, fallbackSize?: string): string {
+  if (bytes && bytes > 0) {
+    if (bytes < 1024) return `${bytes} B`;
+    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  if (!fallbackSize) return 'N/A';
+  if (fallbackSize === '0.0 MB') return '< 100 KB';
+  return fallbackSize;
+}
 
 export default function UploadPage() {
   const [state, setState] = useState<UploadState>({ file: null, status: 'idle', progress: 0 });
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
+  const [columnSamples, setColumnSamples] = useState<Record<string, string>>({});
+  const [suggestedMappings, setSuggestedMappings] = useState<Record<string, string>>({});
+  const [hasAttemptedSubmit, setHasAttemptedSubmit] = useState(false);
+  const [activeHelpColumn, setActiveHelpColumn] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [fullCsvText, setFullCsvText] = useState<string>('');
+  const [isDragOver, setIsDragOver] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
-  const setRawCsvText = useDataStore(s => s.setRawCsvText);
+  const setRawCsvText = useDataStore((s) => s.setRawCsvText);
 
   // Live task progress via WS + HTTP polling
   const { status: taskStatus } = useTaskProgress(taskId);
@@ -52,281 +163,988 @@ export default function UploadPage() {
     queryKey: ['upload-history'],
     queryFn: async () => {
       const res = await api.get('/upload/history');
-      return res.data as { uploads: Array<{ id: number; filename: string; rows_processed: number; status: string; date: string; size: string }> };
+      return res.data as {
+        uploads: UploadRecord[];
+        total: number;
+      };
     },
     refetchInterval: taskId ? 5_000 : false,
   });
 
-  // Sync task status → UI state
-  useEffect(() => {
-    if (!taskStatus) return;
-    if (taskStatus.state === 'completed') {
-      setState(s => ({ ...s, status: 'completed', progress: 100 }));
-      setTaskId(null);
-    } else if (taskStatus.state === 'failed') {
-      setState(s => ({ ...s, status: 'error', progress: 0 }));
-      setTaskId(null);
-    } else {
-      setState(s => ({ ...s, status: 'processing', progress: taskStatus.progress }));
+  // Derive effective status & progress without triggering cascading renders
+  const effectiveStatus: UploadStatus = useMemo(() => {
+    if (state.status === 'processing') {
+      if (taskStatus?.state === 'completed') return 'completed';
+      if (taskStatus?.state === 'failed') return 'error';
+      return 'processing';
     }
-  }, [taskStatus]);
+    return state.status;
+  }, [state.status, taskStatus]);
 
+  const effectiveProgress =
+    effectiveStatus === 'completed'
+      ? 100
+      : effectiveStatus === 'error'
+      ? 0
+      : state.status === 'processing' && taskStatus?.progress !== undefined
+      ? taskStatus.progress
+      : state.progress;
+
+  // Process uploaded CSV file, extract headers and sample values, propose auto-mappings
   const processFileAndStart = (file: File) => {
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      toast.warning('Invalid file format', 'Only standard comma-separated (.csv) files are supported.');
+      return;
+    }
+
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error('File size exceeded', `File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the 50 MB limit.`);
+      return;
+    }
+
+    if (file.size === 0) {
+      toast.error('Empty file', 'The selected file is empty. Please choose a valid sales CSV.');
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target?.result as string;
-      if (!text) return;
-      setFullCsvText(text);
+      if (!text || text.trim().length === 0) {
+        toast.error('Empty file contents', 'The selected CSV file contains no readable records.');
+        return;
+      }
       setRawCsvText(text);
-      const firstLine = text.split('\n')[0];
-      const headers = firstLine.split(',').map(h => h.trim().replace(/^["']|["']$/g, '')).filter(Boolean);
-      setDetectedColumns(headers.length > 0 ? headers : ['column_1', 'column_2', 'column_3']);
 
-      // Pause at mapping
-      setState({ file, status: 'queued', progress: 5 });
+      const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
+      if (lines.length === 0) {
+        toast.error('Invalid CSV format', 'No valid rows detected in the CSV file.');
+        return;
+      }
+
+      const firstLine = lines[0] || '';
+      const headers = firstLine
+        .split(',')
+        .map((h) => h.trim().replace(/^["']|["']$/g, ''))
+        .filter(Boolean);
+
+      if (headers.length === 0) {
+        toast.error('Missing CSV headers', 'Could not detect column headers in the first row.');
+        return;
+      }
+
+      setDetectedColumns(headers);
+
+      // Extract sample row for inline user preview
+      const sampleRow = lines[1] ? lines[1].split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')) : [];
+      const samples: Record<string, string> = {};
+      headers.forEach((h, idx) => {
+        const val = sampleRow[idx];
+        samples[h] = val !== undefined && val !== '' ? val : '—';
+      });
+      setColumnSamples(samples);
+
+      // Intelligent column auto-matching heuristics
+      const proposed: Record<string, string> = {};
+      systemColumns.forEach((sys) => {
+        const match = headers.find((h) => {
+          const norm = h.toLowerCase().replace(/[^a-z0-9]/g, '');
+          switch (sys.id) {
+            case 'transaction_date':
+              return norm.includes('date') || norm.includes('time') || norm === 'txdate' || norm === 'orderdate';
+            case 'product_sku':
+              return norm.includes('sku') || norm.includes('product') || norm.includes('item') || norm === 'itemid';
+            case 'quantity_sold':
+              return norm.includes('qty') || norm.includes('quantity') || norm.includes('units') || norm.includes('sold');
+            case 'unit_price':
+              return norm.includes('price') || norm.includes('cost') || norm.includes('rate') || norm.includes('amount');
+            case 'category':
+              return norm.includes('category') || norm.includes('cat') || norm.includes('dept') || norm.includes('department');
+            default:
+              return false;
+          }
+        });
+        if (match) {
+          proposed[sys.id] = match;
+        }
+      });
+
+      setSuggestedMappings(proposed);
+      setMappings(proposed);
+      setHasAttemptedSubmit(false);
+      setActiveHelpColumn(null);
+
+      // Transition to Step 3: Schema Alignment Required
+      setState({ file, status: 'queued', progress: 15 });
     };
+
+    reader.onerror = () => {
+      toast.error('File read error', 'Unable to parse the uploaded CSV file. Please verify file integrity.');
+    };
+
     reader.readAsText(file);
   };
 
-  // resumePipeline — called after column mapping confirmation
+  // resumePipeline — called after schema mapping confirmation
   const resumePipeline = async () => {
     if (!state.file) return;
-    setState(s => ({ ...s, status: 'uploading', progress: 10 }));
-    
+
+    if (!allRequiredMapped) {
+      setHasAttemptedSubmit(true);
+      toast.error('Required mappings missing', `Please map all 4 required fields (${missingRequired.join(', ')}) to continue.`);
+      return;
+    }
+
+    setState((s) => ({ ...s, status: 'uploading', progress: 25 }));
+
     try {
       const formData = new FormData();
       formData.append('file', state.file);
-      // Optional: append mappings if backend expects them
       formData.append('mappings', JSON.stringify(mappings));
-      
+
       const res = await api.post('/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
       const { task_id } = res.data as { task_id: string };
       setTaskId(task_id);
-      setState(s => ({ ...s, status: 'processing', progress: 15 }));
+      setState((s) => ({ ...s, status: 'processing', progress: 35 }));
+      toast.info('Upload initiated', 'Dataset sent to enterprise ETL pipeline.');
     } catch {
-      setState(s => ({ ...s, status: 'error', progress: 0 }));
+      setState((s) => ({ ...s, status: 'error', progress: 0 }));
+      toast.error('Upload failed', 'Server could not process dataset. Please verify schema and retry.');
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    setIsDragOver(false);
     const file = e.dataTransfer.files[0];
-    if (file?.name.endsWith('.csv')) processFileAndStart(file);
+    if (file) {
+      processFileAndStart(file);
+    }
   };
-
-  // Map status to pipeline step index
-  const currentStepIdx =
-    state.status === 'idle'        ? -1 :
-    state.status === 'uploading'   ?  0 :
-    state.status === 'queued'      ?  1 :
-    state.status === 'processing' && (state.progress ?? 0) <= 50 ? 2 :
-    state.status === 'processing' && (state.progress ?? 0) <= 80 ? 3 :
-    state.status === 'processing'  ?  4 :
-    state.status === 'completed'   ?  5 : -1;
 
   const handleMappingChange = (sysCol: string, csvCol: string) => {
-    setMappings(prev => ({ ...prev, [sysCol]: csvCol }));
+    setMappings((prev) => ({ ...prev, [sysCol]: csvCol }));
   };
 
-  const allRequiredMapped = systemColumns.every(col => mappings[col.id]);
+  // Dynamic progress derivation
+  const requiredCount = useMemo(() => systemColumns.filter((c) => c.required).length, []);
+  const mappedRequiredCount = useMemo(
+    () => systemColumns.filter((c) => c.required && mappings[c.id]).length,
+    [mappings]
+  );
+
+  // Derive missing required fields for explicit user feedback
+  const missingRequired = useMemo(() => {
+    return systemColumns
+      .filter((c) => c.required && !mappings[c.id])
+      .map((c) => c.label);
+  }, [mappings]);
+
+  const allRequiredMapped = missingRequired.length === 0;
+
+  // Number of auto-suggested matches
+  const suggestedCount = useMemo(() => Object.keys(suggestedMappings).length, [suggestedMappings]);
+
+  // Duplicate source column assignment check
+  const duplicateSourceColumns = useMemo(() => {
+    const counts: Record<string, number> = {};
+    Object.values(mappings).forEach((col) => {
+      if (col) counts[col] = (counts[col] || 0) + 1;
+    });
+    return Object.keys(counts).filter((col) => counts[col] > 1);
+  }, [mappings]);
+
+  // Derive visual state for each of the 6 ETL stepper stages
+  const getStepVisualState = (stepIndex: number): StepVisualState => {
+    if (effectiveStatus === 'idle') return 'pending';
+
+    if (effectiveStatus === 'error') {
+      if (stepIndex === 3) return 'failed';
+      if (stepIndex < 3) return 'completed';
+      return 'pending';
+    }
+
+    if (effectiveStatus === 'completed') {
+      return 'completed';
+    }
+
+    if (effectiveStatus === 'queued') {
+      if (stepIndex < 2) return 'completed';
+      if (stepIndex === 2) return 'action_required';
+      return 'pending';
+    }
+
+    if (effectiveStatus === 'uploading') {
+      if (stepIndex <= 2) return 'completed';
+      if (stepIndex === 3) return 'active';
+      return 'pending';
+    }
+
+    if (effectiveStatus === 'processing') {
+      if (stepIndex <= 2) return 'completed';
+      const p = effectiveProgress ?? 0;
+      if (p < 75) {
+        if (stepIndex === 3) return 'active';
+        return 'pending';
+      } else {
+        if (stepIndex === 3) return 'completed';
+        if (stepIndex === 4) return 'active';
+        return 'pending';
+      }
+    }
+
+    return 'pending';
+  };
+
+  // Header status indicator text
+  const stepperHeaderText = useMemo(() => {
+    if (effectiveStatus === 'idle') return 'Standby • Awaiting CSV Upload';
+    if (effectiveStatus === 'queued') return 'Step 3 of 6 • Action Required: Align Columns';
+    if (effectiveStatus === 'uploading') return 'Step 4 of 6 • Submitting Dataset';
+    if (effectiveStatus === 'processing') {
+      return (effectiveProgress ?? 0) < 75
+        ? 'Step 4 of 6 • ETL Ingestion in Progress'
+        : 'Step 5 of 6 • ML Retraining in Progress';
+    }
+    if (effectiveStatus === 'completed') return 'Completed • Pipeline Succeeded';
+    if (effectiveStatus === 'error') return 'Interrupted • Pipeline Failed';
+    return 'Standby';
+  }, [effectiveStatus, effectiveProgress]);
 
   return (
-    <div className="space-y-6 max-w-5xl">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-surface-50 tracking-tight">Upload Sales Data</h1>
-        <p className="text-sm text-surface-500 mt-1">Upload CSV files to feed the demand forecasting pipeline</p>
-      </motion.div>
+    <div className="space-y-6 max-w-5xl pb-28 sm:pb-32">
+      {/* ── 1. PAGE HEADER ───────────────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative flex items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+      >
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
 
-      {/* Pipeline visualization */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}
-        className="glass-card p-6">
-        <h3 className="text-sm font-semibold text-surface-200 mb-6">Enterprise ETL Pipeline</h3>
-        <div className="flex items-center justify-between relative px-4">
-          <div className="absolute top-5 left-[10%] right-[10%] h-0.5 bg-surface-800/50 z-0" />
-          <div className="absolute top-5 left-[10%] h-0.5 bg-primary-500 z-0 transition-all duration-500"
-            style={{ width: currentStepIdx >= 0 ? `${(currentStepIdx / 5) * 80}%` : '0%' }} />
-          
-          {pipelineSteps.map((step, i) => (
-            <div key={i} className="flex flex-col items-center z-10 relative">
-              <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center transition-all duration-500',
-                i < currentStepIdx ? 'gradient-primary text-white shadow-lg shadow-primary-500/20' : 
-                i === currentStepIdx && state.status !== 'completed' ? 'bg-primary-500/20 text-primary-400 border border-primary-500/50' :
-                i === currentStepIdx && state.status === 'completed' ? 'gradient-primary text-white shadow-lg shadow-primary-500/20' :
-                'bg-surface-800/60 text-surface-500 border border-surface-700/50')}>
-                
-                {i < currentStepIdx ? <CheckCircle2 className="w-5 h-5" /> :
-                 i === currentStepIdx && state.status !== 'completed' ? <Loader2 className="w-5 h-5 animate-spin" /> :
-                 <step.icon className="w-5 h-5" />}
-              </div>
-              <p className={cn('text-xs font-semibold mt-2', i <= currentStepIdx ? 'text-surface-200' : 'text-surface-500')}>{step.label}</p>
-              <p className="text-[10px] text-surface-600 hidden sm:block">{step.desc}</p>
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <FileUp className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 inline-block" />
+              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
+                Upload Sales Data
+              </h1>
             </div>
-          ))}
+            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
+              Upload CSV telemetry to feed the demand forecasting pipeline and retrain ML models
+            </p>
+          </div>
+        </div>
+
+        <div className="relative flex items-center gap-2.5">
+          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold text-blue-700 dark:text-blue-300">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            CSV Ingestion Engine
+          </div>
         </div>
       </motion.div>
 
-      {/* Main interactive area */}
+      {/* ── 2. ENTERPRISE ETL PIPELINE STEPPER ───────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.1 }}
+        className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface p-5 sm:p-6 shadow-2xs overflow-hidden"
+      >
+        <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 dark:border-ds-border">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text tracking-tight">
+              Enterprise ETL Pipeline
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
+              Automated end-to-end data transformation &amp; model synchronization
+            </p>
+          </div>
+
+          <span
+            className={cn(
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors',
+              effectiveStatus === 'completed'
+                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                : effectiveStatus === 'error'
+                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
+                : effectiveStatus === 'queued'
+                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
+                : effectiveStatus === 'processing' || effectiveStatus === 'uploading'
+                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
+                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700'
+            )}
+          >
+            {effectiveStatus === 'queued' && <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />}
+            {(effectiveStatus === 'processing' || effectiveStatus === 'uploading') && (
+              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            )}
+            {stepperHeaderText}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between relative px-2 sm:px-6">
+          {/* Background Connecting Line */}
+          <div className="absolute top-5 left-[6%] right-[6%] h-1 bg-slate-200 dark:bg-slate-800 rounded-full z-0" />
+
+          {/* Active Status Connecting Line */}
+          <div
+            className={cn(
+              'absolute top-5 left-[6%] h-1 rounded-full z-0 transition-all duration-500',
+              effectiveStatus === 'completed'
+                ? 'bg-emerald-500'
+                : effectiveStatus === 'error'
+                ? 'bg-rose-500'
+                : effectiveStatus === 'queued'
+                ? 'bg-amber-500'
+                : 'bg-blue-600'
+            )}
+            style={{
+              width:
+                effectiveStatus === 'completed'
+                  ? '88%'
+                  : effectiveStatus === 'queued'
+                  ? '36%'
+                  : effectiveStatus === 'uploading'
+                  ? '52%'
+                  : effectiveStatus === 'processing'
+                  ? `${Math.max(52, ((effectiveProgress ?? 0) / 100) * 88)}%`
+                  : '0%',
+            }}
+          />
+
+          {pipelineSteps.map((step, i) => {
+            const visualState = getStepVisualState(i);
+
+            return (
+              <div key={step.id} className="flex flex-col items-center z-10 relative">
+                {/* Step Icon Container */}
+                <div
+                  className={cn(
+                    'w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-2xs border',
+                    visualState === 'completed'
+                      ? 'bg-emerald-50 text-emerald-600 border-emerald-300/90 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                      : visualState === 'action_required'
+                      ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 ring-4 ring-amber-400/20 scale-105'
+                      : visualState === 'failed'
+                      ? 'bg-rose-50 text-rose-600 border-rose-300/90 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700'
+                      : visualState === 'active'
+                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25 scale-105'
+                      : 'bg-slate-50 text-slate-400 border-slate-300 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700'
+                  )}
+                >
+                  {visualState === 'completed' ? (
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+                  ) : visualState === 'action_required' ? (
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-bounce" />
+                  ) : visualState === 'failed' ? (
+                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-300" />
+                  ) : visualState === 'active' ? (
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                  ) : (
+                    <step.icon className="w-5 h-5" />
+                  )}
+                </div>
+
+                {/* Step Label */}
+                <p
+                  className={cn(
+                    'text-xs mt-2.5 transition-colors text-center',
+                    visualState === 'completed'
+                      ? 'font-bold text-emerald-700 dark:text-emerald-300'
+                      : visualState === 'action_required'
+                      ? 'font-bold text-amber-700 dark:text-amber-300'
+                      : visualState === 'failed'
+                      ? 'font-bold text-rose-700 dark:text-rose-300'
+                      : visualState === 'active'
+                      ? 'font-bold text-blue-600 dark:text-blue-400'
+                      : 'font-semibold text-slate-600 dark:text-slate-300'
+                  )}
+                >
+                  {step.label}
+                </p>
+
+                {/* Step Description */}
+                <p
+                  className={cn(
+                    'text-[10px] hidden md:block text-center mt-0.5',
+                    visualState === 'completed'
+                      ? 'text-emerald-600/80 dark:text-emerald-400/80 font-medium'
+                      : visualState === 'action_required'
+                      ? 'text-amber-600/90 dark:text-amber-400/90 font-medium'
+                      : visualState === 'active'
+                      ? 'text-blue-600/90 dark:text-blue-400/90 font-medium'
+                      : 'text-slate-500 dark:text-slate-400'
+                  )}
+                >
+                  {visualState === 'action_required' ? 'Action needed' : step.desc}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      </motion.div>
+
+      {/* ── 3 & 4. UPLOAD DROP ZONE & FEEDBACK ───────────────────────── */}
       <AnimatePresence mode="wait">
-        
-        {/* Drop Zone */}
-        {state.status !== 'queued' && (
-          <motion.div key="dropzone" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-            onDragOver={(e) => e.preventDefault()} onDrop={handleDrop} onClick={() => state.status === 'idle' && fileRef.current?.click()}
-            className={cn('glass-card p-12 border-2 border-dashed transition-all text-center',
-              state.status === 'idle' ? 'border-surface-700/50 hover:border-primary-500/30 hover:bg-surface-800/20 cursor-pointer' :
-              state.status === 'completed' ? 'border-accent-500/30 bg-accent-500/5' : 'border-primary-500/30 bg-primary-500/5')}>
-            
-            <input ref={fileRef} type="file" accept=".csv" className="hidden"
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) processFileAndStart(f); }} />
-            
-            {state.status === 'idle' ? (
+        {/* Drop Zone: Shown when not paused in schema alignment */}
+        {effectiveStatus !== 'queued' && (
+          <motion.div
+            key="dropzone"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setIsDragOver(true);
+            }}
+            onDragLeave={() => setIsDragOver(false)}
+            onDrop={handleDrop}
+            onClick={() => effectiveStatus === 'idle' && fileRef.current?.click()}
+            className={cn(
+              'rounded-3xl py-8 sm:py-9 px-6 border-2 border-dashed transition-all duration-200 text-center flex flex-col items-center justify-center relative overflow-hidden',
+              effectiveStatus === 'idle'
+                ? cn(
+                    'bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white dark:bg-none dark:bg-ds-surface cursor-pointer group shadow-2xs',
+                    isDragOver
+                      ? 'border-blue-600 bg-blue-50/90 shadow-md scale-[1.01]'
+                      : 'border-blue-300 hover:border-blue-500 hover:shadow-md dark:border-blue-800 dark:hover:border-blue-600'
+                  )
+                : effectiveStatus === 'completed'
+                ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800 shadow-2xs'
+                : effectiveStatus === 'error'
+                ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800 shadow-2xs'
+                : 'bg-blue-50/30 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800 shadow-2xs'
+            )}
+          >
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv"
+              className="hidden"
+              onChange={(e) => {
+                const f = e.target.files?.[0];
+                if (f) processFileAndStart(f);
+              }}
+            />
+
+            {/* State: Idle / Ready to Browse */}
+            {effectiveStatus === 'idle' ? (
               <>
-                <Upload className="w-12 h-12 text-surface-500 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-surface-300">Drag & drop your CSV file here</p>
-                <p className="text-xs text-surface-500 mt-1">or click to browse files (max 50MB)</p>
+                <div className="w-14 h-14 rounded-2xl bg-blue-100/90 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center mb-3 transition-transform group-hover:scale-105 shadow-2xs">
+                  <Upload className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-ds-text tracking-tight">
+                  Drag &amp; drop your sales CSV here
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
+                  or <span className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2">click to browse</span> from your device
+                </p>
+
+                {/* File constraints pills */}
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50/90 text-blue-800 border border-blue-200/90 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60 mt-4 shadow-2xs">
+                  <HardDrive className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                  <span>Max file size: <strong>50 MB</strong></span>
+                  <span>•</span>
+                  <span>Accepted format: <strong>.CSV only</strong></span>
+                </div>
               </>
-            ) : state.status === 'completed' ? (
+            ) : effectiveStatus === 'completed' ? (
+              /* State: Pipeline Completed */
               <>
-                <CheckCircle2 className="w-12 h-12 text-accent-400 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-accent-400">Pipeline Complete!</p>
-                <p className="text-xs text-surface-400 mt-1">Model retrained and active.</p>
-                <button onClick={() => setState({ file: null, status: 'idle', progress: 0 })}
-                  className="mt-6 px-4 py-2 rounded-lg text-xs font-medium border border-surface-700 text-surface-300 hover:bg-surface-800">
-                  Upload Another File
+                <div className="w-14 h-14 rounded-2xl bg-emerald-100/90 text-emerald-600 dark:bg-emerald-950/80 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mb-3 shadow-2xs">
+                  <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+                </div>
+                <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-300 tracking-tight">
+                  Pipeline Execution Succeeded!
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-md">
+                  Dataset successfully ingested, schema validated, and demand forecasting models retrained with updated telemetry.
+                </p>
+                <button
+                  onClick={() => {
+                    setState({ file: null, status: 'idle', progress: 0 });
+                    setTaskId(null);
+                    setMappings({});
+                    setDetectedColumns([]);
+                    setColumnSamples({});
+                    setHasAttemptedSubmit(false);
+                  }}
+                  className="mt-5 h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all active:scale-95 inline-flex items-center gap-1.5"
+                >
+                  <RotateCcw className="w-3.5 h-3.5" />
+                  <span>Upload Another File</span>
                 </button>
               </>
-            ) : state.status === 'error' ? (
+            ) : effectiveStatus === 'error' ? (
+              /* State: Error */
               <>
-                <AlertTriangle className="w-12 h-12 text-danger-400 mx-auto mb-3" />
-                <p className="text-sm font-semibold text-danger-400">Upload Failed</p>
-                <p className="text-xs text-surface-500 mt-1">{taskStatus?.error || 'An error occurred. Please try again.'}</p>
-                <button onClick={() => setState({ file: null, status: 'idle', progress: 0 })}
-                  className="mt-6 px-4 py-2 rounded-lg text-xs font-medium border border-surface-700 text-surface-300 hover:bg-surface-800">
+                <div className="w-14 h-14 rounded-2xl bg-rose-100/90 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center justify-center mb-3 shadow-2xs">
+                  <AlertTriangle className="w-7 h-7 text-rose-600 dark:text-rose-400" />
+                </div>
+                <h3 className="text-base font-bold text-rose-700 dark:text-rose-300 tracking-tight">
+                  Pipeline Processing Failed
+                </h3>
+                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-md">
+                  {taskStatus?.error || 'An error occurred during dataset transformation. Please verify schema headers and retry.'}
+                </p>
+                <button
+                  onClick={() => {
+                    setState({ file: null, status: 'idle', progress: 0 });
+                    setTaskId(null);
+                  }}
+                  className="mt-5 h-9 px-4 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs font-semibold shadow-2xs transition-all active:scale-95"
+                >
                   Try Again
                 </button>
               </>
             ) : (
+              /* State: Uploading / Processing */
               <>
-                <Loader2 className="w-12 h-12 text-primary-400 mx-auto mb-3 animate-spin" />
-                <p className="text-sm font-semibold text-surface-300">
-                  {state.status === 'uploading' ? 'Uploading...' : (taskStatus?.message || 'Processing...')} {state.progress}%
+                {state.file && (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 text-xs font-semibold mb-3 shadow-2xs">
+                    <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <span>{state.file.name}</span>
+                    <span className="text-slate-500 dark:text-slate-400 font-mono">
+                      ({formatFileSize(state.file.size)})
+                    </span>
+                  </div>
+                )}
+
+                <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto mb-2" />
+                <h4 className="text-sm font-bold text-slate-900 dark:text-ds-text">
+                  {effectiveStatus === 'uploading'
+                    ? 'Submitting dataset to ETL worker...'
+                    : taskStatus?.message || 'Processing dataset & retraining models...'}
+                </h4>
+                <p className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400 mt-1">
+                  {effectiveProgress}% completed
                 </p>
-                <div className="w-64 h-2 bg-surface-800/50 rounded-full mx-auto mt-4 overflow-hidden">
-                  <div className="h-full gradient-primary rounded-full transition-all duration-500" style={{ width: `${state.progress}%` }} />
+
+                {/* High contrast progress bar */}
+                <div className="w-64 sm:w-80 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mt-3 overflow-hidden border border-slate-300/60 dark:border-slate-700 shadow-inner">
+                  <div
+                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500"
+                    style={{ width: `${effectiveProgress}%` }}
+                  />
                 </div>
+
                 {taskId && (
-                  <p className="text-[10px] text-surface-600 mt-2 font-mono">task: {taskId.slice(0, 8)}…</p>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-2.5">
+                    ETL Task Reference: {taskId}
+                  </p>
                 )}
               </>
             )}
           </motion.div>
         )}
 
-        {/* Mapping panel */}
-        {state.status === 'queued' && (
-          <motion.div key="mapping" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95 }}
-            className="glass-card border border-warning-500/30 overflow-hidden">
-            <div className="p-5 bg-warning-500/10 border-b border-warning-500/20 flex items-start gap-4">
-              <div className="p-2 bg-warning-500/20 rounded-lg text-warning-400"><AlertTriangle className="w-6 h-6" /></div>
-              <div>
-                <h3 className="text-base font-semibold text-warning-400">Schema Mismatch Detected</h3>
-                <p className="text-sm text-surface-300 mt-1">
-                  The uploaded file <strong>{state.file?.name}</strong> does not match the standard system schema. 
-                  Please map your CSV columns to the required system fields below to continue.
-                </p>
-              </div>
-            </div>
-            
-            <div className="p-6">
-              <div className="grid grid-cols-[1fr_auto_1fr] gap-4 mb-4 text-xs font-semibold text-surface-500 uppercase px-2">
-                <div>System Required Field</div>
-                <div className="w-8"></div>
-                <div>Your CSV Column</div>
-              </div>
-              
-              <div className="space-y-3">
-                {systemColumns.map((col) => (
-                  <div key={col.id} className="grid grid-cols-[1fr_auto_1fr] gap-4 items-center p-3 rounded-xl bg-surface-800/40 border border-surface-700/50">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium text-surface-200">{col.label}</span>
-                      {col.required && <span className="text-[10px] text-danger-400 font-bold">*</span>}
-                    </div>
-                    
-                    <ArrowRight className="w-4 h-4 text-surface-500" />
-                    
-                    <select 
-                      value={mappings[col.id] || ''}
-                      onChange={(e) => handleMappingChange(col.id, e.target.value)}
-                      className={cn("w-full px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2", 
-                        mappings[col.id] ? "bg-primary-500/10 text-primary-400 border border-primary-500/30 focus:ring-primary-500/30" : 
-                        "bg-surface-900 border border-surface-600 text-surface-400 focus:ring-surface-500/50"
-                      )}
-                    >
-                      <option value="" disabled>Select column...</option>
-                      {detectedColumns.map(csvCol => (
-                        <option key={csvCol} value={csvCol}>{csvCol}</option>
-                      ))}
-                    </select>
+        {/* State: Schema Alignment Confirmation Panel (Step 3) */}
+        {effectiveStatus === 'queued' && (
+          <motion.div
+            key="mapping"
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="rounded-2xl border border-amber-300 dark:border-amber-700/60 bg-white dark:bg-ds-surface shadow-xs overflow-hidden"
+          >
+            {/* Informative Guidance Header */}
+            <div className="p-5 bg-gradient-to-r from-amber-50/90 via-amber-50/40 to-blue-50/30 dark:from-amber-950/40 dark:via-ds-surface dark:to-blue-950/20 border-b border-amber-200 dark:border-amber-900/40 flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex items-start gap-3.5">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-200 dark:border-amber-800/60 shadow-2xs">
+                  <AlertTriangle className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                      Schema Alignment Required
+                    </h3>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-200/70 text-amber-900 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                      Step 3: Action Needed
+                    </span>
                   </div>
-                ))}
+                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium leading-relaxed max-w-2xl">
+                    CSV file <strong className="text-slate-900 dark:text-white">{state.file?.name}</strong> has been uploaded and schema checked. Align each system field to your CSV column headers before ETL transformation resumes.
+                  </p>
+                </div>
               </div>
 
-              <div className="mt-8 flex items-center justify-between border-t border-surface-800/50 pt-5">
-                <button onClick={() => setState({ file: null, status: 'idle', progress: 0 })}
-                  className="px-4 py-2 rounded-lg text-sm font-medium text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition">
-                  Cancel Upload
-                </button>
-                <button onClick={resumePipeline} disabled={!allRequiredMapped}
-                  className="flex items-center gap-2 px-6 py-2.5 rounded-xl text-sm font-semibold gradient-primary text-white shadow-lg shadow-primary-500/20 disabled:opacity-50 disabled:cursor-not-allowed transition">
-                  Confirm Mapping & Continue <ArrowRight className="w-4 h-4" />
-                </button>
+              {state.file && (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs">
+                  <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <span>{detectedColumns.length} headers detected</span>
+                  <span>•</span>
+                  <span>{formatFileSize(state.file.size)}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Mapping Field Alignment Rows */}
+            <div className="p-5 sm:p-6 space-y-4">
+              {/* Header Action Bar: Dynamic Auto-Matching Notification & Mapping Progress */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 dark:border-ds-border pb-3">
+                {/* Dynamic Auto-Matching Feedback */}
+                <div className="flex items-center gap-2">
+                  {suggestedCount > 0 ? (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 shadow-2xs">
+                      <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                      <span>{suggestedCount} of {systemColumns.length} fields auto-suggested for review</span>
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
+                      <Info className="w-3.5 h-3.5 text-slate-400" />
+                      <span>No automatic column matches detected — select matching headers below</span>
+                    </span>
+                  )}
+                </div>
+
+                {/* Compact Mapping Progress Pill */}
+                <div className="flex items-center gap-2 self-start sm:self-center">
+                  <span
+                    className={cn(
+                      'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border transition-colors shadow-2xs',
+                      allRequiredMapped
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                        : mappedRequiredCount > 0
+                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
+                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                    )}
+                  >
+                    {allRequiredMapped ? (
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                    )}
+                    <span>{mappedRequiredCount} of {requiredCount} required fields mapped</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* Duplicate source column alert (if user mapped same column to multiple fields) */}
+              {duplicateSourceColumns.length > 0 && (
+                <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                  <span>
+                    Warning: CSV column <strong>"{duplicateSourceColumns.join('", "')}"</strong> is mapped to multiple system fields. Each system field should ideally map to a distinct CSV column.
+                  </span>
+                </div>
+              )}
+
+              {/* Short CSV warning if file has fewer headers than required fields */}
+              {detectedColumns.length < 4 && (
+                <div className="p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 flex items-center gap-2.5 text-xs text-rose-800 dark:text-rose-200">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                  <span>
+                    This CSV contains only <strong>{detectedColumns.length}</strong> column headers. Titan AI requires at least 4 distinct columns (Transaction Date, SKU, Quantity, and Unit Price) for valid forecasting.
+                  </span>
+                </div>
+              )}
+
+              {/* Field Rows with Calm Initial State */}
+              <div className="space-y-2.5">
+                {systemColumns.map((col) => {
+                  const currentMappedVal = mappings[col.id] || '';
+                  const isMapped = Boolean(currentMappedVal);
+                  const sampleVal = currentMappedVal ? columnSamples[currentMappedVal] : null;
+                  const isSuggested = suggestedMappings[col.id] && suggestedMappings[col.id] === currentMappedVal;
+                  const isMissingAfterSubmit = hasAttemptedSubmit && col.required && !isMapped;
+                  const isHelpOpen = activeHelpColumn === col.id;
+
+                  return (
+                    <div
+                      key={col.id}
+                      className={cn(
+                        'p-3.5 rounded-xl border transition-all duration-150',
+                        isMapped
+                          ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-200/90 dark:border-emerald-800/60 shadow-2xs'
+                          : isMissingAfterSubmit
+                          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 ring-2 ring-rose-400/20'
+                          : 'bg-white dark:bg-ds-surface border-slate-200 dark:border-ds-border hover:border-slate-300 dark:hover:border-slate-700'
+                      )}
+                    >
+                      <div className="grid grid-cols-1 md:grid-cols-[230px_auto_1fr] items-center gap-3">
+                        {/* System Target Field Information & Interactive Help Button */}
+                        <div>
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-xs font-bold text-slate-900 dark:text-ds-text">
+                              {col.label}
+                            </span>
+                            {col.required ? (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
+                                Required
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                Optional
+                              </span>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpColumn(isHelpOpen ? null : col.id)}
+                              title="Click for field requirements & format specification"
+                              className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-0.5 cursor-pointer"
+                            >
+                              <HelpCircle className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
+                            {col.dataType} • {col.expectedFormat}
+                          </p>
+                        </div>
+
+                        {/* Arrow separator */}
+                        <div className="hidden md:flex items-center justify-center text-slate-400">
+                          <ArrowRight className="w-4 h-4" />
+                        </div>
+
+                        {/* CSV Column Selector & Sample Data Preview */}
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                          <div className="relative flex-1">
+                            <select
+                              value={currentMappedVal}
+                              onChange={(e) => handleMappingChange(col.id, e.target.value)}
+                              className={cn(
+                                'w-full px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none transition-all shadow-2xs border appearance-none pr-8 cursor-pointer',
+                                isMapped
+                                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-blue-400 dark:border-blue-600 focus:ring-2 focus:ring-blue-500/20'
+                                  : isMissingAfterSubmit
+                                  ? 'bg-rose-50/50 dark:bg-slate-800 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-700 focus:ring-2 focus:ring-rose-500/20'
+                                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500/20'
+                              )}
+                            >
+                              <option value="" disabled>
+                                Select matching CSV column...
+                              </option>
+                              {detectedColumns.map((csvCol) => (
+                                <option key={csvCol} value={csvCol}>
+                                  {csvCol} {columnSamples[csvCol] ? `(e.g. "${columnSamples[csvCol]}")` : ''}
+                                </option>
+                              ))}
+                            </select>
+                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
+                              <ArrowRight className="w-3.5 h-3.5 rotate-90" />
+                            </div>
+                          </div>
+
+                          {/* Sample Value & Status Tag */}
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            {isMapped && sampleVal && (
+                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-mono border border-slate-200 dark:border-slate-700">
+                                <span className="text-slate-400 font-sans text-[10px]">Sample:</span>
+                                <span className="font-semibold truncate max-w-[130px]">"{sampleVal}"</span>
+                              </div>
+                            )}
+
+                            {isSuggested && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
+                                <Sparkles className="w-3 h-3 text-blue-500" />
+                                Suggested
+                              </span>
+                            )}
+
+                            {isMapped ? (
+                              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0" title="Valid mapped column">
+                                <Check className="w-3.5 h-3.5" />
+                              </div>
+                            ) : (
+                              <div
+                                className={cn(
+                                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold',
+                                  isMissingAfterSubmit
+                                    ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-300'
+                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
+                                )}
+                                title={col.required ? 'Field required for ingestion' : 'Optional field'}
+                              >
+                                {col.required ? '!' : '—'}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Interactive Field Help Specification Card */}
+                      {isHelpOpen && (
+                        <div className="mt-3 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between font-bold text-blue-900 dark:text-blue-200">
+                            <span>{col.label} — Specification &amp; Pipeline Requirements</span>
+                            <button
+                              type="button"
+                              onClick={() => setActiveHelpColumn(null)}
+                              className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                            {col.purpose}
+                          </p>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
+                            <div>
+                              <span className="text-slate-400 font-sans">Expected format: </span>
+                              <strong className="text-slate-800 dark:text-slate-200">{col.expectedFormat}</strong>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 font-sans">Example accepted value: </span>
+                              <strong className="text-slate-800 dark:text-slate-200">"{col.example}"</strong>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Validation Status & Action Buttons */}
+              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-ds-border flex flex-col sm:flex-row items-center justify-between gap-3">
+                <div className="flex items-center gap-2 text-xs">
+                  {allRequiredMapped ? (
+                    <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>All 4 required system fields successfully mapped</span>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
+                      <Info className="w-4 h-4 text-amber-500" />
+                      <span>{missingRequired.length} required {missingRequired.length === 1 ? 'field' : 'fields'} remaining: {missingRequired.join(', ')}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                  <button
+                    onClick={() => {
+                      setState({ file: null, status: 'idle', progress: 0 });
+                      setMappings({});
+                      setDetectedColumns([]);
+                      setColumnSamples({});
+                      setHasAttemptedSubmit(false);
+                      setActiveHelpColumn(null);
+                    }}
+                    className="h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer"
+                  >
+                    Cancel Upload
+                  </button>
+
+                  <button
+                    onClick={resumePipeline}
+                    disabled={!allRequiredMapped}
+                    title={!allRequiredMapped ? `Please map: ${missingRequired.join(', ')}` : undefined}
+                    className="h-9 px-5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition-all duration-150 active:scale-95 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <span>Confirm Mapping &amp; Ingest ({mappedRequiredCount}/{requiredCount} Required Mapped)</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Recent uploads — from real API */}
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }} className="glass-card overflow-hidden">
-        <div className="p-4 border-b border-surface-800/50">
-          <h3 className="text-sm font-semibold text-surface-200">Recent Uploads</h3>
+      {/* ── 5. RECENT UPLOADS TABLE ──────────────────────────────────── */}
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.25 }}
+        className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+      >
+        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+              Recent Ingestion Logs
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
+              Audit log of historical CSV uploads and ETL pipeline outcomes
+            </p>
+          </div>
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200/60 dark:border-slate-700">
+            {(historyData?.uploads ?? []).length} recorded
+          </span>
         </div>
+
         <div className="overflow-x-auto">
-          <table className="w-full text-left">
+          <table className="w-full text-left min-w-[640px]">
             <thead>
-              <tr className="border-b border-surface-800/50 bg-surface-900/50">
-                {['File', 'Rows', 'Size', 'Date', 'Status'].map(h => (
-                  <th key={h} className="px-4 py-3 text-[11px] font-semibold text-surface-500 uppercase tracking-wider">{h}</th>
+              <tr className="border-b border-slate-200/80 dark:border-ds-border bg-slate-50/80 dark:bg-ds-surface-sunken/50">
+                {['Run ID & File Name', 'Rows Processed', 'File Size', 'Upload Date & Time', 'Pipeline Status'].map((h) => (
+                  <th
+                    key={h}
+                    className="px-5 py-3 text-[11px] font-bold text-slate-600 dark:text-ds-text-secondary uppercase tracking-wider"
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {(historyData?.uploads ?? []).map((f, i) => (
-                <motion.tr key={f.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 + i * 0.03 }}
-                  className="border-b border-surface-800/30 hover:bg-surface-800/20 transition-colors">
-                  <td className="px-4 py-3 text-sm font-medium text-surface-200 flex items-center gap-2"><FileText className="w-4 h-4 text-surface-500" />{f.filename}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400 tabular-nums">{(f.rows_processed ?? 0).toLocaleString()}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{f.size}</td>
-                  <td className="px-4 py-3 text-xs text-surface-400">{f.date}</td>
-                  <td className="px-4 py-3">
-                    <span className={cn(
-                      'flex items-center gap-1 text-xs font-medium',
-                      f.status === 'completed' ? 'text-accent-400' :
-                      f.status === 'queued' || f.status === 'processing' ? 'text-warning-400' :
-                      'text-danger-400'
-                    )}>
-                      {f.status === 'completed' ? <CheckCircle2 className="w-3.5 h-3.5" /> :
-                       f.status === 'queued' || f.status === 'processing' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
-                       <AlertTriangle className="w-3.5 h-3.5" />}
-                      {f.status.charAt(0).toUpperCase() + f.status.slice(1)}
+                <motion.tr
+                  key={f.id}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.2 + i * 0.02 }}
+                  className="border-b border-slate-100/80 dark:border-ds-border/40 hover:bg-slate-50/70 dark:hover:bg-ds-surface-sunken/40 transition-colors"
+                >
+                  <td className="px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-ds-text">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60 flex items-center justify-center flex-shrink-0 shadow-2xs">
+                        <FileSpreadsheet className="w-4 h-4" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{f.filename}</span>
+                        <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300">Run #{f.id}</span>
+                      </div>
+                    </div>
+                  </td>
+
+                  <td className="px-5 py-3.5 text-xs text-slate-700 dark:text-slate-300 font-semibold tabular-nums">
+                    {(f.rows_processed ?? 0).toLocaleString()} rows
+                  </td>
+
+                  <td className="px-5 py-3.5 text-xs text-slate-700 dark:text-slate-300 font-mono font-medium">
+                    {formatFileSize(f.file_size_bytes, f.size)}
+                  </td>
+
+                  <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-slate-300 tabular-nums font-medium">
+                    {f.date} {f.time ? `• ${f.time}` : ''}
+                  </td>
+
+                  <td className="px-5 py-3.5">
+                    <span
+                      className={cn(
+                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shadow-2xs',
+                        f.status === 'completed'
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
+                          : f.status === 'queued' || f.status === 'processing'
+                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
+                          : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
+                      )}
+                    >
+                      {f.status === 'completed' ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      ) : f.status === 'queued' || f.status === 'processing' ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+                      ) : (
+                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
+                      )}
+                      <span>{f.status.charAt(0).toUpperCase() + f.status.slice(1)}</span>
                     </span>
                   </td>
                 </motion.tr>
               ))}
+
               {(historyData?.uploads ?? []).length === 0 && (
-                <tr><td colSpan={5} className="px-4 py-8 text-center text-xs text-surface-500">No uploads yet</td></tr>
+                <tr>
+                  <td colSpan={5} className="px-5 py-10 text-center text-xs text-slate-400 dark:text-slate-500">
+                    No upload telemetry recorded yet. Ingest your first dataset above.
+                  </td>
+                </tr>
               )}
             </tbody>
           </table>

@@ -121,55 +121,55 @@ export function GlobalTaskProgress() {
       {task && (
         <motion.div
           key={task.taskId}
-          initial={{ opacity: 0, y: -48 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -48 }}
+          initial={{ opacity: 0, y: -48, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -48, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 380, damping: 32 }}
           className="fixed top-3 left-1/2 -translate-x-1/2 z-[9998]
-                     flex items-center gap-3 px-4 py-2.5 rounded-2xl
-                     bg-surface-900/95 border border-surface-700/80
-                     backdrop-blur-xl shadow-2xl min-w-[280px] max-w-[420px]"
+                     flex items-center gap-3 px-5 py-2.5 rounded-full
+                     bg-ds-surface border border-ds-hairline
+                     backdrop-blur-xl shadow-ds-float-2 min-w-[300px] max-w-[440px]"
         >
           {/* Status icon */}
           <div className="flex-shrink-0">
             {task.state === 'completed' ? (
-              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <CheckCircle2 className="w-4 h-4 text-ds-green" />
             ) : task.state === 'failed' ? (
-              <XCircle className="w-4 h-4 text-red-400" />
+              <XCircle className="w-4 h-4 text-ds-red" />
             ) : (
-              <Loader2 className="w-4 h-4 text-primary-400 animate-spin" />
+              <Loader2 className="w-4 h-4 text-ds-blue animate-spin" />
             )}
           </div>
 
           {/* Content */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2 mb-1">
-              <p className="text-xs font-semibold text-surface-200 truncate">
+              <p className="text-xs font-semibold text-ds-text-primary truncate">
                 {task.taskName}
               </p>
               {task.state !== 'failed' && (
-                <span className="text-[10px] font-mono text-surface-400 flex-shrink-0">
+                <span className="text-[10px] font-mono text-ds-text-muted flex-shrink-0">
                   {task.progress}%
                 </span>
               )}
             </div>
 
             {/* Progress bar */}
-            <div className="h-1 rounded-full bg-surface-800/80 overflow-hidden">
+            <div className="h-1 rounded-full bg-ds-surface-sunken overflow-hidden">
               <motion.div
                 className={`h-full rounded-full ${
                   task.state === 'completed'
-                    ? 'bg-emerald-500'
+                    ? 'bg-ds-green'
                     : task.state === 'failed'
-                    ? 'bg-red-500'
-                    : 'gradient-primary'
+                    ? 'bg-ds-red'
+                    : 'bg-ds-blue'
                 }`}
                 animate={{ width: `${task.state === 'failed' ? 100 : task.progress}%` }}
                 transition={{ duration: 0.4, ease: 'easeOut' }}
               />
             </div>
 
-            <p className="text-[10px] text-surface-500 mt-1 truncate">
+            <p className="text-[10px] text-ds-text-muted mt-1 truncate">
               {task.message}
             </p>
           </div>
@@ -177,7 +177,7 @@ export function GlobalTaskProgress() {
           {/* Dismiss */}
           <button
             onClick={() => setTask(null)}
-            className="flex-shrink-0 text-surface-600 hover:text-surface-400 transition"
+            className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-ds-text-muted hover:text-ds-text-primary transition"
             aria-label="Dismiss"
           >
             ×

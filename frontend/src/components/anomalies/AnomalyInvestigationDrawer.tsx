@@ -419,12 +419,12 @@ export function AnomalyInvestigationDrawer({ anomaly, onClose, onResolve }: Prop
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: '100%', opacity: 0 }}
             transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-            className="fixed right-0 top-0 h-full z-50 w-full max-w-lg bg-surface-900 border-l border-surface-800/60 shadow-2xl flex flex-col overflow-hidden"
+            className="fixed right-0 top-0 h-full z-50 w-full max-w-lg bg-ds-surface/95 dark:bg-surface-900/95 backdrop-blur-xl border-l border-ds-border/60 shadow-[var(--ds-raise-4)] flex flex-col overflow-hidden"
           >
             {/* Header */}
-            <div className="flex items-start justify-between px-5 py-4 border-b border-surface-800/60 bg-surface-900/95 flex-shrink-0">
+            <div className="flex items-start justify-between px-6 py-5 border-b border-ds-border/60 bg-ds-surface/80 dark:bg-surface-900/80 backdrop-blur-md flex-shrink-0">
               <div className="flex items-start gap-3">
-                <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0',
+                <div className={cn('w-10 h-10 rounded-2xl flex items-center justify-center flex-shrink-0',
                   SEVERITY_CONFIG[anomaly.severity].bg)}>
                   {(() => {
                     const Icon = SEVERITY_CONFIG[anomaly.severity].icon;
@@ -435,23 +435,23 @@ export function AnomalyInvestigationDrawer({ anomaly, onClose, onResolve }: Prop
                   <div className="flex items-center gap-2 flex-wrap">
                     <TypeBadge type={anomaly.anomaly_type} />
                     <SeverityBadge severity={anomaly.severity} />
-                    {loading && <Loader2 className="w-3 h-3 text-surface-500 animate-spin" />}
+                    {loading && <Loader2 className="w-3 h-3 text-ds-text-secondary animate-spin" />}
                   </div>
-                  <p className="text-[10px] text-surface-500 mt-1">
+                  <p className="text-[10px] text-ds-text-secondary mt-1">
                     Anomaly #{anomaly.id} · {anomaly.event_date ?? new Date(anomaly.detected_at).toLocaleDateString()}
                   </p>
                   {ctx?.product_name && (
                     <p className="text-[10px] text-primary-400 mt-0.5 flex items-center gap-1">
                       <Tag className="w-2.5 h-2.5" />
                       {ctx.product_name}
-                      {ctx.product_sku && <span className="text-surface-500">· SKU: {ctx.product_sku}</span>}
+                      {ctx.product_sku && <span className="text-ds-text-secondary">· SKU: {ctx.product_sku}</span>}
                     </p>
                   )}
                 </div>
               </div>
               <button
                 onClick={onClose}
-                className="w-7 h-7 rounded-lg flex items-center justify-center text-surface-500 hover:text-surface-200 hover:bg-surface-800/50 transition-all"
+                className="w-8 h-8 rounded-full flex items-center justify-center text-ds-text-secondary hover:text-ds-text hover:bg-ds-surface-sunken transition-all duration-200"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -571,11 +571,11 @@ export function AnomalyInvestigationDrawer({ anomaly, onClose, onResolve }: Prop
 
             {/* Footer Action */}
             {!anomaly.is_resolved && (
-              <div className="px-5 py-4 border-t border-surface-800/50 flex-shrink-0 bg-surface-900/95">
+              <div className="px-6 py-4 border-t border-ds-border/60 flex-shrink-0 bg-ds-surface/80 dark:bg-surface-900/80 backdrop-blur-md">
                 <button
                   id="drawer-resolve-btn"
                   onClick={() => { onResolve([anomaly.id]); onClose(); }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold bg-accent-500/15 text-accent-400 border border-accent-500/25 hover:bg-accent-500/25 transition-all duration-200"
+                  className="btn-apple btn-apple-accent w-full justify-center text-sm font-semibold py-3 shadow-[var(--ds-raise-1)]"
                 >
                   <CheckCircle2 className="w-4 h-4" />
                   Mark as Resolved

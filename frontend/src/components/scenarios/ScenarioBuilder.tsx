@@ -1,13 +1,13 @@
-/** ScenarioBuilder — right-hand panel: controls + run button. */
+/** ScenarioBuilder — central panel: controls + scenario types + sliders + run button. */
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Play, RotateCcw, Save, ChevronDown, ChevronUp,
+  Play, RotateCcw, ChevronDown, ChevronUp,
   Megaphone, DollarSign, Truck, ShieldCheck, Layers
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { ScenarioSlider } from './ScenarioSlider';
+import { ScenarioSlider, type SliderConfig } from './ScenarioSlider';
 import type { ScenarioParameters, ScenarioType } from '@/types/scenario';
 
 const SCENARIO_TYPE_OPTIONS: { value: ScenarioType; label: string; desc: string }[] = [
@@ -15,7 +15,7 @@ const SCENARIO_TYPE_OPTIONS: { value: ScenarioType; label: string; desc: string 
   { value: 'price_change', label: 'Price Change', desc: 'Price elasticity simulation' },
   { value: 'supply_disruption', label: 'Supply Disruption', desc: 'Lead time or supply constraint' },
   { value: 'seasonal_shift', label: 'Seasonal Shift', desc: 'Shift seasonality curve' },
-  { value: 'custom', label: 'Custom', desc: 'Free-form parameter set' },
+  { value: 'custom', label: 'Custom Parameter Set', desc: 'Free-form multi-variable configuration' },
 ];
 
 const SLIDER_CONFIGS = [
@@ -109,94 +109,130 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
     params.safety_stock_multiplier !== 1.0;
 
   return (
-    <div className="glass-card flex flex-col gap-0 overflow-hidden">
+    <div className="card-apple flex flex-col h-full bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl shadow-2xs overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b border-surface-800/60">
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-7 h-7 rounded-lg gradient-primary flex items-center justify-center">
-            <Layers className="w-3.5 h-3.5 text-white" />
+      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-ds-hairline bg-slate-50/40 dark:bg-ds-surface-sunken/30">
+        <div className="flex items-center gap-2.5 mb-3.5">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
+            <Layers className="w-4 h-4 text-white" />
           </div>
-          <h2 className="text-sm font-bold text-surface-50">Scenario Builder</h2>
+          <div>
+            <h2 className="text-sm font-bold text-slate-900 dark:text-ds-text-heading">Scenario Builder</h2>
+            <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary">
+              Configure assumptions and evaluate their impact
+            </p>
+          </div>
           {isDirty && (
-            <span className="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-primary-500/15 text-primary-400 border border-primary-500/20 font-medium">
-              MODIFIED
+            <span className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-ds-amber-surface dark:text-ds-amber-text dark:border-ds-amber/25 font-bold uppercase tracking-wider">
+              Modified
             </span>
           )}
         </div>
 
-        {/* Name */}
-        <input
-          id="scenario-name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className={cn(
-            'w-full bg-surface-900/60 border border-surface-700/60 rounded-xl px-3 py-2',
-            'text-sm text-surface-100 placeholder-surface-500 font-medium',
-            'focus:outline-none focus:border-primary-500/60 focus:ring-1 focus:ring-primary-500/20',
-            'transition-all duration-200'
-          )}
-          placeholder="Scenario name..."
-          maxLength={80}
-        />
-      </div>
-
-      {/* Scenario Type */}
-      <div className="px-4 py-3 border-b border-surface-800/60">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500 mb-2">
-          Scenario Type
-        </p>
-        <div className="grid grid-cols-1 gap-1">
-          {SCENARIO_TYPE_OPTIONS.map((opt) => (
-            <button
-              key={opt.value}
-              id={`scenario-type-${opt.value}`}
-              onClick={() => setScenarioType(opt.value)}
-              className={cn(
-                'flex items-center gap-2.5 px-3 py-2 rounded-xl text-left transition-all duration-150',
-                scenarioType === opt.value
-                  ? 'bg-primary-500/15 border border-primary-500/30 text-primary-300'
-                  : 'hover:bg-surface-800/50 border border-transparent text-surface-400 hover:text-surface-200'
-              )}
-            >
-              <div
-                className={cn(
-                  'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                  scenarioType === opt.value ? 'bg-primary-400' : 'bg-surface-600'
-                )}
-              />
-              <div>
-                <span className="text-xs font-semibold">{opt.label}</span>
-                <span className="text-[10px] text-surface-500 ml-1.5">{opt.desc}</span>
-              </div>
-            </button>
-          ))}
+        {/* Name input */}
+        <div className="space-y-1.5">
+          <label htmlFor="scenario-name" className="text-xs font-bold text-slate-700 dark:text-ds-text-heading block">
+            Scenario Name
+          </label>
+          <input
+            id="scenario-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className={cn(
+              'w-full bg-white dark:bg-surface-800 border border-slate-300 dark:border-ds-border rounded-xl px-3.5 py-2.5',
+              'text-sm text-slate-900 dark:text-ds-text-primary placeholder:text-slate-400 dark:placeholder:text-ds-text-muted font-semibold',
+              'focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+              'shadow-2xs transition-all duration-150'
+            )}
+            placeholder="e.g. Q3 Demand Shock Simulation..."
+            maxLength={80}
+          />
         </div>
       </div>
 
-      {/* Sliders */}
-      <div className="px-4 py-4 flex flex-col gap-5 flex-1 overflow-y-auto">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-          Scenario Variables
-        </p>
-        {SLIDER_CONFIGS.map((cfg) => (
-          <ScenarioSlider
-            key={cfg.id}
-            config={cfg as any}
-            value={params[cfg.id as keyof ScenarioParameters] as number}
-            onChange={(v) => handleSlider(cfg.id as keyof ScenarioParameters, v)}
-            disabled={isRunning || disabled}
-          />
-        ))}
+      {/* Scenario Archetype Selection (Responsive 2-column grid) */}
+      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-ds-hairline bg-slate-50/20 dark:bg-ds-surface-sunken/10">
+        <div className="mb-2.5">
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-ds-text-heading">
+            Scenario Archetype
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary mt-0.5">
+            Select a predefined archetype or use custom parameters
+          </p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+          {SCENARIO_TYPE_OPTIONS.map((opt) => {
+            const isSelected = scenarioType === opt.value;
+            const isCustom = opt.value === 'custom';
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                id={`scenario-type-${opt.value}`}
+                onClick={() => setScenarioType(opt.value)}
+                className={cn(
+                  'flex items-center justify-between gap-2.5 p-3 rounded-xl text-left transition-all duration-150 border',
+                  isCustom ? 'sm:col-span-2' : '',
+                  isSelected
+                    ? 'bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-white dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-surface-800 border-blue-500 dark:border-blue-500/60 shadow-xs ring-1 ring-blue-500/20'
+                    : 'bg-white dark:bg-surface-800/60 border-slate-200 dark:border-ds-hairline hover:bg-slate-50 dark:hover:bg-ds-surface-sunken hover:border-slate-300 dark:hover:border-ds-border'
+                )}
+              >
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <div
+                    className={cn(
+                      'w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors',
+                      isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-ds-border-strong bg-white dark:bg-surface-700'
+                    )}
+                  >
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className={cn('text-xs font-bold truncate', isSelected ? 'text-blue-700 dark:text-ds-blue-text' : 'text-slate-800 dark:text-ds-text-primary')}>
+                      {opt.label}
+                    </p>
+                    <p className="text-[11px] text-slate-500 dark:text-ds-text-muted truncate">{opt.desc}</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
 
-        {/* Advanced */}
+      {/* Sliders Area */}
+      <div className="p-4 sm:p-5 flex flex-col gap-4 flex-1">
         <div>
+          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-ds-text-heading">
+            Scenario Variables
+          </p>
+          <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary mt-0.5">
+            Adjust levers to simulate operational or market shifts
+          </p>
+        </div>
+
+        <div className="space-y-4 pt-1">
+          {SLIDER_CONFIGS.map((cfg) => (
+            <ScenarioSlider
+              key={cfg.id}
+              config={cfg as unknown as SliderConfig}
+              value={params[cfg.id as keyof ScenarioParameters] as number}
+              onChange={(v) => handleSlider(cfg.id as keyof ScenarioParameters, v)}
+              disabled={isRunning || disabled}
+            />
+          ))}
+        </div>
+
+        {/* Advanced Options Drawer */}
+        <div className="pt-3 border-t border-slate-200/80 dark:border-ds-hairline">
           <button
             id="advanced-toggle"
+            type="button"
             onClick={() => setAdvancedOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-xs text-surface-500 hover:text-surface-300 transition-colors"
+            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-ds-text-secondary hover:text-blue-600 dark:hover:text-ds-blue transition-colors py-1"
           >
-            {advancedOpen ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            Advanced Options
+            {advancedOpen ? <ChevronUp className="w-4 h-4 text-blue-600 dark:text-ds-blue" /> : <ChevronDown className="w-4 h-4 text-blue-600 dark:text-ds-blue" />}
+            <span>Advanced Configuration</span>
           </button>
           <AnimatePresence>
             {advancedOpen && (
@@ -207,16 +243,16 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
                 transition={{ duration: 0.2 }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 flex flex-col gap-3">
+                <div className="mt-3 flex flex-col gap-3.5 p-3.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken/60 border border-slate-200 dark:border-ds-hairline">
                   <div>
-                    <label className="text-xs font-medium text-surface-400 mb-1 block">
+                    <label className="text-xs font-bold text-slate-800 dark:text-ds-text-primary mb-1 block">
                       Forecast Horizon (weeks)
                     </label>
                     <ScenarioSlider
                       config={{
                         id: 'horizon_weeks',
-                        label: 'Horizon',
-                        description: 'How many weeks to forecast',
+                        label: 'Horizon Duration',
+                        description: 'Simulation forecast range',
                         min: 4,
                         max: 52,
                         step: 4,
@@ -231,8 +267,8 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
                     />
                   </div>
                   <div>
-                    <label htmlFor="avg-unit-value" className="text-xs font-medium text-surface-400 mb-1 block">
-                      Avg Unit Value ($)
+                    <label htmlFor="avg-unit-value" className="text-xs font-bold text-slate-800 dark:text-ds-text-primary mb-1 block">
+                      Average Unit Revenue ($)
                     </label>
                     <input
                       id="avg-unit-value"
@@ -243,9 +279,9 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
                       value={avgUnitValue}
                       onChange={(e) => setAvgUnitValue(parseFloat(e.target.value) || 0)}
                       className={cn(
-                        'w-full bg-surface-900/60 border border-surface-700/60 rounded-lg px-3 py-2',
-                        'text-sm text-surface-100 focus:outline-none focus:border-primary-500/60',
-                        'focus:ring-1 focus:ring-primary-500/20 transition-all duration-200'
+                        'w-full bg-white dark:bg-surface-800 border border-slate-300 dark:border-ds-border rounded-xl px-3 py-2',
+                        'text-xs font-bold text-slate-900 dark:text-ds-text-primary focus:outline-none focus:border-blue-600 dark:focus:border-blue-500',
+                        'focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-all duration-150'
                       )}
                     />
                   </div>
@@ -256,44 +292,46 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
         </div>
       </div>
 
-      {/* Actions */}
-      <div className="p-4 border-t border-surface-800/60 flex gap-2">
+      {/* Action Footer */}
+      <div className="p-4 sm:p-5 border-t border-slate-200/80 dark:border-ds-hairline bg-slate-50/60 dark:bg-ds-surface-sunken/40 flex items-center gap-3">
         <button
           id="reset-scenario"
+          type="button"
           onClick={handleReset}
           disabled={!isDirty || isRunning}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-200',
-            'border border-surface-700/60 text-surface-400',
+            'flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150',
+            'border shadow-2xs',
             isDirty && !isRunning
-              ? 'hover:border-surface-600 hover:text-surface-200 hover:bg-surface-800/50'
-              : 'opacity-40 cursor-not-allowed'
+              ? 'border-slate-300 dark:border-ds-border bg-white dark:bg-surface-800 hover:bg-slate-50 dark:hover:bg-ds-surface-sunken text-slate-700 dark:text-ds-text-primary'
+              : 'border-slate-200 dark:border-ds-hairline bg-slate-100 dark:bg-ds-surface-sunken text-slate-400 dark:text-ds-text-muted opacity-50 cursor-not-allowed'
           )}
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          Reset
+          <span>Reset</span>
         </button>
         <button
           id="run-scenario"
+          type="button"
           onClick={handleRun}
           disabled={isRunning || disabled || !name.trim()}
           className={cn(
-            'flex-1 flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl',
-            'text-sm font-bold transition-all duration-200',
+            'flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl',
+            'text-sm font-bold transition-all duration-150 shadow-sm',
             isRunning || disabled
-              ? 'bg-surface-800 text-surface-500 cursor-not-allowed'
-              : 'gradient-primary text-white shadow-lg shadow-primary-500/20 hover:shadow-primary-500/30 hover:scale-[1.01]'
+              ? 'bg-slate-200 dark:bg-ds-surface-sunken text-slate-400 dark:text-ds-text-muted border border-slate-200 dark:border-ds-hairline cursor-not-allowed'
+              : 'btn-apple btn-apple-primary shadow-blue-500/25'
           )}
         >
           {isRunning ? (
             <>
               <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              Running Simulation…
+              <span>Running Simulation…</span>
             </>
           ) : (
             <>
-              <Play className="w-4 h-4" />
-              Run Simulation
+              <Play className="w-4 h-4 fill-white" />
+              <span>Run Simulation</span>
             </>
           )}
         </button>

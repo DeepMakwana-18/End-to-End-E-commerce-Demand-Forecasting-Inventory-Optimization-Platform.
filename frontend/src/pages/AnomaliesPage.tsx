@@ -21,12 +21,11 @@ import { AnomalyFilterBar } from '@/components/anomalies/AnomalyFilterBar';
 import { AnomalyTable } from '@/components/anomalies/AnomalyTable';
 import { AnomalyTimeline } from '@/components/anomalies/AnomalyTimeline';
 import { AnomalyInvestigationDrawer } from '@/components/anomalies/AnomalyInvestigationDrawer';
-import { AnomalyTypeBreakdown } from '@/components/anomalies/AnomalySummaryCards';
 
 import anomalyApi from '@/services/anomalyApi';
 import { toast } from '@/hooks/useToast';
 import type {
-  Anomaly, AnomalyListResponse, AnomalySummary,
+  Anomaly, AnomalySummary,
   AnomalyFilters, AnomalyDetectRequest, AnomalyDetectResponse,
 } from '@/types/anomaly';
 
@@ -62,7 +61,7 @@ export default function AnomaliesPage() {
     setIsLoadingList(true);
     setSelectedIds(new Set());
     try {
-      const params: Record<string, any> = {
+      const params: Record<string, string | number | boolean> = {
         page: p,
         per_page: PER_PAGE,
         include_resolved: f.include_resolved,
@@ -89,8 +88,10 @@ export default function AnomaliesPage() {
     try {
       const { data } = await anomalyApi.list({ page: 1, per_page: 500, include_resolved: true });
       setAllAnomalies(data.anomalies);
-    } catch (err: any) {
-      console.error('[loadAllForCharts] failed:', err?.response?.status, err?.response?.data);
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number; data?: unknown } })?.response?.status;
+      const data = (err as { response?: { status?: number; data?: unknown } })?.response?.data;
+      console.error('[loadAllForCharts] failed:', status, data);
     } finally {
       setIsLoadingAll(false);
     }
@@ -111,10 +112,11 @@ export default function AnomaliesPage() {
 
   // ── Init ──────────────────────────────────────────────────────────
   useEffect(() => {
-    loadList(1, DEFAULT_FILTERS);
-    loadSummary();
-    loadAllForCharts();
-  }, []);
+    const init = async () => {
+      await Promise.allSettled([loadList(1, DEFAULT_FILTERS), loadSummary(), loadAllForCharts()]);
+    };
+    init();
+  }, [loadList, loadSummary, loadAllForCharts]);
 
   // ── Filter change ─────────────────────────────────────────────────
   const handleFilterChange = useCallback((f: AnomalyFilters) => {
@@ -140,7 +142,11 @@ export default function AnomaliesPage() {
   const handleSelectToggle = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
       return next;
     });
   }, []);
@@ -179,8 +185,10 @@ export default function AnomaliesPage() {
       );
       await Promise.all([loadList(1, filters), loadSummary(), loadAllForCharts()]);
       return data;
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Detection failed';
+    } catch (err: unknown) {
+      const msg =
+        (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ??
+        'Detection failed';
       toast.error('Detection error', typeof msg === 'string' ? msg : 'Unexpected error');
       return null;
     } finally {
@@ -207,25 +215,32 @@ export default function AnomaliesPage() {
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* ── Page Header ──────────────────────────────────────────────── */}
+      {/* ── Page Header with Elevated Container ───────────────────────── */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-surface-800/50 flex-shrink-0"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden mb-5"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-danger flex items-center justify-center shadow-lg shadow-danger-500/20">
+        {/* Subtle indigo decorative accent glow */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
             <Activity className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-surface-50 flex items-center gap-2">
-              Anomaly Intelligence
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-primary-500/10 border border-primary-500/20 text-primary-400 font-semibold">
-                & Investigation Center
-              </span>
-            </h1>
-            <p className="text-xs text-surface-500 mt-0.5">
-              Rolling z-score detection across demand, inventory & forecast data
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 inline-block" />
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text flex items-center gap-2 tracking-tight">
+                Anomaly Intelligence
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
+                  <Brain className="w-3 h-3 text-indigo-600" />
+                  Investigation Center
+                </span>
+              </h1>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-muted mt-0.5 ml-3.5 font-medium">
+              Rolling z-score detection across demand, inventory &amp; forecast data
             </p>
           </div>
         </div>
@@ -234,15 +249,15 @@ export default function AnomaliesPage() {
           id="refresh-all-btn"
           onClick={handleRefresh}
           disabled={isLoadingList}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border border-surface-700/60 text-surface-400 hover:bg-surface-800/50 hover:text-surface-200 transition-all duration-200"
+          className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-slate-200 dark:border-ds-border hover:bg-slate-50 dark:hover:bg-ds-surface-sunken self-start sm:self-auto relative z-10"
         >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
+          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-blue-600' : ''}`} />
           Refresh
         </button>
       </motion.div>
 
       {/* ── Scrollable content ────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 flex flex-col gap-5">
 
         {/* Section 1: Executive Intelligence Header */}
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
@@ -259,7 +274,7 @@ export default function AnomaliesPage() {
           <AnomalyDetectPanel onDetect={handleDetect} isRunning={isDetecting} />
         </motion.div>
 
-        {/* Section 3: Anomaly Breakdown Dashboard */}
+        {/* Section 3: Anomaly Breakdown Dashboard (2x2 Grid) */}
         <AnomalyDashboardCharts
           summary={summary}
           anomalies={allAnomalies}
@@ -267,13 +282,8 @@ export default function AnomaliesPage() {
           isLoadingAnomalies={isLoadingAll}
         />
 
-        {/* Type Breakdown (legacy — kept for compatibility) */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-          <AnomalyTypeBreakdown summary={summary} isLoading={isLoadingSummary} />
-        </motion.div>
-
         {/* Filter + Table | Timeline split layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
           {/* Left: Filter + Table (2/3 width on xl) */}
           <div className="xl:col-span-2 flex flex-col gap-4">
             <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>

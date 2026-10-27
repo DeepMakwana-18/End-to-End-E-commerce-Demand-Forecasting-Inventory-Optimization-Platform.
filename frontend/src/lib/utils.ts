@@ -32,22 +32,25 @@ export function formatPercent(value: number): string {
 
 /** Get severity color class */
 export function getSeverityColor(severity: string): string {
-  const colors: Record<string, string> = {
-    low: 'text-accent-400',
-    medium: 'text-warning-400',
-    high: 'text-orange-400',
-    critical: 'text-danger-400',
-  };
-  return colors[severity] || 'text-surface-400';
+  const s = severity?.toLowerCase();
+  if (s === 'critical') return 'text-rose-600 dark:text-rose-400';
+  if (s === 'high') return 'text-orange-600 dark:text-orange-400';
+  if (s === 'medium') return 'text-amber-600 dark:text-amber-400';
+  if (s === 'low') return 'text-blue-600 dark:text-blue-400';
+  return 'text-slate-500 dark:text-ds-text-muted';
 }
 
 /** Get severity bg color class */
 export function getSeverityBg(severity: string): string {
-  const colors: Record<string, string> = {
-    low: 'bg-accent-500/10 text-accent-400 border-accent-500/20',
-    medium: 'bg-warning-500/10 text-warning-400 border-warning-500/20',
-    high: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-    critical: 'bg-danger-500/10 text-danger-400 border-danger-500/20',
-  };
-  return colors[severity] || 'bg-surface-700/50 text-surface-400';
+  const s = severity?.toLowerCase();
+  if (s === 'critical') {
+    return 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30';
+  }
+  if (s === 'high') {
+    return 'bg-[#FFF7ED] text-[#C2410C] border-[#FED7AA] dark:bg-orange-950/60 dark:text-orange-300 dark:border-orange-500/30';
+  }
+  if (s === 'medium') {
+    return 'bg-[#FFFBEB] text-[#B45309] border-[#FDE68A] dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-500/30';
+  }
+  return 'bg-[#EFF6FF] text-[#1D4ED8] border-[#BFDBFE] dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-500/30';
 }

@@ -1,10 +1,9 @@
-/** ScenarioSlider — labelled range slider with live value display. */
+/** ScenarioSlider — labelled range slider with live value display and semantic styling. */
 
-import { useCallback } from 'react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-interface SliderConfig {
+export interface SliderConfig {
   id: string;
   label: string;
   description: string;
@@ -33,58 +32,60 @@ function formatDefault(v: number, unit: string) {
 }
 
 export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
-  const { id, label, description, min, max, step, unit, color = 'primary', icon } = config;
+  const { id, label, description, min, max, step, unit, icon } = config;
 
-  const pct = ((value - min) / (max - min)) * 100;
+  const pct = Math.max(0, Math.min(100, ((value - min) / (max - min)) * 100));
   const formatted = config.formatValue ? config.formatValue(value) : formatDefault(value, unit);
 
-  // Semantic colour based on value direction
-  const valueColor =
-    value > config.defaultValue
-      ? unit === 'days' || unit === '×'
-        ? 'text-warning-400'
-        : 'text-accent-400'
-      : value < config.defaultValue
-      ? unit === 'days' || unit === '×'
-        ? 'text-accent-400'
-        : 'text-danger-400'
-      : 'text-surface-300';
+  // Semantic color calculation
+  const isChanged = Math.abs(value - config.defaultValue) > 0.001;
+  const isHigher = value > config.defaultValue;
+  const isRiskMetric = unit === 'days' || unit === '×';
 
-  const trackColor =
-    value > config.defaultValue
-      ? unit === 'days' || unit === '×'
-        ? 'from-warning-500 to-warning-400'
-        : 'from-accent-600 to-accent-400'
-      : value < config.defaultValue
-      ? unit === 'days' || unit === '×'
-        ? 'from-accent-600 to-accent-400'
-        : 'from-danger-600 to-danger-400'
-      : 'from-primary-600 to-primary-400';
+  const badgeStyle = !isChanged
+    ? 'bg-ds-surface-sunken text-ds-text-primary border-ds-border'
+    : isHigher
+    ? isRiskMetric
+      ? 'bg-ds-amber-surface text-ds-amber-text border-ds-amber/25'
+      : 'bg-ds-green-surface text-ds-green-text border-ds-green/20'
+    : isRiskMetric
+    ? 'bg-ds-green-surface text-ds-green-text border-ds-green/20'
+    : 'bg-ds-red-surface text-ds-red-text border-ds-red/20';
+
+  const trackBg = !isChanged
+    ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
+    : isHigher
+    ? isRiskMetric
+      ? 'bg-gradient-to-r from-amber-500 to-amber-600'
+      : 'bg-gradient-to-r from-emerald-500 to-teal-600'
+    : isRiskMetric
+    ? 'bg-gradient-to-r from-emerald-500 to-teal-600'
+    : 'bg-gradient-to-r from-red-500 to-rose-600';
 
   return (
-    <div className={cn('group', disabled && 'opacity-50 pointer-events-none')}>
-      <div className="flex items-start justify-between mb-2.5">
-        <div className="flex items-center gap-2">
+    <div className={cn('group select-none py-1', disabled && 'opacity-50 pointer-events-none')}>
+      <div className="flex items-start justify-between mb-2 gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
           {icon && (
-            <span className="text-surface-400 group-hover:text-primary-400 transition-colors">
+            <span className="p-1 rounded-lg bg-slate-100 dark:bg-ds-surface-sunken text-slate-500 dark:text-ds-text-secondary group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors flex-shrink-0">
               {icon}
             </span>
           )}
-          <div>
-            <label htmlFor={id} className="text-sm font-semibold text-surface-100 cursor-pointer">
+          <div className="min-w-0">
+            <label htmlFor={id} className="text-xs sm:text-[13px] font-bold text-slate-800 dark:text-ds-text-heading cursor-pointer truncate block">
               {label}
             </label>
-            <p className="text-xs text-surface-500 mt-0.5">{description}</p>
+            <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary truncate mt-0.5 leading-tight">{description}</p>
           </div>
         </div>
         <motion.div
           key={formatted}
-          initial={{ scale: 1.15, opacity: 0.7 }}
+          initial={{ scale: 1.05, opacity: 0.8 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ duration: 0.15 }}
           className={cn(
-            'text-sm font-bold font-mono tabular-nums min-w-[4rem] text-right',
-            valueColor
+            'px-2.5 py-0.5 rounded-lg text-xs font-bold font-sans tabular-nums border shadow-2xs flex-shrink-0 ring-1 ring-black/5 dark:ring-white/5',
+            badgeStyle
           )}
         >
           {formatted}
@@ -92,20 +93,20 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
       </div>
 
       {/* Track + thumb */}
-      <div className="relative h-6 flex items-center">
+      <div className="relative h-7 flex items-center">
         {/* Background track */}
-        <div className="absolute inset-y-0 top-1/2 -translate-y-1/2 w-full h-1.5 bg-surface-800 rounded-full" />
+        <div className="absolute inset-y-0 top-1/2 -translate-y-1/2 w-full h-2.5 bg-slate-200/90 dark:bg-slate-700/80 rounded-full border border-slate-300/60 dark:border-slate-600/60 shadow-inner" />
 
         {/* Filled track */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 h-1.5 rounded-full bg-gradient-to-r transition-all duration-150',
-            trackColor
+            'absolute top-1/2 -translate-y-1/2 h-2.5 rounded-full transition-all duration-75 shadow-xs',
+            trackBg
           )}
           style={{ width: `${pct}%` }}
         />
 
-        {/* Native range input (invisible but interactive) */}
+        {/* Native range input (accessible and interactive) */}
         <input
           id={id}
           type="range"
@@ -115,28 +116,27 @@ export function ScenarioSlider({ config, value, onChange, disabled }: Props) {
           value={value}
           onChange={(e) => onChange(parseFloat(e.target.value))}
           disabled={disabled}
-          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full"
-          style={{ zIndex: 10 }}
+          className="absolute inset-0 w-full opacity-0 cursor-pointer h-full z-10 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/50 rounded-full"
+          aria-label={label}
         />
 
         {/* Visual thumb */}
         <div
           className={cn(
-            'absolute top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white shadow-lg',
-            'transition-transform duration-150 group-hover:scale-110',
-            'bg-gradient-to-br pointer-events-none',
-            trackColor
+            'absolute top-1/2 -translate-y-1/2 w-5.5 h-5.5 rounded-full bg-white dark:bg-slate-100 shadow-md border-2 border-indigo-600 dark:border-blue-500',
+            'transition-transform duration-100 group-hover:scale-110 ring-2 ring-indigo-500/20 dark:ring-blue-400/25',
+            'pointer-events-none'
           )}
-          style={{ left: `calc(${pct}% - 8px)` }}
+          style={{ left: `calc(${pct}% - 11px)` }}
         />
       </div>
 
       {/* Min / Max labels */}
-      <div className="flex justify-between mt-1.5">
-        <span className="text-[10px] text-surface-600">
+      <div className="flex justify-between mt-0.5 px-0.5">
+        <span className="text-[11px] text-slate-400 dark:text-ds-text-muted font-mono font-medium">
           {unit === '%' ? `${min}%` : unit === 'days' ? `${min}d` : unit === '×' ? `${min}×` : min}
         </span>
-        <span className="text-[10px] text-surface-600">
+        <span className="text-[11px] text-slate-400 dark:text-ds-text-muted font-mono font-medium">
           {unit === '%' ? `${max}%` : unit === 'days' ? `${max}d` : unit === '×' ? `${max}×` : max}
         </span>
       </div>

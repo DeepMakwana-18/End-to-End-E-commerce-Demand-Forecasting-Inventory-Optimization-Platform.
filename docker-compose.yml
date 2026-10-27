@@ -127,6 +127,8 @@ services:
     depends_on:
       - celery_worker
       - redis
+    ports:
+      - "5555:5555"
     networks:
       - df-network
 
@@ -139,6 +141,9 @@ services:
     restart: unless-stopped
     ports:
       - "3000:80"
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+      - ./landing:/usr/share/nginx/html/landing:ro
     depends_on:
       - backend
     networks:

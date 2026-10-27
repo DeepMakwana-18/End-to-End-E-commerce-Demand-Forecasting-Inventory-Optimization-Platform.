@@ -31,10 +31,11 @@ export default function ScenariosPage() {
 
   // ── Load list ────────────────────────────────────────────────────────
   const loadScenarios = useCallback(async () => {
+    setIsLoadingList(true);
     try {
       const { data } = await scenarioApi.list({ per_page: 50 });
       setScenarios(data.scenarios);
-    } catch (err) {
+    } catch {
       toast.error('Load failed', 'Could not fetch scenarios');
     } finally {
       setIsLoadingList(false);
@@ -42,8 +43,19 @@ export default function ScenariosPage() {
   }, []);
 
   useEffect(() => {
-    loadScenarios();
-  }, [loadScenarios]);
+    let isMounted = true;
+    (async () => {
+      try {
+        const { data } = await scenarioApi.list({ per_page: 50 });
+        if (isMounted) setScenarios(data.scenarios);
+      } catch {
+        if (isMounted) toast.error('Load failed', 'Could not fetch scenarios');
+      } finally {
+        if (isMounted) setIsLoadingList(false);
+      }
+    })();
+    return () => { isMounted = false; };
+  }, []);
 
   // ── Select a scenario from history ────────────────────────────────────
   const handleSelect = useCallback(async (s: Scenario) => {
@@ -93,8 +105,8 @@ export default function ScenariosPage() {
       await loadScenarios();
 
       toast.success('Simulation complete', `${name} finished in ${result.computation_seconds?.toFixed(2)}s`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Simulation failed';
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Simulation failed';
       toast.error('Simulation error', typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setIsRunning(false);
@@ -117,8 +129,8 @@ export default function ScenariosPage() {
       setExplainHorizonWeeks(s.horizon_weeks ?? 12);
       await loadScenarios();
       toast.success('Simulation complete', `${s.name} finished`);
-    } catch (err: any) {
-      const msg = err?.response?.data?.detail ?? 'Simulation failed';
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Simulation failed';
       toast.error('Simulation error', typeof msg === 'string' ? msg : JSON.stringify(msg));
     } finally {
       setIsRunning(false);
@@ -141,73 +153,60 @@ export default function ScenariosPage() {
   }, [activeScenario, loadScenarios]);
 
   return (
-    <div className="flex flex-col gap-0 h-full min-h-0">
-      {/* Page header */}
+    <div className="flex flex-col gap-6 w-full pb-16">
+      {/* 1. Page Header */}
       <motion.div
-        initial={{ opacity: 0, y: -8 }}
+        initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="flex items-center justify-between px-6 py-4 border-b border-surface-800/50 flex-shrink-0"
+        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
       >
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center shadow-lg shadow-primary-500/20">
+        {/* Subtle indigo-to-blue decorative glow */}
+        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
+
+        <div className="relative flex items-center gap-3.5">
+          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
             <FlaskConical className="w-5 h-5 text-white" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-surface-50">Scenario Engine</h1>
-            <p className="text-xs text-surface-500 mt-0.5">
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 inline-block" />
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
+                Scenario Engine
+              </h1>
+            </div>
+            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
               What-If simulations powered by the active ML model
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* Info badge */}
-          <div className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-surface-900/60 border border-surface-800/50">
-            <Lightbulb className="w-3.5 h-3.5 text-warning-400" />
-            <span className="text-xs text-surface-400">
-              Changes are non-destructive — model is never retrained
-            </span>
+        <div className="flex items-center gap-2.5 relative z-10 self-start sm:self-auto">
+          {/* Informational non-destructive badge */}
+          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-ds-blue-surface dark:text-ds-blue-text dark:border-ds-blue/20 text-xs font-semibold shadow-2xs">
+            <Lightbulb className="w-3.5 h-3.5 text-blue-600 dark:text-ds-blue flex-shrink-0" />
+            <span>Non-destructive simulation — model is never retrained</span>
           </div>
 
           <button
             id="refresh-scenarios"
             onClick={loadScenarios}
             disabled={isLoadingList}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium
-                       border border-surface-700/60 text-surface-400
-                       hover:bg-surface-800/50 hover:text-surface-200 transition-all duration-200"
+            className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-slate-200 dark:border-ds-border hover:bg-slate-50 dark:hover:bg-ds-surface-sunken"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin' : ''}`} />
-            Refresh
+            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-blue-600' : ''}`} />
+            <span>Refresh</span>
           </button>
         </div>
       </motion.div>
 
-      {/* Three-column layout */}
-      <div className="flex flex-1 min-h-0 overflow-hidden">
-        {/* ── Left: History ── */}
-        <motion.div
-          initial={{ opacity: 0, x: -12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.05 }}
-          className="w-72 xl:w-80 flex-shrink-0 flex flex-col gap-3 p-4 border-r border-surface-800/50 overflow-y-auto"
-        >
-          <ScenarioHistory
-            scenarios={scenarios}
-            activeId={activeScenario?.id ?? null}
-            isLoading={isLoadingList}
-            onSelect={handleSelect}
-            onRun={handleQuickRun}
-            onDelete={handleDelete}
-          />
-        </motion.div>
-
-        {/* ── Mid: Builder ── */}
+      {/* 2. Main Workspace: Two Columns (Left ~42% Builder, Right ~58% Results) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* ── Left Column: Builder (lg:col-span-5 ~41.7%) ── */}
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="w-80 xl:w-96 flex-shrink-0 flex flex-col p-4 border-r border-surface-800/50 overflow-y-auto"
+          transition={{ delay: 0.05 }}
+          className="lg:col-span-5 flex flex-col"
         >
           <ScenarioBuilder
             onRun={handleRun}
@@ -215,12 +214,12 @@ export default function ScenariosPage() {
           />
         </motion.div>
 
-        {/* ── Right: Results ── */}
+        {/* ── Right Column: Results (lg:col-span-7 ~58.3%) ── */}
         <motion.div
-          initial={{ opacity: 0, x: 12 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: 0.15 }}
-          className="flex-1 min-w-0 flex flex-col gap-4 p-4 overflow-y-auto"
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+          className="lg:col-span-7 flex flex-col gap-6"
         >
           <ScenarioResultPanel
             result={activeResult}
@@ -237,6 +236,23 @@ export default function ScenariosPage() {
           )}
         </motion.div>
       </div>
+
+      {/* 3. Full-Width Bottom Section: Scenario History */}
+      <motion.div
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.15 }}
+        className="w-full"
+      >
+        <ScenarioHistory
+          scenarios={scenarios}
+          activeId={activeScenario?.id ?? null}
+          isLoading={isLoadingList}
+          onSelect={handleSelect}
+          onRun={handleQuickRun}
+          onDelete={handleDelete}
+        />
+      </motion.div>
     </div>
   );
 }

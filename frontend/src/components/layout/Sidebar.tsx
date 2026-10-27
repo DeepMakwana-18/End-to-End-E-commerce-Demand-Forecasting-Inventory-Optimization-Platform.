@@ -1,5 +1,6 @@
 /** Premium enterprise sidebar with glassmorphism effects. */
 
+import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -32,23 +33,40 @@ const adminItems = [
 export function Sidebar() {
   const { sidebarCollapsed, toggleSidebar, user, logout } = useAppStore();
   const location = useLocation();
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener('resize', check);
+    return () => window.removeEventListener('resize', check);
+  }, []);
+
+  const width = isMobile ? (sidebarCollapsed ? 0 : 260) : (sidebarCollapsed ? 72 : 260);
 
   return (
-    <motion.aside
-      initial={false}
-      animate={{ width: sidebarCollapsed ? 72 : 260 }}
-      transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className={cn(
-        'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
-        'border-r border-surface-800/50',
-        'bg-surface-950/80 backdrop-blur-xl',
-        'overflow-hidden'
+    <>
+      {isMobile && !sidebarCollapsed && (
+        <div
+          onClick={toggleSidebar}
+          className="fixed inset-0 bg-ds-scrim z-30 md:hidden"
+        />
       )}
-    >
+      <motion.aside
+        initial={false}
+        animate={{ width }}
+        transition={{ duration: 0.3, ease: [0.28, 0.11, 0.32, 1] }}
+        className={cn(
+          'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
+          'border-r border-slate-200/90 dark:border-ds-hairline',
+          'bg-white dark:bg-ds-sidebar-surface',
+          'overflow-hidden shadow-[1px_0_12px_rgba(15,23,42,0.03)]'
+        )}
+      >
       {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-surface-800/50">
+      <div className="flex items-center h-16 px-4 border-b border-slate-200/80 dark:border-ds-hairline flex-shrink-0 bg-slate-50/40 dark:bg-transparent">
         <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-xl gradient-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary-500/20">
+          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
             <BarChart3 className="w-5 h-5 text-white" />
           </div>
           <AnimatePresence>
@@ -60,8 +78,11 @@ export function Sidebar() {
                 transition={{ duration: 0.2 }}
                 className="whitespace-nowrap"
               >
-                <h1 className="text-sm font-bold text-surface-50 tracking-tight">Titan AI</h1>
-                <p className="text-[10px] text-surface-500 font-medium">Supply Chain Intelligence</p>
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-sm font-extrabold text-slate-900 dark:text-ds-text-primary tracking-tight">Titan AI</h1>
+                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v2.4</span>
+                </div>
+                <p className="text-[10px] text-slate-500 dark:text-ds-text-muted font-medium">Supply Chain Intelligence</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -69,10 +90,10 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2 space-y-1">
+      <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1">
         <div className="mb-4">
           {!sidebarCollapsed && (
-            <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
               Main Menu
             </p>
           )}
@@ -81,13 +102,15 @@ export function Sidebar() {
               key={item.path}
               to={item.path}
               end={item.path === '/app'}
+              title={sidebarCollapsed ? item.label : undefined}
+              aria-label={item.label}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                  'hover:bg-surface-800/60 group relative',
+                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
+                  'group relative',
                   isActive
-                    ? 'bg-primary-500/10 text-primary-400 shadow-sm'
-                    : 'text-surface-400 hover:text-surface-200'
+                    ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
+                    : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
                 )
               }
             >
@@ -96,13 +119,13 @@ export function Sidebar() {
                   {isActive && (
                     <motion.div
                       layoutId="activeNav"
-                      className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary-500"
-                      transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                      className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
+                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                     />
                   )}
                   <item.icon className={cn(
-                    'w-5 h-5 flex-shrink-0 transition-colors',
-                    isActive ? 'text-primary-400' : 'text-surface-500 group-hover:text-surface-300'
+                    'w-4.5 h-4.5 flex-shrink-0 transition-colors',
+                    isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
                   )} />
                   <AnimatePresence>
                     {!sidebarCollapsed && (
@@ -126,7 +149,7 @@ export function Sidebar() {
         {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst') && (
           <div>
             {!sidebarCollapsed && (
-              <p className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-widest text-surface-500">
+              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
                 Administration
               </p>
             )}
@@ -134,13 +157,15 @@ export function Sidebar() {
               <NavLink
                 key={item.path}
                 to={item.path}
+                title={sidebarCollapsed ? item.label : undefined}
+                aria-label={item.label}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200',
-                    'hover:bg-surface-800/60 group relative',
+                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
+                    'group relative',
                     isActive
-                      ? 'bg-primary-500/10 text-primary-400 shadow-sm'
-                      : 'text-surface-400 hover:text-surface-200'
+                      ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
+                      : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
                   )
                 }
               >
@@ -149,13 +174,13 @@ export function Sidebar() {
                     {isActive && (
                       <motion.div
                         layoutId="activeNav"
-                        className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-6 rounded-r-full bg-primary-500"
-                        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
+                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
                       />
                     )}
                     <item.icon className={cn(
-                      'w-5 h-5 flex-shrink-0 transition-colors',
-                      isActive ? 'text-primary-400' : 'text-surface-500 group-hover:text-surface-300'
+                      'w-4.5 h-4.5 flex-shrink-0 transition-colors',
+                      isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
                     )} />
                     <AnimatePresence>
                       {!sidebarCollapsed && (
@@ -178,18 +203,18 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-2 border-t border-surface-800/50">
+      <div className="p-2.5 border-t border-slate-200/80 dark:border-ds-hairline space-y-1 bg-slate-50/30 dark:bg-transparent">
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
-          className="w-full flex items-center justify-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
+          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-ds-surface-alt/60 transition-all border border-transparent hover:border-slate-200/60"
         >
           {sidebarCollapsed ? (
-            <ChevronRight className="w-5 h-5" />
+            <ChevronRight className="w-4 h-4" />
           ) : (
             <>
-              <ChevronLeft className="w-5 h-5" />
-              <span>Collapse</span>
+              <ChevronLeft className="w-4 h-4" />
+              <span>Collapse Sidebar</span>
             </>
           )}
         </button>
@@ -197,9 +222,9 @@ export function Sidebar() {
         {/* User / Logout */}
         <button
           onClick={logout}
-          className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-surface-400 hover:text-danger-400 hover:bg-danger-500/10 transition-all mt-1"
+          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-ds-red dark:hover:bg-ds-red-surface transition-all border border-transparent hover:border-rose-100 dark:hover:border-transparent"
         >
-          <LogOut className="w-5 h-5 flex-shrink-0" />
+          <LogOut className="w-4 h-4 flex-shrink-0" />
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.span
@@ -214,5 +239,6 @@ export function Sidebar() {
         </button>
       </div>
     </motion.aside>
+    </>
   );
 }

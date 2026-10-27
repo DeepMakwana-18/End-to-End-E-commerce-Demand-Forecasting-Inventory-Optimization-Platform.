@@ -241,13 +241,26 @@ async def get_upload_history(
 
     result = []
     for u in uploads:
+        file_bytes = u.file_size or 0
+        if file_bytes <= 0:
+            formatted_size = "N/A"
+        elif file_bytes < 1024:
+            formatted_size = f"{file_bytes} B"
+        elif file_bytes < 1024 * 1024:
+            formatted_size = f"{file_bytes / 1024:.1f} KB"
+        else:
+            formatted_size = f"{file_bytes / (1024 * 1024):.2f} MB"
+
         result.append({
             "id": u.id,
             "filename": u.original_filename,
             "rows_processed": u.rows_processed,
             "status": u.status,
             "date": u.created_at.strftime("%Y-%m-%d") if u.created_at else "",
-            "size": f"{(u.file_size or 0) / (1024 * 1024):.1f} MB" if u.file_size else "N/A",
+            "time": u.created_at.strftime("%H:%M") if u.created_at else "",
+            "created_at": u.created_at.isoformat() if u.created_at else None,
+            "size": formatted_size,
+            "file_size_bytes": file_bytes,
         })
 
     return {"uploads": result, "total": len(result)}

@@ -39,7 +39,7 @@ export const useAppStore = create<AppState>()(
         set({ user: null, organization: null, accessToken: null, refreshToken: null, isAuthenticated: false }),
 
       // Theme state
-      theme: 'dark',
+      theme: 'light',
       setTheme: (theme) => {
         set({ theme });
         const root = document.documentElement;
