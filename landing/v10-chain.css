@@ -1,22 +1,24 @@
 /* TITAN AI v10 — Scene 02: Editorial Cause-and-Effect Story
-   Color System: Variant B — Monochromatic Botanical + Warm Cream
+   Color System: Emerald Sun Remix Theme
    Demonstrating: DEMAND SHIFT (45→60 u/d) → INVENTORY IMPACT (14.7→11d) → REPLENISHMENT REVIEW (13d policy).
    Scoped to .chain-story. */
 
 :root {
-  --chain-bg: #0A1B18;
-  --chain-surface: #112521;
-  --chain-surface-inner: #091714;
-  --chain-surface-track: rgba(255, 255, 255, 0.035);
-  --chain-border: rgba(124, 221, 174, 0.12);
-  --chain-border-subtle: rgba(124, 221, 174, 0.07);
-  --chain-text-primary: #F4EFE6;
-  --chain-text-secondary: #9EBEB0;
-  --chain-text-muted: #729B8B;
-  --chain-brand-lime: #B7F58D;
-  --chain-caution-amber: #E2B078;
-  --chain-bar-baseline: #2C584A;
-  --chain-bar-surge: #477A68;
+  --chain-bg: #071912;
+  --chain-surface: #0e2b1f;
+  --chain-surface-inner: #071710;
+  --chain-surface-track: rgba(255, 255, 255, 0.04);
+  --chain-border: rgba(220, 247, 232, 0.14);
+  --chain-border-subtle: rgba(220, 247, 232, 0.08);
+  --chain-text-primary: #fbfaf5;
+  --chain-text-secondary: #c1d9cc;
+  --chain-text-muted: #86a896;
+  --chain-brand-lime: #129d4e;
+  --chain-brand-emerald: #129d4e;
+  --chain-sun-yellow: #facc15;
+  --chain-caution-amber: #e5a83b;
+  --chain-bar-baseline: #1a4f3b;
+  --chain-bar-surge: #2d7355;
 }
 
 .chain-story {
@@ -346,9 +348,9 @@
   top: -2px;
   left: 65%;
   transform: translateX(-50%);
-  background: #1C1710;
-  border: 1px solid rgba(226, 176, 120, 0.45);
-  color: var(--chain-caution-amber);
+  background: #1f1807;
+  border: 1px solid rgba(229, 168, 59, 0.55);
+  color: #facc15;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -505,8 +507,8 @@
 
 .segment-safety {
   flex: 5;
-  background: rgba(124, 221, 174, 0.1);
-  border: 1px solid rgba(124, 221, 174, 0.25);
+  background: rgba(18, 157, 78, 0.15);
+  border: 1px solid rgba(18, 157, 78, 0.35);
   color: var(--chain-brand-lime);
 }
 
@@ -546,9 +548,9 @@
   letter-spacing: 0.08em;
   padding: 4px 9px;
   border-radius: 99px;
-  background: rgba(226, 176, 120, 0.14);
-  color: var(--chain-caution-amber);
-  border: 1px solid rgba(226, 176, 120, 0.45);
+  background: rgba(229, 168, 59, 0.16);
+  color: #facc15;
+  border: 1px solid rgba(229, 168, 59, 0.45);
   text-transform: uppercase;
 }
 

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="theme-color" content="#f4efe6" />
+    <meta name="theme-color" content="#fbfaf5" />
     <meta name="description" content="Titan AI turns sales data into demand forecasts, inventory signals, risk alerts, and smarter supply-chain decisions." />
     <link rel="canonical" href="https://titanai.app/" />
     <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
@@ -110,9 +110,9 @@
                   <stop offset="1" stop-color="#101318" stop-opacity=".62"/>
                 </linearGradient>
                 <linearGradient id="thFc" x1="0" x2="1" y1="0" y2="0">
-                  <stop offset="0%" stop-color="#2e9a63"/>
-                  <stop offset=".55" stop-color="#66d7a0"/>
-                  <stop offset="1" stop-color="#a9f27b"/>
+                  <stop offset="0%" stop-color="#129d4e"/>
+                  <stop offset=".55" stop-color="#15a249"/>
+                  <stop offset="1" stop-color="#34d399"/>
                 </linearGradient>
               </defs>
               <g class="th-layer" style="--d:10"><g id="thDots"></g></g>
@@ -419,8 +419,8 @@
                 <svg class="chart-main chart-pearl" viewBox="0 0 760 215" preserveAspectRatio="none" role="img" aria-label="Demand forecast chart showing historical actuals and 12-week XGBoost prediction with 95% confidence interval">
                   <defs>
                     <linearGradient id="ci-gradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#2d854e" stop-opacity="0.18" />
-                      <stop offset="100%" stop-color="#2d854e" stop-opacity="0.04" />
+                      <stop offset="0%" stop-color="#129d4e" stop-opacity="0.18" />
+                      <stop offset="100%" stop-color="#129d4e" stop-opacity="0.04" />
                     </linearGradient>
                   </defs>
                   <g class="grid-pearl">
@@ -555,93 +555,209 @@
                 </div>
               </div>
 
-              <!-- Mode 3: Risk Radar — v11 interactive signal investigation -->
+              <!-- Mode 3: Risk Radar — Concept B Workbench + Option R2 Variance Plot -->
               <div class="chart-canvas canvas-risk">
-                <section class="risk-lab" data-risk-lab data-risk-focus="surge" aria-label="Interactive anomaly investigation demonstration">
-                  <div class="risk-lab-heading">
-                    <div class="risk-lab-heading-title"><span class="risk-live-dot" aria-hidden="true"></span><strong>SIGNAL INVESTIGATION</strong><span>SKU-204 / Illustrative daily units</span></div>
-                    <span class="risk-lab-range">Expected: 60 units/day <i aria-hidden="true"></i> 3 selectable observations</span>
-                  </div>
-                  <div class="risk-lab-plot">
-                    <svg viewBox="0 0 720 190" preserveAspectRatio="none" role="img" aria-label="Illustrative demand series with a normal observation on day 8, a significant demand surge on day 14 and a demand drop on day 23. Select the events beneath the graph to review each case.">
-                      <defs>
-                        <linearGradient id="risk-band-v11" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#9bceb0" stop-opacity=".24"/><stop offset="100%" stop-color="#9bceb0" stop-opacity=".08"/></linearGradient>
-                        <linearGradient id="risk-graph-v11" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#2d7252" stop-opacity=".12"/><stop offset="100%" stop-color="#2d7252" stop-opacity="0"/></linearGradient>
-                      </defs>
-                      <g class="risk-lab-grid"><path d="M24 36 H696 M24 84 H696 M24 132 H696 M24 170 H696"/><path d="M24 12 V170 M696 12 V170"/></g>
-                      <path class="risk-lab-band" d="M24 48 Q190 46 360 50 T696 48 L696 128 Q525 130 360 128 T24 128 Z" fill="url(#risk-band-v11)"/>
-                      <path class="risk-lab-mean" d="M24 88 H696" />
-                      <path class="risk-lab-area" d="M24 93 C80 89 125 98 181 91 C225 91 262 94 298 87 C321 82 341 31 360 28 C387 23 403 84 428 89 C476 92 496 87 522 95 C541 103 557 147 573 146 C588 144 598 99 615 94 C648 91 668 97 696 92 L696 170 H24 Z" fill="url(#risk-graph-v11)" />
-                      <path class="risk-lab-actual" d="M24 93 C80 89 125 98 181 91 C225 91 262 94 298 87 C321 82 341 31 360 28 C387 23 403 84 428 89 C476 92 496 87 522 95 C541 103 557 147 573 146 C588 144 598 99 615 94 C648 91 668 97 696 92" />
-                      <g class="risk-lab-point risk-lab-point-steady" data-risk-point="steady"><path d="M181 91 V171"/><circle class="risk-point-halo" cx="181" cy="91" r="14"/><circle class="risk-point-inner" cx="181" cy="91" r="5"/></g>
-                      <g class="risk-lab-point risk-lab-point-surge" data-risk-point="surge"><path d="M360 28 V171"/><circle class="risk-point-halo" cx="360" cy="28" r="14"/><circle class="risk-point-inner" cx="360" cy="28" r="6"/></g>
-                      <g class="risk-lab-point risk-lab-point-drop" data-risk-point="drop"><path d="M573 146 V171"/><circle class="risk-point-halo" cx="573" cy="146" r="14"/><circle class="risk-point-inner" cx="573" cy="146" r="6"/></g>
-                      <text x="24" y="15" class="risk-lab-axis-label">UNITS</text><text x="34" y="80" class="risk-lab-mean-label">60/day baseline</text><text x="692" y="44" text-anchor="end" class="risk-lab-axis-label">EXPECTED RANGE · ILLUSTRATIVE</text>
-                    </svg>
-                    <div class="risk-lab-legend"><span><i class="risk-legend-observed" aria-hidden="true"></i>Observed demand</span><span><i class="risk-legend-band" aria-hidden="true"></i>Expected corridor</span><span><i class="risk-legend-baseline" aria-hidden="true"></i>Baseline</span></div>
-                  </div>
-                  <div class="risk-lab-events" role="group" aria-label="Select an observation to investigate">
-                    <button type="button" class="risk-event" data-risk-event="steady" aria-pressed="false"><span>DAY 08 <i>Normal</i></span><strong>61 units</strong></button>
-                    <button type="button" class="risk-event is-active" data-risk-event="surge" aria-pressed="true"><span>DAY 14 <i>Surge</i></span><strong>89 units</strong></button>
-                    <button type="button" class="risk-event" data-risk-event="drop" aria-pressed="false"><span>DAY 23 <i>Drop</i></span><strong>38 units</strong></button>
-                  </div>
-                  <div class="risk-lab-findings" aria-live="polite" aria-atomic="true">
-                    <div class="risk-finding-lead"><span class="risk-finding-eyebrow">CURRENT FINDING</span><strong id="risk-finding-title">Demand is 48% above its baseline.</strong><p id="risk-finding-detail">89 units observed against a 60-unit illustrative daily baseline.</p></div>
-                    <div class="risk-finding-evidence"><span>WHY FLAGGED</span><p id="risk-finding-basis">+3.2σ versus baseline variation; above the illustrative +2σ alert threshold.</p></div>
-                    <div class="risk-finding-next"><span>WHAT TO INVESTIGATE</span><p id="risk-finding-action">Check recent campaigns, channel activity and current inventory coverage. The cause is not yet confirmed.</p></div>
+                <section class="risk-lab-wb" data-risk-lab data-risk-focus="surge" aria-label="Interactive anomaly investigation workbench">
+                  <div class="workbench-grid">
+                    <!-- Left Column: Observation Ledger -->
+                    <div class="wb-ledger" role="group" aria-label="Select an observation to investigate">
+                      <span class="wb-ledger-title">INVESTIGATION SIGNALS</span>
+                      
+                      <button type="button" class="event-card" data-risk-event="steady" aria-pressed="false">
+                        <div class="event-card-head"><span>DAY 08</span><span class="tag-normal">NORMAL</span></div>
+                        <div class="event-card-meta"><span>61 units</span><span>+0.1σ (Safe)</span></div>
+                      </button>
+
+                      <button type="button" class="event-card is-active" data-risk-event="surge" aria-pressed="true">
+                        <div class="event-card-head"><span>DAY 14</span><span class="tag-surge">+48% SURGE</span></div>
+                        <div class="event-card-meta"><span>89 units</span><span class="meta-alert">+3.2σ (Alert)</span></div>
+                      </button>
+
+                      <button type="button" class="event-card" data-risk-event="drop" aria-pressed="false">
+                        <div class="event-card-head"><span>DAY 23</span><span class="tag-drop">−37% DROP</span></div>
+                        <div class="event-card-meta"><span>38 units</span><span class="meta-alert-red">−2.4σ (Alert)</span></div>
+                      </button>
+                    </div>
+
+                    <!-- Right Column: Option R2 Dumbbell Variance Canvas -->
+                    <div class="wb-viz-panel">
+                      <div class="viz-header">
+                        <div class="viz-title">
+                          <strong>VARIANCE & DEVIATION DUMBBELL PLOT</strong>
+                          <span class="viz-subtitle">· Anchor Datum: 60 u/day</span>
+                        </div>
+                        <div class="viz-meta">TOLERANCE ENVELOPE: ±18 UNITS (±2.0σ)</div>
+                      </div>
+
+                      <!-- R2 SVG: Dumbbell plot comparing 3 events against baseline center -->
+                      <div class="r2-plot-wrap">
+                        <svg class="r2-svg" viewBox="0 0 540 135" preserveAspectRatio="none" role="img" aria-label="Dumbbell variance chart comparing Day 08, Day 14, and Day 23 against a 60 unit/day baseline with a plus or minus 2 sigma tolerance envelope">
+                          <!-- Background Tolerance Envelope [42u to 78u] = [181px to 379px] -->
+                          <rect class="r2-corridor-box" x="181" y="10" width="198" height="115" rx="6" />
+                          <line x1="181" y1="10" x2="181" y2="125" class="r2-bound-line" />
+                          <line x1="379" y1="10" x2="379" y2="125" class="r2-bound-line" />
+                          <text x="181" y="8" text-anchor="middle" class="r2-bound-text">−2.0σ (42u)</text>
+                          <text x="379" y="8" text-anchor="middle" class="r2-bound-text">+2.0σ (78u)</text>
+
+                          <!-- Center Baseline Line (60u = x:280) -->
+                          <line x1="280" y1="10" x2="280" y2="125" class="r2-datum-line" />
+                          <text x="280" y="8" text-anchor="middle" class="r2-datum-text">60u BASELINE</text>
+
+                          <!-- Row 1: Day 08 Normal (61u -> x = 286) -->
+                          <g class="r2-row r2-row-steady" data-risk-row="steady">
+                            <rect class="r2-row-focus" x="16" y="16" width="510" height="30" rx="6" />
+                            <text x="24" y="34" class="r2-row-label">DAY 08</text>
+                            <text x="74" y="34" class="r2-row-val val-green">61 units</text>
+                            <line x1="280" y1="31" x2="286" y2="31" class="r2-stem stem-green" />
+                            <circle cx="280" cy="31" r="3.5" class="r2-anchor-dot" />
+                            <circle cx="286" cy="31" r="4.5" class="r2-val-dot dot-green" />
+                            <text x="296" y="34" class="r2-row-meta text-green">+1u (+0.1σ) · Inside corridor</text>
+                          </g>
+
+                          <!-- Row 2: Day 14 Surge (89u -> x = 440) -->
+                          <g class="r2-row r2-row-surge is-active" data-risk-row="surge">
+                            <rect class="r2-row-focus" x="16" y="52" width="510" height="30" rx="6" />
+                            <text x="24" y="70" class="r2-row-label">DAY 14</text>
+                            <text x="74" y="70" class="r2-row-val val-amber">89 units</text>
+                            <line x1="280" y1="67" x2="440" y2="67" class="r2-stem stem-amber" />
+                            <circle cx="280" cy="67" r="3.5" class="r2-anchor-dot" />
+                            <circle cx="440" cy="67" r="5.5" class="r2-val-dot dot-amber" />
+                            <text x="448" y="70" class="r2-row-meta text-amber">+29u (+3.2σ) · Upper Alert</text>
+                          </g>
+
+                          <!-- Row 3: Day 23 Drop (38u -> x = 159) -->
+                          <g class="r2-row r2-row-drop" data-risk-row="drop">
+                            <rect class="r2-row-focus" x="16" y="88" width="510" height="30" rx="6" />
+                            <text x="24" y="106" class="r2-row-label">DAY 23</text>
+                            <text x="74" y="106" class="r2-row-val val-red">38 units</text>
+                            <line x1="280" y1="103" x2="159" y2="103" class="r2-stem stem-red" />
+                            <circle cx="280" cy="103" r="3.5" class="r2-anchor-dot" />
+                            <circle cx="159" cy="103" r="5.5" class="r2-val-dot dot-red" />
+                            <text x="150" y="106" text-anchor="end" class="r2-row-meta text-red">−22u (−2.4σ) · Lower Alert</text>
+                          </g>
+                        </svg>
+                      </div>
+
+                      <!-- Integrated Evidence Card -->
+                      <div class="viz-insight-card" id="risk-insight-card" aria-live="polite">
+                        <span class="viz-insight-badge tag-surge" id="risk-finding-badge">STATISTICAL SURGE (+3.2σ)</span>
+                        <span class="viz-insight-text">
+                          <strong id="risk-finding-title">Demand is 48% above baseline (89 vs 60 u/d).</strong>
+                          <span id="risk-finding-desc">Crossed the +2.0σ alert threshold by 11 units. Check wholesale channels and campaigns; cause is unconfirmed.</span>
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </section>
               </div>
 
-              <!-- Mode 4: Scenario Lab — v12 interactive, assumption-driven simulation -->
+              <!-- Mode 4: Scenario Lab — Concept B Workbench + Option S1 Dual Synchronized Impact -->
               <div class="chart-canvas canvas-scenario">
-                <section class="scenario-studio" data-scenario-studio data-scenario-mode="promo" aria-label="Interactive what-if simulation studio">
-                  <div class="ss-topline">
-                    <span><i class="ss-live-dot" aria-hidden="true"></i> WHAT-IF SIMULATION STUDIO</span>
-                    <span>SKU-204 / ILLUSTRATIVE MODEL</span>
-                  </div>
-                  <div class="ss-presets" role="group" aria-label="Choose a simulation scenario">
-                    <button type="button" class="ss-preset is-active" data-scenario="promo" aria-pressed="true"><span class="ss-preset-key">01</span><span><b>Promotion surge</b><small>Change demand</small></span></button>
-                    <button type="button" class="ss-preset" data-scenario="price" aria-pressed="false"><span class="ss-preset-key">02</span><span><b>Price adjustment</b><small>Explore elasticity</small></span></button>
-                    <button type="button" class="ss-preset" data-scenario="delay" aria-pressed="false"><span class="ss-preset-key">03</span><span><b>Supplier delay</b><small>Stress-test coverage</small></span></button>
-                  </div>
-                  <div class="ss-workspace">
-                    <div class="ss-controls">
-                      <span class="ss-section-label">01 / SET AN ASSUMPTION</span>
-                      <h4 id="ss-assumption-title">Promotion uplift</h4>
-                      <p id="ss-assumption-help">Increase expected unit demand for an illustrative campaign.</p>
-                      <div class="ss-slider-value" id="ss-slider-value" aria-hidden="true">+20<span>%</span></div>
-                      <label class="ss-range-label" for="ss-assumption"><span id="ss-range-name">Demand uplift</span><output id="ss-value-label" for="ss-assumption">+20%</output></label>
-                      <input id="ss-assumption" type="range" min="5" max="35" step="1" value="20" aria-describedby="ss-assumption-help ss-model-note" />
-                      <div class="ss-range-ends"><span id="ss-range-low">+5%</span><span id="ss-range-high">+35%</span></div>
-                      <div class="ss-model-note" id="ss-model-note">Assumes the uplift applies to forecast demand. Other inputs stay constant.</div>
-                    </div>
-                    <div class="ss-plot" role="group" aria-label="Comparison visualization">
-                      <div class="ss-chart-heading">
-                        <div><span class="ss-section-label" id="ss-chart-caption">02 / WEEKLY DEMAND FORECAST</span><strong id="ss-chart-title">See how demand responds.</strong></div>
-                        <span class="ss-chart-chip" id="ss-chart-chip">DEMAND +20%</span>
+                <section class="scenario-studio-wb" data-scenario-studio data-scenario-mode="promo" aria-label="Interactive what-if simulation workbench">
+                  <div class="workbench-grid">
+                    <!-- Left: Parameter Stack -->
+                    <div class="wb-ledger" role="group" aria-label="Choose a simulation scenario">
+                      <span class="wb-ledger-title">SCENARIO SELECTION</span>
+                      
+                      <button type="button" class="event-card is-active" data-scenario="promo" aria-pressed="true">
+                        <div class="event-card-head"><span>01 · PROMOTION SURGE</span> <strong class="preset-val-tag" id="s1-promo-tag">+20%</strong></div>
+                        <span class="event-card-sub">Demand uplift on 12w forecast</span>
+                      </button>
+
+                      <button type="button" class="event-card" data-scenario="price" aria-pressed="false">
+                        <div class="event-card-head"><span>02 · PRICE ADJUSTMENT</span> <strong class="preset-val-tag" id="s1-price-tag">−15%</strong></div>
+                        <span class="event-card-sub">Unit-elastic demand sensitivity</span>
+                      </button>
+
+                      <button type="button" class="event-card" data-scenario="delay" aria-pressed="false">
+                        <div class="event-card-head"><span>03 · SUPPLIER DELAY</span> <strong class="preset-val-tag" id="s1-delay-tag">+10d</strong></div>
+                        <span class="event-card-sub">Inbound shipment transit slip</span>
+                      </button>
+
+                      <div class="slider-ctrl-block">
+                        <div class="slider-ctrl-head">
+                          <span id="ss-assumption-name">Demand Uplift</span>
+                          <strong id="ss-slider-val-display">+20%</strong>
+                        </div>
+                        <label class="sr-only" for="ss-assumption">Adjust simulation parameter</label>
+                        <input id="ss-assumption" type="range" min="5" max="35" step="1" value="20" />
+                        <div class="slider-ctrl-bounds">
+                          <span id="ss-range-low">+5% Min</span>
+                          <span id="ss-range-high">+35% Max</span>
+                        </div>
+                        <p class="slider-ctrl-note" id="ss-model-note">Assumes the uplift applies to future demand; other inputs remain unchanged.</p>
                       </div>
-                      <svg viewBox="0 0 760 244" preserveAspectRatio="xMidYMid meet" class="ss-chart-svg" role="img" aria-labelledby="ss-svg-title ss-svg-desc">
-                        <title id="ss-svg-title">Scenario versus baseline</title>
-                        <desc id="ss-svg-desc">Simulated demand after a promotion is compared with baseline demand.</desc>
-                        <defs><linearGradient id="ss-variation-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#40a26a" stop-opacity=".21"/><stop offset="100%" stop-color="#40a26a" stop-opacity=".015"/></linearGradient><linearGradient id="ss-delay-fill" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#dc9766" stop-opacity=".19"/><stop offset="100%" stop-color="#dc9766" stop-opacity=".025"/></linearGradient></defs>
-                        <g class="ss-chart-grid"><path d="M40 35 H726 M40 112 H726 M40 190 H726"/></g>
-                        <g class="ss-axis-values" aria-hidden="true"><text x="34" y="39" text-anchor="end" id="ss-axis-high">700</text><text x="34" y="116" text-anchor="end" id="ss-axis-middle">500</text><text x="34" y="194" text-anchor="end" id="ss-axis-low">300</text></g>
-                        <path id="ss-chart-area" class="ss-chart-area" d="" />
-                        <path id="ss-chart-baseline" class="ss-chart-baseline" d="" />
-                        <path id="ss-chart-simulated" class="ss-chart-simulated" d="" />
-                        <g id="ss-chart-marker" class="ss-chart-marker"><line id="ss-marker-line" x1="714" x2="714" y1="36" y2="208"/><circle id="ss-marker-dot" cx="714" cy="80" r="5"/></g>
-                      </svg>
-                      <div class="ss-chart-axes"><span id="ss-axis-start">THIS WEEK</span><span id="ss-axis-mid">WEEK 6</span><span id="ss-axis-end">WEEK 12</span></div>
-                      <div class="ss-legends"><span><i class="ss-base-swatch" aria-hidden="true"></i><span id="ss-baseline-label">Baseline demand</span></span><span><i class="ss-sim-swatch" aria-hidden="true"></i><span id="ss-sim-label">Simulated demand</span></span></div>
+                    </div>
+
+                    <!-- Right: Option S1 Synchronized Dual Track -->
+                    <div class="wb-viz-panel">
+                      <div class="viz-header">
+                        <div class="viz-title">
+                          <strong>DEMAND UPLIFT & RUNWAY DEFICIT IMPACT</strong>
+                          <span class="viz-subtitle" id="s1-viz-subtitle">· 12-Week Planning Horizon</span>
+                        </div>
+                        <div class="viz-meta">REVIEW THRESHOLD: 13.0 DAYS (8d Lead + 5d Safety)</div>
+                      </div>
+
+                      <!-- Track 1: Weekly Demand Trajectory -->
+                      <div class="s1-track-a">
+                        <svg class="s1-svg-a" viewBox="0 0 540 60" preserveAspectRatio="none" role="img" aria-label="Weekly demand comparison between baseline and simulated scenario">
+                          <defs>
+                            <linearGradient id="s1-lift-wedge" x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="0%" stop-color="#129d4e" stop-opacity="0.25" />
+                              <stop offset="100%" stop-color="#129d4e" stop-opacity="0.02" />
+                            </linearGradient>
+                          </defs>
+                          <text x="8" y="12" class="s1-track-label">TRACK A · WEEKLY DEMAND FORECAST (UNITS)</text>
+                          <!-- Baseline Curve -->
+                          <path id="s1-path-baseline" d="M8 44 Q140 42 270 41 T532 38" fill="none" stroke="#64748b" stroke-width="1.8" stroke-dasharray="4 4" />
+                          <text x="532" y="49" text-anchor="end" class="s1-base-text" id="s1-base-label">Baseline (60 u/d)</text>
+                          <!-- Simulation Area & Curve -->
+                          <path id="s1-path-area" d="M8 44 Q140 42 270 41 T532 38 L532 18 Q400 20 270 23 T8 44 Z" fill="url(#s1-lift-wedge)" />
+                          <path id="s1-path-sim" d="M8 44 Q140 26 270 23 T532 18" fill="none" stroke="#129d4e" stroke-width="2.5" stroke-linecap="round" />
+                          <circle id="s1-marker-dot" cx="532" cy="18" r="4" fill="#129d4e" stroke="#fff" stroke-width="1.5" />
+                          <text x="532" y="12" text-anchor="end" class="s1-sim-text" id="s1-sim-label">Simulated: 72 u/d (+20%)</text>
+                        </svg>
+                      </div>
+
+                      <!-- Track 2: Inventory Runway & Threshold Deficit Bar -->
+                      <div class="s1-track-b">
+                        <svg class="s1-svg-b" viewBox="0 0 540 70" preserveAspectRatio="none" role="img" aria-label="Inventory runway comparison showing baseline and simulated coverage against the 13 day threshold">
+                          <text x="8" y="11" class="s1-track-label">TRACK B · STOCK COVERAGE VS 13-DAY REVIEW THRESHOLD</text>
+                          <!-- 13-Day Review Threshold Datum Pin (at x = 28 + 13*29.5 = 411.5px) -->
+                          <line x1="412" y1="16" x2="412" y2="65" stroke="#09291c" stroke-width="2" />
+                          <rect x="352" y="15" width="120" height="13" rx="3" fill="#09291c" />
+                          <text x="412" y="24.5" text-anchor="middle" class="s1-pin-text">REVIEW THRESHOLD: 13.0d</text>
+
+                          <!-- Baseline Coverage: 11.0 days (28 + 11*29.5 = 352.5px) -->
+                          <rect x="28" y="31" width="324" height="12" rx="3" fill="#64748b" opacity="0.4" />
+                          <text x="34" y="40" class="s1-bar-text">Baseline Coverage: 11.0 Days (60 u/d)</text>
+                          <!-- Baseline 2.0d deficit bracket -->
+                          <line x1="352" y1="37" x2="412" y2="37" stroke="#64748b" stroke-width="1" stroke-dasharray="2 2" />
+                          <text x="382" y="47" text-anchor="middle" class="s1-bracket-text">−2.0d deficit</text>
+
+                          <!-- Simulated Coverage (+20%): 9.2 days (28 + 9.167*29.5 = 298px) -->
+                          <rect id="s1-sim-bar" x="28" y="49" width="270" height="14" rx="3" fill="rgba(18,157,78,0.18)" stroke="#129d4e" stroke-width="1.5" />
+                          <text id="s1-sim-bar-text" x="34" y="59.5" class="s1-bar-text-bold">Simulated Coverage: 9.2 Days (72 u/d)</text>
+                          <!-- Simulated 3.8d deficit bracket -->
+                          <line id="s1-bracket-line" x1="298" y1="56" x2="412" y2="56" stroke="#e5a83b" stroke-width="1.5" stroke-dasharray="2 3" />
+                          <g id="s1-gap-pill">
+                            <rect id="s1-gap-rect" x="323" y="49" width="80" height="13" rx="3" fill="#fef3c7" stroke="#f59e0b" stroke-width="1" />
+                            <text id="s1-gap-text" x="363" y="58.5" text-anchor="middle" class="s1-gap-text-bold">−3.8d GAP (276u)</text>
+                          </g>
+                        </svg>
+                      </div>
+
+                      <!-- Integrated Consequence Card -->
+                      <div class="viz-insight-card" id="scenario-insight-card" aria-live="polite">
+                        <span class="viz-insight-badge tag-surge" id="ss-risk-badge">PLANNING GAP: 276 UNITS</span>
+                        <span class="viz-insight-text">
+                          <strong id="ss-outcome-headline">Buffer falls 3.8 days below target review threshold.</strong>
+                          <span id="ss-recommendation">At 72 u/day, 660 units covers 9.2 days. Closing the deficit against the 13-day threshold requires an illustrative ~276 additional units.</span>
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div class="ss-results" aria-live="polite" aria-atomic="true">
-                    <div class="ss-result"><span id="ss-result-one-label">DEMAND CHANGE</span><strong id="ss-result-one">+20%</strong><small id="ss-result-one-note">72 vs 60 units per day</small></div>
-                    <div class="ss-result"><span id="ss-result-two-label">STOCK COVERAGE</span><strong id="ss-result-two">9.2 days</strong><small id="ss-result-two-note">660 units available</small></div>
-                    <div class="ss-outcome"><span><i aria-hidden="true"></i><b id="ss-risk-level">BUFFER BELOW TARGET</b></span><p id="ss-recommendation">Review replenishment: target coverage requires about 276 additional units under these example assumptions.</p></div>
-                  </div>
-                  <p class="ss-disclaimer">Illustrative planning model · 660 units on hand · 60 baseline units/day · 8-day supplier lead time · 5-day safety buffer. No orders are placed.</p>
                 </section>
               </div>
             </div>
@@ -658,220 +774,190 @@
         </div>
       </section>
 
-      <!-- v13 · Section 05 — The Action Brief -->
+      <!-- v13 · Section 05 — The Decision Spotlight (In Practice) -->
       <section class="action-brief-scene scene scene-dark" id="in-practice" aria-labelledby="brief-title">
         <div class="brief-ambient" aria-hidden="true"></div>
         <div class="brief-inner">
           <header class="brief-heading reveal">
             <div class="brief-heading-copy">
-              <p class="eyebrow eyebrow-dark"><span></span> 05 / The Action Brief</p>
+              <p class="eyebrow eyebrow-dark"><span></span> 05 / In Practice</p>
               <h2 id="brief-title">The next move.<br /><em>Made clearer.</em></h2>
             </div>
             <p class="brief-heading-dek">
-              Demonstrating how Titan AI presents understandable evidence and helps an operator consider an inventory decision—without black-box automation.
+              Titan transforms complex supply signals into a defensible operational recommendation—putting critical timing triggers into focus while keeping the human planner in command.
             </p>
           </header>
 
-          <article class="brief-dossier reveal" data-action-brief aria-label="Operational intelligence brief for SKU-204">
-            <!-- Dossier Masthead -->
-            <div class="brief-masthead">
-              <div class="brief-tagline">
-                <span class="brief-shield-mark" aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
-                </span>
-                <span class="brief-kicker-text">OPERATIONAL INTELLIGENCE BRIEF</span>
-                <span class="brief-sku-pill">SKU-204 · Apex Sprint Footwear</span>
-              </div>
-              <div class="brief-status-tag">
-                <span class="brief-pulse-dot" aria-hidden="true"></span>
-                <span>STATUS: ACTION TRIGGERED</span>
-              </div>
-            </div>
-
-            <!-- Main Briefing Grid -->
-            <div class="brief-grid">
-              
-              <!-- Evidence Column -->
-              <div class="brief-evidence-panel">
-                <div class="brief-panel-label">
-                  <span>01 / OBSERVED EVIDENCE</span>
-                  <small>VERIFIED PARAMETERS</small>
-                </div>
-
-                <!-- 3 Key Metric Blocks -->
-                <div class="brief-metrics-row">
-                  <div class="brief-metric-cell">
-                    <span class="brief-metric-label">AVAILABLE INVENTORY</span>
-                    <div class="brief-metric-val">
-                      <strong>660</strong>
-                      <span class="brief-metric-unit">units</span>
-                    </div>
-                    <span class="brief-metric-note">On hand in primary fulfillment</span>
-                  </div>
-
-                  <div class="brief-metric-cell">
-                    <span class="brief-metric-label">DAILY DEMAND</span>
-                    <div class="brief-metric-val">
-                      <strong>60</strong>
-                      <span class="brief-metric-unit">units/day</span>
-                    </div>
-                    <span class="brief-metric-note">Illustrative rolling velocity</span>
-                  </div>
-
-                  <div class="brief-metric-cell brief-metric-highlight">
-                    <span class="brief-metric-label">STOCK COVERAGE</span>
-                    <div class="brief-metric-val">
-                      <strong>11</strong>
-                      <span class="brief-metric-unit">days</span>
-                    </div>
-                    <span class="brief-metric-note">660 ÷ 60 = 11 days runway</span>
-                  </div>
-                </div>
-
-                <!-- Integrated Visual Decision Path -->
-                <div class="brief-decision-path" role="region" aria-label="Visual decision path: stock coverage versus review threshold">
-                  <div class="brief-path-header">
-                    <span class="brief-path-title">02 / INTEGRATED DECISION PATH</span>
-                    <span class="brief-path-delta">Coverage (11d) &lt; Threshold (13d)</span>
-                  </div>
-
-                  <!-- The visual timeline comparator -->
-                  <div class="brief-runway-graphic" aria-hidden="true">
-                    <div class="brief-timeline-track">
-                      <!-- Fill for current coverage (11 of 16 days = 68.75%) -->
-                      <div class="brief-bar-coverage" style="width: 68.75%;">
-                        <span class="brief-bar-label">Current Stock: 11 Days Runway</span>
-                      </div>
-                      <!-- The Deficit Gap from 11d to 13d (12.5% width, from 68.75% to 81.25%) -->
-                      <div class="brief-bar-deficit" style="left: 68.75%; width: 12.5%;">
-                        <span class="brief-deficit-tag">−2d deficit</span>
-                      </div>
-                      <!-- Target Threshold Marker at 13 days (81.25%) -->
-                      <div class="brief-marker-threshold" style="left: 81.25%;">
-                        <div class="brief-marker-pin"></div>
-                        <span class="brief-marker-text">Review Threshold: 13 Days</span>
-                      </div>
-                    </div>
-
-                    <!-- Breakdown tags underneath -->
-                    <div class="brief-path-breakdown">
-                      <div class="brief-component comp-lead">
-                        <span class="comp-swatch"></span>
-                        <span>Supplier lead time: <strong>8 days</strong></span>
-                      </div>
-                      <span class="comp-plus">+</span>
-                      <div class="brief-component comp-buffer">
-                        <span class="comp-swatch"></span>
-                        <span>Safety buffer: <strong>5 days</strong></span>
-                      </div>
-                      <span class="comp-equals">=</span>
-                      <div class="brief-component comp-threshold">
-                        <span class="comp-swatch"></span>
-                        <span>Review threshold: <strong>13 days</strong></span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <p class="brief-path-summary">
-                    At 60 units/day, 660 units cover <strong>11 days</strong>. Replenishing takes 8 days with a desired 5-day safety buffer (<strong>13 days</strong>). Because 11 days &lt; 13 days, coverage has entered the replenishment review window.
-                  </p>
-                </div>
-              </div>
-
-              <!-- Recommendation Column (Forest-green Accent) -->
-              <div class="brief-conclusion-panel">
-                <div class="brief-panel-label">
-                  <span>03 / RECOMMENDATION</span>
-                  <small>INTELLIGENCE CONCLUSION</small>
-                </div>
-
-                <div class="brief-recommendation-card">
-                  <div class="brief-rec-badge">
-                    <span class="brief-rec-dot" aria-hidden="true"></span>
-                    <span>RECOMMENDED NEXT STEP</span>
-                  </div>
-
-                  <h3 class="brief-rec-headline">Review replenishment now.</h3>
-
-                  <p class="brief-rec-explanation">
-                    Coverage is 2 days below your 13-day threshold. Placing an order within this window ensures inbound stock arrives before inventory dips below your 5-day safety buffer.
-                  </p>
-
-                  <div class="brief-rec-guarantee">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <span>Operator review required. No purchase order has been placed or sent.</span>
-                  </div>
-                </div>
-
-                <!-- Lightweight Actions -->
-                <div class="brief-actions-cluster">
-                  <!-- Interaction 1: Expand reasoning -->
-                  <button type="button" class="brief-action-btn brief-why-toggle" id="brief-why-toggle" aria-expanded="false" aria-controls="brief-reasoning-drawer">
-                    <span class="brief-btn-text">Why this recommendation?</span>
-                    <span class="brief-btn-icon" aria-hidden="true">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
-                    </span>
-                  </button>
-
-                  <!-- Interaction 2: Verified route to inventory intelligence -->
-                  <a href="#product" class="brief-action-link" id="brief-inventory-link">
-                    <span>See inventory intelligence</span>
-                    <span class="brief-arrow-icon" aria-hidden="true">↗</span>
-                  </a>
-                </div>
-              </div>
-
-            </div>
-
-            <!-- Expandable Reasoning Drawer (Accordion) -->
-            <div class="brief-reasoning-drawer" id="brief-reasoning-drawer" hidden aria-hidden="true">
-              <div class="brief-drawer-inner">
-                <div class="brief-drawer-header">
-                  <h4>Transparent Decision Reasoning &amp; Underlying Math</h4>
-                  <span class="brief-drawer-tag">FORMULA VERIFICATION</span>
-                </div>
+          <!-- The Signature Diptych Stage -->
+          <div class="spotlight-stage reveal" data-action-brief id="spotlight-stage-target">
+            
+            <!-- LEFT: The Signal Anchor (Native to deep forest canvas) -->
+            <div class="signal-anchor" id="signal-anchor-pane">
+              <div class="signal-top-cluster">
                 
-                <div class="brief-drawer-grid">
-                  <div class="brief-step-card">
-                    <span class="brief-step-num">STEP 01</span>
-                    <h5>Stock Coverage Runway</h5>
-                    <p class="brief-formula-code">660 units ÷ 60 units/day = <strong>11.0 days</strong></p>
-                    <p class="brief-step-desc">Current available stock will be exhausted in exactly 11 calendar days at the observed baseline rate.</p>
-                  </div>
+                <div class="signal-meta-row">
+                  <span class="signal-kicker">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                    TIMING TRIGGER DETECTED
+                  </span>
+                  <span class="signal-sku-pill">SKU-204 · Apex Sprint Footwear</span>
+                </div>
 
-                  <div class="brief-step-card">
-                    <span class="brief-step-num">STEP 02</span>
-                    <h5>Planning Review Threshold</h5>
-                    <p class="brief-formula-code">8 days (lead) + 5 days (buffer) = <strong>13.0 days</strong></p>
-                    <p class="brief-step-desc">To maintain a 5-day safety cushion upon new stock arrival, review must trigger whenever runway hits 13 days.</p>
-                  </div>
+                <!-- Monumental Numeral Display -->
+                <div class="signal-numeral-lockup">
+                  <span class="signal-giant-number">−2.0</span>
+                  <span class="signal-giant-unit">days</span>
+                </div>
 
-                  <div class="brief-step-card">
-                    <span class="brief-step-num">STEP 03</span>
-                    <h5>Deficit &amp; Decision Window</h5>
-                    <p class="brief-formula-code">11.0 days &lt; 13.0 days → <strong>2-day deficit</strong></p>
-                    <p class="brief-step-desc">If a purchase order is submitted today, goods arrive on Day 8, leaving 3 days of stock remaining—2 days under your 5-day buffer target.</p>
+                <h3 class="signal-headline">Below Replenishment Review Threshold</h3>
+                
+                <p class="signal-dek">
+                  At 60 units/day baseline velocity, 660 units on hand covers 11.0 calendar days. With an 8-day supplier lead time and a 5-day safety buffer, stock coverage has entered the replenishment review window today.
+                </p>
+
+                <!-- Architectural Variance Caliper -->
+                <div class="caliper-card" role="region" aria-label="Visual runway variance comparator">
+                  <div class="caliper-header">
+                    <span>RUNWAY VARIANCE COMPARATOR</span>
+                    <span>11.0d AVAILABLE &lt; 13.0d TARGET</span>
+                  </div>
+                  <div class="caliper-ruler" aria-hidden="true">
+                    <div class="caliper-fill-stock" title="Available stock: 11 days"></div>
+                    <div class="caliper-fill-deficit" title="Shortfall: 2 days below target"></div>
+                    <div class="caliper-datum-pin" title="Review threshold: 13 days"></div>
+                  </div>
+                  <div class="caliper-scale-labels">
+                    <span>Available: <strong>11.0 Days</strong></span>
+                    <span>Variance: <strong style="color: #facc15;">−2.0 Days Deficit</strong></span>
+                    <span>Threshold: <strong>13.0 Days</strong></span>
                   </div>
                 </div>
 
-                <div class="brief-drawer-assumptions">
-                  <strong>Assumptions &amp; Order Quantities:</strong>
-                  <span>Baseline demand is modeled at 60 units/day. Supplier lead time is fixed at 8 days. Required order sizing is intentionally not forced here: batch quantities (MOQ), case packs, and target forward weeks should be chosen by the inventory planner. Titan identifies the timing trigger so you stay in control.</span>
+                <!-- Operational Arrival Buffer Note -->
+                <div class="arrival-buffer-callout">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                  <span><strong>Arrival Implication:</strong> If ordered today, replenishment arrives on Day 8 with 3.0 days of buffer remaining—2.0 days below your 5-day safety buffer target.</span>
                 </div>
+
               </div>
             </div>
 
-            <!-- Dossier Footer -->
-            <div class="brief-card-footer">
-              <div class="brief-footer-left">
-                <span class="brief-dot-indicator" aria-hidden="true"></span>
-                <span>TITAN ACTION INTELLIGENCE · SYSTEM DEMO</span>
+            <!-- RIGHT: The Decision Monolith (Warm Ivory Architectural Plane) -->
+            <article class="decision-monolith" id="decision-monolith-target" aria-label="Operational decision memo for SKU-204">
+              
+              <div>
+                <!-- Monolith Masthead -->
+                <div class="monolith-masthead">
+                  <span class="monolith-brand-title">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M12 2L3 7v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-9-5z"/></svg>
+                    TITAN AI · OPERATIONAL ACTION BRIEF
+                  </span>
+                  <span class="monolith-review-pill">
+                    <span class="monolith-review-pip" aria-hidden="true"></span>
+                    <span>Review Recommended</span>
+                  </span>
+                </div>
+
+                <!-- Primary Recommendation Hero Block -->
+                <div class="monolith-rec-wrap">
+                  <span class="monolith-rec-kicker">Recommended Operational Response</span>
+                  <h3 class="monolith-rec-title">Review replenishment for SKU-204.</h3>
+                  <p class="monolith-rec-summary">
+                    Stock runway has breached the 13-day review threshold. Initiate order planning immediately to prevent uncontrolled depletion of the baseline safety buffer.
+                  </p>
+                </div>
+
+                <!-- Horizontal Evidence Parameter Ribbon -->
+                <div class="monolith-ribbon" role="group" aria-label="Verified inventory parameters">
+                  <div class="ribbon-cell">
+                    <small>Available Stock</small>
+                    <strong>660 units</strong>
+                  </div>
+                  <div class="ribbon-cell">
+                    <small>Daily Demand</small>
+                    <strong>60 u/day</strong>
+                  </div>
+                  <div class="ribbon-cell">
+                    <small>Lead Time</small>
+                    <strong>8 days</strong>
+                  </div>
+                  <div class="ribbon-cell">
+                    <small>Safety Buffer</small>
+                    <strong>5 days</strong>
+                  </div>
+                </div>
+
+                <!-- Human-in-the-Loop Planner Evaluation Scope -->
+                <div class="monolith-human-scope">
+                  <div class="human-scope-title">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    <span>Planner Evaluation Scope (Human-in-the-Loop)</span>
+                  </div>
+                  <ul class="human-scope-list">
+                    <li class="human-scope-item">
+                      <span class="human-scope-num">1</span>
+                      <span><strong>Inbound Pipeline Audit:</strong> Confirm whether open purchase orders or warehouse transfers are already in transit.</span>
+                    </li>
+                    <li class="human-scope-item">
+                      <span class="human-scope-num">2</span>
+                      <span><strong>Supplier Production Window:</strong> Verify that factory capacity aligns with standard 8-day delivery expectations.</span>
+                    </li>
+                    <li class="human-scope-item">
+                      <span class="human-scope-num">3</span>
+                      <span><strong>Order Batch Sizing:</strong> Determine replenishment quantity based on supplier MOQ and target forward coverage.</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Governance Statement -->
+                <div class="monolith-governance">
+                  <strong>Human-in-the-Loop Governance:</strong> No automated purchase order has been placed or transmitted. Operator review and approval is strictly required before any order commitment.
+                </div>
               </div>
-              <div class="brief-footer-right">
-                <span>Illustrative data · No automated transactional orders placed</span>
+
+              <!-- Action Routing & Disclosure Cluster -->
+              <div>
+                <div class="monolith-actions">
+                  <a href="#product" class="monolith-primary-cta" id="brief-inventory-link">
+                    <span>See Inventory Intelligence</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/></svg>
+                  </a>
+                  <button type="button" class="monolith-secondary-toggle" id="brief-why-toggle" aria-expanded="false" aria-controls="brief-reasoning-drawer">
+                    <span id="spotlight-toggle-text">View Detailed Calculations ↓</span>
+                  </button>
+                </div>
+
+                <!-- Expandable Reasoning Drawer -->
+                <div class="monolith-reasoning-drawer" id="brief-reasoning-drawer" hidden aria-hidden="true">
+                  <div class="drawer-grid">
+                    <div class="drawer-step-card">
+                      <span class="drawer-step-tag">Step 01 · Coverage</span>
+                      <h5>Stock Runway</h5>
+                      <div class="drawer-step-math">660u ÷ 60 u/d = 11.0 Days</div>
+                      <p>On-hand inventory covers exactly 11 calendar days at the observed baseline demand rate.</p>
+                    </div>
+                    <div class="drawer-step-card">
+                      <span class="drawer-step-tag">Step 02 · Threshold</span>
+                      <h5>Review Trigger</h5>
+                      <div class="drawer-step-math">8d (lead) + 5d (buffer) = 13.0 Days</div>
+                      <p>Policy mandates review when coverage equals supplier lead time plus target safety cushion.</p>
+                    </div>
+                    <div class="drawer-step-card">
+                      <span class="drawer-step-tag">Step 03 · Gap Analysis</span>
+                      <h5>Arrival Stockout Risk</h5>
+                      <div class="drawer-step-math">11.0d − 8.0d (lead) = 3.0d at arrival</div>
+                      <p>Order placed today arrives on Day 8, leaving 3 days on hand—2 days below safety buffer.</p>
+                    </div>
+                  </div>
+                  <div class="drawer-assumptions-note">
+                    <strong>Order Sizing Note:</strong> Baseline demand is modeled at 60 units/day; supplier lead time is fixed at 8 days. Required order sizing is intentionally left unspecified: batch quantities, MOQ constraints, case packs, and target forward weeks should be evaluated by the planner. Titan identifies the timing trigger so you remain in full operational control.
+                  </div>
+                </div>
               </div>
-            </div>
-          </article>
+
+            </article>
+
+          </div>
         </div>
       </section>
 

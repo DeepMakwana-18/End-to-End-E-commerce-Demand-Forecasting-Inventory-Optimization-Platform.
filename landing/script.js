@@ -198,142 +198,159 @@ tabs.forEach((tab, index) => {
   const studio = document.querySelector('[data-scenario-studio]');
   if (!studio) return;
 
-  // Illustrative inputs shared with the decision story. They are not ML predictions.
-  const MODEL = Object.freeze({ baselineDaily: 60, onHand: 660, leadDays: 8, safetyDays: 5, scheduledInbound: 780 });
-  const baselineWeekly = [420, 430, 424, 439, 445, 436, 449, 455, 446, 460, 458, 472, 466];
+  const MODEL = Object.freeze({ baselineDaily: 60, onHand: 660, leadDays: 8, safetyDays: 5, targetDays: 13, scheduledInbound: 780 });
   const defs = {
-    promo: { initial: 20, min: 5, max: 35, prefix: '+', suffix: '%', title: 'Promotion uplift', help: 'Increase expected unit demand for an illustrative campaign.', name: 'Demand uplift', note: 'Assumes the uplift applies to future demand; other inputs remain unchanged.' },
-    price: { initial: 15, min: 5, max: 25, prefix: '−', suffix: '%', title: 'Price reduction', help: 'Try a price reduction with a simplified unit-elasticity assumption.', name: 'Price decrease', note: 'Assumption: a 1% price cut produces a 1% demand increase (elasticity = −1). Real responses differ.' },
-    delay: { initial: 10, min: 1, max: 14, prefix: '+', suffix: ' days', title: 'Supplier lead-time delay', help: 'Push a planned inbound delivery further out without changing demand.', name: 'Extra transit time', note: 'A sample 780-unit inbound shipment was expected on day 8. Delaying it shifts arrival, not customer demand.' }
+    promo: { initial: 20, min: 5, max: 35, prefix: '+', suffix: '%', name: 'Demand Uplift', tagId: 's1-promo-tag', note: 'Assumes the uplift applies to future demand; other inputs remain unchanged.' },
+    price: { initial: 15, min: 5, max: 25, prefix: '−', suffix: '%', name: 'Price Decrease', tagId: 's1-price-tag', note: 'Assumption: a 1% price cut produces a 1% demand increase (elasticity = −1).' },
+    delay: { initial: 10, min: 1, max: 14, prefix: '+', suffix: 'd', name: 'Supplier Delay', tagId: 's1-delay-tag', note: 'A sample 780-unit inbound shipment was expected on day 8. Delaying it shifts arrival, not customer demand.' }
   };
   const el = (id) => studio.querySelector('#' + id);
   const presetButtons = [...studio.querySelectorAll('[data-scenario]')];
   const slider = el('ss-assumption');
-  const baseline = el('ss-chart-baseline');
-  const simulated = el('ss-chart-simulated');
-  const area = el('ss-chart-area');
-  const markerLine = el('ss-marker-line');
-  const markerDot = el('ss-marker-dot');
-  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
   const values = { promo: defs.promo.initial, price: defs.price.initial, delay: defs.delay.initial };
   let mode = 'promo';
-  let currentSeries = null;
-  let animationFrame = 0;
 
   const format = n => Number.isInteger(n) ? String(n) : n.toFixed(1);
   const sign = (n) => n > 0 ? '+' : n < 0 ? '−' : '';
-  function plot(values, isSupply) {
-    const min = isSupply ? 0 : 300;
-    const max = isSupply ? 1100 : 700;
-    return values.map((v, i) => [40 + i * (686 / (values.length - 1)), 206 - (Math.max(min, Math.min(max, v)) - min) / (max - min) * 171]);
-  }
-  function path(points) { return points.map(([x,y],i) => `${i ? 'L' : 'M'} ${x.toFixed(2)} ${y.toFixed(2)}`).join(' '); }
-  function draw(s1, s2) {
-    const delayMode = mode === 'delay';
-    const p1 = plot(s1, delayMode), p2 = plot(s2, delayMode);
-    baseline.setAttribute('d', path(p1));
-    simulated.setAttribute('d', path(p2));
-    area.setAttribute('d', path(p2) + ' ' + [...p1].reverse().map(([x,y]) => `L ${x.toFixed(2)} ${y.toFixed(2)}`).join(' ') + ' Z');
-    const point = p2[p2.length - 1];
-    markerLine.setAttribute('x1', point[0]); markerLine.setAttribute('x2', point[0]);
-    markerDot.setAttribute('cx', point[0]); markerDot.setAttribute('cy', point[1]);
-  }
-  function supplySeries(extra) {
-    const original = [], shifted = [];
-    const delayedArrival = MODEL.leadDays + extra;
-    for (let day = 0; day <= 28; day++) {
-      // Baseline shipment arrives before the initial inventory is exhausted.
-      original.push(Math.max(0, MODEL.onHand - MODEL.baselineDaily * day + (day >= MODEL.leadDays ? MODEL.scheduledInbound : 0)));
-      // When stock runs out before the delayed delivery, unmet sales do not accumulate as negative stock.
-      const atArrival = Math.max(0, MODEL.onHand - MODEL.baselineDaily * delayedArrival);
-      shifted.push(day < delayedArrival
-        ? Math.max(0, MODEL.onHand - MODEL.baselineDaily * day)
-        : Math.max(0, atArrival + MODEL.scheduledInbound - MODEL.baselineDaily * (day - delayedArrival)));
-    }
-    // For the baseline, 660 - 8*60 = 180 units at day 8, plus 780 incoming.
-    return [original, shifted];
-  }
-  function animateSeries(next) {
-    cancelAnimationFrame(animationFrame);
-    const previous = currentSeries && currentSeries[0].length === next[0].length ? currentSeries : next;
-    currentSeries = next;
-    if (reduced.matches || previous === next) { draw(...next); return; }
-    const start = performance.now();
-    const tick = now => {
-      const t = Math.min(1,(now-start)/340), eased = 1 - Math.pow(1-t,3);
-      draw(...next.map((series,k) => series.map((v,i) => previous[k][i] + (v-previous[k][i])*eased)));
-      if(t < 1) animationFrame = requestAnimationFrame(tick);
-    };
-    animationFrame = requestAnimationFrame(tick);
-  }
+
   function set(id, text) { const node = el(id); if (node) node.textContent = text; }
+
   function syncShared(summary) {
     const data = modules.scenario;
     Object.assign(data, { range: summary.range, decision: summary.decision, title: 'Change one assumption. See the trade-offs.', metricALabel: summary.aLabel, metricA: summary.aValue, metricBLabel: summary.bLabel, metricB: summary.bValue, insight: summary.insight });
+    const visual = document.querySelector('#stage-visual');
     if (visual?.dataset.mode === 'scenario') {
       for (const key of ['range','title','metricALabel','metricA','metricBLabel','metricB']) if (fields[key]) fields[key].textContent = data[key];
       if (fields.decision) { const label=document.createElement('span');label.textContent='DECISION';const b=document.createElement('b');b.textContent=data.decision; fields.decision.replaceChildren(label,b); }
       if (fields.insight) fields.insight.replaceChildren(document.createElement('i'),document.createTextNode(data.insight));
     }
   }
+
   function update() {
     const input = values[mode], d = defs[mode];
     studio.dataset.scenarioMode = mode;
     slider.min = d.min; slider.max = d.max; slider.value = input;
     const display = d.prefix + input + d.suffix;
-    set('ss-assumption-title', d.title); set('ss-assumption-help', d.help); set('ss-range-name', d.name);
-    set('ss-slider-value', display); set('ss-value-label', display);
-    set('ss-range-low', d.prefix + d.min + d.suffix); set('ss-range-high', d.prefix + d.max + d.suffix);
+    set('ss-assumption-name', d.name);
+    set('ss-slider-val-display', display);
+    set('ss-range-low', d.prefix + d.min + d.suffix + ' Min');
+    set('ss-range-high', d.prefix + d.max + d.suffix + ' Max');
     set('ss-model-note', d.note);
-    slider.style.setProperty('--ss-slider-progress', `${((input-d.min)/(d.max-d.min))*100}%`);
-    for (const btn of presetButtons) { const active = btn.dataset.scenario === mode; btn.classList.toggle('is-active',active); btn.setAttribute('aria-pressed',String(active)); }
-    let series, summary;
-    if(mode === 'delay') {
-      const lead = MODEL.leadDays + input;
-      const coverage = MODEL.onHand / MODEL.baselineDaily;
-      const gap = Math.max(0, lead - coverage);
-      const bridge = Math.ceil(gap * MODEL.baselineDaily);
-      series = supplySeries(input);
-      set('ss-chart-caption','02 / PROJECTED INVENTORY · UNITS');
-      set('ss-chart-title','A later arrival. The same demand.');
-      set('ss-chart-chip',`ARRIVAL DAY ${lead}`);
-      set('ss-svg-desc',`Inventory projection with an illustrative 780-unit shipment. Baseline arrival day 8, delayed arrival day ${lead}. Stock cover before shipment is 11 days.`);
-      set('ss-axis-start','DAY 0'); set('ss-axis-mid','DAY 14'); set('ss-axis-end','DAY 28');
-      set('ss-axis-high','1,100'); set('ss-axis-middle','550'); set('ss-axis-low','0');
-      set('ss-baseline-label','Original arrival (day 8)'); set('ss-sim-label',`Delayed arrival (day ${lead})`);
-      set('ss-result-one-label','DEMAND CHANGE'); set('ss-result-one','0%'); set('ss-result-one-note','Supplier timing changes; demand does not');
-      set('ss-result-two-label','ARRIVAL VS COVERAGE'); set('ss-result-two',`${lead}d / ${format(coverage)}d`); set('ss-result-two-note',`${format(gap)} days beyond current cover`);
-      set('ss-risk-level',gap>0?'STOCKOUT EXPOSURE':'COVERED UNTIL DELIVERY');
-      const recommendation=gap>0?`Consider expedited or alternate supply for roughly ${bridge} units of the ${format(gap)}-day gap. A delayed PO alone cannot cover days before arrival.`:'Current stock covers the revised arrival under the example assumptions.';
-      set('ss-recommendation',recommendation);
-      summary={range:'SUPPLY TIMING SIMULATION · ILLUSTRATIVE',decision:'Explore alternate supply timing before a potential stockout.',aLabel:'DEMAND CHANGE',aValue:'0%',bLabel:'SUPPLY GAP',bValue:`${format(gap)} days`,insight:recommendation};
-    } else {
-      const lift = input / 100; // price cut with |elasticity|=1; promo direct demand lift
-      const daily = MODEL.baselineDaily*(1+lift);
-      const cover = MODEL.onHand/daily;
-      const targetDays=MODEL.leadDays+MODEL.safetyDays;
-      const gapUnits=Math.max(0,Math.ceil(targetDays*daily-MODEL.onHand));
-      series=[baselineWeekly,baselineWeekly.map((v,i)=>i===0?v:v*(1+lift))];
-      set('ss-chart-caption','02 / WEEKLY DEMAND FORECAST · UNITS'); set('ss-chart-title','See how demand responds.');
-      set('ss-chart-chip',`DEMAND +${input}%`);
-      set('ss-svg-desc',`Baseline 12-week illustrative demand versus a ${input}% demand uplift from ${mode==='promo'?'promotion':'price reduction'}, assuming unit elasticity for pricing.`);
-      set('ss-axis-start','THIS WEEK'); set('ss-axis-mid','WEEK 6'); set('ss-axis-end','WEEK 12');
-      set('ss-axis-high','700'); set('ss-axis-middle','500'); set('ss-axis-low','300');
-      set('ss-baseline-label','Baseline demand'); set('ss-sim-label','Simulated demand');
-      set('ss-result-one-label','DEMAND CHANGE'); set('ss-result-one',`+${input}%`); set('ss-result-one-note',`${format(daily)} vs ${MODEL.baselineDaily} units/day`);
-      set('ss-result-two-label','STOCK COVERAGE'); set('ss-result-two',`${format(cover)} days`); set('ss-result-two-note',`${MODEL.onHand} units available`);
-      const risk = cover < MODEL.leadDays ? 'COVERAGE BELOW LEAD TIME' : cover < targetDays ? 'BUFFER BELOW TARGET' : 'COVERAGE WITHIN TARGET';
-      set('ss-risk-level', risk);
-      const recommendation=gapUnits>0 ? `Review replenishment: about ${gapUnits} more units would reach the ${targetDays}-day planning threshold under these assumptions. This is not an automatic order.` : 'The illustrative inventory position meets the planning threshold.';
-      set('ss-recommendation',recommendation);
-      summary={range:'12-WEEK DEMAND SCENARIO · ILLUSTRATIVE',decision:mode==='promo'?'Explore promotion-driven demand before changing replenishment.':'Explore an assumed price response before committing to a price change.',aLabel:'DEMAND DELTA',aValue:`+${input}%`,bLabel:'STOCK COVERAGE',bValue:`${format(cover)} days`,insight:recommendation};
+    set(d.tagId, display);
+    slider.style.setProperty('--ss-slider-progress', `${((input - d.min) / (d.max - d.min)) * 100}%`);
+
+    for (const btn of presetButtons) {
+      const active = btn.dataset.scenario === mode;
+      btn.classList.toggle('is-active', active);
+      btn.setAttribute('aria-pressed', String(active));
     }
-    animateSeries(series);
+
+    const simPath = el('s1-path-sim');
+    const areaPath = el('s1-path-area');
+    const markerDot = el('s1-marker-dot');
+    const simLabel = el('s1-sim-label');
+    const simBar = el('s1-sim-bar');
+    const simBarText = el('s1-sim-bar-text');
+    const bracketLine = el('s1-bracket-line');
+    const gapRect = el('s1-gap-rect');
+    const gapText = el('s1-gap-text');
+    const riskBadge = el('ss-risk-badge');
+    const outcomeHeadline = el('ss-outcome-headline');
+    const recText = el('ss-recommendation');
+    let summary;
+
+    if (mode === 'delay') {
+      const lead = MODEL.leadDays + input;
+      const coverage = MODEL.onHand / MODEL.baselineDaily; // 11.0 days
+      const gap = Math.max(0, lead - coverage); // 7.0 days
+      const bridge = Math.ceil(gap * MODEL.baselineDaily); // 420 units
+
+      if (simPath) simPath.setAttribute('d', 'M8 44 Q140 42 270 41 T532 38');
+      if (areaPath) areaPath.setAttribute('d', 'M8 44 Q140 42 270 41 T532 38 Z');
+      if (markerDot) markerDot.setAttribute('cy', '38');
+      if (simLabel) simLabel.textContent = `Demand remains ${MODEL.baselineDaily} u/d (0% delta)`;
+
+      // In delay mode, coverage stays at 11 days (324px), but delivery is delayed to Day ${lead}
+      if (simBar) simBar.setAttribute('width', '324');
+      if (simBarText) simBarText.textContent = `Warehouse Coverage: 11.0 Days (Depleted Day 11)`;
+      if (bracketLine) {
+        bracketLine.setAttribute('x1', '324');
+        bracketLine.setAttribute('x2', '412');
+      }
+      if (gapRect) gapRect.setAttribute('x', '330');
+      if (gapText) {
+        gapText.setAttribute('x', '370');
+        gapText.textContent = `STOCKOUT GAP: ${format(gap)}d (${bridge}u)`;
+      }
+
+      if (riskBadge) {
+        riskBadge.className = 'viz-insight-badge tag-drop';
+        riskBadge.textContent = `SUPPLY GAP: ${format(gap)} DAYS`;
+      }
+      if (outcomeHeadline) outcomeHeadline.textContent = `Inbound delivery delayed past warehouse depletion point.`;
+      if (recText) recText.textContent = `Stock exhausts on Day 11. Arrival on Day ${lead} creates a ${format(gap)}-day stockout gap (~${bridge} units). Consider split-shipment expedite.`;
+
+      summary = {
+        range: 'SUPPLY TIMING SIMULATION · ILLUSTRATIVE',
+        decision: 'Explore alternate supply timing before potential stockout exposure.',
+        aLabel: 'DEMAND CHANGE', aValue: '0%',
+        bLabel: 'SUPPLY GAP', bValue: `${format(gap)} days`,
+        insight: `Delayed PO arrives on Day ${lead}; warehouse stock runs out on Day 11 (${format(gap)} days unserved).`
+      };
+    } else {
+      const lift = input / 100;
+      const daily = MODEL.baselineDaily * (1 + lift);
+      const cover = MODEL.onHand / daily;
+      const gapDays = MODEL.targetDays - cover;
+      const gapUnits = Math.max(0, Math.ceil(MODEL.targetDays * daily - MODEL.onHand));
+
+      // Calculate Track A SVG simulated curve
+      const endY = (38 - lift * 56).toFixed(1);
+      const midY = (36 - lift * 28).toFixed(1);
+      const q1Y = (38 - lift * 28).toFixed(1);
+      if (simPath) simPath.setAttribute('d', `M8 44 Q140 ${q1Y} 270 ${midY} T532 ${endY}`);
+      if (areaPath) areaPath.setAttribute('d', `M8 44 Q140 ${q1Y} 270 ${midY} T532 ${endY} L532 38 Q270 41 140 42 T8 44 Z`);
+      if (markerDot) markerDot.setAttribute('cy', endY);
+      if (simLabel) simLabel.textContent = `Simulated: ${format(daily)} u/d (+${input}%)`;
+
+      // Track B: simBar width proportional to coverage (16 days scale = 470px width, offset 28px)
+      const barW = Math.max(20, Math.min(410, (cover / 16) * 470));
+      if (simBar) simBar.setAttribute('width', barW.toFixed(1));
+      if (simBarText) simBarText.textContent = `Simulated Coverage: ${format(cover)} Days (${format(daily)} u/d)`;
+
+      // Bracket from simulated bar end (28 + barW) to 13d threshold datum (412)
+      const startX = 28 + barW;
+      if (bracketLine) {
+        bracketLine.setAttribute('x1', startX.toFixed(1));
+        bracketLine.setAttribute('x2', '412');
+      }
+      const gapMidX = startX + (412 - startX) / 2;
+      if (gapRect) gapRect.setAttribute('x', (gapMidX - 40).toFixed(1));
+      if (gapText) {
+        gapText.setAttribute('x', gapMidX.toFixed(1));
+        gapText.textContent = `−${format(gapDays)}d GAP (${gapUnits}u)`;
+      }
+
+      if (riskBadge) {
+        riskBadge.className = 'viz-insight-badge tag-surge';
+        riskBadge.textContent = `PLANNING GAP: ${gapUnits} UNITS`;
+      }
+      if (outcomeHeadline) outcomeHeadline.textContent = `Buffer falls ${format(gapDays)} days below target review threshold.`;
+      if (recText) recText.textContent = `At ${format(daily)} u/day, 660 units covers ${format(cover)} days. Closing the deficit against the 13-day threshold requires an illustrative ~${gapUnits} additional units.`;
+
+      summary = {
+        range: '12-WEEK DEMAND SCENARIO · ILLUSTRATIVE',
+        decision: mode === 'promo' ? 'Explore promotion-driven demand before changing replenishment.' : 'Explore an assumed price response before committing to a price change.',
+        aLabel: 'DEMAND DELTA', aValue: `+${input}%`,
+        bLabel: 'STOCK COVERAGE', bValue: `${format(cover)} days`,
+        insight: `Review replenishment: about ${gapUnits} additional units reach the 13-day planning threshold under these assumptions.`
+      };
+    }
     syncShared(summary);
   }
-  presetButtons.forEach(btn => btn.addEventListener('click', () => { mode=btn.dataset.scenario; update(); }));
+
+  presetButtons.forEach(btn => btn.addEventListener('click', () => { mode = btn.dataset.scenario; update(); }));
   slider.addEventListener('input', () => { values[mode] = Number(slider.value); update(); });
-  // Recreate initial chart even if the section is first shown after a fragment navigation.
   update();
 })();
 
@@ -623,7 +640,7 @@ function morph(el, to, dur = 650) {
 })();
 
 
-/* ===== v13 · The Action Brief ===== */
+/* ===== v13 · The Action Brief (The Decision Spotlight) ===== */
 (() => {
   const brief = document.querySelector('[data-action-brief]');
   if (!brief) return;
@@ -631,6 +648,7 @@ function morph(el, to, dur = 650) {
   const whyToggle = brief.querySelector('#brief-why-toggle');
   const reasoningDrawer = brief.querySelector('#brief-reasoning-drawer');
   const inventoryLink = brief.querySelector('#brief-inventory-link');
+  const toggleText = brief.querySelector('#spotlight-toggle-text');
 
   // 1. Expand / collapse transparent reasoning
   if (whyToggle && reasoningDrawer) {
@@ -640,6 +658,9 @@ function morph(el, to, dur = 650) {
       whyToggle.setAttribute('aria-expanded', String(nextState));
       reasoningDrawer.hidden = !nextState;
       reasoningDrawer.setAttribute('aria-hidden', String(!nextState));
+      if (toggleText) {
+        toggleText.textContent = nextState ? 'Hide Detailed Calculations ↑' : 'View Detailed Calculations ↓';
+      }
     });
   }
 
@@ -661,30 +682,35 @@ function morph(el, to, dur = 650) {
     });
   }
 
-  // 3. Progressive reveal of decision path elements
-  const coverageBar = brief.querySelector('.brief-bar-coverage');
-  const deficitBar = brief.querySelector('.brief-bar-deficit');
-  const thresholdMarker = brief.querySelector('.brief-marker-threshold');
+  // 3. Progressive reveal of variance caliper elements
+  const caliperStock = brief.querySelector('.caliper-fill-stock');
+  const caliperDeficit = brief.querySelector('.caliper-fill-deficit');
+  const caliperPin = brief.querySelector('.caliper-datum-pin');
 
-  if (coverageBar && thresholdMarker && !prefersReducedMotion && 'IntersectionObserver' in window) {
-    coverageBar.style.width = '0%';
-    if (deficitBar) deficitBar.style.opacity = '0';
-    thresholdMarker.style.opacity = '0';
+  if (caliperStock && caliperPin && !prefersReducedMotion && 'IntersectionObserver' in window) {
+    caliperStock.style.width = '0%';
+    caliperStock.style.transition = 'width 0.7s cubic-bezier(0.16, 1, 0.3, 1)';
+    if (caliperDeficit) {
+      caliperDeficit.style.opacity = '0';
+      caliperDeficit.style.transition = 'opacity 0.4s ease';
+    }
+    caliperPin.style.opacity = '0';
+    caliperPin.style.transition = 'opacity 0.4s ease';
 
     const observer = new IntersectionObserver(entries => {
       if (entries.some(entry => entry.isIntersecting)) {
         setTimeout(() => {
-          coverageBar.style.width = '68.75%';
+          caliperStock.style.width = '68.75%';
         }, 150);
         setTimeout(() => {
-          thresholdMarker.style.opacity = '1';
-        }, 400);
+          caliperPin.style.opacity = '1';
+        }, 550);
         setTimeout(() => {
-          if (deficitBar) deficitBar.style.opacity = '1';
-        }, 650);
+          if (caliperDeficit) caliperDeficit.style.opacity = '0.9';
+        }, 750);
         observer.disconnect();
       }
-    }, { threshold: 0.25 });
+    }, { threshold: 0.2 });
 
     observer.observe(brief);
   }
@@ -721,36 +747,37 @@ function morph(el, to, dur = 650) {
   if (!root) return;
   const cases = {
     steady: {
+      badge: 'NORMAL OBSERVATION (+0.1σ)',
+      badgeClass: 'tag-normal',
       metricA: '+0.1σ', metricB: '+2%',
-      title: 'Demand is tracking within its usual range.',
-      detail: '61 units observed against a 60-unit illustrative daily baseline.',
-      basis: 'A 1-unit difference is consistent with ordinary variation; no alert threshold crossed.',
-      next: 'Keep monitoring. No urgent investigation is indicated by this observation.',
+      title: 'Demand is tracking within its usual baseline range (61 vs 60 u/d).',
+      desc: 'A 1-unit deviation stays comfortably inside the ±2.0σ tolerance corridor. No urgent action is indicated.',
       insight: 'Day 08 stays within the expected corridor; a normal observation is not an anomaly.'
     },
     surge: {
+      badge: 'STATISTICAL SURGE (+3.2σ)',
+      badgeClass: 'tag-surge',
       metricA: '+3.2σ', metricB: '+48%',
-      title: 'Demand is 48% above its baseline.',
-      detail: '89 units observed against a 60-unit illustrative daily baseline.',
-      basis: '+3.2σ versus baseline variation; above the illustrative +2σ alert threshold.',
-      next: 'Check recent campaigns, channel activity and current inventory coverage. The cause is not yet confirmed.',
+      title: 'Demand is 48% above baseline (89 vs 60 u/d).',
+      desc: 'Crossed the +2.0σ alert threshold by 11 units. Check wholesale channels and marketing campaigns; cause is unconfirmed.',
       insight: 'Day 14 is a significant illustrative surge worth investigating alongside available inventory.'
     },
     drop: {
+      badge: 'DEMAND DROP (−2.4σ)',
+      badgeClass: 'tag-drop',
       metricA: '−2.4σ', metricB: '−37%',
-      title: 'Demand has dropped below its usual pattern.',
-      detail: '38 units observed against a 60-unit illustrative daily baseline.',
-      basis: '−2.4σ versus baseline variation; below the illustrative −2σ alert threshold.',
-      next: 'Review stock availability, channel reporting and potential demand shifts before assigning a cause.',
+      title: 'Demand has dropped below usual pattern (38 vs 60 u/d).',
+      desc: 'Breached the −2.0σ alert threshold by 4 units. Review stock availability, cart drops, and channel reporting.',
       insight: 'Day 23 is an illustrative demand drop; verify data quality and business context.'
     }
   };
   const buttons = [...root.querySelectorAll('[data-risk-event]')];
+  const badge = root.querySelector('#risk-finding-badge');
   const title = root.querySelector('#risk-finding-title');
-  const detail = root.querySelector('#risk-finding-detail');
-  const basis = root.querySelector('#risk-finding-basis');
-  const next = root.querySelector('#risk-finding-action') || root.querySelector('#risk-finding-next');
+  const desc = root.querySelector('#risk-finding-desc');
+  const rows = [...root.querySelectorAll('[data-risk-row]')];
   const stage = document.querySelector('#stage-visual');
+
   function setRiskEvent(key) {
     const value = cases[key];
     if (!value) return;
@@ -760,10 +787,16 @@ function morph(el, to, dur = 650) {
       button.classList.toggle('is-active', active);
       button.setAttribute('aria-pressed', String(active));
     });
+    rows.forEach(row => {
+      row.classList.toggle('is-active', row.dataset.riskRow === key);
+    });
+    if (badge) {
+      badge.className = `viz-insight-badge ${value.badgeClass}`;
+      badge.textContent = value.badge;
+    }
     if (title) title.textContent = value.title;
-    if (detail) detail.textContent = value.detail;
-    if (basis) basis.textContent = value.basis;
-    if (next) next.textContent = value.next;
+    if (desc) desc.textContent = value.desc;
+
     // Keep the shared, bottom-of-module summary consistent with the selected event.
     modules.risk.metricA = value.metricA;
     modules.risk.metricB = value.metricB;
@@ -780,9 +813,9 @@ function morph(el, to, dur = 650) {
   buttons.forEach((button, index) => {
     button.addEventListener('click', () => setRiskEvent(button.dataset.riskEvent));
     button.addEventListener('keydown', event => {
-      if (!['ArrowLeft','ArrowRight'].includes(event.key)) return;
+      if (!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)) return;
       event.preventDefault();
-      const step = event.key === 'ArrowRight' ? 1 : -1;
+      const step = ['ArrowRight','ArrowDown'].includes(event.key) ? 1 : -1;
       const candidate = buttons[(index + buttons.length + step) % buttons.length];
       candidate.focus();
       setRiskEvent(candidate.dataset.riskEvent);
