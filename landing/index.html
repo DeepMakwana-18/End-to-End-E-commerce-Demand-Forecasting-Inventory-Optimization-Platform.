@@ -149,20 +149,17 @@
         </div>
       </section>
 
-      <aside class="signal-strip" aria-label="Titan AI workflow summary">
-        <p><span>One connected decision loop</span> From raw sales history to the next best action.</p>
-        <ul>
-          <li><i aria-hidden="true">01</i>Sense change</li>
-          <li><i aria-hidden="true">02</i>Forecast demand</li>
-          <li><i aria-hidden="true">03</i>Test scenarios</li>
-          <li><i aria-hidden="true">04</i>Act earlier</li>
-        </ul>
-      </aside>
-
-      <!-- v10 · Scene 02 — a connected ripple effect, not another analytics dashboard -->
+      <!-- v10 · Scene 02 — Editorial Cause-and-Effect Story -->
       <section class="chain-story scene scene-dark" id="story" aria-labelledby="story-title">
         <div class="chain-halo" aria-hidden="true"></div>
         <div class="chain-wrap">
+
+          <!-- Integrated Narrative Preamble: Bridges Hero into the Decision Loop -->
+          <div class="chain-preamble reveal">
+            <span class="chain-preamble-pulse" aria-hidden="true"></span>
+            <span>One Connected Decision Loop: Sales History → Demand Velocity → Replenishment</span>
+          </div>
+
           <header class="chain-heading reveal">
             <div>
               <p class="eyebrow eyebrow-dark"><span></span> 02 / THE RIPPLE EFFECT</p>
@@ -171,69 +168,131 @@
             <p>Demand never changes in isolation. When sales accelerate, stock coverage contracts—and the time to replenish starts to matter.</p>
           </header>
 
-          <div class="chain-display reveal" data-chain-demo data-chain-phase="0">
-            <div class="chain-topline">
-              <span class="chain-eyebrow"><i aria-hidden="true"></i> CONNECTED SUPPLY CHAIN / SKU-204</span>
-              <div class="chain-top-actions">
-                <span class="chain-demo-tag">INTERACTIVE EXAMPLE</span>
-                <button type="button" class="chain-replay" data-chain-replay aria-label="Replay the chain reaction animation"><span aria-hidden="true">↻</span> Replay the ripple</button>
+          <div class="chain-display reveal" data-chain-demo>
+            <!-- Canvas Meta -->
+            <div class="chain-meta">
+              <span class="chain-meta-sku"><i aria-hidden="true"></i> CONNECTED SUPPLY CHAIN / SKU-204</span>
+              <span class="chain-meta-scope">Illustrative scenario · 660 units on hand</span>
+            </div>
+
+            <!-- Causal Progression Banner: The Trigger → Runway Impact → Review Threshold -->
+            <div class="chain-cause-grid" role="region" aria-label="Cause-and-effect progression summary">
+              <div class="chain-cause-card">
+                <small>01 DEMAND VELOCITY</small>
+                <div class="chain-cause-metric">
+                  <span class="chain-cause-val">45</span>
+                  <span class="chain-cause-arrow" aria-hidden="true">→</span>
+                  <span class="chain-cause-val highlight">60</span>
+                  <span class="chain-cause-unit">units / day</span>
+                </div>
+                <span class="chain-cause-delta">+33.3% daily velocity</span>
+              </div>
+
+              <div class="chain-cause-connector" aria-hidden="true">
+                <span>contracts runway</span>
+                <i>›</i>
+              </div>
+
+              <div class="chain-cause-card">
+                <small>02 STOCK COVERAGE</small>
+                <div class="chain-cause-metric">
+                  <span class="chain-cause-val">14.7</span>
+                  <span class="chain-cause-arrow" aria-hidden="true">→</span>
+                  <span class="chain-cause-val highlight-amber">11.0</span>
+                  <span class="chain-cause-unit">days of cover</span>
+                </div>
+                <span class="chain-cause-delta delta-amber">−3.7 days runway lost</span>
+              </div>
+
+              <div class="chain-cause-connector" aria-hidden="true">
+                <span>crosses policy</span>
+                <i>›</i>
+              </div>
+
+              <div class="chain-cause-card">
+                <small>03 REVIEW THRESHOLD</small>
+                <div class="chain-cause-metric">
+                  <span class="chain-cause-val highlight-amber">13.0</span>
+                  <span class="chain-cause-unit">days threshold</span>
+                </div>
+                <span class="chain-cause-delta delta-warn">2.0 days below policy</span>
               </div>
             </div>
 
-            <div class="chain-stage" role="group" aria-label="Explore how a change in demand affects inventory and supplier timing">
-              <button type="button" class="chain-node chain-demand" data-chain-node="1" aria-pressed="false" aria-label="Inspect changing customer demand">
-                <span class="chain-node-top"><span>01</span> DEMAND</span>
-                <span class="chain-chart" aria-hidden="true">
-                  <svg viewBox="0 0 260 124" preserveAspectRatio="xMidYMid meet">
-                    <defs><linearGradient id="chainWaveGlow" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#b7f58d" stop-opacity=".27"/><stop offset="1" stop-color="#b7f58d" stop-opacity="0"/></linearGradient></defs>
-                    <g class="chain-graph-grid"><path d="M0 26H260M0 63H260M0 100H260" /></g>
-                    <path class="chain-wave-base" d="M3 90 C38 88 52 98 79 87 S119 91 143 84 S169 84 184 85 S223 88 258 85" />
-                    <path class="chain-wave-fill" d="M3 90 C38 88 52 98 79 87 S119 91 143 84 C171 72 193 45 212 38 S242 27 258 20 L258 124H3Z" fill="url(#chainWaveGlow)" />
-                    <path class="chain-wave-surge" pathLength="1" d="M3 90 C38 88 52 98 79 87 S119 91 143 84 C171 72 193 45 212 38 S242 27 258 20" />
-                    <circle class="chain-wave-point" cx="258" cy="20" r="5" />
-                  </svg>
-                </span>
-                <span class="chain-node-number">45 <small>→</small> <b>60</b></span>
-                <span class="chain-node-unit">units / day</span>
-                <span class="chain-node-bottom">A surge in daily demand <span aria-hidden="true">↗</span></span>
-              </button>
+            <!-- The Unified 0-20 Day Timeline Horizon -->
+            <div class="chain-horizon" role="region" aria-label="Visual runway comparison against 13-day replenishment review threshold">
+              <!-- Axis Milestones (0-20 Days) -->
+              <div class="chain-axis" aria-hidden="true">
+                <span class="chain-axis-label pos-0">0d</span>
+                <span class="chain-axis-label pos-5">5d</span>
+                <span class="chain-axis-label pos-10">10d</span>
+                <span class="chain-axis-label pos-15">15d</span>
+                <span class="chain-axis-label pos-20">20d</span>
+              </div>
 
-              <span class="chain-link" aria-hidden="true"><span class="chain-link-stroke"></span><i>›</i></span>
+              <!-- Vertical 13-Day Threshold Datum Line -->
+              <div class="chain-threshold-line" aria-hidden="true"></div>
+              <div class="chain-threshold-badge" aria-hidden="true">Review Threshold · 13.0 Days</div>
 
-              <button type="button" class="chain-node chain-coverage" data-chain-node="2" aria-pressed="false" aria-label="Inspect inventory coverage impact">
-                <span class="chain-node-top"><span>02</span> INVENTORY</span>
-                <span class="chain-gauge" aria-hidden="true">
-                  <span class="chain-gauge-disc"><span class="chain-gauge-value">11<small>d</small></span><span class="chain-gauge-hint">COVER</span></span>
-                </span>
-                <span class="chain-node-number">14.7 <small>→</small> <b>11.0</b></span>
-                <span class="chain-node-unit">days of stock cover</span>
-                <span class="chain-node-bottom">Same stock. Less runway. <span aria-hidden="true">↘</span></span>
-              </button>
+              <!-- Runway 1: Baseline Demand (45 units/day) -->
+              <div class="chain-runway-row">
+                <div class="chain-runway-head">
+                  <span class="chain-runway-name">Baseline Demand <small>(45 units / day)</small></span>
+                  <span class="chain-runway-stat stat-safe">14.7 Days Coverage · 1.7 days above review threshold</span>
+                </div>
+                <div class="chain-runway-track" aria-label="Baseline coverage: 14.7 days out of 20 days runway">
+                  <div class="chain-runway-bar bar-baseline">
+                    <span class="chain-bar-text">14.7 Days Runway</span>
+                  </div>
+                </div>
+              </div>
 
-              <span class="chain-link" aria-hidden="true"><span class="chain-link-stroke"></span><i>›</i></span>
+              <!-- Runway 2: Surge Demand (60 units/day) -->
+              <div class="chain-runway-row">
+                <div class="chain-runway-head">
+                  <span class="chain-runway-name">Surge Demand <small>(60 units / day · +33.3% velocity)</small></span>
+                  <span class="chain-runway-stat stat-warn">11.0 Days Coverage · 2.0 days below review threshold</span>
+                </div>
+                <div class="chain-runway-track" aria-label="Surge coverage: 11 days, 2 days below review threshold">
+                  <div class="chain-runway-bar bar-surge">
+                    <span class="chain-bar-text">11.0 Days Runway</span>
+                  </div>
+                  <!-- Deficit Bracket Callout -->
+                  <div class="chain-deficit-bracket" aria-label="2 day deficit below review threshold">
+                    <span class="chain-deficit-text">−2.0d Deficit</span>
+                  </div>
+                </div>
+              </div>
 
-              <button type="button" class="chain-node chain-supply" data-chain-node="3" aria-pressed="false" aria-label="Inspect replenishment review threshold">
-                <span class="chain-node-top"><span>03</span> SUPPLY</span>
-                <span class="chain-route" aria-hidden="true">
-                  <span class="chain-route-ring"><svg viewBox="0 0 90 90"><path d="M18 61V39L45 24L72 39V61L45 77Z M18 39L45 54L72 39 M45 54V77" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/></svg></span>
-                  <span class="chain-route-track"><i></i><i></i><i></i></span>
-                </span>
-                <span class="chain-node-number">8 <small>+</small> 5 <small>=</small> <b>13</b></span>
-                <span class="chain-node-unit">days to review threshold</span>
-                <span class="chain-node-bottom">Replenishment needs review <span aria-hidden="true">↗</span></span>
-              </button>
+              <!-- Operational Policy Breakdown Sub-Bar -->
+              <div class="chain-policy-strip" aria-label="Replenishment policy components: 8 days supplier lead time plus 5 days safety buffer equals 13 days review threshold">
+                <div class="chain-policy-bars" aria-hidden="true">
+                  <div class="chain-policy-segment segment-lead">Supplier Lead Time: 8 Days</div>
+                  <div class="chain-policy-segment segment-safety">Safety Buffer: 5 Days</div>
+                </div>
+                <div class="chain-policy-calc">= 13.0 Days Review Threshold (8d lead time + 5d safety buffer)</div>
+              </div>
             </div>
 
-            <div class="chain-response" aria-live="polite" aria-atomic="true">
-              <div class="chain-response-index" data-chain-index>01 <span>/</span> 03</div>
-              <div class="chain-response-copy"><small data-chain-label>THE FIRST DOMINO</small><p data-chain-description>Sales accelerate from 45 to 60 units a day. That one change affects the rest of the plan.</p></div>
-              <span class="chain-response-verdict" data-chain-verdict>DEMAND SHIFT</span>
+            <!-- Operational Decision Synthesis -->
+            <div class="chain-synthesis">
+              <div class="chain-synthesis-content">
+                <div class="chain-synthesis-head">
+                  <span class="chain-status-badge">Review Needed</span>
+                  <h3>Stock coverage has fallen 2 days below the replenishment review threshold.</h3>
+                </div>
+                <p>With 660 units on hand and an 8-day supplier lead time plus a 5-day safety buffer, sustained daily demand of 60 units erodes safety stock before a newly placed order can arrive. Replenishment review needed.</p>
+              </div>
+              <div class="chain-synthesis-cta">
+                <a href="#how" class="chain-cta-link">See how Titan connects the data <span aria-hidden="true">↗</span></a>
+              </div>
             </div>
           </div>
-          <div class="chain-footer">
-            <p>One example, connected throughout: 660 units in stock · 8-day supplier lead time · 5-day safety buffer. <strong>Illustrative, not live operational data.</strong></p>
-            <a href="#how">See how Titan connects the data <span aria-hidden="true">↗</span></a>
-          </div>
+
+          <footer class="chain-footer">
+            <p>Illustrative scenario: 660 units on hand · 8-day supplier lead time · 5-day safety buffer. <strong>Not live operational data.</strong></p>
+            <a href="#how">Explore data mapping in next section <span aria-hidden="true">↓</span></a>
+          </footer>
         </div>
       </section>
 

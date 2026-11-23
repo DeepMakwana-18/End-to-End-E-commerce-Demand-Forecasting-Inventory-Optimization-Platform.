@@ -691,84 +691,27 @@ function morph(el, to, dur = 650) {
 })();
 
 
-/* ===== v10 · One change. A chain reaction. ===== */
+/* ===== v10 · Scene 02: Editorial Cause-and-Effect Story ===== */
 (() => {
   const demo = document.querySelector('[data-chain-demo]');
   if (!demo) return;
 
-  const stages = [
-    {
-      label: 'THE FIRST DOMINO',
-      copy: 'Sales accelerate from 45 to 60 units a day. That one change affects the rest of the plan.',
-      verdict: 'DEMAND SHIFT'
-    },
-    {
-      label: 'THE COVERAGE EFFECT',
-      copy: 'With 660 units on hand, stock coverage falls from about 14.7 days to 11 days as demand rises.',
-      verdict: '3.7 DAYS LESS'
-    },
-    {
-      label: 'THE REPLENISHMENT QUESTION',
-      copy: 'An 8-day supplier lead time plus a 5-day safety buffer sets a 13-day review threshold. At 11 days of cover, the plan needs attention.',
-      verdict: 'REVIEW STOCK'
-    }
-  ];
-  const nodes = [...demo.querySelectorAll('[data-chain-node]')];
-  const index = demo.querySelector('[data-chain-index]');
-  const label = demo.querySelector('[data-chain-label]');
-  const description = demo.querySelector('[data-chain-description]');
-  const verdict = demo.querySelector('[data-chain-verdict]');
-  const replayButton = demo.querySelector('[data-chain-replay]');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-  let timers = [];
-  let visited = false;
-  const clearTimers = () => { timers.forEach(clearTimeout); timers = []; };
-  const setStage = value => {
-    const phase = Math.max(0, Math.min(3, value));
-    const activeIndex = Math.max(0, phase - 1);
-    demo.dataset.chainPhase = String(phase);
-    nodes.forEach(node => {
-      const number = Number(node.dataset.chainNode);
-      node.classList.toggle('chain-lit', number <= phase);
-      node.classList.toggle('chain-selected', number === phase);
-      node.setAttribute('aria-pressed', String(number === phase));
-    });
-    const state = stages[activeIndex];
-    if (index) index.innerHTML = `0${activeIndex + 1} <span>/</span> 03`;
-    if (label) label.textContent = state.label;
-    if (description) description.textContent = state.copy;
-    if (verdict) verdict.textContent = state.verdict;
-  };
-  const replay = () => {
-    clearTimers();
-    if (reduceMotion.matches) { setStage(3); return; }
-    setStage(0);
-    [1, 2, 3].forEach((stage, i) => {
-      timers.push(setTimeout(() => setStage(stage), 260 + i * 790));
-    });
-  };
-  nodes.forEach(node => node.addEventListener('click', () => {
-    clearTimers();
-    setStage(Number(node.dataset.chainNode));
-  }));
-  replayButton?.addEventListener('click', replay);
-  setStage(reduceMotion.matches ? 3 : 0);
-  if ('IntersectionObserver' in window) {
+
+  // Entrance reveal: bars initialize smoothly without disorienting autoplay timer cycling
+  if ('IntersectionObserver' in window && !reduceMotion.matches) {
     const observer = new IntersectionObserver(entries => {
-      if (!visited && entries.some(entry => entry.isIntersecting)) {
-        visited = true;
-        replay();
-        observer.disconnect();
-      }
-    }, { threshold: 0.22 });
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          demo.classList.add('chain-rendered');
+          observer.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.15 });
     observer.observe(demo);
   } else {
-    setStage(3);
+    demo.classList.add('chain-rendered');
   }
-  reduceMotion.addEventListener?.('change', () => {
-    clearTimers();
-    setStage(3);
-  });
 })();
 
 

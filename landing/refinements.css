@@ -76,13 +76,6 @@ body { background: #ffffff; }
 .hero-v3 .hero-foot { display: flex; justify-content: space-between; position: static; padding: 0 0 clamp(14px,2.2svh,28px); font-size: 10px; }
 .hero-foot .scroll-cue { text-decoration: none; color: #315b42; }
 .hero-foot .scroll-cue:hover { color: #122f22; }
-/* A compact narrative bridge, not a second feature grid. */
-.signal-strip {
-  padding-block: clamp(14px,2.5vw,25px);
-  background: #112a27;
-  border-color: rgba(255,255,255,.08);
-}
-.signal-strip li { background: rgba(255,255,255,.025); border-color: rgba(255,255,255,.1); }
 /* Story: shorten the pin while retaining four actual scroll states. */
 .story { height: 235svh; background:
   radial-gradient(ellipse at 75% 35%, rgba(38,99,78,.17),transparent 57%),
@@ -193,8 +186,6 @@ body { background: #ffffff; }
   .chip-action { top:4%; right:1%; }
   .chip-action b { font-size:1.1em; }
   .thread-demo { font-size:7px; padding:4px 6px; }
-  .signal-strip ul { grid-template-columns:1fr 1fr; }
-  .signal-strip li { padding:9px 11px; }
   .story h2 { font-size:clamp(36px,9vw,52px); }
   .story-pin { padding:88px 18px 50px; }
   .story-chart { padding:0; background:transparent; border:0; box-shadow:none; }
