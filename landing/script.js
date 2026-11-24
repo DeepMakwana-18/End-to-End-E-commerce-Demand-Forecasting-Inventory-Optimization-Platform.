@@ -130,7 +130,6 @@ if (targetId) {
 }
 
 
-const tabs = [...document.querySelectorAll("[data-module]")];
 const fields = {
   kicker: document.querySelector("#module-kicker"),
   range: document.querySelector("#module-range"),
@@ -143,63 +142,6 @@ const fields = {
   metricB: document.querySelector("#module-metric-b"),
   insight: document.querySelector("#module-insight")
 };
-const visual = document.querySelector("#stage-visual");
-
-function selectModule(name) {
-  const data = modules[name];
-  if (!data) return;
-  tabs.forEach(tab => {
-    const selected = tab.dataset.module === name;
-    tab.setAttribute("aria-selected", String(selected));
-    tab.tabIndex = selected ? 0 : -1;
-  });
-  document.querySelector("#module-panel")?.setAttribute("aria-labelledby", `tab-${name}`);
-  Object.entries(fields).forEach(([key, node]) => {
-    if (!node || data[key] === undefined) return;
-    if (!prefersReducedMotion && node.animate) node.animate([{ opacity: .4, transform: "translateY(3px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 260, easing: "ease-out" });
-    if (key === "insight") { const marker = document.createElement("i"); marker.setAttribute("aria-hidden", "true"); node.replaceChildren(marker, document.createTextNode(data[key])); }
-    else if (key === "decision") { const label = document.createElement("span"); label.textContent = "DECISION"; const statement = document.createElement("b"); statement.textContent = data[key]; node.replaceChildren(label, statement); }
-    else if (key === "metricA" || key === "metricB") countTo(node, data[key]);
-    else node.textContent = data[key];
-  });
-  if (visual) visual.dataset.mode = name;
-  if (!prefersReducedMotion && visual?.animate) visual.animate([{ opacity: .3 }, { opacity: 1 }], { duration: 320, easing: "ease-out" });
-}
-
-tabs.forEach((tab, index) => {
-  tab.addEventListener("click", () => selectModule(tab.dataset.module));
-  tab.addEventListener("keydown", event => {
-    if (!["ArrowDown", "ArrowUp", "ArrowRight", "ArrowLeft"].includes(event.key)) return;
-    event.preventDefault();
-    const direction = ["ArrowDown", "ArrowRight"].includes(event.key) ? 1 : -1;
-    const next = tabs[(index + direction + tabs.length) % tabs.length];
-    next.focus();
-    selectModule(next.dataset.module);
-  });
-});
-
-/* Connect Overview 4-question cards to Explore Intelligence modules */
-document.querySelectorAll("[data-goto-module]").forEach(card => {
-  const navigate = () => {
-    const mod = card.dataset.gotoModule;
-    if (!mod) return;
-    selectModule(mod);
-    const targetSection = document.getElementById("product");
-    if (targetSection) {
-      targetSection.scrollIntoView({ behavior: prefersReducedMotion ? "auto" : "smooth" });
-      const targetTab = document.getElementById(`tab-${mod}`);
-      if (targetTab) targetTab.focus();
-    }
-  };
-  card.addEventListener("click", navigate);
-  card.addEventListener("keydown", event => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      navigate();
-    }
-  });
-});
-
 /* ===== v12 · Scenario Studio — transparent, consistent what-if maths ===== */
 (() => {
   const studio = document.querySelector('[data-scenario-studio]');
@@ -644,7 +586,6 @@ if (toast) {
       chipDemand?.classList.add("is-active");
       nodeDemand?.classList.add("is-active");
       haloDemand?.classList.add("is-active");
-      hitDemand?.setAttribute("aria-pressed", "true");
     } else {
       if (deactivateTimer) clearTimeout(deactivateTimer);
       deactivateTimer = setTimeout(() => {
@@ -652,7 +593,6 @@ if (toast) {
         chipDemand?.classList.remove("is-active");
         nodeDemand?.classList.remove("is-active");
         haloDemand?.classList.remove("is-active");
-        hitDemand?.setAttribute("aria-pressed", "false");
         deactivateTimer = null;
       }, 140);
     }
@@ -667,21 +607,13 @@ if (toast) {
   if (chipDemand) {
     chipDemand.addEventListener("focus", () => setDemandActive(true));
     chipDemand.addEventListener("blur", () => setDemandActive(false));
-    chipDemand.addEventListener("click", () => setDemandActive(!demandActive));
+    chipDemand.addEventListener("click", () => setDemandActive(true));
   }
 
   if (hitDemand) {
-    hitDemand.addEventListener("focus", () => setDemandActive(true));
-    hitDemand.addEventListener("blur", () => setDemandActive(false));
     hitDemand.addEventListener("click", (e) => {
       e.preventDefault();
-      setDemandActive(!demandActive);
-    });
-    hitDemand.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" || e.key === " ") {
-        e.preventDefault();
-        setDemandActive(!demandActive);
-      }
+      setDemandActive(true);
     });
   }
 
@@ -819,19 +751,6 @@ if (toast) {
 
 
 /* ===== v5 · motion & storytelling ===== */
-function countTo(el, text) {
-  const m = text.match(/-?\d+(\.\d+)?/);
-  if (!m || prefersReducedMotion) { el.textContent = text; return; }
-  const end = parseFloat(m[0]), dec = m[1] ? m[1].length - 1 : 0, t0 = performance.now();
-  cancelAnimationFrame(el._c);
-  const f = now => {
-    const p = Math.min(1, (now - t0) / 750), k = 1 - Math.pow(1 - p, 3);
-    el.textContent = text.replace(m[0], (end * k).toFixed(dec));
-    if (p < 1) el._c = requestAnimationFrame(f);
-  };
-  el._c = requestAnimationFrame(f);
-}
-
 function morph(el, to, dur = 650) {
   const num = /-?\d+(?:\.\d+)?/g;
   const from = el.getAttribute("d").match(num).map(Number), tgt = to.match(num).map(Number), tpl = to.split(num);
@@ -873,7 +792,10 @@ function morph(el, to, dur = 650) {
   const updateActiveNav = () => {
     // If user is near top (hero view), no sub-section is active
     if (window.scrollY < 300) {
-      links.forEach(a => a.classList.remove("active"));
+      links.forEach(a => {
+        a.classList.remove("active");
+        a.removeAttribute("aria-current");
+      });
       return;
     }
     const scrollPos = window.scrollY + 160;
@@ -888,7 +810,12 @@ function morph(el, to, dur = 650) {
         }
       }
     });
-    links.forEach(a => a.classList.toggle("active", Boolean(currentId && a.getAttribute("href") === "#" + currentId)));
+    links.forEach(a => {
+      const isActive = Boolean(currentId && a.getAttribute("href") === "#" + currentId);
+      a.classList.toggle("active", isActive);
+      if (isActive) a.setAttribute("aria-current", "location");
+      else a.removeAttribute("aria-current");
+    });
   };
   window.addEventListener("scroll", updateActiveNav, { passive: true });
   updateActiveNav();
@@ -1114,4 +1041,42 @@ function morph(el, to, dur = 650) {
     }
   }, { threshold: 0.12, rootMargin: '0px 0px -48px 0px' });
   observer.observe(section);
+})();
+
+/* Category use-case tabs */
+(() => {
+  const section = document.querySelector('[data-use-cases]');
+  if (!section) return;
+
+  const tabs = [...section.querySelectorAll('[role="tab"]')];
+  const panels = [...section.querySelectorAll('[role="tabpanel"]')];
+  if (!tabs.length || !panels.length) return;
+
+  const activate = (tab, moveFocus = false) => {
+    const selectedCase = tab.dataset.useCase;
+    tabs.forEach(item => {
+      const selected = item === tab;
+      item.classList.toggle('is-selected', selected);
+      item.setAttribute('aria-selected', String(selected));
+      item.tabIndex = selected ? 0 : -1;
+    });
+    panels.forEach(panel => {
+      panel.hidden = panel.dataset.useCasePanel !== selectedCase;
+    });
+    if (moveFocus) tab.focus();
+  };
+
+  tabs.forEach((tab, index) => {
+    tab.addEventListener('click', () => activate(tab));
+    tab.addEventListener('keydown', event => {
+      let nextIndex = index;
+      if (event.key === 'ArrowDown') nextIndex = (index + 1) % tabs.length;
+      else if (event.key === 'ArrowUp') nextIndex = (index - 1 + tabs.length) % tabs.length;
+      else if (event.key === 'Home') nextIndex = 0;
+      else if (event.key === 'End') nextIndex = tabs.length - 1;
+      else return;
+      event.preventDefault();
+      activate(tabs[nextIndex], true);
+    });
+  });
 })();
