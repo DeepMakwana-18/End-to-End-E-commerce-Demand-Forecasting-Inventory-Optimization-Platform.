@@ -1,0 +1,809 @@
+/* TITAN AI v10 — Scene 02: Editorial Cause-and-Effect Story
+   Color System: Emerald Sun Remix Theme
+   Demonstrating: DEMAND SHIFT (45→60 u/d) → INVENTORY IMPACT (14.7→11d) → REPLENISHMENT REVIEW (13d policy).
+   Scoped to .chain-story. */
+
+:root {
+  --chain-bg: #071912;
+  --chain-surface: #0e2b1f;
+  --chain-surface-inner: #071710;
+  --chain-surface-track: rgba(255, 255, 255, 0.04);
+  --chain-border: rgba(220, 247, 232, 0.14);
+  --chain-border-subtle: rgba(220, 247, 232, 0.08);
+  --chain-text-primary: #fbfaf5;
+  --chain-text-secondary: #c1d9cc;
+  --chain-text-muted: #86a896;
+  --chain-brand-lime: #129d4e;
+  --chain-brand-emerald: #129d4e;
+  --chain-sun-yellow: #facc15;
+  --chain-caution-amber: #e5a83b;
+  --chain-bar-baseline: #1a4f3b;
+  --chain-bar-surge: #2d7355;
+}
+
+.chain-story {
+  isolation: isolate;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  background: radial-gradient(ellipse 70% 50% at 50% 12%, #112B24 0%, var(--chain-bg) 75%);
+  color: var(--chain-text-primary);
+  border-top: 1px solid var(--chain-border);
+}
+
+.chain-story::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(124, 221, 174, 0.2) 25%, var(--chain-text-muted) 50%, rgba(124, 221, 174, 0.2) 75%, transparent);
+  opacity: 0.3;
+  z-index: 2;
+}
+
+.chain-story::after {
+  content: "";
+  position: absolute;
+  inset: auto 0 0;
+  height: 100px;
+  pointer-events: none;
+  background: linear-gradient(transparent, #06110F);
+}
+
+.chain-halo {
+  position: absolute;
+  pointer-events: none;
+  width: 760px;
+  height: 760px;
+  top: 5%;
+  right: -240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(124, 221, 174, 0.05), transparent 70%);
+  filter: blur(40px);
+  z-index: -1;
+}
+
+.chain-wrap {
+  position: relative;
+  width: min(100%, 1360px);
+  padding: clamp(64px, 8.5vh, 108px) clamp(20px, 4.5vw, 68px) clamp(64px, 8.5vh, 96px);
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* 1. Integrated Narrative Preamble */
+.chain-preamble {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 24px;
+  margin-bottom: 36px;
+  border-bottom: 1px solid var(--chain-border-subtle);
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--chain-text-secondary);
+}
+
+.chain-preamble-pulse {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chain-brand-lime);
+  box-shadow: 0 0 0 4px rgba(183, 245, 141, 0.15);
+}
+
+/* 2. Heading Section */
+.chain-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(240px, 0.85fr);
+  align-items: end;
+  gap: clamp(24px, 4vw, 52px);
+  margin-bottom: 40px;
+}
+
+.chain-heading .eyebrow {
+  margin: 0 0 16px;
+  font-size: 11px;
+  color: var(--chain-text-muted);
+  letter-spacing: 0.16em;
+  font-weight: 700;
+}
+
+.chain-heading h2 {
+  margin: 0;
+  font-weight: 600;
+  color: var(--chain-text-primary);
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  font-size: clamp(42px, 5.2vw, 80px);
+}
+
+.chain-heading h2 em {
+  font-style: italic;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  color: var(--chain-brand-lime);
+  letter-spacing: -0.045em;
+}
+
+.chain-heading > p {
+  max-width: 440px;
+  font-size: clamp(14px, 1.1vw, 16.5px);
+  line-height: 1.68;
+  color: var(--chain-text-secondary);
+  margin: 0 0 6px;
+}
+
+/* 3. The Unified Canvas */
+.chain-display {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--chain-border);
+  border-radius: 26px;
+  background: var(--chain-surface);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.05);
+  padding: clamp(22px, 3.2vw, 40px);
+}
+
+.chain-display::before {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+  top: 0;
+  left: 5%;
+  right: 5%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(124, 221, 174, 0.15), transparent);
+}
+
+/* Canvas Meta Topbar */
+.chain-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--chain-border-subtle);
+  margin-bottom: 28px;
+}
+
+.chain-meta-sku {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  color: var(--chain-text-secondary);
+}
+
+.chain-meta-sku i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chain-brand-lime);
+  box-shadow: 0 0 0 3px rgba(183, 245, 141, 0.15);
+}
+
+.chain-meta-scope {
+  font-size: 11px;
+  color: var(--chain-text-muted);
+  font-weight: 500;
+}
+
+/* Cause-and-Effect Stepper / Sequence */
+.chain-cause-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  padding: 16px 20px;
+  background: var(--chain-surface-inner);
+  border: 1px solid var(--chain-border-subtle);
+  border-radius: 16px;
+  margin-bottom: 34px;
+}
+
+.chain-cause-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chain-cause-card small {
+  font-size: 9.5px;
+  font-weight: 750;
+  letter-spacing: 0.12em;
+  color: var(--chain-text-muted);
+  text-transform: uppercase;
+}
+
+.chain-cause-metric {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: clamp(20px, 2.2vw, 28px);
+  font-weight: 600;
+  color: var(--chain-text-primary);
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+}
+
+.chain-cause-arrow {
+  color: var(--chain-text-muted);
+  font-size: 16px;
+  margin: 0 1px;
+}
+
+.chain-cause-val.highlight {
+  color: var(--chain-brand-lime);
+}
+
+.chain-cause-val.highlight-amber {
+  color: var(--chain-text-primary);
+}
+
+.chain-cause-unit {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--chain-text-secondary);
+  letter-spacing: normal;
+}
+
+.chain-cause-delta {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 2px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: var(--chain-brand-lime);
+}
+
+.chain-cause-delta.delta-amber {
+  color: var(--chain-text-secondary);
+}
+
+.chain-cause-delta.delta-warn {
+  color: var(--chain-caution-amber);
+}
+
+.chain-cause-connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  color: var(--chain-text-muted);
+  font-size: 9.5px;
+  font-weight: 600;
+  padding: 0 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.chain-cause-connector i {
+  font-style: normal;
+  font-size: 18px;
+  line-height: 1;
+  color: var(--chain-text-muted);
+}
+
+/* 4. The Unified 0-20 Day Timeline Horizon */
+.chain-horizon {
+  position: relative;
+  padding: 26px 0 20px;
+}
+
+/* Common Axis (0 to 20 Days) */
+.chain-axis {
+  position: relative;
+  height: 28px;
+  border-bottom: 1px solid var(--chain-border);
+  margin-bottom: 24px;
+}
+
+.chain-axis-label {
+  position: absolute;
+  top: 4px;
+  font-size: 10.5px;
+  color: var(--chain-text-muted);
+  transform: translateX(-50%);
+  font-weight: 500;
+}
+
+.chain-axis-label::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 1px;
+  height: 6px;
+  background: var(--chain-border);
+}
+
+.chain-axis-label.pos-0 { left: 0%; transform: none; }
+.chain-axis-label.pos-0::after { left: 0; }
+.chain-axis-label.pos-5 { left: 25%; }
+.chain-axis-label.pos-10 { left: 50%; }
+.chain-axis-label.pos-15 { left: 75%; }
+.chain-axis-label.pos-20 { left: 100%; transform: translateX(-100%); }
+.chain-axis-label.pos-20::after { left: 100%; }
+
+/* Vertical 13-Day Threshold Datum Line (65% = 13/20 days) */
+.chain-threshold-line {
+  position: absolute;
+  left: 65%;
+  top: 28px;
+  bottom: 56px;
+  width: 2px;
+  background: repeating-linear-gradient(to bottom, var(--chain-caution-amber) 0, var(--chain-caution-amber) 4px, transparent 4px, transparent 8px);
+  z-index: 10;
+}
+
+.chain-threshold-badge {
+  position: absolute;
+  top: -2px;
+  left: 65%;
+  transform: translateX(-50%);
+  background: #1f1807;
+  border: 1px solid rgba(229, 168, 59, 0.55);
+  color: #facc15;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 9px;
+  border-radius: 4px;
+  white-space: nowrap;
+  z-index: 12;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+/* Runway Rows */
+.chain-runway-row {
+  margin-bottom: 26px;
+  position: relative;
+}
+
+.chain-runway-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.chain-runway-name {
+  font-weight: 600;
+  color: var(--chain-text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chain-runway-name small {
+  font-weight: 400;
+  color: var(--chain-text-muted);
+  font-size: 11px;
+}
+
+.chain-runway-stat {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.chain-runway-stat.stat-safe {
+  color: var(--chain-text-secondary);
+}
+
+.chain-runway-stat.stat-warn {
+  color: var(--chain-caution-amber);
+}
+
+/* Runway Bars (Solid Botanical Tone) */
+.chain-runway-track {
+  height: 38px;
+  background: var(--chain-surface-track);
+  border-radius: 8px;
+  position: relative;
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--chain-border-subtle);
+}
+
+.chain-runway-bar {
+  height: 100%;
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  padding-left: 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  white-space: nowrap;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.chain-runway-bar.bar-baseline {
+  width: 73.5%; /* 14.7 / 20 = 73.5% */
+  background: var(--chain-bar-baseline);
+  box-shadow: none;
+}
+
+.chain-runway-bar.bar-surge {
+  width: 55%; /* 11.0 / 20 = 55% */
+  background: var(--chain-bar-surge);
+  box-shadow: none;
+  color: #fff;
+}
+
+/* Deficit Bracket Zone (55% to 65% = 10% width = 2 days) */
+.chain-deficit-bracket {
+  position: absolute;
+  left: 55%;
+  width: 10%;
+  height: 38px;
+  top: 0;
+  background: rgba(226, 176, 120, 0.1);
+  border: 1px dashed rgba(226, 176, 120, 0.45);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 5;
+  box-sizing: border-box;
+}
+
+.chain-deficit-text {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--chain-caution-amber);
+  white-space: nowrap;
+  background: #1C1710;
+  padding: 2px 6px;
+  border-radius: 3px;
+  border: 1px solid rgba(226, 176, 120, 0.45);
+}
+
+/* Proportional Policy Breakdown Strip */
+.chain-policy-strip {
+  display: flex;
+  align-items: center;
+  margin-top: 14px;
+  padding-top: 18px;
+  border-top: 1px solid var(--chain-border-subtle);
+  font-size: 11px;
+}
+
+.chain-policy-bars {
+  display: flex;
+  width: 65%; /* 13 / 20 = 65% */
+  gap: 4px;
+  height: 26px;
+}
+
+.chain-policy-segment {
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  border-radius: 5px;
+  font-weight: 500;
+  font-size: 10.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-sizing: border-box;
+}
+
+.segment-lead {
+  flex: 8;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--chain-border-subtle);
+  color: var(--chain-text-secondary);
+}
+
+.segment-safety {
+  flex: 5;
+  background: rgba(18, 157, 78, 0.15);
+  border: 1px solid rgba(18, 157, 78, 0.35);
+  color: var(--chain-brand-lime);
+}
+
+.chain-policy-calc {
+  margin-left: 16px;
+  color: var(--chain-text-muted);
+  font-size: 11px;
+}
+
+/* 5. Operational Decision Synthesis Banner */
+.chain-synthesis {
+  margin-top: 32px;
+  padding: 22px 28px;
+  background: var(--chain-surface-inner);
+  border: 1px solid var(--chain-border);
+  border-radius: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+}
+
+.chain-synthesis-content {
+  max-width: 820px;
+}
+
+.chain-synthesis-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.chain-status-badge {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 4px 9px;
+  border-radius: 99px;
+  background: rgba(229, 168, 59, 0.16);
+  color: #facc15;
+  border: 1px solid rgba(229, 168, 59, 0.45);
+  text-transform: uppercase;
+}
+
+.chain-synthesis-head h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--chain-text-primary);
+  letter-spacing: -0.01em;
+}
+
+.chain-synthesis-content p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--chain-text-secondary);
+  line-height: 1.55;
+}
+
+.chain-synthesis-cta {
+  white-space: nowrap;
+}
+
+.chain-cta-link {
+  color: var(--chain-text-primary);
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--chain-border);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.chain-cta-link:hover {
+  color: var(--chain-brand-lime);
+  border-bottom-color: var(--chain-brand-lime);
+}
+
+/* 6. Section Footer */
+.chain-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 24px;
+  font-size: 11px;
+  color: var(--chain-text-muted);
+}
+
+.chain-footer strong {
+  color: var(--chain-text-secondary);
+}
+
+.chain-footer a {
+  font-size: 12px;
+  color: var(--chain-text-secondary);
+  text-decoration: none;
+  border-bottom: 1px solid var(--chain-border);
+  padding-bottom: 3px;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.chain-footer a:hover {
+  color: var(--chain-text-primary);
+  border-bottom-color: var(--chain-text-primary);
+}
+
+/* Focus Accessibility */
+.chain-cta-link:focus-visible,
+.chain-footer a:focus-visible {
+  outline: 2px solid var(--chain-brand-lime);
+  outline-offset: 3px;
+}
+
+/* ======================================================== */
+/* Responsive Media Queries                                 */
+/* ======================================================== */
+@media (max-width: 1050px) {
+  .chain-heading {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .chain-heading > p {
+    max-width: 620px;
+  }
+  .chain-cause-grid {
+    gap: 8px;
+    padding: 14px 16px;
+  }
+  .chain-cause-metric {
+    font-size: 20px;
+  }
+  .chain-synthesis {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .chain-wrap {
+    padding: 56px 16px 64px;
+  }
+  .chain-preamble {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 10px;
+    padding-bottom: 18px;
+    margin-bottom: 24px;
+  }
+  .chain-heading h2 {
+    font-size: clamp(34px, 8vw, 48px);
+  }
+  .chain-display {
+    padding: 18px 14px;
+    border-radius: 18px;
+  }
+  .chain-meta {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+    padding-bottom: 12px;
+    margin-bottom: 18px;
+  }
+  /* Reflow cause grid into clean stacked columns */
+  .chain-cause-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+    padding: 14px;
+  }
+  .chain-cause-connector {
+    display: none;
+  }
+  .chain-horizon {
+    padding-top: 18px;
+  }
+  .chain-axis {
+    margin-bottom: 18px;
+  }
+  .chain-axis-label {
+    font-size: 9px;
+  }
+  .chain-threshold-badge {
+    font-size: 8px;
+    padding: 2px 6px;
+    top: -22px;
+  }
+  .chain-threshold-line {
+    top: 24px;
+    bottom: 46px;
+  }
+  .chain-runway-row {
+    margin-bottom: 20px;
+  }
+  .chain-runway-head {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    margin-bottom: 6px;
+  }
+  .chain-runway-name {
+    font-size: 12px;
+  }
+  .chain-runway-stat {
+    font-size: 10.5px;
+    white-space: normal;
+    line-height: 1.35;
+  }
+  .chain-runway-track {
+    height: 32px;
+  }
+  .chain-runway-bar {
+    font-size: 10.5px;
+    padding-left: 8px;
+  }
+  .chain-deficit-bracket {
+    height: 32px;
+  }
+  .chain-deficit-text {
+    font-size: 8.5px;
+    padding: 1px 3px;
+  }
+  .chain-policy-strip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    padding-top: 14px;
+    margin-top: 10px;
+  }
+  .chain-policy-bars {
+    width: 100%;
+    height: 24px;
+    gap: 4px;
+  }
+  .chain-policy-segment {
+    font-size: 9px;
+    padding: 0 6px;
+  }
+  .chain-policy-calc {
+    margin-left: 0;
+    font-size: 9.5px;
+  }
+  .chain-synthesis {
+    padding: 14px;
+    border-radius: 12px;
+    margin-top: 20px;
+  }
+  .chain-synthesis-head {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .chain-synthesis-head h3 {
+    font-size: 13px;
+  }
+  .chain-status-badge {
+    font-size: 8.5px;
+    padding: 2px 7px;
+  }
+  .chain-synthesis-content p {
+    font-size: 11.5px;
+    line-height: 1.45;
+  }
+  .chain-cta-link {
+    font-size: 12px;
+  }
+  .chain-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding-top: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .chain-wrap {
+    padding: 44px 10px 52px;
+  }
+  .chain-display {
+    padding: 14px 10px;
+  }
+  .chain-heading h2 {
+    font-size: 30px;
+  }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  .chain-story *,
+  .chain-story *::before,
+  .chain-story *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

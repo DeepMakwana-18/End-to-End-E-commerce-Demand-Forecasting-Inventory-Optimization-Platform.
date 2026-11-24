@@ -1,0 +1,866 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#fbfaf5" />
+    <meta name="description" content="Titan AI turns sales data into demand forecasts, inventory signals, risk alerts, and smarter supply-chain decisions." />
+    <link rel="canonical" href="https://titanai.app/" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="apple-touch-icon" href="./favicon.svg" />
+    <title>Titan AI — See what's coming. Stay ahead.</title>
+
+    <!-- Open Graph / Social Sharing -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://titanai.app/" />
+    <meta property="og:title" content="Titan AI — See what's coming. Stay ahead." />
+    <meta property="og:description" content="AI-powered demand forecasts, inventory signals, risk alerts, and smarter supply-chain decisions." />
+    <meta property="og:image" content="./og-image.svg" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://titanai.app/" />
+    <meta name="twitter:title" content="Titan AI — See what's coming. Stay ahead." />
+    <meta name="twitter:description" content="AI-powered demand forecasting and supply-chain intelligence without black-box automation." />
+    <meta name="twitter:image" content="./og-image.svg" />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Titan AI",
+      "applicationCategory": "BusinessApplication",
+      "operatingSystem": "Web",
+      "description": "AI-powered demand forecasting, inventory optimization, risk detection, and scenario simulation platform.",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      }
+    }
+    </script>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" />
+    <link rel="stylesheet" href="./styles.css?v=v15_01" />
+    <link rel="stylesheet" href="./refinements.css?v=v15_01" />
+    <link rel="stylesheet" href="./v11-risk.css?v=v15_01" />
+    <link rel="stylesheet" href="./v12-scenario.css?v=v15_01" />
+    <link rel="stylesheet" href="./datavision-product.css?v=v15_01" />
+    <link rel="stylesheet" href="./titan-overview.css?v=v15_01" />
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <div class="progress" aria-hidden="true"></div>
+
+    <header class="site-header" data-header>
+      <a class="brand" href="#top" aria-label="Titan AI home">
+        <span class="brand-mark" aria-hidden="true"><i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i></span>
+        <span>TITAN <b>AI</b></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#how">How it works</a>
+        <a href="#product">Intelligence</a>
+        <a href="#outputs">Capabilities</a>
+        <a href="#faq">FAQs</a>
+      </nav>
+      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="mobile-menu" aria-label="Open navigation">
+        <span></span><span></span>
+      </button>
+      <a class="nav-cta" href="/auth">Launch Titan AI <span aria-hidden="true">↗</span></a>
+      <nav class="mobile-nav" id="mobile-menu" aria-label="Mobile navigation" hidden>
+        <a href="#how"><span>01</span>How it works</a>
+        <a href="#product"><span>02</span>Intelligence</a>
+        <a href="#outputs"><span>03</span>Capabilities</a>
+        <a href="#faq"><span>04</span>FAQs</a>
+        <a class="mobile-nav-cta" href="/auth">Launch Titan AI <span aria-hidden="true">↗</span></a>
+      </nav>
+    </header>
+
+    <main id="main">
+      <section class="hero hero-v3 scene scene-light" id="top" aria-labelledby="hero-title">
+        <div class="ambient ambient-a"></div>
+        <div class="ambient ambient-b"></div>
+        <div class="hero-copy">
+          <p class="eyebrow"><span></span> AI-powered supply-chain intelligence</p>
+          <h1 id="hero-title">See what’s coming.<br /><em>Stay ahead.</em></h1>
+          <p class="hero-dek">From sales history to tomorrow’s demand, inventory risks and clearer decisions—see the signals that matter before you act.</p>
+          <div class="hero-actions">
+            <a class="button button-dark" href="/auth"><span>Launch Titan AI</span> <span aria-hidden="true">↗</span></a>
+            <a class="button button-ghost" href="#how"><span>See how it works</span> <span aria-hidden="true">↓</span></a>
+          </div>
+        </div>
+
+        <div class="hero-stage" role="img" aria-label="Illustrative supply-chain intelligence artwork: sales signals flow into a demand forecast and a possible inventory decision">
+          <div class="thread-scene" data-thread>
+            <div class="thread-plane plane-b"></div>
+
+            <svg class="thread-svg" viewBox="0 0 760 520" aria-hidden="true">
+              <defs>
+                <linearGradient id="thHist" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#181B22" stop-opacity="0.1"/>
+                  <stop offset=".35" stop-color="#475569" stop-opacity=".5"/>
+                  <stop offset="1" stop-color="#64748B" stop-opacity=".85"/>
+                </linearGradient>
+                <linearGradient id="thFc" x1="0" x2="1" y1="0" y2="0">
+                  <stop offset="0%" stop-color="#2454D6"/>
+                  <stop offset=".55" stop-color="#2563EB"/>
+                  <stop offset="1" stop-color="#60A5FA"/>
+                </linearGradient>
+                <linearGradient id="thCiFill" x1="0" x2="0" y1="0" y2="1">
+                  <stop offset="0%" stop-color="#2454D6" stop-opacity="0.14"/>
+                  <stop offset="100%" stop-color="#2454D6" stop-opacity="0.02"/>
+                </linearGradient>
+              </defs>
+              <g class="th-layer th-layer-dots"><g id="thDots"></g></g>
+              <g class="th-layer th-layer-main">
+                <path id="thCiArea" class="th-ci-area" fill="url(#thCiFill)" d="" />
+                <path id="thFcBase" class="th-fc-base" fill="none" />
+                <path id="thHistLine" class="th-hist" fill="none" />
+                <path id="thHistPulse" class="th-hist-pulse" fill="none" pathLength="1" aria-hidden="true" />
+                <path id="thFcLine" class="th-fc th-trace" fill="none" pathLength="1" aria-hidden="true" />
+                <g class="th-links">
+                  <line id="thLinkDemand" class="th-link th-link-demand" x1="475" y1="138" x2="516" y2="187"/>
+                  <line id="thLinkRisk" class="th-link th-link-risk" x1="615" y1="164" x2="600" y2="245"/>
+                  <line id="thLinkAction" class="th-link th-link-action" x1="695" y1="78" x2="716" y2="133"/>
+                </g>
+                <g class="th-nodes">
+                  <circle class="th-node th-now" cx="400" cy="254.2" r="5"/>
+                  <circle id="thHaloDemand" class="th-halo th-halo-demand" cx="520" cy="193.5" r="11.5" aria-hidden="true"/>
+                  <circle id="thNodeDemand" class="th-node th-node-demand" cx="520" cy="193.5" r="5"/>
+                  <polygon id="thBridgeDemand" class="th-hit-target" points="435,100 520,100 540,205 480,205" fill="transparent" aria-hidden="true"/>
+                  <circle id="thHitDemand" class="th-hit-target" cx="520" cy="193.5" r="20" aria-label="Forecast peak point: +18.4% by W10" role="button" tabindex="0"/>
+                  <circle class="th-node th-risk" cx="615" cy="156.4" r="5"/>
+                  <circle class="th-node th-end" cx="720" cy="140" r="6"/>
+                </g>
+              </g>
+            </svg>
+
+            <div class="thread-chip chip-demand" tabindex="0" role="region" aria-label="Demand forecast: +18.4% by W10"><small>Demand</small><b>+18.4% by W10</b></div>
+            <div class="thread-chip chip-risk"><small><i aria-hidden="true"></i>Stockout risk</small><b>11 days</b></div>
+            <div class="thread-chip chip-action"><small>Recommended action</small><b><i aria-hidden="true"></i>Reorder 320 units</b></div>
+
+            <div class="thread-foot-row">
+              <span class="thread-cap">Raw sales data</span>
+              <button type="button" class="thread-replay-btn" id="thReplayBtn" aria-label="Replay forecast animation">
+                <svg class="replay-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
+                  <path d="M2.5 8a5.5 5.5 0 1 0 1.2-3.4L2 6" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M2 2.5V6h3.5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <span>Replay forecast</span>
+              </button>
+              <span class="thread-demo">Illustrative demo data · SKU-204</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="hero-foot">
+          <span>Forecast · Detect · Decide</span>
+          <a class="scroll-cue" href="#titan-overview"><i aria-hidden="true"></i> Scroll to explore <span aria-hidden="true">↓</span></a>
+        </div>
+      </section>
+
+      <section class="titan-overview" id="titan-overview" aria-labelledby="titan-overview-title">
+        <div class="titan-overview__shell">
+          <header class="titan-overview__intro">
+            <p class="titan-overview__eyebrow">TITAN AT A GLANCE</p>
+            <h2 id="titan-overview-title">Four planning questions. One connected system.</h2>
+            <p class="titan-overview__lead">Turn historical demand into forward forecasts, inventory awareness, anomaly signals, and decisions your team can understand and review.</p>
+          </header>
+
+          <div class="titan-overview__questions-grid">
+            <article class="titan-overview__question-card" data-goto-module="forecast" tabindex="0" role="button" aria-label="Explore Forecast: What demand is coming?">
+              <div>
+                <div class="titan-overview__card-top">
+                  <span class="titan-overview__card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 18V6m0 12h18M6 15l4-4 3 2 5-7"/><path d="M15 6h3v3"/></svg>
+                  </span>
+                  <span class="titan-overview__card-num">01</span>
+                </div>
+                <p class="titan-overview__card-category">FORECAST</p>
+                <h3 class="titan-overview__card-question">What demand is coming?</h3>
+                <p class="titan-overview__card-desc">Quantify future volume 12 weeks out with bounded uncertainty to plan purchase orders ahead of supplier lead times.</p>
+              </div>
+              <span class="titan-overview__card-cue">Explore view <span aria-hidden="true">→</span></span>
+            </article>
+
+            <article class="titan-overview__question-card" data-goto-module="inventory" tabindex="0" role="button" aria-label="Explore Inventory: Which products need replenishment?">
+              <div>
+                <div class="titan-overview__card-top">
+                  <span class="titan-overview__card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z"/><path d="m4.5 7.8 7.5 4.3 7.5-4.3M12 12.1V21M8 5.3l8 4.6"/></svg>
+                  </span>
+                  <span class="titan-overview__card-num">02</span>
+                </div>
+                <p class="titan-overview__card-category">INVENTORY</p>
+                <h3 class="titan-overview__card-question">Which products need replenishment?</h3>
+                <p class="titan-overview__card-desc">Connect projected demand with on-hand runway against supplier lead time and safety stock thresholds to avoid stockouts.</p>
+              </div>
+              <span class="titan-overview__card-cue">Explore view <span aria-hidden="true">→</span></span>
+            </article>
+
+            <article class="titan-overview__question-card" data-goto-module="risk" tabindex="0" role="button" aria-label="Explore Risk Radar: What changed unexpectedly?">
+              <div>
+                <div class="titan-overview__card-top">
+                  <span class="titan-overview__card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24M14.83 14.83l4.24 4.24M14.83 9.17l4.24-4.24M4.93 19.07l4.24-4.24"/></svg>
+                  </span>
+                  <span class="titan-overview__card-num">03</span>
+                </div>
+                <p class="titan-overview__card-category">RISK RADAR</p>
+                <h3 class="titan-overview__card-question">What changed unexpectedly?</h3>
+                <p class="titan-overview__card-desc">Detect statistical surges, drops, and forecast misses with sigma z-scores against rolling baseline demand.</p>
+              </div>
+              <span class="titan-overview__card-cue">Explore view <span aria-hidden="true">→</span></span>
+            </article>
+
+            <article class="titan-overview__question-card" data-goto-module="scenario" tabindex="0" role="button" aria-label="Explore Scenario Lab: What happens if assumptions change?">
+              <div>
+                <div class="titan-overview__card-top">
+                  <span class="titan-overview__card-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                  </span>
+                  <span class="titan-overview__card-num">04</span>
+                </div>
+                <p class="titan-overview__card-category">SCENARIO LAB</p>
+                <h3 class="titan-overview__card-question">What happens if assumptions change?</h3>
+                <p class="titan-overview__card-desc">Simulate promotional demand surges, price adjustments, or supplier delays to test trade-offs before committing orders.</p>
+              </div>
+              <span class="titan-overview__card-cue">Explore view <span aria-hidden="true">→</span></span>
+            </article>
+          </div>
+
+          <div class="titan-overview__benefits-row">
+            <article class="titan-overview__benefit-card">
+              <div class="titan-overview__benefit-head">
+                <span class="titan-overview__benefit-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+                </span>
+                <h4 class="titan-overview__benefit-title">Demand signals</h4>
+              </div>
+              <p class="titan-overview__benefit-desc">See meaningful movement in historical demand before it becomes a planning surprise.</p>
+            </article>
+
+            <article class="titan-overview__benefit-card">
+              <div class="titan-overview__benefit-head">
+                <span class="titan-overview__benefit-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                </span>
+                <h4 class="titan-overview__benefit-title">Inventory awareness</h4>
+              </div>
+              <p class="titan-overview__benefit-desc">Connect projected demand with stock coverage and emerging inventory risk.</p>
+            </article>
+
+            <article class="titan-overview__benefit-card">
+              <div class="titan-overview__benefit-head">
+                <span class="titan-overview__benefit-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                </span>
+                <h4 class="titan-overview__benefit-title">Planner control</h4>
+              </div>
+              <p class="titan-overview__benefit-desc">Inspect the evidence, test assumptions, and review the recommended next move.</p>
+            </article>
+          </div>
+
+          <aside class="titan-overview__governance">
+            <span class="titan-overview__governance-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <p class="titan-overview__governance-text">
+              <strong>Human review stays in the loop:</strong> No automated purchase order is transmitted without approval. Titan flags timing triggers and quantifies risk, leaving final order approval with the planner.
+            </p>
+          </aside>
+        </div>
+      </section>
+
+
+
+      <section class="how scene scene-light" id="how" aria-labelledby="how-title">
+        <div class="how-inner">
+          <div class="how-head reveal">
+            <div>
+              <p class="eyebrow"><span></span> How it works</p>
+              <h2 id="how-title">From spreadsheet<br /><em>to decision.</em></h2>
+            </div>
+            <p class="how-lede">Upload a sales CSV. Titan maps your columns, forecasts demand, explains what drives it, and turns it into reorder actions. Drag the handle to compare.</p>
+          </div>
+
+          <div class="wipe reveal" data-wipe tabindex="0" role="slider" aria-label="Compare spreadsheet with Titan’s view" aria-valuemin="0" aria-valuemax="100" aria-valuenow="58">
+            <div class="wipe-layer wipe-before">
+              <div class="wipe-top"><span class="wipe-chip chip-paper">Your spreadsheet</span><span class="wipe-file">sales_history.csv · 12,480 rows</span></div>
+              <div class="csv" role="table" aria-label="Sample rows from a sales CSV">
+                <div class="csv-row csv-head" role="row"><span>Date</span><span>SKU</span><span>Units</span><span>On hand</span><span>Lead (d)</span></div>
+                <div class="csv-row" role="row"><span>10-06</span><span>SKU-204</span><span>412</span><span>1,380</span><span>8</span></div>
+                <div class="csv-row" role="row"><span>10-07</span><span>SKU-108</span><span>188</span><span>2,110</span><span>6</span></div>
+                <div class="csv-row" role="row"><span>10-08</span><span>SKU-204</span><span>431</span><span>1,125</span><span>8</span></div>
+                <div class="csv-row" role="row"><span>10-09</span><span>SKU-312</span><span>336</span><span>905</span><span>12</span></div>
+                <div class="csv-row" role="row"><span>10-10</span><span>SKU-204</span><span>468</span><span>861</span><span>8</span></div>
+                <div class="csv-row" role="row"><span>10-11</span><span>SKU-108</span><span>192</span><span>1,940</span><span>6</span></div>
+                <div class="csv-row" role="row"><span>10-12</span><span>SKU-204</span><span>610</span><span>630</span><span>8</span></div>
+                <div class="csv-row" role="row"><span>10-13</span><span>SKU-312</span><span>341</span><span>564</span><span>12</span></div>
+              </div>
+              <p class="wipe-q">Which SKU runs out first?</p>
+            </div>
+
+            <div class="wipe-layer wipe-after">
+              <div class="wipe-top wipe-top-r"><span class="wipe-chip chip-titan">Titan’s view</span><span class="wipe-file wipe-file-r">SKU-204 · illustrative</span></div>
+              <div class="board">
+                <article class="bcard bc-signal">
+                  <small>Demand signal</small>
+                  <h3>+48%</h3>
+                  <p>above baseline · +3.2σ</p>
+                  <svg viewBox="0 0 160 46" preserveAspectRatio="none" aria-hidden="true"><path d="M2 36 C20 34 34 36 52 32 S84 30 98 26 L112 6 L126 30 L158 24" fill="none" stroke="#D97706" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/><circle cx="112" cy="6" r="3.6" fill="#D97706"/></svg>
+                </article>
+                <article class="bcard bc-risk">
+                  <small>Stockout risk</small>
+                  <h3>11 days</h3>
+                  <p>of stock · lead time 8 days</p>
+                  <div class="runway" aria-hidden="true"><i style="width:38%"></i><b style="left:27%"></b></div>
+                </article>
+                <article class="bcard bc-action">
+                  <small>Recommended order</small>
+                  <h3>320 units</h3>
+                  <p>Covers the peak window</p>
+                  <ul class="drivers" aria-label="What drives the forecast">
+                    <li><span>Seasonality</span><i style="--w:84%" aria-hidden="true"></i></li>
+                    <li><span>Promo lift</span><i style="--w:56%" aria-hidden="true"></i></li>
+                    <li><span>Lead time</span><i style="--w:38%" aria-hidden="true"></i></li>
+                  </ul>
+                </article>
+              </div>
+            </div>
+
+            <div class="wipe-line" aria-hidden="true"></div>
+            <div class="wipe-handle" aria-hidden="true"></div>
+            <span class="wipe-hint" aria-hidden="true">Drag to compare</span>
+            <input class="wipe-range" type="range" min="0" max="100" value="58" step="0.5" aria-label="Compare your spreadsheet with Titan’s view" tabindex="-1" />
+          </div>
+
+          <ol class="how-steps reveal">
+            <li><b><i aria-hidden="true">01</i>Upload</b><span>CSV up to 50 MB, validated on arrival.</span></li>
+            <li><b><i aria-hidden="true">02</i>Map</b><span>Match your columns to Titan’s fields.</span></li>
+            <li><b><i aria-hidden="true">03</i>Forecast</b><span>XGBoost forecasts, explained with SHAP.</span></li>
+            <li><b><i aria-hidden="true">04</i>Act</b><span>Reorder points, alerts and what-if scenarios.</span></li>
+          </ol>
+          <p class="how-foot">* Illustrative demonstration data · Simulated supply-chain transactions</p>
+        </div>
+      </section>
+
+
+      <section class="product scene scene-light" id="product" aria-labelledby="product-title">
+        <div class="product-container">
+          <header class="product-heading">
+            <h2 id="product-title">Explore Intelligence</h2>
+            <p class="product-lede">See demand, spot risk, and test your next move.</p>
+          </header>
+
+          <div class="product-split">
+            <!-- Left Navigation: Quiet, natural group (26-30% width, no numbering, no competing active states) -->
+            <nav class="product-nav" role="tablist" aria-label="Explore Intelligence views">
+              <button role="tab" class="nav-item is-selected" aria-selected="true" aria-controls="preview-panel" id="tab-forecast" data-module="forecast" tabindex="0">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+                </span>
+                <div class="nav-content">
+                  <strong class="nav-title">Forecast</strong>
+                  <p class="nav-desc">See what demand could look like.</p>
+                </div>
+              </button>
+
+              <button role="tab" class="nav-item" aria-selected="false" aria-controls="preview-panel" id="tab-inventory" data-module="inventory" tabindex="-1">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>
+                </span>
+                <div class="nav-content">
+                  <strong class="nav-title">Inventory</strong>
+                  <p class="nav-desc">Find products that need attention.</p>
+                </div>
+              </button>
+
+              <button role="tab" class="nav-item" aria-selected="false" aria-controls="preview-panel" id="tab-risk" data-module="risk" tabindex="-1">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m9 12 2 2 4-4"/></svg>
+                </span>
+                <div class="nav-content">
+                  <strong class="nav-title">Risk Radar</strong>
+                  <p class="nav-desc">Spot unexpected demand changes.</p>
+                </div>
+              </button>
+
+              <button role="tab" class="nav-item" aria-selected="false" aria-controls="preview-panel" id="tab-scenario" data-module="scenario" tabindex="-1">
+                <span class="nav-icon" aria-hidden="true">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                </span>
+                <div class="nav-content">
+                  <strong class="nav-title">Scenario Lab</strong>
+                  <p class="nav-desc">Test a change before acting.</p>
+                </div>
+              </button>
+            </nav>
+
+            <!-- Right Preview Card: Single White Surface (No universal SKU/badge row, no nested boxes) -->
+            <div class="product-preview-card" id="preview-panel" role="tabpanel" tabindex="0" aria-labelledby="tab-forecast" data-active-view="forecast">
+              
+              <!-- VIEW 1: FORECAST PREVIEW -->
+              <div class="pv-view pv-view-forecast" data-view="forecast">
+                <header class="pv-view-header">
+                  <h3 class="pv-view-title">See demand ahead.</h3>
+                </header>
+
+                <!-- One Large Forecast Chart directly on surface (No nested card border) -->
+                <div class="pv-chart-stage">
+                  <svg class="pv-forecast-svg" viewBox="0 0 760 260" preserveAspectRatio="none" role="img" aria-label="12-week demand forecast curve with 95% confidence interval and week 10 predicted peak">
+                    <defs>
+                      <linearGradient id="pvCiGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2454D6" stop-opacity="0.14" />
+                        <stop offset="100%" stop-color="#2454D6" stop-opacity="0.02" />
+                      </linearGradient>
+                    </defs>
+
+                    <!-- Subtle Horizontal Gridlines -->
+                    <line x1="48" y1="45" x2="730" y2="45" class="pv-grid-line" />
+                    <line x1="48" y1="100" x2="730" y2="100" class="pv-grid-line" />
+                    <line x1="48" y1="155" x2="730" y2="155" class="pv-grid-line" />
+                    <line x1="48" y1="210" x2="730" y2="210" class="pv-grid-line" />
+
+                    <!-- Y-Axis Labels -->
+                    <text x="38" y="49" class="pv-axis-text" text-anchor="end">2,000</text>
+                    <text x="38" y="104" class="pv-axis-text" text-anchor="end">1,500</text>
+                    <text x="38" y="159" class="pv-axis-text" text-anchor="end">1,000</text>
+                    <text x="38" y="214" class="pv-axis-text" text-anchor="end">500</text>
+
+                    <!-- Today Boundary (x = 390) -->
+                    <line x1="390" y1="24" x2="390" y2="220" class="pv-cutoff-line" />
+                    <text x="390" y="16" class="pv-cutoff-label" text-anchor="middle">TODAY</text>
+
+                    <!-- 95% Confidence Interval Band (Forecast zone) -->
+                    <path class="pv-ci-area" fill="url(#pvCiGradient)" d="M390 106 C435 94 495 50 560 38 C625 26 675 42 730 32 L730 114 C675 126 625 110 560 102 C495 114 435 122 390 106 Z" />
+                    <path class="pv-ci-border" fill="none" stroke="#2454D6" stroke-opacity="0.25" stroke-dasharray="3 3" d="M390 106 C435 94 495 50 560 38 C625 26 675 42 730 32" />
+                    <path class="pv-ci-border" fill="none" stroke="#2454D6" stroke-opacity="0.25" stroke-dasharray="3 3" d="M390 106 C435 122 495 114 560 102 C625 110 675 126 730 114" />
+
+                    <!-- Historical Actuals in Slate (x: 48 to 390) -->
+                    <path class="pv-history-line" fill="none" d="M48 180 C95 166 135 196 185 154 C235 112 270 170 315 144 C355 120 370 144 390 106" />
+
+                    <!-- Forecast Line in Cobalt (x: 390 to 730) -->
+                    <path class="pv-forecast-line" fill="none" d="M390 106 C435 96 495 72 560 64 C625 58 675 68 730 62" />
+
+                    <!-- Today Point -->
+                    <circle cx="390" cy="106" r="4.5" class="pv-point-today" />
+
+                    <!-- Peak Point on Curve (Week 10: x = 560, y = 64) -->
+                    <circle cx="560" cy="64" r="9" class="pv-peak-pulse" />
+                    <circle cx="560" cy="64" r="4.5" class="pv-peak-dot" />
+
+                    <!-- Single Integrated Peak Annotation (No duplicate badges elsewhere) -->
+                    <g transform="translate(560, 30)">
+                      <rect x="-70" y="-14" width="140" height="24" rx="6" class="pv-peak-badge-bg" />
+                      <text x="0" y="2" text-anchor="middle" class="pv-peak-badge-text">Week 10 · 1,840 units</text>
+                    </g>
+
+                    <!-- X-Axis Labels -->
+                    <text x="48" y="238" class="pv-axis-text">−12W (Actuals)</text>
+                    <text x="215" y="238" class="pv-axis-text">−6W</text>
+                    <text x="390" y="238" class="pv-axis-text pv-axis-bold" text-anchor="middle">Today</text>
+                    <text x="560" y="238" class="pv-axis-text pv-axis-blue" text-anchor="middle">Week 10 (Peak)</text>
+                    <text x="730" y="238" class="pv-axis-text" text-anchor="end">+12W (Forecast)</text>
+                  </svg>
+                </div>
+
+                <!-- Quiet Footer: Illustrative demo & View assumptions together -->
+                <footer class="pv-view-footer">
+                  <span class="pv-foot-demo">Illustrative demo · SKU-204</span>
+                  <details class="pv-assumptions">
+                    <summary class="pv-assumptions-summary">View assumptions</summary>
+                    <div class="pv-assumptions-content">
+                      <p>12-week horizon modeled with XGBoost regressors and SHAP seasonal decomposition. Baseline demand is calculated from the prior 12-week moving average (1,554 units mean). Shaded band represents the 95% confidence interval (±1.96σ residual variance).</p>
+                    </div>
+                  </details>
+                </footer>
+              </div>
+
+              <!-- VIEW 2: INVENTORY PREVIEW -->
+              <div class="pv-view pv-view-inventory" data-view="inventory" hidden>
+                <header class="pv-view-header">
+                  <h3 class="pv-view-title">Know what to replenish.</h3>
+                </header>
+
+                <!-- One aligned list with subtle row dividers (No independently rounded cards) -->
+                <div class="pv-inv-list" role="listbox" aria-label="Inventory products and stock cover">
+                  <!-- Row 1: Apex Sprint Footwear (Lead item, shortfall, amber indicator) -->
+                  <div class="pv-inv-item is-selected is-shortfall" role="option" aria-selected="true" tabindex="0" data-inv-idx="0">
+                    <div class="pv-inv-main">
+                      <span class="pv-inv-name">Apex Sprint Footwear</span>
+                      <span class="pv-inv-status tag-amber-text">Below 18d target</span>
+                    </div>
+                    <div class="pv-inv-metric">
+                      <strong class="pv-inv-cover-val tag-amber-text">11.0 days</strong>
+                      <span class="pv-inv-target-lbl">Target: 18.0d</span>
+                    </div>
+                    <div class="pv-inv-bar-track">
+                      <!-- Scale: 0 to 40 days. 11d = 27.5%, 18d target pin = 45% -->
+                      <div class="pv-inv-bar-fill fill-amber" style="width: 27.5%;"></div>
+                      <div class="pv-inv-bar-pin" style="left: 45%;" title="Target: 18.0 days">
+                        <span class="pv-pin-bubble">18d Target</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 2: Merino Active Layer -->
+                  <div class="pv-inv-item" role="option" aria-selected="false" tabindex="-1" data-inv-idx="1">
+                    <div class="pv-inv-main">
+                      <span class="pv-inv-name">Merino Active Layer</span>
+                      <span class="pv-inv-status">On track</span>
+                    </div>
+                    <div class="pv-inv-metric">
+                      <strong class="pv-inv-cover-val">28.0 days</strong>
+                      <span class="pv-inv-target-lbl">Target: 20.0d</span>
+                    </div>
+                    <div class="pv-inv-bar-track">
+                      <!-- 28d = 70%, 20d target pin = 50% -->
+                      <div class="pv-inv-bar-fill fill-blue" style="width: 70%;"></div>
+                      <div class="pv-inv-bar-pin" style="left: 50%;" title="Target: 20.0 days">
+                        <span class="pv-pin-bubble">20d Target</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Ergonomic Commute Pack -->
+                  <div class="pv-inv-item" role="option" aria-selected="false" tabindex="-1" data-inv-idx="2">
+                    <div class="pv-inv-main">
+                      <span class="pv-inv-name">Ergonomic Commute Pack</span>
+                      <span class="pv-inv-status">Surplus stock</span>
+                    </div>
+                    <div class="pv-inv-metric">
+                      <strong class="pv-inv-cover-val">34.0 days</strong>
+                      <span class="pv-inv-target-lbl">Target: 25.0d</span>
+                    </div>
+                    <div class="pv-inv-bar-track">
+                      <!-- 34d = 85%, 25d target pin = 62.5% -->
+                      <div class="pv-inv-bar-fill fill-blue" style="width: 85%;"></div>
+                      <div class="pv-inv-bar-pin" style="left: 62.5%;" title="Target: 25.0 days">
+                        <span class="pv-pin-bubble">25d Target</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Single Concise Action Line Below List (Plain aligned text, unboxed) -->
+                <div class="pv-inv-action-row">
+                  <p class="pv-inv-action-text" id="pvInvActionText">
+                    Order 900 units today to restore 18 days of cover upon Day 8 arrival (180 units remain at delivery).
+                  </p>
+                </div>
+
+                <!-- Quiet Footer -->
+                <footer class="pv-view-footer">
+                  <span class="pv-foot-demo">Illustrative demo · 3 active SKUs</span>
+                  <details class="pv-assumptions">
+                    <summary class="pv-assumptions-summary">View assumptions</summary>
+                    <div class="pv-assumptions-content">
+                      <p><strong>Derived Replenishment Math:</strong> Lead item SKU-204 holds 660 units at 60 units/day demand (11.0 days cover). Ordering today with an 8-day supplier transit consumes 480 units, leaving 180 units upon receipt. Restoring the 18.0-day target (1,080 units) at delivery requires ordering 900 units (1,080 − 180). Consistent 40-day scale applied across all rows.</p>
+                    </div>
+                  </details>
+                </footer>
+              </div>
+
+              <!-- VIEW 3: RISK RADAR PREVIEW -->
+              <div class="pv-view pv-view-risk" data-view="risk" hidden>
+                <header class="pv-view-header pv-risk-header">
+                  <h3 class="pv-view-title">Spot a change in demand.</h3>
+                  <!-- Compact Day Controls Placed Near Title -->
+                  <div class="pv-event-selector" role="group" aria-label="Select an observed event day">
+                    <button type="button" class="pv-event-btn" data-pv-risk="steady" aria-pressed="false">
+                      Day 08
+                    </button>
+                    <button type="button" class="pv-event-btn is-active" data-pv-risk="surge" aria-pressed="true">
+                      Day 14
+                    </button>
+                    <button type="button" class="pv-event-btn" data-pv-risk="drop" aria-pressed="false">
+                      Day 23
+                    </button>
+                  </div>
+                </header>
+
+                <!-- Selected Result as Plain Text (No banners, no sigma badge) -->
+                <div class="pv-risk-statement">
+                  <strong class="pv-risk-headline" id="pvRiskHeadline">Demand jumped 48%</strong>
+                  <span class="pv-risk-subtext" id="pvRiskSubtext">89 units vs 60 expected.</span>
+                </div>
+
+                <!-- Spacious 30-Day Timeline directly on surface (No nested chart border) -->
+                <div class="pv-chart-stage pv-timeline-stage">
+                  <svg class="pv-timeline-svg" viewBox="0 0 760 170" preserveAspectRatio="none" role="img" aria-label="Daily demand timeline showing 30 days, baseline 60 units/day, expected range, and selected event marker">
+                    <defs>
+                      <linearGradient id="pvTimelineBand" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2454D6" stop-opacity="0.08" />
+                        <stop offset="100%" stop-color="#2454D6" stop-opacity="0.02" />
+                      </linearGradient>
+                    </defs>
+
+                    <!-- Gridlines -->
+                    <line x1="48" y1="145" x2="730" y2="145" class="pv-grid-line" />
+                    <line x1="48" y1="110" x2="730" y2="110" class="pv-grid-line" />
+                    <line x1="48" y1="75" x2="730" y2="75" class="pv-grid-line" />
+                    <line x1="48" y1="40" x2="730" y2="40" class="pv-grid-line" />
+
+                    <!-- Y-Axis labels -->
+                    <text x="38" y="149" class="pv-axis-text" text-anchor="end">0</text>
+                    <text x="38" y="114" class="pv-axis-text" text-anchor="end">40</text>
+                    <text x="38" y="79" class="pv-axis-text" text-anchor="end">60</text>
+                    <text x="38" y="44" class="pv-axis-text" text-anchor="end">100</text>
+
+                    <!-- Quiet Expected-Range Corridor (42u to 78u: y=106 to y=65) -->
+                    <rect x="48" y="65" width="682" height="41" fill="url(#pvTimelineBand)" stroke="rgba(36, 84, 214, 0.15)" stroke-dasharray="3 3" />
+                    <text x="726" y="74" class="pv-range-text" text-anchor="end">Expected range (42–78 u/d)</text>
+
+                    <!-- 60u Baseline Line -->
+                    <line x1="48" y1="86" x2="730" y2="86" stroke="#64748B" stroke-width="1.2" stroke-dasharray="4 3" />
+                    <text x="54" y="82" class="pv-base-label">Baseline 60 u/d</text>
+
+                    <!-- 30-Day Observed Series in Slate -->
+                    <path class="pv-timeline-line" fill="none" d="M48 88 L72 85 L96 87 L120 82 L144 90 L168 86 L192 88 L216 85 L240 87 L264 84 L288 88 L312 85 L336 77 L360 48 L384 66 L408 79 L432 85 L456 87 L480 84 L504 89 L528 86 L552 88 L576 116 L600 99 L624 90 L648 85 L672 87 L696 86 L718 88 L730 85" />
+
+                    <!-- X-Axis Labels -->
+                    <text x="48" y="160" class="pv-axis-text">Day 01</text>
+                    <text x="216" y="160" class="pv-axis-text pv-axis-key">Day 08</text>
+                    <text x="360" y="160" class="pv-axis-text pv-axis-key pv-axis-bold">Day 14</text>
+                    <text x="576" y="160" class="pv-axis-text pv-axis-key">Day 23</text>
+                    <text x="730" y="160" class="pv-axis-text" text-anchor="end">Day 30</text>
+
+                    <!-- Selected Event Highlight Marker (Defaults to Day 14: x=360, y=48) -->
+                    <g id="pvRiskMarker" transform="translate(360, 48)">
+                      <line id="pvRiskStem" x1="0" y1="0" x2="0" y2="97" class="pv-marker-stem stem-amber" />
+                      <circle id="pvRiskPulse" cx="0" cy="0" r="10" class="pv-marker-pulse pulse-amber" />
+                      <circle id="pvRiskDot" cx="0" cy="0" r="4.5" class="pv-marker-dot dot-amber" />
+                      <g id="pvRiskBadgeCallout" transform="translate(0, -14)">
+                        <rect x="-34" y="-11" width="68" height="18" rx="4" class="pv-badge-bg bg-amber" />
+                        <text id="pvRiskBadgeText" x="0" y="2" text-anchor="middle" class="pv-badge-text">89 units</text>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- One Short Unboxed Interpretation Below Chart -->
+                <div class="pv-risk-interp">
+                  <p class="pv-interp-plain" id="pvRiskInterpText">Review promotions and large orders.</p>
+                </div>
+
+                <!-- Quiet Footer -->
+                <footer class="pv-view-footer">
+                  <span class="pv-foot-demo">Illustrative demo · 30-day telemetry</span>
+                  <details class="pv-assumptions">
+                    <summary class="pv-assumptions-summary">View assumptions</summary>
+                    <div class="pv-assumptions-content">
+                      <p>Stationary baseline μ = 60 units/day with residual σ = 9.0 units/day. Normal expected range corresponds to ±2.0σ bounds (42 to 78 units). Day 14 recorded 89 units (+3.2σ surge); Day 23 recorded 38 units (−2.4σ dip); Day 08 recorded 61 units (+0.1σ normal variance).</p>
+                    </div>
+                  </details>
+                </footer>
+              </div>
+
+              <!-- VIEW 4: SCENARIO LAB PREVIEW -->
+              <div class="pv-view pv-view-scenario" data-view="scenario" hidden>
+                <header class="pv-view-header">
+                  <h3 class="pv-view-title">Test your next move.</h3>
+                </header>
+
+                <!-- Compact Scenario Choices Below Title -->
+                <div class="pv-scenario-tabs" role="group" aria-label="Select simulation scenario">
+                  <button type="button" class="pv-scen-btn is-active" data-pv-scenario="promo" aria-pressed="true">
+                    Promotion
+                  </button>
+                  <button type="button" class="pv-scen-btn" data-pv-scenario="price" aria-pressed="false">
+                    Price
+                  </button>
+                  <button type="button" class="pv-scen-btn" data-pv-scenario="delay" aria-pressed="false">
+                    Delivery delay
+                  </button>
+                </div>
+
+                <!-- Compact Labelled Control Row: Parameter + Slider + Reset -->
+                <div class="pv-scen-control-row">
+                  <div class="pv-scen-control-label">
+                    <span class="pv-control-title" id="pvCtrlName">Demand increase</span>
+                    <strong class="pv-control-value" id="pvCtrlValReadout">+20%</strong>
+                  </div>
+                  <div class="pv-scen-slider-wrap">
+                    <label class="sr-only" for="pvScenarioSlider">Adjust simulation value</label>
+                    <input id="pvScenarioSlider" class="pv-clean-slider" type="range" min="5" max="35" step="1" value="20" />
+                  </div>
+                  <button type="button" class="pv-scen-reset-btn" id="pvResetBtn" title="Reset to baseline value">
+                    Reset
+                  </button>
+                </div>
+
+                <!-- Integrated Comparison Visual (Active for Promo & Price) -->
+                <div class="pv-integrated-comparison" id="pvComparisonWrap">
+                  <div class="pv-comp-bars-layout">
+                    <!-- Row 1: Current Baseline -->
+                    <div class="pv-bar-row">
+                      <div class="pv-bar-meta">
+                        <span class="pv-bar-state-lbl">Current</span>
+                        <strong class="pv-bar-state-val" id="pvBaValA">11.0 days</strong>
+                      </div>
+                      <div class="pv-bar-track-area">
+                        <!-- Bar scale: 0 to 16 days. 11d = 68.75%, 13d target pin = 81.25% -->
+                        <div class="pv-bar-visual bar-slate" style="width: 68.75%;"></div>
+                        <div class="pv-target-datum-line" style="left: 81.25%;" title="13.0d Target">
+                          <span class="pv-target-datum-tag">13d Target</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Row 2: Simulated Outcome -->
+                    <div class="pv-bar-row">
+                      <div class="pv-bar-meta">
+                        <span class="pv-bar-state-lbl" id="pvBaLabelB">With promotion</span>
+                        <strong class="pv-bar-state-val val-blue" id="pvBaValB">9.2 days</strong>
+                      </div>
+                      <div class="pv-bar-track-area">
+                        <!-- 9.17d = 57.3% -->
+                        <div class="pv-bar-visual bar-blue" id="pvSimBarVisual" style="width: 57.3%;"></div>
+                        <div class="pv-target-datum-line" style="left: 81.25%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Delivery Delay Supply Timeline (Active only when Delivery delay is selected) -->
+                <div class="pv-delay-stage" id="pvDelayTimeline" hidden>
+                  <svg class="pv-timeline-svg" viewBox="0 0 760 90" preserveAspectRatio="none" role="img" aria-label="Supply arrival timeline showing stock depletion and delayed inbound delivery">
+                    <!-- Base Track -->
+                    <line x1="48" y1="45" x2="720" y2="45" stroke="#E2E5EA" stroke-width="4" stroke-linecap="round" />
+                    <!-- Covered interval (Day 0 to Day 11: 48 to 418) -->
+                    <line x1="48" y1="45" x2="418" y2="45" stroke="#2454D6" stroke-width="4" />
+                    <!-- Uncovered Window (Day 11 to Day 18: 418 to 650) -->
+                    <rect id="pvDelayExposeRect" x="418" y="28" width="232" height="34" rx="6" fill="rgba(217, 119, 6, 0.12)" stroke="#D97706" stroke-width="1.5" stroke-dasharray="3 3" />
+                    <text id="pvDelayExposeText" x="534" y="49" text-anchor="middle" class="pv-expose-label">7 DAYS WITHOUT STOCK COVER</text>
+
+                    <!-- Today Node -->
+                    <circle cx="48" cy="45" r="5.5" fill="#181B22" />
+                    <text x="48" y="24" text-anchor="middle" class="pv-node-title">Today</text>
+                    <text x="48" y="68" text-anchor="middle" class="pv-node-sub">Day 0</text>
+
+                    <!-- Stockout Node -->
+                    <circle cx="418" cy="45" r="5.5" fill="#D97706" stroke="#fff" stroke-width="1.5" />
+                    <text x="418" y="24" text-anchor="middle" class="pv-node-title tag-amber-text">Stockout</text>
+                    <text x="418" y="68" text-anchor="middle" class="pv-node-sub">Day 11</text>
+
+                    <!-- Delayed PO Arrival Node -->
+                    <g id="pvDelayedPOGroup" transform="translate(650, 45)">
+                      <circle cx="0" cy="0" r="6.5" fill="#DC2626" stroke="#fff" stroke-width="2" />
+                      <text x="0" y="-21" text-anchor="middle" class="pv-node-title tag-red-text" id="pvDelayNodeLbl">Delayed arrival (Day 18)</text>
+                      <text x="0" y="23" text-anchor="middle" class="pv-node-sub">+10d delay</text>
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- One Plain-Text Conclusion Below Visual -->
+                <div class="pv-scen-conclusion">
+                  <p class="pv-conclusion-text" id="pvScenarioSentence">
+                    Add 276 units to reach 13 days of cover.
+                  </p>
+                </div>
+
+                <!-- Quiet Footer -->
+                <footer class="pv-view-footer">
+                  <span class="pv-foot-demo">Illustrative demo · Single parameter simulation</span>
+                  <details class="pv-assumptions">
+                    <summary class="pv-assumptions-summary">View assumptions</summary>
+                    <div class="pv-assumptions-content">
+                      <p id="pvScenarioAssumptions">Baseline: 660 units at 60 units/day demand. Promotional uplift (+20%) increases daily velocity to 72 units/day, shortening cover to 9.2 days. Restoring the 13.0-day threshold requires 13 × 72 − 660 = 276 additional units.</p>
+                    </div>
+                  </details>
+                </footer>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
+      <section class="loop scene scene-light" id="outputs" aria-labelledby="loop-title">
+        <div class="loop-inner">
+          <div class="loop-head reveal">
+            <p class="eyebrow"><span></span> What you get</p>
+            <h2 id="loop-title">Not more dashboards.<br /><em>More direction.</em></h2>
+            <p>Every module feeds the next, so a signal never stops at a chart.</p>
+          </div>
+          <div class="loop-grid">
+            <article class="loop-col reveal">
+              <header><span>01</span><h3>Sense</h3><p>See what is happening</p></header>
+              <ul>
+                <li><b>Data upload &amp; ETL</b><span>CSV in, validated and mapped.</span></li>
+                <li><b>Executive dashboard</b><span>Revenue, orders and inventory health.</span></li>
+                <li><b>Anomaly intelligence</b><span>Spikes, drops and forecast misses flagged.</span></li>
+              </ul>
+            </article>
+            <article class="loop-col reveal" style="transition-delay:.1s">
+              <header><span>02</span><h3>Predict</h3><p>Know what comes next</p></header>
+              <ul>
+                <li><b>Demand forecasting</b><span>Horizons, confidence bands, drivers explained.</span></li>
+                <li><b>Scenario engine</b><span>Demand shocks, price and supply what-ifs.</span></li>
+                <li><b>ML pipeline</b><span>Train, retrain and track model versions.</span></li>
+              </ul>
+            </article>
+            <article class="loop-col reveal" style="transition-delay:.2s">
+              <header><span>03</span><h3>Decide</h3><p>Turn it into action</p></header>
+              <ul>
+                <li><b>Inventory optimization</b><span>Safety stock, reorder points, order sizes.</span></li>
+                <li><b>Alert center</b><span>Acknowledge and resolve in one place.</span></li>
+                <li><b>Reports &amp; exports</b><span>CSV, Excel and PDF reports.</span></li>
+              </ul>
+            </article>
+          </div>
+          <div class="loop-summary reveal">
+            <span>Connected by design</span>
+            <p>Forecasts, alerts and inventory insights can be explored together—so you can move from an observation to an informed decision.</p>
+          </div>
+        </div>
+      </section>
+
+
+      <section class="faq scene scene-light" id="faq" aria-labelledby="faq-title">
+        <div class="faq-inner">
+          <div class="faq-head reveal">
+            <h2 id="faq-title">Before you upload,<br /><em>here’s what to know.</em></h2>
+            <p>Straight answers about the data Titan needs, how forecasts are made and what you can take away.</p>
+          </div>
+          <div class="faq-list reveal">
+            <details open><summary>What data do I need to start?</summary><p>A sales history CSV up to 50 MB. Typical sales fields include a date, product SKU, quantity sold and unit price; category may also be supported. The upload flow helps validate and map your columns.</p></details>
+            <details><summary>How are forecasts made?</summary><p>Titan trains XGBoost models on your history and explains each forecast with SHAP, so you can see how seasonality, promotions and lead time move the number. The forecast view can include a confidence interval when available.</p></details>
+            <details><summary>How far ahead can it forecast?</summary><p>The forecast view shows a 12-week horizon, with uncertainty illustrated alongside the prediction.</p></details>
+            <details><summary>What does Risk Radar flag?</summary><p>Demand spikes, drops and forecast misses. It compares each day with a rolling baseline using z-score detection and highlights signals for investigation and possible follow-up.</p></details>
+            <details><summary>Can I test a decision before making it?</summary><p>Yes. Scenario Lab simulates a promotion, a price cut or a supplier delay, then shows the effect on demand, stockout risk and the order you would need to place.</p></details>
+            <details><summary>What can I export?</summary><p>Reports as CSV, Excel and PDF.</p></details>
+            <details><summary>Is the data on this page real?</summary><p>No. Every number here comes from simulated supply-chain transactions, used only to show how Titan works.</p></details>
+          </div>
+        </div>
+      </section>
+
+      <section class="closing scene scene-dark" id="closing" aria-labelledby="closing-title">
+        <div class="closing-inner reveal">
+          <p class="eyebrow"><span></span> The next move is visible</p>
+          <h2 id="closing-title">Less guessing.<br /><em>Better decisions.</em></h2>
+          <p class="closing-statement">Bring your sales CSV to explore forecasts, investigate inventory alerts, and compare scenarios before you commit.</p>
+          <a class="button button-dark" href="/auth">Launch Titan AI <span>↗</span></a>
+        </div>
+        <footer>
+          <a class="brand" href="#top" aria-label="Titan AI home"><span class="brand-mark" aria-hidden="true"><i aria-hidden="true"></i><i aria-hidden="true"></i><i aria-hidden="true"></i></span><span>TITAN <b>AI</b></span></a>
+          <p>Demand forecasting · Inventory intelligence · Risk detection · Scenario planning</p>
+          <span>© 2026 Titan AI · <a href="#faq">Privacy &amp; Terms</a> · <a href="#faq">FAQs</a></span>
+        </footer>
+      </section>
+    </main>
+
+    <div class="toast" role="status" aria-live="polite" data-toast>
+      <span>Decision workspace preview</span>
+      <button type="button" aria-label="Dismiss notification">×</button>
+    </div>
+    <script defer src="./script.js?v=v15_01"></script>
+    <script defer src="./datavision.js?v=v15_01"></script>
+  </body>
+</html>
