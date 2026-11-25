@@ -64,4 +64,4 @@ This recording covers the full page: the hero, the four-cards section, the sprea
 12. **The FAQ heading is oversized.** It wraps to four lines in a narrow column, leaves a large empty area below it, and the open item's blue bar sits square against a rounded card.
 13. **The footer is hard to read.** The dark CTA band starts abruptly under the FAQ. The footer links are about 11 px in low-contrast grey on navy. "Privacy & Terms · FAQs" reads as one link, and the bottom padding is cramped.
 
-I didn't evaluate mobile or tablet layouts, keyboard focus states, or reduced-motion behaviour, since the recording is desktop-only.+
+I didn't evaluate mobile or tablet layouts, keyboard focus states, or reduced-motion behaviour, since the recording is desk   top-only.+

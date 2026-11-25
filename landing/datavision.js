@@ -63,7 +63,8 @@
 
   // Cross-links from Overview section cards
   document.querySelectorAll('[data-goto-module]').forEach(card => {
-    const navigate = () => {
+    const navigate = e => {
+      if (e) e.preventDefault();
       const mod = card.dataset.gotoModule;
       if (!mod) return;
       switchView(mod);

@@ -1,0 +1,438 @@
+/* ============================================================================
+   TITAN AI — UNIFIED MOTION, RESPONSIVE & PERFORMANCE SYSTEM (motion.css)
+   1. Shared Motion Tokens (120 / 200 / 320 / 600ms; ease-out / ease-in-out)
+   2. Input-Aware Interactions (@media (hover: hover) and (pointer: fine) + :active)
+   3. Viewport Stability (svh / dvh / safe-area-inset-top / desktop scrollbar-gutter)
+   4. Section-by-Section Mobile Behavior
+   5. Performance Budget (content-visibility, mobile blur caps, document.hidden pause)
+   6. Accessibility (prefers-reduced-motion, 44x44 tap targets, Pause/Play controls)
+   ============================================================================ */
+
+/* 1. SHARED MOTION TOKENS */
+:root {
+  --dur-120: 120ms;
+  --dur-200: 200ms;
+  --dur-320: 320ms;
+  --dur-600: 600ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Font metrics fallback for Inter to minimize CLS during webfont swap */
+@font-face {
+  font-family: 'InterFallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Segoe UI');
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+body {
+  font-family: 'Inter', 'InterFallback', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Shared Reveal-on-scroll (threshold 0.2, translateY 12px + opacity) */
+.reveal,
+.pop-card {
+  opacity: 0;
+  transform: translateY(12px);
+  transition: opacity var(--dur-320) var(--ease-out), transform var(--dur-320) var(--ease-out);
+}
+
+.reveal.visible,
+.pop-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 3. VIEWPORT & LAYOUT STABILITY */
+/* Desktop-only scrollbar-gutter: stable */
+html {
+  scrollbar-gutter: auto;
+}
+
+@media (hover: hover) and (pointer: fine) and (min-width: 901px) {
+  html {
+    scrollbar-gutter: stable;
+  }
+}
+
+/* Safe-area-inset-top for fixed nav & mobile sheet */
+.site-header {
+  top: calc(14px + env(safe-area-inset-top, 0px)) !important;
+  height: 50px !important;
+  min-height: 50px !important;
+}
+
+.nav-scroll-backdrop {
+  height: calc(94px + env(safe-area-inset-top, 0px)) !important;
+}
+
+.mobile-nav {
+  max-height: calc(100dvh - 88px - env(safe-area-inset-top, 0px)) !important;
+}
+
+/* svh stages for CTA arc */
+#closing .closing-stage {
+  min-height: 100svh !important;
+}
+
+#closing.liquid-ready .closing-stage {
+  height: 100svh !important;
+}
+
+#closing.liquid-ready {
+  height: 260svh !important;
+}
+
+#closing .closing-rim,
+#closing .closing-veil {
+  height: 320svh !important;
+  top: -212svh !important;
+}
+
+/* 2. INPUT-AWARE INTERACTIONS */
+/* Disable sticky hover transforms/lifts on coarse pointers / touch */
+@media (hover: none), (pointer: coarse) {
+  #titan-overview .titan-overview__question-card:hover,
+  #how .bcard:hover,
+  #outputs .loop-col:hover,
+  #decision-trail .decision-step__btn:hover,
+  #decision-trail .decision-trail__note:hover,
+  #closing .closing-actions .button:hover,
+  .use-cases__tab:hover,
+  .faq-list details:hover {
+    transform: none !important;
+  }
+
+  #titan-overview .titan-overview__questions-grid:has(.titan-overview__question-card:hover) .titan-overview__question-card:not(:hover) {
+    opacity: 1 !important;
+  }
+
+  /* Coarse-pointer slow 8s idle shimmer on primary dark CTA (transform/opacity only) */
+  #closing.is-active .closing-actions .button-dark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.22) 50%, transparent 75%);
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+    animation: titan-idle-shimmer 8s var(--ease-in-out) infinite;
+  }
+}
+
+@keyframes titan-idle-shimmer {
+  0%, 70% { transform: translateX(-100%); opacity: 0; }
+  80% { opacity: 0.9; }
+  95%, 100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Touch :active press state (translate back 2px, smaller shadow, 80ms) */
+#titan-overview .titan-overview__question-card:active,
+#how .bcard:active,
+#outputs .loop-col:active,
+#decision-trail .decision-step__btn:active,
+#use-cases .use-cases__tab:active,
+#closing .closing-actions .button:active,
+.calc-stepper-btn:active,
+.faq-trigger:active {
+  transform: translate(2px, 2px) !important;
+  transition-duration: 80ms !important;
+}
+
+/* 44x44px minimum tap targets on interactive controls */
+.hero-compare__toggle button,
+.pill-toggle__btn,
+#product .product-nav .nav-item,
+#decision-trail .calc-stepper-btn,
+#decision-trail .decision-trail__reset,
+#faq .faq-trigger,
+.nav-toggle,
+.toast button {
+  min-height: 44px !important;
+}
+
+#decision-trail .calc-stepper-btn,
+#decision-trail .decision-trail__reset,
+.nav-toggle {
+  min-width: 44px !important;
+}
+
+/* 44px hit area with 24px visible thumb on range inputs */
+#planning-context #orderDaySlider,
+#product input[type="range"] {
+  min-height: 44px !important;
+  cursor: pointer;
+}
+
+#planning-context #orderDaySlider::-webkit-slider-thumb,
+#product input[type="range"]::-webkit-slider-thumb {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+#planning-context #orderDaySlider::-moz-range-thumb,
+#product input[type="range"]::-moz-range-thumb {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+/* 5. SECTION-BY-SECTION MOBILE BEHAVIOR */
+@media (max-width: 900px) {
+  /* Hero: full-width segmented toggle, 4 static columns, 600ms merge */
+  #top .hero-compare__toggle,
+  #top .pill-toggle {
+    width: 100% !important;
+    max-width: 360px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  #top .hero-cols,
+  #top .hero-columns-bg {
+    background-size: 25% 100% !important;
+    animation: none !important;
+  }
+
+  #top.is-with-titan .hero-merge-chip,
+  #top .hero-visual {
+    transition-duration: var(--dur-600) !important;
+    animation-duration: var(--dur-600) !important;
+  }
+
+  /* Planning by category: horizontal scroll-snap pill row + crossfade panels */
+  #use-cases .use-cases__tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding: 6px !important;
+    scrollbar-width: none !important;
+  }
+
+  #use-cases .use-cases__tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #use-cases .use-cases__tab {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    scroll-snap-align: start !important;
+    white-space: nowrap !important;
+  }
+
+  #use-cases .use-cases__tab-copy small,
+  #use-cases .use-cases__chevron {
+    display: none !important;
+  }
+
+  #use-cases .use-cases__panels {
+    touch-action: pan-y !important;
+  }
+
+  /* How it works slider: touch-action pan-y + 44px handle hit area + stacked cards */
+  #how .wipe {
+    touch-action: pan-y !important;
+  }
+
+  #how .wipe-handle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  #how .how-steps,
+  #how .how-cards {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Intelligence: horizontal scroll-snap pill row */
+  #product .product-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding-bottom: 4px !important;
+    scrollbar-width: none !important;
+  }
+
+  #product .product-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #product .product-nav .nav-item {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start !important;
+    white-space: nowrap !important;
+  }
+
+  /* Shorter CTA arc stage on tablet/mobile */
+  #closing.liquid-ready {
+    height: 180svh !important;
+  }
+}
+
+/* Below 600px: thin out chart labels & odd ticks */
+@media (max-width: 600px) {
+  #planning-context .axis-tick:nth-child(even) .tick-line {
+    opacity: 0.35 !important;
+  }
+
+  #product .pv-axis-tick:nth-child(even) {
+    display: none !important;
+  }
+}
+
+/* Below 480px: unpin CTA stage so mobile scrolling stays effortless */
+@media (max-width: 479px) {
+  #closing.liquid-ready {
+    height: auto !important;
+    min-height: 100svh !important;
+  }
+
+  #closing.liquid-ready .closing-stage {
+    position: relative !important;
+    height: auto !important;
+    min-height: 100svh !important;
+  }
+}
+
+/* 6. PERFORMANCE BUDGET */
+/* content-visibility: auto on below-the-fold sections */
+#titan-overview,
+#use-cases,
+#how,
+#product,
+#planning-context,
+#decision-trail,
+#outputs,
+#faq {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 720px;
+}
+
+/* Cap blur radii at 24px everywhere */
+#closing .closing-rim {
+  filter: blur(24px) !important;
+}
+
+/* On mobile/coarse pointers: no backdrop-filter on areas larger than nav pill & button */
+@media (max-width: 767px), (pointer: coarse) {
+  .nav-scroll-backdrop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+  }
+
+  .nav-scroll-backdrop.is-dark {
+    background: rgba(11, 11, 12, 0.92) !important;
+  }
+}
+
+/* Pause all CSS animations when tab is hidden */
+body.is-hidden *,
+body.is-hidden *::before,
+body.is-hidden *::after {
+  animation-play-state: paused !important;
+}
+
+/* Pause/Play button for >5s autoplays (Explainable planning) */
+.autoplay-toggle-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 36px !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid #d4d4d8 !important;
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  margin-top: 8px !important;
+}
+
+.autoplay-toggle-btn:focus-visible {
+  outline: 2px solid var(--blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* 7. REDUCED MOTION ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal,
+  .pop-card {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: opacity 150ms ease !important;
+  }
+
+  #closing .closing-actions .button-dark::after {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   8. PAGE-LOAD BRAND INTRO (Step 3 CSS mapped to real selectors)
+   ========================================================================== */
+.titan{color:inherit;overflow:visible;display:block}
+.titan .orbit{transform-origin:24px 24px}
+.titan .track{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.18}
+.titan .sat{transform-origin:24px 24px;transform:rotate(var(--a)) translateX(17px)}
+.titan .ring{fill:none;stroke:currentColor;stroke-width:2.4}
+.titan .dot{fill:currentColor;transform-box:fill-box;transform-origin:center;transform:scale(0)}
+.titan .core{fill:currentColor;transform-origin:24px 24px}
+.merge .sat{animation:merge 1s cubic-bezier(.22,1,.36,1) both}
+.merge .core{animation:pop .7s .45s cubic-bezier(.34,1.56,.64,1) both}
+.merge .track{animation:fade .6s .5s both}
+.spin .orbit{animation:step var(--beat,700ms) cubic-bezier(.65,0,.35,1) var(--beats,2)}
+.spin .core{animation:breathe var(--beat,700ms) cubic-bezier(.65,0,.35,1) var(--beats,2)}
+@keyframes merge{from{transform:rotate(calc(var(--a) + 200deg)) translateX(34px);opacity:0}to{transform:rotate(var(--a)) translateX(17px);opacity:1}}
+@keyframes pop{from{transform:scale(0)}}
+@keyframes fade{from{opacity:0}}
+@keyframes step{to{transform:rotate(120deg)}}
+@keyframes breathe{50%{transform:scale(.86)}}
+
+#ov{position:fixed;top:0;left:50%;width:150vw;margin-left:-75vw;height:100dvh;z-index:40;background:var(--paper,#fafaf9);border-radius:0 0 50% 50%/0 0 14vh 14vh;box-shadow:0 26px 90px 8px rgba(167,139,250,.3),0 12px 44px rgba(244,114,182,.22);pointer-events:none;display:none}
+html.playing #ov{display:block}
+html.locked{overflow:hidden !important}
+html.playing .progress,
+html.playing .nav-scroll-backdrop{opacity:0 !important;z-index:10 !important;pointer-events:none !important}
+
+/* MAP: .site-header has z-index > 40, position fixed, overflow: visible */
+.site-header{z-index:50;overflow:visible !important;transition:background .5s,border-color .5s,box-shadow .5s}
+.site-header .lockup{overflow:visible !important}
+html.intro-nav .site-header{background:transparent !important;border-color:transparent !important;box-shadow:none !important}
+html.intro-nav .site-header .nav-links,
+html.intro-nav .site-header .nav-cta,
+html.intro-nav .site-header .nav-toggle{opacity:0 !important}
+.site-header .nav-links,
+.site-header .nav-cta,
+.site-header .nav-toggle{transition:opacity .45s .1s}
+
+.site-header .word{display:inline-block;clip-path:inset(0 0 0 0);transition:clip-path .5s cubic-bezier(.22,1,.36,1)}
+html.intro-nav .site-header .word{clip-path:inset(0 100% 0 0)}
+
+#hero-title .hero-line{display:block;overflow:hidden;padding-bottom:.08em}
+#hero-title .hero-line>span{display:block;transition:transform .8s cubic-bezier(.22,1,.36,1)}
+#hero-title .hero-line:nth-child(2)>span{transition-delay:.09s}
+#top .hero-compare__dek,#top .hero-compare__cta{transition:opacity .6s .3s,transform .6s .3s cubic-bezier(.22,1,.36,1)}
+html.intro-hero #hero-title .hero-line>span{transform:translateY(105%)}
+html.intro-hero #top .hero-compare__dek,
+html.intro-hero #top .hero-compare__cta{opacity:0;transform:translateY(12px)}
+
+@media (prefers-reduced-motion:reduce){.titan *{animation:none!important}}

@@ -1,0 +1,66 @@
+/* Requested glass exception, scoped to the final CTA. No-JS defaults stay readable. */
+#closing { --arc-pink: #f472b6; --arc-lavender: #a5a0f0; --arc-blue: #6c7bff; }
+/* clip prevents horizontal overflow without creating a sticky scroll ancestor. */
+html, body { overflow-x: clip !important; }
+#closing.closing { display: block !important; padding: 0 !important; border: 0 !important; overflow: visible !important; max-height: none !important; height: auto !important; }
+#closing .closing-stage { position: relative; min-height: 100vh; padding: 110px 24px 24px; display: flex; flex-direction: column; isolation: isolate; overflow: hidden; box-sizing: border-box; }
+#closing.liquid-ready { height: 260vh !important; }
+#closing.liquid-ready .closing-stage { position: sticky; top: 0; height: 100vh; }
+#closing .closing-inner { width: min(100%, var(--content-width, 1240px)); margin: auto !important; position: relative; z-index: 1; }
+#closing #closing-title, #closing .lens { font: 700 clamp(36px, 4.8vw, 76px)/1.04 var(--font-sans) !important; letter-spacing: -.03em !important; max-width: 100%; color: white !important; }
+#closing .closing-line { display: block; overflow: hidden; font: inherit; }
+#closing .closing-line > span { display: block; }
+#closing .eyebrow, #closing .closing-statement { color: var(--text-on-dark) !important; }
+#closing .closing-statement { max-width: 600px; }
+#closing .closing-actions { display: flex; gap: 12px; position: relative; justify-content: center; flex-wrap: wrap; }
+#closing .closing-actions .button { border-radius: var(--radius-pill) !important; position: relative; transition: transform 180ms ease, background-color 180ms ease !important; }
+#closing .closing-actions .button-dark { background: radial-gradient(circle at var(--pointer-x, 50%) var(--pointer-y, 0%), rgba(255,255,255,.3), transparent 65%), rgba(30,63,200,.85) !important; backdrop-filter: blur(12px) saturate(140%) !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.35) !important; }
+#closing .closing-actions .closing-demo { background: transparent !important; border: 1px solid #666670 !important; }
+#closing .closing-actions .button:hover { transform: scale(1.03); }
+#closing .closing-actions .button:active { transform: scale(.98); }
+#closing .button span { transition: transform 180ms ease; }
+#closing .button:hover span { transform: translate(2px,-2px); }
+#closing .closing-ambient { position: absolute; inset: -65px -40px; z-index: -1; pointer-events: none; background: radial-gradient(ellipse at 35% 50%, #f472b632, transparent 65%), radial-gradient(ellipse at 65% 50%, #6c7bff45, transparent 65%) !important; transform: translate(var(--ambient-x, 0px), var(--ambient-y, 0px)); opacity: .45; }
+#closing.is-active .closing-ambient { animation: closing-breathe 6s ease-in-out infinite alternate; }
+@keyframes closing-breathe { to { opacity: .65; } }
+#closing footer { position: relative; z-index: 1; width: min(100%, var(--content-width, 1240px)); margin: 64px auto 0; gap: 24px; grid-template-columns: auto 1fr auto !important; }
+#closing .closing-links { display: flex !important; position: static; width: auto; padding: 0; background: transparent; flex-wrap: wrap; gap: 8px 14px; justify-content: center; }
+#closing footer a:focus-visible { outline: 2px solid white; outline-offset: 5px; }
+#closing .closing-rim, #closing .closing-veil { display: none; pointer-events: none; position: absolute; left: -30%; width: 160%; height: 320vh; top: -212vh; border-radius: 0 0 50% 50% / 0 0 38% 38%; transform: translateY(var(--arc-y, 0px)); }
+#closing.liquid-ready .closing-rim, #closing.liquid-ready .closing-veil { display: block; }
+#closing .closing-rim { z-index: 2; background: linear-gradient(90deg,var(--arc-pink) 15%,var(--arc-lavender) 50%,var(--arc-blue) 85%) !important; filter: blur(48px) !important; margin-top: 100px; opacity: .65; }
+#closing .closing-veil { z-index: 4; background: var(--paper-2); mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, black calc(100% - 60px), transparent 100%), linear-gradient(black,black); mask-size: 100% 100%,100% 62%; mask-repeat: no-repeat; }
+#closing .lens { display: none; position: absolute; z-index: 3; margin: 0; pointer-events: none; opacity: 0; }
+#closing.liquid-ready .lens { display: block; }
+#closing .lens .closing-line { overflow: visible; }
+#closing.is-active .closing-rim, #closing.is-active .closing-veil, #closing.is-active .lens { will-change: transform, opacity; }
+#closing .lens.chromatic { text-shadow: -3px 0 #f472b6, 3px 0 #6c7bff; }
+.site-header[data-header].closing-nav-dark, .site-header[data-header].closing-nav-dark.scrolled { background: #141416 !important; border-color: #3f3f46 !important; }
+.site-header.closing-nav-dark .brand, .site-header.closing-nav-dark .brand b, .site-header.closing-nav-dark nav a, .site-header.closing-nav-dark .menu-toggle { color: #fff !important; }
+.site-header { transition: background-color 200ms ease, border-color 200ms ease !important; }
+#closing .closing-ambient { mask-image: radial-gradient(ellipse, black 25%, transparent 70%); }
+@media (max-width: 767px) {
+  #closing.liquid-ready { height: 200vh !important; }
+  #closing .closing-stage { padding: 100px 24px 20px; }
+  #closing .closing-rim, #closing .closing-veil { border-radius: 0 0 50% 50% / 0 0 24% 24%; }
+  #closing .closing-veil { mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, black calc(100% - 60px), transparent 100%), linear-gradient(black,black); mask-size: 100% 100%,100% 76%; }
+  #closing footer { grid-template-columns: 1fr !important; margin-top: 32px; gap: 12px; justify-items: center; }
+  #closing footer .footer-meta { justify-self: center !important; }
+  #closing .closing-links { max-width: 320px; }
+  #closing .eyebrow { font-size: 10px; }
+  #closing .closing-statement { font-size: 14px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #closing .closing-stage { height: auto; min-height: 100svh; }
+  #closing .closing-inner { animation: closing-fade 400ms ease both !important; }
+  #closing .closing-stage::before { content: ''; position: absolute; top: -60px; left: -30%; width: 160%; height: 90px; border-radius: 0 0 50% 50%; background: var(--paper-2); }
+  #closing .closing-actions .button, #closing .button span { transition: none !important; transform: none; }
+}
+@keyframes closing-fade { from { opacity: 0; } to { opacity: 1; } }
+@media (max-width: 767px) and (max-height: 740px) {
+  #closing .closing-stage { padding: 84px 20px 12px; }
+  #closing #closing-title, #closing .lens { font-size: 30px !important; }
+  #closing .closing-inner > .closing-statement { font-size: 13px !important; margin: 12px auto 16px !important; }
+  #closing .closing-actions .button { padding: 10px 24px !important; }
+  #closing footer { margin-top: 20px; gap: 8px !important; padding-top: 12px !important; }
+}

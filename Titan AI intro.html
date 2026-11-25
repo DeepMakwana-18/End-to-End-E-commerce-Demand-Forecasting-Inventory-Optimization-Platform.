@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Titan AI intro</title>
+<script>document.documentElement.classList.add('intro-nav','intro-hero','playing','locked')</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafaf9;--ink:#0a0a0a;--mute:#52525b;--line:#e4e4e7;--nav:#fff;--card:#fff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root{--bg:#0a0a0a;--ink:#fafaf9;--mute:#a1a1aa;--line:#27272a;--nav:#111113;--card:#111113}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:500 16px/1.55 Inter,system-ui,sans-serif;min-height:100dvh}
+.nav{position:sticky;top:16px;z-index:50;margin:16px auto 0;max-width:1120px;width:calc(100% - 32px);height:56px;border:1px solid var(--line);border-radius:999px;background:var(--nav);box-shadow:0 1px 2px rgba(0,0,0,.05);display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 20px;transition:background .5s,border-color .5s,box-shadow .5s}
+.lockup{display:inline-flex;align-items:center;gap:10px;font-weight:800;font-size:15px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink)}
+.lockup .titan{width:30px;height:30px}
+.links{display:flex;gap:26px;color:var(--mute);font-size:14px;font-weight:600}
+.cta,.btn{background:#1e3fc8;color:#fff;border:0;border-radius:999px;font:600 14px Inter,sans-serif;min-height:40px;padding:0 20px;cursor:pointer}
+.hero{max-width:900px;margin:0 auto;padding:96px 20px 120px;text-align:center}
+h1{margin:0;font-size:clamp(44px,8vw,92px);line-height:1.02;letter-spacing:-.03em;font-weight:800}
+.line{display:block;overflow:hidden;padding-bottom:.08em}.line>span{display:block}
+.sub{color:var(--mute);margin:22px auto 30px;max-width:44ch}
+.btn{min-height:48px;padding:0 26px;font-size:16px}
+.tools{position:fixed;left:50%;bottom:max(16px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:60;display:grid;gap:8px;justify-items:center}
+.tools button{font:600 14px Inter,sans-serif;min-height:44px;padding:0 20px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer}
+#rm{font-size:13px;color:var(--mute);background:var(--card);border:1px solid var(--line);border-radius:12px;padding:8px 12px;max-width:340px;text-align:center}
+.code{max-width:900px;margin:0 auto;padding:0 20px 120px;display:grid;gap:16px}
+.code h2{font-size:18px;margin:0}
+.box{border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:hidden}
+.box header{display:flex;justify-content:space-between;align-items:center;padding:8px 8px 8px 16px;border-bottom:1px solid var(--line);font-size:14px;font-weight:600}
+.box header button{font:600 13px Inter,sans-serif;min-height:36px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--bg);color:var(--ink);cursor:pointer}
+pre{margin:0;padding:16px;overflow:auto;max-height:420px;font:12.5px/1.6 ui-monospace,Menlo,monospace}
+button:focus-visible{outline:2px solid #1e3fc8;outline-offset:2px}
+@media (max-width:800px){.links{display:none}}
+</style>
+<style id="introCSS">
+/* Orbit mark */
+.titan{color:inherit;overflow:visible;display:block}
+.titan .orbit{transform-origin:24px 24px}
+.titan .track{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.18}
+.titan .sat{transform-origin:24px 24px;transform:rotate(var(--a)) translateX(17px)}
+.titan .ring{fill:none;stroke:currentColor;stroke-width:2.4}
+.titan .dot{fill:currentColor;transform-box:fill-box;transform-origin:center;transform:scale(0)}
+.titan .core{fill:currentColor;transform-origin:24px 24px}
+.merge .sat{animation:merge 1s cubic-bezier(.22,1,.36,1) both}
+.merge .core{animation:pop .7s .45s cubic-bezier(.34,1.56,.64,1) both}
+.merge .track{animation:fade .6s .5s both}
+.spin .orbit{animation:step var(--beat,700ms) cubic-bezier(.65,0,.35,1) var(--beats,2)}
+.spin .core{animation:breathe var(--beat,700ms) cubic-bezier(.65,0,.35,1) var(--beats,2)}
+@keyframes merge{from{transform:rotate(calc(var(--a) + 200deg)) translateX(34px);opacity:0}to{transform:rotate(var(--a)) translateX(17px);opacity:1}}
+@keyframes pop{from{transform:scale(0)}}
+@keyframes fade{from{opacity:0}}
+@keyframes step{to{transform:rotate(120deg)}}
+@keyframes breathe{50%{transform:scale(.86)}}
+
+/* Intro states: map these selectors to your own classes */
+#ov{position:fixed;top:0;left:50%;width:150vw;margin-left:-75vw;height:100dvh;z-index:40;background:var(--bg);border-radius:0 0 50% 50%/0 0 14vh 14vh;box-shadow:0 26px 90px 8px rgba(167,139,250,.3),0 12px 44px rgba(244,114,182,.22);pointer-events:none;display:none}
+html.playing #ov{display:block}
+html.locked{overflow:hidden}
+html.intro-nav .nav{background:transparent;border-color:transparent;box-shadow:none}
+html.intro-nav .links,html.intro-nav .cta{opacity:0}
+.links,.cta{transition:opacity .45s .1s}
+.word{display:inline-block;clip-path:inset(0 0 0 0);transition:clip-path .5s cubic-bezier(.22,1,.36,1)}
+html.intro-nav .word{clip-path:inset(0 100% 0 0)}
+.line>span{transition:transform .8s cubic-bezier(.22,1,.36,1)}
+.line:nth-child(2)>span{transition-delay:.09s}
+.sub,.btn{transition:opacity .6s .3s,transform .6s .3s cubic-bezier(.22,1,.36,1)}
+html.intro-hero .line>span{transform:translateY(105%)}
+html.intro-hero .sub,html.intro-hero .btn{opacity:0;transform:translateY(12px)}
+@media (prefers-reduced-motion:reduce){.titan *{animation:none!important}}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a class="lockup" href="#" aria-label="Titan AI"><svg class="titan" viewBox="0 0 48 48" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><g class="orbit"><circle class="track" cx="24" cy="24" r="17"/><g class="sat" style="--a:-90deg;--i:0"><circle class="ring" cx="24" cy="24" r="4"/><circle class="dot" cx="24" cy="24" r="4"/></g><g class="sat" style="--a:30deg;--i:1"><circle class="ring" cx="24" cy="24" r="4"/><circle class="dot" cx="24" cy="24" r="4"/></g><g class="sat" style="--a:150deg;--i:2"><circle class="ring" cx="24" cy="24" r="4"/><circle class="dot" cx="24" cy="24" r="4"/></g></g><circle class="core" cx="24" cy="24" r="7"/></svg><span class="word">Titan AI</span></a>
+  <div class="links"><span>Use cases</span><span>How it works</span><span>Intelligence</span><span>Capabilities</span><span>FAQs</span></div>
+  <button class="cta">Launch Titan AI</button>
+</nav>
+<div id="ov" aria-hidden="true"></div>
+<main class="hero">
+  <h1><span class="line"><span>One screen.</span></span><span class="line"><span>One clear move.</span></span></h1>
+  <p class="sub">Titan merges every signal and tells you exactly what to do next.</p>
+  <button class="btn">Book a demo</button>
+</main>
+<section class="code">
+  <h2>Drop-in code</h2>
+  <div class="box"><header>HTML: nav lockup and overlay<button data-t="codeHTML">Copy</button></header><pre id="codeHTML"></pre></div>
+  <div class="box"><header>CSS<button data-t="codeCSS">Copy</button></header><pre id="codeCSS"></pre></div>
+  <div class="box"><header>JavaScript<button data-t="codeJS">Copy</button></header><pre id="codeJS"></pre></div>
+</section>
+<div class="tools"><div id="rm" hidden>Reduced motion is on in your system, so the intro is skipped. <button id="force">Play anyway</button></div><button id="replay" hidden>Replay intro</button></div>
+<script id="introJS">
+(()=>{
+const T={merge:1000,beat:700,beats:2,fly:800,lift:750}; // tune timing here
+const ONCE_PER_SESSION=false; // set true to play once per tab session
+const root=document.documentElement,mark=document.querySelector('.lockup .titan'),ov=document.getElementById('ov');
+const wait=ms=>new Promise(r=>setTimeout(r,ms));
+const codeHTML=document.querySelector('.lockup').outerHTML+'\n\n'+ov.outerHTML;
+let anims=[],token=0;
+function end(){token++;anims.forEach(a=>{try{a.cancel()}catch(e){}});anims=[];
+  mark.style.transform='';mark.style.willChange='';mark.classList.remove('merge','spin');
+  root.classList.remove('intro-nav','intro-hero','playing','locked');
+  document.getElementById('replay').hidden=false}
+async function play(force){
+  end();const my=token,alive=()=>my===token;
+  if(matchMedia('(prefers-reduced-motion:reduce)').matches&&!force){document.getElementById('rm').hidden=false;return}
+  document.getElementById('rm').hidden=true;
+  if(ONCE_PER_SESSION&&!force&&sessionStorage.titan)return;
+  root.classList.add('intro-nav','intro-hero','playing','locked');
+  document.getElementById('replay').hidden=true;
+  await Promise.race([document.fonts.ready,wait(600)]);if(!alive())return;
+  mark.style.willChange='transform';
+  const r=mark.getBoundingClientRect(),S=innerWidth<700?140:220,s=S/r.width;
+  const dx=innerWidth/2-(r.left+r.width/2),dy=innerHeight/2-(r.top+r.height/2);
+  const big=`translate(${dx}px,${dy}px) scale(${s})`;
+  mark.style.transform=big;
+  mark.style.setProperty('--beat',T.beat+'ms');mark.style.setProperty('--beats',T.beats);
+  mark.classList.add('merge');await wait(T.merge);if(!alive())return;
+  mark.classList.replace('merge','spin');await wait(T.beat*T.beats+120);if(!alive())return;
+  mark.classList.remove('spin');root.classList.remove('locked');
+  const fly=mark.animate([{transform:big},{transform:'translate(0,0) scale(1.14)',offset:.82},{transform:'translate(0,0) scale(1)'}],{duration:T.fly,easing:'cubic-bezier(.65,0,.35,1)'});
+  mark.style.transform='';anims.push(fly);
+  await wait(T.fly*.2);if(!alive())return;
+  const lift=ov.animate([{transform:'translateY(0)'},{transform:'translateY(-120%)'}],{duration:T.lift,easing:'cubic-bezier(.65,0,.35,1)',fill:'forwards'});
+  anims.push(lift);root.classList.remove('intro-hero');
+  await wait(T.fly*.8);if(!alive())return;
+  root.classList.remove('intro-nav');
+  await Promise.all([fly.finished,lift.finished].map(p=>p.catch(()=>{})));if(!alive())return;
+  end();if(ONCE_PER_SESSION)sessionStorage.titan='1';
+}
+['pointerdown','keydown','resize'].forEach(e=>addEventListener(e,()=>{if(root.classList.contains('playing'))end()},{passive:true}));
+document.getElementById('replay').onclick=()=>play(true);
+document.getElementById('force').onclick=()=>play(true);
+document.getElementById('codeHTML').textContent=codeHTML;
+document.getElementById('codeCSS').textContent=document.getElementById('introCSS').textContent.trim();
+document.getElementById('codeJS').textContent=document.getElementById('introJS').textContent.trim();
+document.querySelectorAll('.box button').forEach(b=>b.onclick=async()=>{const el=document.getElementById(b.dataset.t);
+  try{await navigator.clipboard.writeText(el.textContent);b.textContent='Copied'}catch(e){const g=document.createRange();g.selectNodeContents(el);const s=getSelection();s.removeAllRanges();s.addRange(g);b.textContent='Selected'}
+  setTimeout(()=>b.textContent='Copy',1600)});
+play();
+})();
+</script>
+</body>
+</html>
