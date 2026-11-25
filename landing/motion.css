@@ -8,14 +8,89 @@
    6. Accessibility (prefers-reduced-motion, 44x44 tap targets, Pause/Play controls)
    ============================================================================ */
 
-/* 1. SHARED MOTION TOKENS */
+/* 1. SHARED MOTION & FOUNDATION TOKENS */
 :root {
+  --z-content: 0;
+  --z-sticky: 30;
+  --z-overlay: 40;
+  --z-nav: 50;
+  --z-tools: 60;
+  --container: 1240px;
+  --gutter: clamp(16px, 4vw, 48px);
   --dur-120: 120ms;
   --dur-200: 200ms;
   --dur-320: 320ms;
   --dur-600: 600ms;
+  --dur-900: 900ms;
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Section theme tokens */
+[data-theme="light"] {
+  --bg: #fafaf9;
+  --ink: #0a0a0a;
+  --mute: #52525b;
+  --line: #e5e7eb;
+  --card: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0b0c;
+  --ink: #fafaf9;
+  --mute: #a1a1aa;
+  --line: #27272a;
+  --card: #141416;
+}
+
+/* Keep light feature cards readable inside dark sections */
+[data-theme="dark"] .feature-card,
+[data-theme="dark"] [data-component="feature-card"],
+[data-theme="dark"] .bcard,
+[data-theme="dark"] .wipe-feature-card,
+[data-theme="dark"] .wipe-before .board,
+[data-theme="dark"] .wipe-after .board,
+[data-theme="dark"] .wipe,
+[data-theme="dark"] .pill-toggle__tab[aria-selected="true"] {
+  --ink: #0a0a0a;
+  --mute: #52525b;
+  --line: #e5e7eb;
+  color: #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+main > section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+main > section[data-theme],
+#titan-overview.titan-overview[data-theme="dark"],
+#how.how[data-theme="dark"],
+#planning-context[data-theme="dark"],
+#outputs[data-theme="dark"],
+#closing[data-theme="dark"] {
+  background-color: var(--bg) !important;
+  color: var(--ink);
+}
+
+main > section[data-theme]:not(#top):not(#closing) {
+  padding-inline: var(--gutter) !important;
+}
+
+#titan-overview .titan-overview__shell,
+#use-cases .use-cases__container,
+#how .how-inner,
+#planning-context .chain-story__inner,
+#decision-trail .decision-trail__inner,
+#outputs .loop-inner,
+#faq .faq-inner {
+  width: min(var(--container), 100%) !important;
+  max-width: var(--container) !important;
+  margin-inline: auto !important;
+  padding-inline: 0 !important;
+  box-sizing: border-box;
 }
 
 /* Font metrics fallback for Inter to minimize CLS during webfont swap */
@@ -32,45 +107,564 @@ body {
   font-family: 'Inter', 'InterFallback', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* Shared Reveal-on-scroll (threshold 0.2, translateY 12px + opacity) */
+/* No entrance animation on cards or paragraphs; section headings use masked slide-up (600ms) */
 .reveal,
 .pop-card {
-  opacity: 0;
-  transform: translateY(12px);
-  transition: opacity var(--dur-320) var(--ease-out), transform var(--dur-320) var(--ease-out);
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
 }
 
-.reveal.visible,
-.pop-card.visible {
+.titan-heading-mask {
+  overflow-x: visible !important;
+  overflow-y: clip !important;
+  padding-inline-end: 0.08em;
+  margin-inline-end: -0.08em;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+  transition: transform 450ms var(--ease-out), opacity 450ms var(--ease-out);
+  transition-delay: 0ms !important;
+}
+
+#decision-trail h2,
+#decision-trail h2 .amber-underline {
+  padding-inline-end: 0.08em;
+  margin-inline-end: -0.08em;
+}
+
+.titan-heading-mask:not(.is-revealed) {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.titan-heading-mask.is-revealed {
   opacity: 1;
   transform: translateY(0);
 }
 
 /* 3. VIEWPORT & LAYOUT STABILITY */
-/* Desktop-only scrollbar-gutter: stable */
+/* Scrollbar slim & quiet, no scrollbar-gutter */
 html {
-  scrollbar-gutter: auto;
+  scrollbar-gutter: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 110, 0.55) transparent;
 }
 
-@media (hover: hover) and (pointer: fine) and (min-width: 901px) {
-  html {
-    scrollbar-gutter: stable;
-  }
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 110, 0.55);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+.progress {
+  z-index: var(--z-tools);
+}
+
+.toast {
+  z-index: var(--z-tools);
 }
 
 /* Safe-area-inset-top for fixed nav & mobile sheet */
-.site-header {
-  top: calc(14px + env(safe-area-inset-top, 0px)) !important;
-  height: 50px !important;
-  min-height: 50px !important;
-}
-
+/* ==========================================================================
+   9. PHASE 2: NAV (Single-pill glass, theme observer, sliding indicator, mobile sheet)
+   ========================================================================== */
 .nav-scroll-backdrop {
-  height: calc(94px + env(safe-area-inset-top, 0px)) !important;
+  display: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
-.mobile-nav {
-  max-height: calc(100dvh - 88px - env(safe-area-inset-top, 0px)) !important;
+.site-header,
+.site-header.scrolled,
+.site-header.on-dark,
+.site-header.on-dark.scrolled {
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 10px 0 18px !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  transition: background-color 240ms var(--ease-out), border-color 240ms var(--ease-out), color 240ms var(--ease-out), height var(--dur-200) var(--ease-out), padding var(--dur-200) var(--ease-out) !important;
+}
+
+.site-header.scrolled,
+.site-header.on-dark.scrolled {
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 8px 0 16px !important;
+}
+
+.site-header:not(.on-dark),
+.site-header.scrolled:not(.on-dark) {
+  background-color: rgba(255, 255, 255, 0.82) !important;
+  border: 1px solid rgba(10, 10, 10, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(10, 10, 10, 0.06) !important;
+}
+
+.site-header.on-dark,
+.site-header.on-dark.scrolled,
+.site-header[data-header].closing-nav-dark,
+.site-header[data-header].closing-nav-dark.scrolled {
+  background-color: rgba(18, 18, 20, 0.72) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #fafaf9 !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.site-header:not(.on-dark) .brand,
+.site-header:not(.on-dark) .brand b {
+  color: #0a0a0a !important;
+}
+
+.site-header.on-dark .brand,
+.site-header.on-dark .brand b {
+  color: #fafaf9 !important;
+}
+
+.site-header .nav-links {
+  position: relative;
+}
+
+.site-header .nav-links .nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 34px;
+  border-radius: 999px;
+  background-color: rgba(10, 10, 10, 0.07);
+  transform: translate3d(var(--ind-x, 0px), -50%, 0);
+  width: var(--ind-w, 0px);
+  opacity: var(--ind-o, 0);
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 280ms var(--ease-out), width 280ms var(--ease-out), opacity var(--dur-200) var(--ease-out), background-color 240ms var(--ease-out);
+}
+
+.site-header.on-dark .nav-links .nav-indicator {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.site-header .nav-links a {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  color: #52525b !important;
+  transition: color 240ms var(--ease-out) !important;
+}
+
+.site-header .nav-links a:hover,
+.site-header .nav-links a.active {
+  background: transparent !important;
+  color: #0a0a0a !important;
+}
+
+.site-header.on-dark .nav-links a {
+  color: rgba(250, 250, 249, 0.72) !important;
+}
+
+.site-header.on-dark .nav-links a:hover,
+.site-header.on-dark .nav-links a.active {
+  background: transparent !important;
+  color: #fafaf9 !important;
+}
+
+.site-header.on-dark .nav-toggle span {
+  background: #fafaf9 !important;
+}
+
+/* ==========================================================================
+   10. PHASE 3: SECTION BOUNDARIES (8 arc bowls + rims, scroll-linked depth)
+   ========================================================================== */
+#titan-overview,
+#use-cases,
+#how,
+#product,
+#planning-context,
+#decision-trail,
+#outputs,
+#faq {
+  position: relative;
+  overflow-x: clip;
+  isolation: isolate;
+  border-top: 0 !important;
+}
+
+#top.hero.hero-v3 {
+  border-bottom: 0 !important;
+}
+
+#titan-overview > *,
+#use-cases > *,
+#how > *,
+#product > *,
+#planning-context > *,
+#decision-trail > *,
+#outputs > *,
+#faq > * {
+  position: relative;
+  z-index: 2;
+}
+
+#titan-overview { --prev-bg: #fafaf9; }
+#use-cases { --prev-bg: #0b0b0c; }
+#how { --prev-bg: #ffffff; }
+#product { --prev-bg: #0b0b0c; }
+#planning-context { --prev-bg: #ffffff; }
+#decision-trail { --prev-bg: #0b0b0c; }
+#outputs { --prev-bg: #ffffff; }
+#faq { --prev-bg: #0b0b0c; }
+
+#titan-overview::before,
+#use-cases::before,
+#how::before,
+#product::before,
+#planning-context::before,
+#decision-trail::before,
+#outputs::before,
+#faq::before {
+  content: "";
+  display: block !important;
+  position: absolute;
+  top: -1px;
+  left: -10%;
+  right: -10%;
+  width: auto !important;
+  height: 72px;
+  background: var(--prev-bg) !important;
+  border: 0 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  transform-origin: top center;
+  transform: scaleY(var(--arc-depth, 0.35));
+  pointer-events: none;
+  z-index: 1;
+}
+
+#titan-overview::after,
+#use-cases::after,
+#how::after,
+#product::after,
+#planning-context::after,
+#decision-trail::after,
+#outputs::after,
+#faq::after {
+  content: "";
+  display: block !important;
+  position: absolute;
+  top: -1px;
+  left: -10%;
+  right: -10%;
+  height: 73.5px;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background: linear-gradient(90deg, rgba(244, 114, 182, 0.55) 15%, rgba(165, 160, 240, 0.55) 50%, rgba(108, 123, 255, 0.55) 85%);
+  box-shadow: 0 8px 24px rgba(165, 160, 240, 0.18);
+  transform-origin: top center;
+  transform: scaleY(var(--arc-depth, 0.35));
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 767px) {
+  #titan-overview::before,
+  #use-cases::before,
+  #how::before,
+  #product::before,
+  #planning-context::before,
+  #decision-trail::before,
+  #outputs::before,
+  #faq::before {
+    height: 48px;
+  }
+
+  #titan-overview::after,
+  #use-cases::after,
+  #how::after,
+  #product::after,
+  #planning-context::after,
+  #decision-trail::after,
+  #outputs::after,
+  #faq::after {
+    height: 49.5px;
+  }
+}
+
+/* ==========================================================================
+   11. PHASE A: CARD TOKEN ISOLATION (SECTIONS 2, 4, 8), SECTION 5 VERTICAL TABS, ::selection
+   ========================================================================== */
+
+/* A7. Global amber selection & user-select: none on interactive step cards and tabs */
+::selection {
+  background: rgba(245, 158, 11, 0.35) !important;
+  color: inherit !important;
+}
+
+#titan-overview .titan-overview__question-card,
+#how .how-steps li,
+#outputs .loop-col,
+#use-cases .use-cases__tab,
+#product .nav-item,
+#decision-trail .decision-step__btn,
+.pill-toggle,
+#top .hero-compare__tab {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* A6. Card-level token isolation (--card-bg, --card-ink, --card-mute, --card-line) */
+.feature-card,
+[data-component="feature-card"],
+.flat-card,
+#use-cases .use-cases__panel,
+#product .product-preview-card,
+#decision-trail .decision-trail__note,
+#faq .faq-item {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #e5e7eb;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  background-color: var(--card-bg);
+  color: var(--card-ink);
+}
+
+/* Section 2 (#titan-overview): dark card at rest, light card + amber shadow on hover/active */
+#titan-overview .titan-overview__question-card {
+  --card-bg: #111113;
+  --card-ink: #fafaf9;
+  --card-mute: #a1a1aa;
+  --card-line: #27272a;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__question-card::before {
+  background: var(--card-bg) !important;
+  border-color: var(--card-line) !important;
+}
+
+#titan-overview .titan-overview__card-question {
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__card-num,
+#titan-overview .titan-overview__card-category,
+#titan-overview .titan-overview__card-desc {
+  color: var(--card-mute) !important;
+}
+
+#titan-overview .titan-overview__card-icon {
+  background: #1c1c20 !important;
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__question-card:hover,
+#titan-overview .titan-overview__question-card:focus-visible,
+#titan-overview .titan-overview__question-card.is-active {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #0a0a0a;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__question-card:hover .titan-overview__card-icon,
+#titan-overview .titan-overview__question-card:focus-visible .titan-overview__card-icon,
+#titan-overview .titan-overview__question-card.is-active .titan-overview__card-icon {
+  background: var(--card-ink) !important;
+  color: #4ade80 !important;
+}
+
+#titan-overview .titan-overview__question-card:hover .titan-overview__card-num,
+#titan-overview .titan-overview__question-card:focus-visible .titan-overview__card-num,
+#titan-overview .titan-overview__question-card.is-active .titan-overview__card-num {
+  color: var(--card-ink) !important;
+}
+
+/* Section 4 (#how): step cards & board cards own light surface + dark ink */
+#how .how-steps li,
+#how .bcard,
+#how .wipe-feature-card,
+#how .wipe-before .board,
+#how .wipe-after .board {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #e5e7eb;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  background-color: var(--card-bg) !important;
+  color: var(--card-ink) !important;
+}
+
+#how .how-steps li b {
+  color: var(--card-ink) !important;
+}
+
+#how .how-steps li b i {
+  background: var(--card-ink) !important;
+  color: var(--card-bg) !important;
+}
+
+#how .how-steps li span {
+  color: var(--card-mute) !important;
+}
+
+/* Section 8 (#outputs): Sense / Predict / Decide cards & connectors own light surface + dark ink */
+#outputs .loop-col,
+#outputs .loop-connector {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #e5e7eb;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  background-color: var(--card-bg) !important;
+  color: var(--card-ink) !important;
+}
+
+#outputs .loop-col__head h3 {
+  color: var(--card-ink) !important;
+}
+
+#outputs .loop-col__num,
+#outputs .loop-col__tag {
+  color: var(--card-mute) !important;
+}
+
+#outputs .loop-col.is-active .loop-col__num {
+  background: var(--card-ink) !important;
+  color: var(--card-bg) !important;
+}
+
+#outputs .loop-connector.is-filled {
+  background: var(--amber, #f59e0b) !important;
+  border-color: var(--amber, #f59e0b) !important;
+  color: #0a0a0a !important;
+}
+
+/* A5. Section 5 (#product): restore left vertical tabs + right preview, 1 grid cell for panels */
+#product .product-split {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.28fr) minmax(0, 0.72fr);
+  gap: 36px;
+  align-items: stretch;
+}
+
+#product .product-nav {
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 10px;
+  align-self: stretch;
+}
+
+#product .product-preview-card {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) !important;
+  align-items: stretch !important;
+}
+
+#product .pv-view {
+  grid-area: 1 / 1 !important;
+  display: flex !important;
+  flex-direction: column;
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 220ms var(--ease-out);
+}
+
+#product .pv-view[hidden] {
+  display: flex !important;
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
+@media (max-width: 899px) {
+  #product .product-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  #product .product-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+  }
+
+  #product .product-nav .nav-item {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #titan-overview::before,
+  #use-cases::before,
+  #how::before,
+  #product::before,
+  #planning-context::before,
+  #decision-trail::before,
+  #outputs::before,
+  #faq::before,
+  #titan-overview::after,
+  #use-cases::after,
+  #how::after,
+  #product::after,
+  #planning-context::after,
+  #decision-trail::after,
+  #outputs::after,
+  #faq::after {
+    transform: scaleY(1) !important;
+  }
+}
+
+@media (max-width: 799px) {
+  .site-header .nav-links,
+  .site-header .word {
+    display: none !important;
+  }
+
+  .site-header .nav-toggle {
+    display: inline-flex !important;
+    width: 44px !important;
+    height: 44px !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-nav {
+    position: fixed !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    top: calc(74px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(100dvh - 90px - env(safe-area-inset-top, 0px)) !important;
+    z-index: var(--z-nav) !important;
+  }
 }
 
 /* svh stages for CTA arc */
@@ -83,7 +677,14 @@ html {
 }
 
 #closing.liquid-ready {
-  height: 260svh !important;
+  height: 200svh !important;
+  cursor: default;
+}
+
+#closing .closing-stage,
+#top .hero-compare__stage,
+#how .wipe {
+  cursor: default;
 }
 
 #closing .closing-rim,
@@ -274,7 +875,7 @@ html {
 
   /* Shorter CTA arc stage on tablet/mobile */
   #closing.liquid-ready {
-    height: 180svh !important;
+    height: 150svh !important;
   }
 }
 
@@ -303,24 +904,37 @@ html {
   }
 }
 
-/* 6. PERFORMANCE BUDGET */
-/* content-visibility: auto on below-the-fold sections */
-#titan-overview,
-#use-cases,
-#how,
-#product,
-#planning-context,
-#decision-trail,
-#outputs,
+/* D7. content-visibility: auto ONLY on static non-pinned, non-scroll-linked section (#faq) */
 #faq {
   content-visibility: auto;
-  contain-intrinsic-size: auto 720px;
+  contain-intrinsic-size: auto 760px;
 }
 
-/* Cap blur radii at 24px everywhere */
-#closing .closing-rim {
-  filter: blur(24px) !important;
+/* D6. Never transition box-shadow anywhere; use transform/opacity on pseudo-elements */
+.button,
+.bcard,
+.loop-col,
+#how .how-steps li,
+.decision-trail__note,
+.decision-step__btn,
+.use-cases__tab,
+.nav-item,
+.feature-card,
+[data-component="feature-card"],
+.titan-overview__question-card,
+.hero-compare__cta,
+.hero-btn-primary,
+.hero-btn-secondary {
+  transition-property: transform, opacity, background-color, border-color, color !important;
 }
+
+/* D8. backdrop-filter ONLY on nav pill (.site-header) and glass button (.button-dark in #closing) */
+*:not(.site-header):not(.button-dark) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Cap blur radii at 24px on non-CTA elements (CTA halo is 40px per spec) */
 
 /* On mobile/coarse pointers: no backdrop-filter on areas larger than nav pill & button */
 @media (max-width: 767px), (pointer: coarse) {
@@ -407,19 +1021,22 @@ body.is-hidden *::after {
 @keyframes step{to{transform:rotate(120deg)}}
 @keyframes breathe{50%{transform:scale(.86)}}
 
-#ov{position:fixed;top:0;left:50%;width:150vw;margin-left:-75vw;height:100dvh;z-index:40;background:var(--paper,#fafaf9);border-radius:0 0 50% 50%/0 0 14vh 14vh;box-shadow:0 26px 90px 8px rgba(167,139,250,.3),0 12px 44px rgba(244,114,182,.22);pointer-events:none;display:none}
+#ov{position:fixed;top:0;left:50%;width:150vw;margin-left:-75vw;height:calc(100dvh + 24vh);z-index:var(--z-overlay,40);background:var(--paper,#fafaf9);border-radius:0 0 50% 50%/0 0 14vh 14vh;box-shadow:0 26px 90px 8px rgba(167,139,250,.3),0 12px 44px rgba(244,114,182,.22);pointer-events:none;display:none}
 html.playing #ov{display:block}
 html.locked{overflow:hidden !important}
 html.playing .progress,
 html.playing .nav-scroll-backdrop{opacity:0 !important;z-index:10 !important;pointer-events:none !important}
 
 /* MAP: .site-header has z-index > 40, position fixed, overflow: visible */
-.site-header{z-index:50;overflow:visible !important;transition:background .5s,border-color .5s,box-shadow .5s}
+.site-header{z-index:var(--z-nav,50);overflow:visible !important;transition:background .5s,border-color .5s,box-shadow .5s}
 .site-header .lockup{overflow:visible !important}
-html.intro-nav .site-header{background:transparent !important;border-color:transparent !important;box-shadow:none !important}
+.site-header .mark-slot{position:relative;flex:none;width:30px;height:30px;overflow:visible;display:inline-block}
+.mark-slot .titan{position:absolute;left:0;top:0;width:30px;height:30px;overflow:visible;display:block}
+html.playing .mark-slot .titan{width:var(--big,220px);height:var(--big,220px);transform-origin:0 0}
+html.intro-nav .site-header{background:transparent !important;border-color:transparent !important;box-shadow:none !important;backdrop-filter:none !important;-webkit-backdrop-filter:none !important}
 html.intro-nav .site-header .nav-links,
 html.intro-nav .site-header .nav-cta,
-html.intro-nav .site-header .nav-toggle{opacity:0 !important}
+html.intro-nav .site-header .nav-toggle{opacity:0 !important;pointer-events:none !important}
 .site-header .nav-links,
 .site-header .nav-cta,
 .site-header .nav-toggle{transition:opacity .45s .1s}

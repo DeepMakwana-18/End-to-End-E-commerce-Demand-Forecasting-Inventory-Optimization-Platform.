@@ -2,7 +2,114 @@
 <html lang="en">
 
 <head>
-  <script>document.documentElement.classList.add('intro-nav','intro-hero','playing','locked')</script>
+  <script>(function () { try { if (new URLSearchParams(location.search).get('intro') !== '0') { history.scrollRestoration = 'manual'; scrollTo(0, 0); document.documentElement.classList.add('intro-nav', 'intro-hero', 'playing', 'locked'); } } catch (e) { } })();</script>
+  <style id="intro-critical">
+    html.locked {
+      overflow: hidden !important
+    }
+
+    #ov {
+      position: fixed;
+      top: 0;
+      left: 50%;
+      width: 150vw;
+      margin-left: -75vw;
+      height: calc(100dvh + 24vh);
+      z-index: 40;
+      background: #fafaf9;
+      border-radius: 0 0 50% 50%/0 0 14vh 14vh;
+      pointer-events: none;
+      display: none
+    }
+
+    html.playing #ov {
+      display: block
+    }
+
+    html.playing .progress,
+    html.playing .nav-scroll-backdrop {
+      opacity: 0 !important;
+      pointer-events: none !important
+    }
+
+    .site-header {
+      z-index: 50;
+      overflow: visible !important
+    }
+
+    .site-header .lockup {
+      overflow: visible !important
+    }
+
+    .site-header .mark-slot {
+      position: relative;
+      flex: none;
+      width: 30px;
+      height: 30px;
+      overflow: visible;
+      display: inline-block
+    }
+
+    .mark-slot .titan {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      overflow: visible;
+      display: block
+    }
+
+    html.playing .mark-slot .titan {
+      width: var(--big, 220px);
+      height: var(--big, 220px);
+      transform-origin: 0 0
+    }
+
+    html.intro-nav .site-header {
+      background: transparent !important;
+      border-color: transparent !important;
+      box-shadow: none !important;
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important
+    }
+
+    html.intro-nav .site-header .nav-links,
+    html.intro-nav .site-header .nav-cta,
+    html.intro-nav .site-header .nav-toggle {
+      opacity: 0 !important;
+      pointer-events: none !important
+    }
+
+    html.intro-nav .site-header .word {
+      clip-path: inset(0 100% 0 0)
+    }
+
+    #hero-title .hero-line {
+      display: block;
+      overflow: hidden;
+      padding-bottom: .08em
+    }
+
+    #hero-title .hero-line>span {
+      display: block;
+      transition: transform .8s cubic-bezier(.22, 1, .36, 1)
+    }
+
+    #hero-title .hero-line:nth-child(2)>span {
+      transition-delay: .09s
+    }
+
+    html.intro-hero #hero-title .hero-line>span {
+      transform: translateY(105%)
+    }
+
+    html.intro-hero #top .hero-compare__dek,
+    html.intro-hero #top .hero-compare__cta {
+      opacity: 0;
+      transform: translateY(12px)
+    }
+  </style>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="theme-color" content="#f8f8f6" />
@@ -82,10 +189,9 @@
       display: none
     }
 
-    /* Full-bleed 100vw ColumnsBackground: 8 cols desktop, 4 mobile, 1st col tinted, vertical + 45% center radial mask */
+    /* ColumnsBackground: 1px lines at 6% opacity, no filled bands */
     #top .hero-columns-bg {
-      --col-line: rgba(11, 11, 12, 0.12);
-      --col-tint: rgba(11, 11, 12, 0.05);
+      --col-line: rgba(11, 11, 12, 0.06);
       position: absolute;
       top: 0;
       bottom: 0;
@@ -93,22 +199,19 @@
       transform: translateX(-50%);
       display: grid;
       grid-template-columns: repeat(8, minmax(0, 1fr));
-      width: 100vw;
+      width: 100%;
       max-width: none;
       height: 100%;
       border: 0;
       pointer-events: none;
       z-index: 0;
-      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 88%, transparent 100%), radial-gradient(ellipse 52% 40% at 50% 30%, rgba(0, 0, 0, 0.45) 0%, #000 100%);
-      -webkit-mask-composite: source-in;
-      mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 88%, transparent 100%), radial-gradient(ellipse 52% 40% at 50% 30%, rgba(0, 0, 0, 0.45) 0%, #000 100%);
-      mask-composite: intersect
+      -webkit-mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 88%, transparent 100%);
+      mask-image: linear-gradient(to bottom, transparent 0%, #000 10%, #000 88%, transparent 100%);
     }
 
     .scene-dark #top .hero-columns-bg,
     [data-theme="dark"] #top .hero-columns-bg {
-      --col-line: rgba(255, 255, 255, 0.12);
-      --col-tint: rgba(255, 255, 255, 0.05)
+      --col-line: rgba(255, 255, 255, 0.06);
     }
 
     #top .hero-columns-bg span {
@@ -118,10 +221,6 @@
 
     #top .hero-columns-bg span:first-child {
       border-left: 1px solid var(--col-line)
-    }
-
-    #top .hero-columns-bg span:nth-child(odd) {
-      background-color: var(--col-tint)
     }
 
     @media(max-width:767px) {
@@ -194,6 +293,8 @@
 
     #top .hero-compare__heading {
       position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
       width: 100%;
       max-width: none;
       margin: 0;
@@ -205,25 +306,44 @@
     }
 
     #top .hero-line {
-      display: block
-    }
-
-    #top .hero-compare__text-swap {
       display: block;
-      transition: opacity 300ms ease-out, transform 300ms ease-out
+      overflow: hidden;
+      padding-bottom: 0.08em;
     }
 
-    #top .hero-compare__text-swap:not([data-active=true]) {
-      display: none
+    #top .hero-line > span {
+      display: block;
+    }
+
+    #top .hero-compare__heading .hero-compare__text-swap,
+    #top .hero-compare__dek .hero-compare__text-swap {
+      grid-area: 1 / 1;
+      display: block;
+    }
+
+    #top .hero-compare__heading .hero-compare__text-swap:not([data-active=true]) {
+      visibility: hidden;
+      pointer-events: none;
     }
 
     #top .hero-compare__dek {
       position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
       width: min(100%, 650px);
       margin: 16px 0 0;
       color: #6B7280;
       font-size: 17px;
       line-height: 1.6
+    }
+
+    #top .hero-compare__dek .hero-compare__text-swap {
+      transition: opacity 200ms cubic-bezier(.22, 1, .36, 1);
+    }
+
+    #top .hero-compare__dek .hero-compare__text-swap:not([data-active=true]) {
+      opacity: 0;
+      pointer-events: none;
     }
 
     #top .hero-compare__cta {
@@ -247,17 +367,49 @@
       background: #1735A5
     }
 
-    /* Visual block container */
+    /* Visual block container: single grid cell & fixed height so hero never jumps */
     #top .hero-compare__stage {
       position: relative;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      align-items: stretch;
       width: 100%;
       max-width: 100%;
+      height: var(--hero-stage-h, auto);
       margin: 40px auto 0;
       background: transparent;
-      transition: height 300ms ease-out
+    }
+
+    #top .hero-compare__visual[data-visual="without"] {
+      height: 100%;
+    }
+
+    #top .hero-compare__visual[data-visual="without"] .hero-compare__grid-card {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    #top .hero-compare__visual[data-visual="without"] .hero-compare__sheet {
+      flex: 1 1 auto;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #top .hero-compare__visual[data-visual="without"] .hero-compare__sheet::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      height: 72px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 92%);
+      pointer-events: none;
     }
 
     #top .hero-compare__visual {
+      grid-area: 1 / 1;
       position: relative;
       display: flex;
       flex-direction: column;
@@ -268,22 +420,29 @@
       max-width: 100%;
       margin-inline: auto;
       background: transparent;
-      transition: opacity 300ms ease-out, transform 300ms ease-out
+      transition: opacity 400ms cubic-bezier(.22, 1, .36, 1), transform 400ms cubic-bezier(.22, 1, .36, 1)
     }
 
     @media(min-width:768px) {
       #top .hero-compare__visual[data-visual="without"] {
-        width: 75vw
+        width: min(100%, 1080px)
       }
     }
 
     #top .hero-compare__visual:not([data-active=true]) {
-      display: none
+      opacity: 0;
+      pointer-events: none;
+      visibility: hidden;
     }
 
-    #top .hero-compare__visual.is-entering {
+    #top .hero-compare__visual[data-visual="with"].is-entering {
       opacity: 0;
-      transform: translateY(8px)
+      transform: translateY(18px);
+    }
+
+    #top .hero-compare__visual[data-visual="without"].is-merging .hero-compare__chip {
+      transition: transform 500ms cubic-bezier(.22, 1, .36, 1), opacity 500ms cubic-bezier(.22, 1, .36, 1);
+      opacity: 0;
     }
 
     /* Without Titan spreadsheet frame: equal 20px inner padding, chips straddle outer border */
@@ -1199,14 +1358,32 @@
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
   <div class="progress" aria-hidden="true"></div>
-  <div class="nav-scroll-backdrop" aria-hidden="true"></div>
 
   <header class="site-header" data-header>
     <a class="brand lockup" href="#top" aria-label="Titan AI home">
-      <svg class="titan" data-titan-mark viewBox="0 0 48 48" aria-hidden="true" width="30" height="30" xmlns="http://www.w3.org/2000/svg"><g class="orbit"><circle class="track" cx="24" cy="24" r="17"/><g class="sat" style="--a:-90deg;--i:0"><circle class="ring" cx="24" cy="24" r="4"/><circle class="dot" cx="24" cy="24" r="4"/></g><g class="sat" style="--a:30deg;--i:1"><circle class="ring" cx="24" cy="24" r="4"/><circle class="dot" cx="24" cy="24" r="4"/></g><g class="sat" style="--a:150deg;--i:2"><circle class="ring" cx="24" cy="24" r="4"/><circle class="dot" cx="24" cy="24" r="4"/></g></g><circle class="core" cx="24" cy="24" r="7"/></svg>
+      <span class="mark-slot"><svg class="titan" data-titan-mark viewBox="0 0 48 48" aria-hidden="true" width="30"
+          height="30" xmlns="http://www.w3.org/2000/svg">
+          <g class="orbit">
+            <circle class="track" cx="24" cy="24" r="17" />
+            <g class="sat" style="--a:-90deg;--i:0">
+              <circle class="ring" cx="24" cy="24" r="4" />
+              <circle class="dot" cx="24" cy="24" r="4" />
+            </g>
+            <g class="sat" style="--a:30deg;--i:1">
+              <circle class="ring" cx="24" cy="24" r="4" />
+              <circle class="dot" cx="24" cy="24" r="4" />
+            </g>
+            <g class="sat" style="--a:150deg;--i:2">
+              <circle class="ring" cx="24" cy="24" r="4" />
+              <circle class="dot" cx="24" cy="24" r="4" />
+            </g>
+          </g>
+          <circle class="core" cx="24" cy="24" r="7" />
+        </svg></span>
       <span class="word">TITAN <b>AI</b></span>
     </a>
     <nav class="nav-links" aria-label="Primary navigation">
+      <span class="nav-indicator" aria-hidden="true"></span>
       <a href="#use-cases">
         <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
           <circle cx="10" cy="10" r="6.6" />
@@ -1260,10 +1437,14 @@
       <a class="mobile-nav-cta" href="/auth">Launch Titan AI <span aria-hidden="true">↗</span></a>
     </nav>
   </header>
-  <div id="ov" aria-hidden="true"></div>
+  <div id="ov" aria-hidden="true">
+    <div class="ov-rim liquid-rim"></div>
+    <div class="ov-surface"></div>
+  </div>
 
   <main id="main">
-    <section class="hero hero-v3 scene scene-light" id="top" aria-labelledby="hero-title" data-state="without" data-theme="light">
+    <section class="hero hero-v3 scene scene-light" id="top" aria-labelledby="hero-title" data-state="without"
+      data-theme="light">
       <!-- ColumnsBackground -->
       <div class="hero-columns-bg" aria-hidden="true">
         <span></span><span></span><span></span><span></span>
@@ -1313,7 +1494,7 @@
                 </div>
                 <div class="hero-compare__sheetbody">
                   <div class="hero-compare__rownums">
-                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+                    <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span><span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span>13</span><span>14</span>
                   </div>
                   <div class="hero-compare__grid">
                     <span class="hero-compare__cell">412</span><span class="hero-compare__cell">188</span><span
@@ -1347,6 +1528,34 @@
                       class="hero-compare__cell">470</span><span class="hero-compare__cell">1,380</span><span
                       class="hero-compare__cell">164</span><span class="hero-compare__cell">690</span><span
                       class="hero-compare__cell">82</span><span class="hero-compare__cell">540</span>
+                    <span class="hero-compare__cell">715</span><span class="hero-compare__cell">260</span><span
+                      class="hero-compare__cell">1,190</span><span class="hero-compare__cell">430</span><span
+                      class="hero-compare__cell is-warning">#VALUE!</span><span class="hero-compare__cell">580</span><span
+                      class="hero-compare__cell">195</span><span class="hero-compare__cell">840</span>
+                    <span class="hero-compare__cell">290</span><span class="hero-compare__cell">1,540</span><span
+                      class="hero-compare__cell">615</span><span class="hero-compare__cell">92</span><span
+                      class="hero-compare__cell">410</span><span class="hero-compare__cell">1,080</span><span
+                      class="hero-compare__cell">350</span><span class="hero-compare__cell">215</span>
+                    <span class="hero-compare__cell">960</span><span class="hero-compare__cell">480</span><span
+                      class="hero-compare__cell">135</span><span class="hero-compare__cell">770</span><span
+                      class="hero-compare__cell">625</span><span class="hero-compare__cell">340</span><span
+                      class="hero-compare__cell is-warning">late</span><span class="hero-compare__cell">510</span>
+                    <span class="hero-compare__cell">405</span><span class="hero-compare__cell">890</span><span
+                      class="hero-compare__cell">1,240</span><span class="hero-compare__cell">265</span><span
+                      class="hero-compare__cell">740</span><span class="hero-compare__cell">185</span><span
+                      class="hero-compare__cell">930</span><span class="hero-compare__cell">410</span>
+                    <span class="hero-compare__cell">585</span><span class="hero-compare__cell">1,020</span><span
+                      class="hero-compare__cell">315</span><span class="hero-compare__cell">640</span><span
+                      class="hero-compare__cell">120</span><span class="hero-compare__cell">855</span><span
+                      class="hero-compare__cell">490</span><span class="hero-compare__cell">275</span>
+                    <span class="hero-compare__cell">1,110</span><span class="hero-compare__cell">390</span><span
+                      class="hero-compare__cell">245</span><span class="hero-compare__cell">810</span><span
+                      class="hero-compare__cell">530</span><span class="hero-compare__cell">160</span><span
+                      class="hero-compare__cell">670</span><span class="hero-compare__cell">920</span>
+                    <span class="hero-compare__cell">225</span><span class="hero-compare__cell">740</span><span
+                      class="hero-compare__cell">560</span><span class="hero-compare__cell">1,310</span><span
+                      class="hero-compare__cell">385</span><span class="hero-compare__cell">95</span><span
+                      class="hero-compare__cell">440</span><span class="hero-compare__cell">615</span>
                   </div>
                 </div>
               </div>
@@ -1390,7 +1599,7 @@
               </div>
 
               <div class="hero-decision-copy">
-                <h2>Reorder 1,200 units of SKU-4471 by <span class="hero-amber-underline">Thursday</span></h2>
+                <h2>Reorder 900 units of SKU-4471 by <span class="hero-amber-underline">Thursday</span></h2>
                 <p>Demand rising in West. Stock covers 11 days. An order placed by Thursday lands 3 days before runout.
                 </p>
               </div>
@@ -1457,7 +1666,7 @@
               <div class="hero-compare__stats">
                 <div class="hero-compare__stat">11-day cover</div>
                 <div class="hero-compare__stat">8-day lead</div>
-                <div class="hero-compare__stat">+34% West demand</div>
+                <div class="hero-compare__stat">+48% demand spike</div>
               </div>
 
               <div class="hero-card-actions">
@@ -1470,7 +1679,7 @@
                 <div class="hero-seewhy-inner">
                   <div class="hero-seewhy-panel">
                     <ul class="hero-seewhy-list">
-                      <li><strong>Demand trend:</strong> West region velocity is up +34% vs. the 14-day baseline.</li>
+                      <li><strong>Demand trend:</strong> Demand velocity is up +48% (89 vs 60 expected, +3.2σ).</li>
                       <li><strong>Stock cover:</strong> 180 units on hand covers 3 days at current burn rate.</li>
                       <li><strong>Supplier lead time:</strong> 8-day transit requires ordering by Thursday to avoid a
                         gap.</li>
@@ -1500,37 +1709,177 @@
       </div>
       <script>
         (() => {
-          const hero = document.getElementById("top"); if (!hero) return; const stage = hero.querySelector(".hero-compare__stage"), tabs = [...hero.querySelectorAll("[role='tab']")], copies = [...hero.querySelectorAll("[data-copy]")], visuals = [...hero.querySelectorAll("[data-visual]")], confEls = [...hero.querySelectorAll(".hero-conf-count")], approveBtn = hero.querySelector("#heroApproveBtn"), seeWhyBtn = hero.querySelector("#heroSeeWhyBtn"), seeWhyWrap = hero.querySelector("#heroSeeWhyWrap"), reduce = matchMedia("(prefers-reduced-motion: reduce)"); let timer = null, stopped = false, countRaf = null, heightTimer = null;
-          const runCountUp = () => { if (!confEls.length) return; if (countRaf) cancelAnimationFrame(countRaf); if (reduce.matches) { confEls.forEach(el => { el.textContent = String(el.dataset.target || 94) }); return } const start = performance.now(), dur = 600; const step = (now) => { const p = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - p, 3); confEls.forEach(el => { const target = Number(el.dataset.target || 94); el.textContent = String(Math.round(target * eased)) }); if (p < 1) countRaf = requestAnimationFrame(step); else countRaf = null }; confEls.forEach(el => { el.textContent = "0" }); countRaf = requestAnimationFrame(step) };
+          const hero = document.getElementById("top"); if (!hero) return;
+          const stage = hero.querySelector(".hero-compare__stage"),
+            heading = hero.querySelector("#hero-title"),
+            tabs = [...hero.querySelectorAll("[role='tab']")],
+            headingSwaps = [...hero.querySelectorAll("#hero-title [data-copy]")],
+            dekSwaps = [...hero.querySelectorAll(".hero-compare__dek [data-copy]")],
+            visuals = [...hero.querySelectorAll("[data-visual]")],
+            withoutVisual = hero.querySelector("[data-visual='without']"),
+            chips = [...hero.querySelectorAll(".hero-compare__chip")],
+            confEls = [...hero.querySelectorAll(".hero-conf-count")],
+            approveBtn = hero.querySelector("#heroApproveBtn"),
+            seeWhyBtn = hero.querySelector("#heroSeeWhyBtn"),
+            seeWhyWrap = hero.querySelector("#heroSeeWhyWrap"),
+            reduce = matchMedia("(prefers-reduced-motion: reduce)");
+          let timer = null, mergeTimer = null, stopped = false, playedOnce = false, countRaf = null, copyAnims = [];
+
+          const syncStageHeight = () => {
+            if (!stage) return;
+            stage.style.removeProperty("--hero-stage-h");
+            const heights = visuals.map(v => v.getBoundingClientRect().height);
+            const maxH = Math.max(0, ...heights);
+            if (maxH > 0) stage.style.setProperty("--hero-stage-h", Math.ceil(maxH) + "px");
+          };
+          syncStageHeight();
+          window.addEventListener("resize", syncStageHeight, { passive: true });
+          if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncStageHeight);
+
+          const runCountUp = () => {
+            if (!confEls.length) return;
+            if (countRaf) cancelAnimationFrame(countRaf);
+            if (reduce.matches) { confEls.forEach(el => { el.textContent = String(el.dataset.target || 94) }); return; }
+            const start = performance.now(), dur = 600;
+            const step = (now) => {
+              const p = Math.min(1, (now - start) / dur), eased = 1 - Math.pow(1 - p, 3);
+              confEls.forEach(el => { const target = Number(el.dataset.target || 94); el.textContent = String(Math.round(target * eased)) });
+              if (p < 1) countRaf = requestAnimationFrame(step); else countRaf = null;
+            };
+            confEls.forEach(el => { el.textContent = "0" });
+            countRaf = requestAnimationFrame(step);
+          };
+
+          const animateHeadline = (prevState, nextState) => {
+            copyAnims.forEach(a => { try { a.cancel() } catch (_) {} });
+            copyAnims = [];
+            const prevCopy = headingSwaps.find(c => c.dataset.copy === prevState);
+            const nextCopy = headingSwaps.find(c => c.dataset.copy === nextState);
+            headingSwaps.forEach(c => {
+              const active = c === nextCopy;
+              c.dataset.active = String(active);
+              active ? c.removeAttribute("aria-hidden") : c.setAttribute("aria-hidden", "true");
+            });
+            if (reduce.matches || !prevCopy || !nextCopy) {
+              headingSwaps.forEach(c => { c.style.visibility = c === nextCopy ? "visible" : "hidden"; });
+              return;
+            }
+            prevCopy.style.visibility = "visible";
+            nextCopy.style.visibility = "visible";
+            const outLines = [...prevCopy.querySelectorAll(".hero-line > span")];
+            const inLines = [...nextCopy.querySelectorAll(".hero-line > span")];
+            outLines.forEach(el => {
+              const a = el.animate(
+                [{ transform: "translateY(0)", opacity: 1 }, { transform: "translateY(-55%)", opacity: 0, offset: 0.48 }, { transform: "translateY(-105%)", opacity: 0 }],
+                { duration: 320, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" }
+              );
+              copyAnims.push(a);
+              a.finished.then(() => { if (prevCopy.dataset.active !== "true") prevCopy.style.visibility = "hidden"; }).catch(() => {});
+            });
+            inLines.forEach((el, idx) => {
+              const a = el.animate(
+                [{ transform: "translateY(105%)", opacity: 0 }, { transform: "translateY(0)", opacity: 1 }],
+                { duration: 500, delay: 160 + idx * 45, easing: "cubic-bezier(.22,1,.36,1)", fill: "both" }
+              );
+              copyAnims.push(a);
+            });
+          };
+
           const setState = (state) => {
-            if (hero.dataset.state === state) return;
-            const prevH = stage ? stage.getBoundingClientRect().height : 0;
+            const prevState = hero.dataset.state;
+            if (prevState === state) return;
             hero.dataset.state = state;
             tabs.forEach(t => { const active = t.dataset.heroState === state; t.setAttribute("aria-selected", String(active)); t.tabIndex = active ? 0 : -1 });
-            copies.forEach(c => { const active = c.dataset.copy === state; c.dataset.active = String(active); active ? c.removeAttribute("aria-hidden") : c.setAttribute("aria-hidden", "true") });
+            animateHeadline(prevState, state);
+            dekSwaps.forEach(c => { const active = c.dataset.copy === state; c.dataset.active = String(active); active ? c.removeAttribute("aria-hidden") : c.setAttribute("aria-hidden", "true") });
             const nextVisual = visuals.find(v => v.dataset.visual === state);
             visuals.forEach(v => { const active = v === nextVisual; v.dataset.active = String(active); v.setAttribute("aria-hidden", String(!active)); if (active && !reduce.matches) v.classList.add("is-entering") });
-            if (stage && !reduce.matches && prevH > 0) {
-              if (heightTimer) clearTimeout(heightTimer);
-              stage.style.height = prevH + "px";
-              const nextH = nextVisual ? nextVisual.getBoundingClientRect().height : prevH;
-              stage.offsetHeight;
-              stage.style.height = nextH + "px";
-              requestAnimationFrame(() => { nextVisual?.classList.remove("is-entering") });
-              heightTimer = setTimeout(() => { stage.style.height = ""; heightTimer = null }, 320);
+            if (nextVisual && !reduce.matches) {
+              requestAnimationFrame(() => requestAnimationFrame(() => { nextVisual.classList.remove("is-entering") }));
             } else if (nextVisual) { nextVisual.classList.remove("is-entering") }
             hero.querySelector("[role='tabpanel']")?.setAttribute("aria-labelledby", tabs.find(t => t.dataset.heroState === state)?.id || "hero-tab-without");
             if (state === "with") runCountUp();
           };
-          const stop = () => { stopped = true; if (timer !== null) clearTimeout(timer); timer = null }; tabs.forEach((tab, i) => { tab.addEventListener("click", () => { stop(); setState(tab.dataset.heroState) }); tab.addEventListener("keydown", e => { let n = i; if (e.key === "ArrowRight" || e.key === "ArrowDown") n = (i + 1) % tabs.length; else if (e.key === "ArrowLeft" || e.key === "ArrowUp") n = (i - 1 + tabs.length) % tabs.length; else if (e.key === "Home") n = 0; else if (e.key === "End") n = tabs.length - 1; else return; e.preventDefault(); stop(); tabs[n].focus(); setState(tabs[n].dataset.heroState) }) });
+
+          const stop = () => {
+            stopped = true;
+            if (timer !== null) { clearTimeout(timer); timer = null; }
+            if (mergeTimer !== null) { clearTimeout(mergeTimer); mergeTimer = null; }
+            withoutVisual?.classList.remove("is-merging");
+            chips.forEach(ch => { ch.style.transform = ""; });
+            window.removeEventListener("scroll", onFirstScroll);
+          };
+
+          const playMergeOnce = () => {
+            if (stopped || playedOnce || reduce.matches || hero.dataset.state !== "without") return;
+            playedOnce = true;
+            if (timer !== null) { clearTimeout(timer); timer = null; }
+            window.removeEventListener("scroll", onFirstScroll);
+            if (stage && chips.length && withoutVisual) {
+              const sr = stage.getBoundingClientRect();
+              const cx = sr.left + sr.width / 2;
+              const cy = sr.top + sr.height / 2;
+              chips.forEach(ch => {
+                const cr = ch.getBoundingClientRect();
+                const dx = cx - (cr.left + cr.width / 2);
+                const dy = cy - (cr.top + cr.height / 2);
+                ch.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) scale(0.82)`;
+              });
+              withoutVisual.classList.add("is-merging");
+              mergeTimer = setTimeout(() => {
+                mergeTimer = null;
+                withoutVisual.classList.remove("is-merging");
+                chips.forEach(ch => { ch.style.transform = ""; });
+                if (!stopped) setState("with");
+              }, 500);
+            } else {
+              setState("with");
+            }
+          };
+
+          const onFirstScroll = () => {
+            if (!stopped && !playedOnce && window.scrollY >= 40) playMergeOnce();
+          };
+
+          tabs.forEach((tab, i) => {
+            tab.addEventListener("click", () => { stop(); setState(tab.dataset.heroState) });
+            tab.addEventListener("keydown", e => {
+              let n = i;
+              if (e.key === "ArrowRight" || e.key === "ArrowDown") n = (i + 1) % tabs.length;
+              else if (e.key === "ArrowLeft" || e.key === "ArrowUp") n = (i - 1 + tabs.length) % tabs.length;
+              else if (e.key === "Home") n = 0;
+              else if (e.key === "End") n = tabs.length - 1;
+              else return;
+              e.preventDefault(); stop(); tabs[n].focus(); setState(tabs[n].dataset.heroState);
+            });
+          });
           seeWhyBtn?.addEventListener("click", () => { stop(); const open = seeWhyBtn.getAttribute("aria-expanded") === "true"; seeWhyBtn.setAttribute("aria-expanded", String(!open)); seeWhyWrap?.classList.toggle("is-open", !open) });
           approveBtn?.addEventListener("click", () => { stop(); const done = approveBtn.classList.toggle("is-approved"); approveBtn.textContent = done ? "Order approved ✓" : "Approve order"; approveBtn.setAttribute("aria-pressed", String(done)) });
-          const cells = [...hero.querySelectorAll(".hero-compare__cell:not(.is-warning)")], order = cells.map((_, i) => i); for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[order[i], order[j]] = [order[j], order[i]] } order.slice(0, 14).forEach(i => cells[i].classList.add("is-dark")); if (!reduce.matches) { timer = setTimeout(() => { if (!stopped) setState("with"); timer = null }, 2500); reduce.addEventListener("change", e => { if (e.matches) stop() }, { once: true }) }
+
+          const cells = [...hero.querySelectorAll(".hero-compare__cell:not(.is-warning)")], order = cells.map((_, i) => i);
+          for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));[order[i], order[j]] = [order[j], order[i]] }
+          order.slice(0, 14).forEach(i => cells[i].classList.add("is-dark"));
+
+          const startHold = () => {
+            if (stopped || playedOnce || reduce.matches) return;
+            timer = setTimeout(playMergeOnce, 2800);
+            window.addEventListener("scroll", onFirstScroll, { passive: true });
+          };
+
+          if (!reduce.matches) {
+            if (document.documentElement.classList.contains("playing")) {
+              window.addEventListener("titan:intro-end", startHold, { once: true });
+            } else {
+              startHold();
+            }
+            reduce.addEventListener("change", e => { if (e.matches) stop() }, { once: true });
+          }
         })();
       </script>
     </section>
 
-    <section class="titan-overview scene scene-dark" id="titan-overview" aria-labelledby="titan-overview-title" data-theme="dark">
+    <section class="titan-overview scene scene-dark" id="titan-overview" aria-labelledby="titan-overview-title"
+      data-theme="dark">
       <div class="titan-overview__shell">
         <header class="titan-overview__intro">
           <p class="titan-overview__eyebrow">TITAN AT A GLANCE</p>
@@ -1689,7 +2038,8 @@
 
 
 
-    <section class="use-cases scene scene-light" id="use-cases" aria-labelledby="use-cases-title" data-use-cases data-theme="light">
+    <section class="use-cases scene scene-light" id="use-cases" aria-labelledby="use-cases-title" data-use-cases
+      data-theme="light">
       <div class="use-cases__shell">
         <header class="use-cases__intro reveal">
           <p class="eyebrow"><span></span> Planning by category</p>
@@ -1929,7 +2279,8 @@
                   <line x1="4" y1="42" x2="176" y2="42" stroke="#9CA3AF" stroke-width="1" stroke-dasharray="3 3" />
                   <text x="6" y="56" font-size="9.5" fill="#6B7280" font-family="Inter, sans-serif">baseline</text>
                   <path d="M4 42 C24 40 42 42 64 38 S98 35 112 30 L128 10 L144 34 L176 28" fill="none" stroke="#1D3FBF"
-                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke" />
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"
+                    vector-effect="non-scaling-stroke" />
                   <circle cx="128" cy="10" r="4" fill="#FFFFFF" stroke="#1D3FBF" stroke-width="2" />
                 </svg>
               </article>
@@ -1954,22 +2305,25 @@
               </article>
               <article class="bcard bc-action">
                 <small>Recommended order</small>
-                <h3>1,200 units</h3>
+                <h3>900 units</h3>
                 <p>Covers the peak window</p>
                 <ul class="drivers" aria-label="What drives the forecast">
                   <li>
                     <span class="driver-name">Seasonality</span>
-                    <span class="driver-track"><span class="driver-axis"></span><i class="is-pos" style="width:38%"></i></span>
+                    <span class="driver-track"><span class="driver-axis"></span><i class="is-pos"
+                        style="width:38%"></i></span>
                     <strong class="driver-val">+18%</strong>
                   </li>
                   <li>
                     <span class="driver-name">Promo lift</span>
-                    <span class="driver-track"><span class="driver-axis"></span><i class="is-pos" style="width:22%"></i></span>
+                    <span class="driver-track"><span class="driver-axis"></span><i class="is-pos"
+                        style="width:22%"></i></span>
                     <strong class="driver-val">+9%</strong>
                   </li>
                   <li>
                     <span class="driver-name">Lead time</span>
-                    <span class="driver-track"><span class="driver-axis"></span><i class="is-neg" style="width:14%"></i></span>
+                    <span class="driver-track"><span class="driver-axis"></span><i class="is-neg"
+                        style="width:14%"></i></span>
                     <strong class="driver-val is-neg">-4%</strong>
                   </li>
                 </ul>
@@ -1990,7 +2344,8 @@
           <li><b><i aria-hidden="true">03</i>Forecast</b><span>XGBoost forecasts, explained with SHAP.</span></li>
           <li><b><i aria-hidden="true">04</i>Act</b><span>Reorder points, alerts and what-if scenarios.</span></li>
         </ol>
-        <p class="how-foot">* Illustrative demonstration data · Simulated supply-chain transactions · <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></p>
+        <p class="how-foot">* Illustrative demonstration data · Simulated supply-chain transactions · <a
+            href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></p>
       </div>
     </section>
 
@@ -2139,7 +2494,8 @@
 
               <!-- Quiet Footer: Illustrative demo & View assumptions together -->
               <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · SKU-204 · <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></span>
+                <span class="pv-foot-demo">Illustrative demo · SKU-4471 · <a href="#faq-data-real"
+                    class="why-illustrative-link">Why illustrative?</a></span>
                 <details class="pv-assumptions">
                   <summary class="pv-assumptions-summary">View assumptions</summary>
                   <div class="pv-assumptions-content">
@@ -2227,11 +2583,12 @@
 
               <!-- Quiet Footer -->
               <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · 3 active SKUs · <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></span>
+                <span class="pv-foot-demo">Illustrative demo · 3 active SKUs · <a href="#faq-data-real"
+                    class="why-illustrative-link">Why illustrative?</a></span>
                 <details class="pv-assumptions">
                   <summary class="pv-assumptions-summary">View assumptions</summary>
                   <div class="pv-assumptions-content">
-                    <p><strong>Derived Replenishment Math:</strong> Lead item SKU-204 holds 660 units at 60 units/day
+                    <p><strong>Derived Replenishment Math:</strong> Lead item SKU-4471 holds 660 units at 60 units/day
                       demand (11.0 days cover). Ordering today with an 8-day supplier transit consumes 480 units,
                       leaving 180 units upon receipt. Restoring the 18.0-day target (1,080 units) at delivery requires
                       ordering 900 units (1,080 − 180). Consistent 40-day scale applied across all rows.</p>
@@ -2327,7 +2684,8 @@
 
               <!-- Quiet Footer -->
               <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · 30-day telemetry · <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></span>
+                <span class="pv-foot-demo">Illustrative demo · 30-day telemetry · <a href="#faq-data-real"
+                    class="why-illustrative-link">Why illustrative?</a></span>
                 <details class="pv-assumptions">
                   <summary class="pv-assumptions-summary">View assumptions</summary>
                   <div class="pv-assumptions-content">
@@ -2450,7 +2808,8 @@
 
               <!-- Quiet Footer -->
               <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · Single parameter simulation · <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></span>
+                <span class="pv-foot-demo">Illustrative demo · Single parameter simulation · <a href="#faq-data-real"
+                    class="why-illustrative-link">Why illustrative?</a></span>
                 <details class="pv-assumptions">
                   <summary class="pv-assumptions-summary">View assumptions</summary>
                   <div class="pv-assumptions-content">
@@ -2469,16 +2828,18 @@
 
 
 
-    <section class="chain-story scene scene-dark" id="planning-context" aria-labelledby="planning-context-title" data-theme="dark">
+    <section class="chain-story scene scene-dark" id="planning-context" aria-labelledby="planning-context-title"
+      data-theme="dark">
       <div class="chain-story__inner">
         <div class="chain-story__layout">
           <div class="chain-story__copy reveal">
             <div class="chain-story__copy-top">
               <p class="eyebrow"><span></span> Replenishment timing</p>
               <h2 id="planning-context-title">Three days<br /><strong>to review.</strong></h2>
-              <p>In this SKU-204 example, stock covers 11 days. With an 8-day supplier lead time, waiting past day 3 could
+              <p>In this SKU-4471 example, stock covers 11 days. With an 8-day supplier lead time, waiting past day 3
+                could
                 push arrival beyond current cover.</p>
-              
+
               <!-- Equation row of three chips -->
               <div class="chain-equation" role="group" aria-label="Replenishment review window calculation">
                 <div class="chain-chip">
@@ -2501,23 +2862,26 @@
             <div class="chain-story__copy-bottom">
               <hr class="chain-divider" aria-hidden="true" />
               <p class="chain-story__foot">Illustrative values assume steady demand. Open orders, target stock and
-                supplier variability affect the real decision. <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></p>
+                supplier variability affect the real decision. <a href="#faq-data-real"
+                  class="why-illustrative-link">Why illustrative?</a></p>
             </div>
           </div>
 
           <figure class="chain-runway reveal">
             <figcaption class="chain-runway__head">
-              <span><b>SKU-204</b><small>Illustrative replenishment</small></span>
+              <span><b>SKU-4471</b><small>Illustrative replenishment</small></span>
               <span class="chain-runway__horizon">Next 14 days</span>
             </figcaption>
 
             <div class="chain-runway__axis" aria-hidden="true">
               <div class="chain-runway__axis-ticks">
                 <!-- Day 0 to 14 ticks -->
-                <span class="axis-tick" style="--d: 0"><i class="tick-line"></i><em class="tick-lbl tick-lbl--left">Today</em></span>
+                <span class="axis-tick" style="--d: 0"><i class="tick-line"></i><em
+                    class="tick-lbl tick-lbl--left">Today</em></span>
                 <span class="axis-tick" style="--d: 1"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 2"><i class="tick-line"></i></span>
-                <span class="axis-tick" style="--d: 3"><i class="tick-line"></i><em class="tick-lbl tick-lbl--accent">Order by</em></span>
+                <span class="axis-tick" style="--d: 3"><i class="tick-line"></i><em
+                    class="tick-lbl tick-lbl--accent">Order by</em></span>
                 <span class="axis-tick" style="--d: 4"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 5"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 6"><i class="tick-line"></i></span>
@@ -2525,7 +2889,8 @@
                 <span class="axis-tick" style="--d: 8"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 9"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 10"><i class="tick-line"></i></span>
-                <span class="axis-tick" style="--d: 11"><i class="tick-line"></i><em class="tick-lbl tick-lbl--end">Stock runs out</em></span>
+                <span class="axis-tick" style="--d: 11"><i class="tick-line"></i><em
+                    class="tick-lbl tick-lbl--end">Stock runs out</em></span>
                 <span class="axis-tick" style="--d: 12"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 13"><i class="tick-line"></i></span>
                 <span class="axis-tick" style="--d: 14"><i class="tick-line"></i></span>
@@ -2534,16 +2899,38 @@
 
             <!-- Chart Plot Area -->
             <div class="chain-runway__plot" role="img" id="chainRunwayPlot"
-              aria-label="Timeline for SKU-204: current stock lasts 11 days; review window lasts 3 days; supplier transit is 8 days, arriving day 11 when ordering on day 3.">
-              
+              aria-label="Timeline for SKU-4471: current stock lasts 11 days; review window lasts 3 days; supplier transit is 8 days, arriving day 11 when ordering on day 3.">
+
               <!-- Visually hidden accessible table -->
               <table class="sr-only">
-                <caption>SKU-204 Replenishment Schedule</caption>
-                <thead><tr><th scope="col">Segment</th><th scope="col">Start Day</th><th scope="col">End Day</th><th scope="col">Duration</th></tr></thead>
+                <caption>SKU-4471 Replenishment Schedule</caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Segment</th>
+                    <th scope="col">Start Day</th>
+                    <th scope="col">End Day</th>
+                    <th scope="col">Duration</th>
+                  </tr>
+                </thead>
                 <tbody>
-                  <tr><td>Stock cover</td><td>0</td><td>11</td><td>11 days</td></tr>
-                  <tr><td>Review window</td><td>0</td><td>3</td><td>3 days</td></tr>
-                  <tr id="srTransitRow"><td>Supplier transit</td><td>3</td><td>11</td><td>8 days</td></tr>
+                  <tr>
+                    <td>Stock cover</td>
+                    <td>0</td>
+                    <td>11</td>
+                    <td>11 days</td>
+                  </tr>
+                  <tr>
+                    <td>Review window</td>
+                    <td>0</td>
+                    <td>3</td>
+                    <td>3 days</td>
+                  </tr>
+                  <tr id="srTransitRow">
+                    <td>Supplier transit</td>
+                    <td>3</td>
+                    <td>11</td>
+                    <td>8 days</td>
+                  </tr>
                 </tbody>
               </table>
 
@@ -2567,7 +2954,8 @@
                       <i class="runway-bar__dot" aria-hidden="true"></i>
                     </span>
                     <!-- Gap hatch segment when transit ends after day 11 -->
-                    <span class="runway-hatch" id="runwayHatch" style="--hatch-start: 11; --hatch-dur: 0;" aria-hidden="true">
+                    <span class="runway-hatch" id="runwayHatch" style="--hatch-start: 11; --hatch-dur: 0;"
+                      aria-hidden="true">
                       <span class="runway-hatch__lbl" id="runwayHatchLbl"></span>
                     </span>
                   </div>
@@ -2614,9 +3002,11 @@
               </div>
               <div class="chain-slider-track-wrap">
                 <input type="range" class="chain-slider" id="orderDaySlider" min="0" max="6" step="1" value="3"
-                  aria-label="Order on day" aria-valuemin="0" aria-valuemax="6" aria-valuenow="3" aria-valuetext="Order on day 3, arrives day 11">
+                  aria-label="Order on day" aria-valuemin="0" aria-valuemax="6" aria-valuenow="3"
+                  aria-valuetext="Order on day 3, arrives day 11">
                 <div class="chain-slider-ticks" aria-hidden="true">
-                  <span>Day 0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>Day 6</span>
+                  <span>Day 0</span><span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>Day
+                    6</span>
                 </div>
               </div>
             </div>
@@ -2624,7 +3014,8 @@
             <!-- Dynamic Outcome Chip -->
             <div class="chain-outcome" id="chainOutcome" role="status" aria-live="polite">
               <span class="chain-outcome__dot" aria-hidden="true"></span>
-              <span class="chain-outcome__text" id="chainOutcomeText">Arrives day 11: no room for delays. This is the last safe day.</span>
+              <span class="chain-outcome__text" id="chainOutcomeText">Arrives day 11: no room for delays. This is the
+                last safe day.</span>
             </div>
 
             <!-- Takeaway Callout -->
@@ -2636,23 +3027,27 @@
       </div>
     </section>
 
-    <section class="decision-trail scene scene-light" id="decision-trail" aria-labelledby="decision-trail-title" data-theme="light" data-active-step="1">
+    <section class="decision-trail scene scene-light" id="decision-trail" aria-labelledby="decision-trail-title"
+      data-theme="light" data-active-step="1">
       <div class="decision-trail__inner">
         <header class="decision-trail__intro section-intro reveal">
           <p class="eyebrow"><span></span> Explainable planning</p>
           <h2 id="decision-trail-title">See the calculation<br /><span class="amber-underline"><strong>behind the next
                 move.</strong></span></h2>
           <p>Keep the inputs and assumptions visible, so planners can check the timing before they act.</p>
-          <button type="button" class="autoplay-toggle-btn" id="trailAutoplayBtn" aria-pressed="false">Pause steps</button>
+          <button type="button" class="autoplay-toggle-btn" id="trailAutoplayBtn" aria-pressed="false">Pause
+            steps</button>
         </header>
 
         <div class="decision-trail__layout">
-          <ol class="decision-trail__steps reveal" id="decisionTrailSteps" aria-label="How a Titan planning recommendation is reviewed">
+          <ol class="decision-trail__steps reveal" id="decisionTrailSteps"
+            aria-label="How a Titan planning recommendation is reviewed">
             <div class="decision-trail__connector" id="decisionTrailConnector" aria-hidden="true">
               <div class="decision-trail__connector-fill" id="decisionTrailConnectorFill"></div>
             </div>
             <li class="decision-step-item">
-              <button type="button" class="decision-step decision-step__btn is-active" data-step="1" aria-current="step">
+              <button type="button" class="decision-step decision-step__btn is-active" data-step="1"
+                aria-current="step">
                 <span class="decision-step__index">01</span>
                 <span class="decision-step__body">
                   <h3>Start with item inputs</h3>
@@ -2684,10 +3079,11 @@
           </ol>
 
           <div class="decision-trail__card-col">
-            <aside class="decision-trail__note reveal" id="decisionTrailCard" aria-label="Interactive calculation for SKU-204">
+            <aside class="decision-trail__note reveal" id="decisionTrailCard"
+              aria-label="Interactive calculation for SKU-4471">
               <div class="decision-trail__note-head">
                 <span class="decision-trail__mark" aria-hidden="true">T</span>
-                <span class="decision-trail__title">SKU-204 &middot; Example calculation</span>
+                <span class="decision-trail__title">SKU-4471 &middot; Example calculation</span>
                 <button type="button" class="decision-trail__reset" id="calcResetBtn">Reset</button>
               </div>
 
@@ -2701,8 +3097,10 @@
                     </div>
                   </div>
                   <div class="calc-input-tile__controls">
-                    <button type="button" class="calc-stepper-btn" id="calcOnHandDec" aria-label="Decrease on hand">&minus;</button>
-                    <button type="button" class="calc-stepper-btn" id="calcOnHandInc" aria-label="Increase on hand">+</button>
+                    <button type="button" class="calc-stepper-btn" id="calcOnHandDec"
+                      aria-label="Decrease on hand">&minus;</button>
+                    <button type="button" class="calc-stepper-btn" id="calcOnHandInc"
+                      aria-label="Increase on hand">+</button>
                   </div>
                 </div>
 
@@ -2715,8 +3113,10 @@
                     </div>
                   </div>
                   <div class="calc-input-tile__controls">
-                    <button type="button" class="calc-stepper-btn" id="calcDemandDec" aria-label="Decrease demand rate">&minus;</button>
-                    <button type="button" class="calc-stepper-btn" id="calcDemandInc" aria-label="Increase demand rate">+</button>
+                    <button type="button" class="calc-stepper-btn" id="calcDemandDec"
+                      aria-label="Decrease demand rate">&minus;</button>
+                    <button type="button" class="calc-stepper-btn" id="calcDemandInc"
+                      aria-label="Increase demand rate">+</button>
                   </div>
                 </div>
 
@@ -2729,13 +3129,16 @@
                     </div>
                   </div>
                   <div class="calc-input-tile__controls">
-                    <button type="button" class="calc-stepper-btn" id="calcLeadDec" aria-label="Decrease supplier lead">&minus;</button>
-                    <button type="button" class="calc-stepper-btn" id="calcLeadInc" aria-label="Increase supplier lead">+</button>
+                    <button type="button" class="calc-stepper-btn" id="calcLeadDec"
+                      aria-label="Decrease supplier lead">&minus;</button>
+                    <button type="button" class="calc-stepper-btn" id="calcLeadInc"
+                      aria-label="Increase supplier lead">+</button>
                   </div>
                 </div>
               </div>
 
-              <output class="decision-trail__output" id="calcLiveOutput" aria-live="polite" for="calcOnHandDec calcOnHandInc calcDemandDec calcDemandInc calcLeadDec calcLeadInc calcResetBtn">
+              <output class="decision-trail__output" id="calcLiveOutput" aria-live="polite"
+                for="calcOnHandDec calcOnHandInc calcDemandDec calcDemandInc calcLeadDec calcLeadInc calcResetBtn">
                 <dl class="decision-trail__math">
                   <div class="calc-math-row calc-math-row--cover" id="calcCoverRow">
                     <dt>Stock cover</dt>
@@ -2753,19 +3156,25 @@
                 </div>
               </output>
 
-              <p class="decision-trail__footnote">Order quantity also depends on target cover, open orders and forecast demand.</p>
+              <p class="decision-trail__footnote">Order quantity also depends on target cover, open orders and forecast
+                demand.</p>
 
               <div class="decision-trail__callout" id="calcPlannerCallout">
-                <svg class="decision-trail__callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                <svg class="decision-trail__callout-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"
+                  stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                  aria-hidden="true">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
                 </svg>
-                <p class="decision-trail__callout-text"><strong>Planner review required.</strong> Titan flags the timing; the planner approves the order.</p>
+                <p class="decision-trail__callout-text"><strong>Planner review required.</strong> Titan flags the
+                  timing; the planner approves the order.</p>
               </div>
 
-              <p class="decision-trail__demo-foot">Illustrative demo - steady demand assumed · <a href="#faq-data-real" class="why-illustrative-link">Why illustrative?</a></p>
+              <p class="decision-trail__demo-foot">Illustrative demo - steady demand assumed · <a href="#faq-data-real"
+                  class="why-illustrative-link">Why illustrative?</a></p>
             </aside>
 
-            <a href="#planning-context" class="decision-trail__timeline-link">See it on a timeline <span aria-hidden="true">&rarr;</span></a>
+            <a href="#planning-context" class="decision-trail__timeline-link">See it on a timeline <span
+                aria-hidden="true">&rarr;</span></a>
           </div>
         </div>
       </div>
@@ -2790,7 +3199,12 @@
             <ul class="loop-col__list">
               <li class="loop-item">
                 <span class="loop-item__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/><path d="M12 12v9"/><path d="m16 16-4-4-4 4"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+                    <path d="M12 12v9" />
+                    <path d="m16 16-4-4-4 4" />
+                  </svg>
                 </span>
                 <div class="loop-item__text">
                   <b>Data upload &amp; ETL</b>
@@ -2799,7 +3213,13 @@
               </li>
               <li class="loop-item">
                 <span class="loop-item__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="7" height="9" x="3" y="3" rx="1" />
+                    <rect width="7" height="5" x="14" y="3" rx="1" />
+                    <rect width="7" height="9" x="14" y="12" rx="1" />
+                    <rect width="7" height="5" x="3" y="16" rx="1" />
+                  </svg>
                 </span>
                 <div class="loop-item__text">
                   <b>Executive dashboard</b>
@@ -2809,7 +3229,11 @@
               <li class="loop-item loop-item--linked">
                 <a href="#product" class="loop-item__link" data-jump-tab="tab-risk">
                   <span class="loop-item__icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2" />
+                    </svg>
                   </span>
                   <div class="loop-item__text">
                     <b>Anomaly intelligence</b>
@@ -2820,15 +3244,22 @@
               </li>
             </ul>
             <div class="loop-example">
-              <span class="loop-example__label">Example - SKU-204</span>
+              <span class="loop-example__label">Example - SKU-4471</span>
               <div class="loop-example__chip" id="loopExSense">+48% demand spike on day 14</div>
             </div>
           </article>
 
           <!-- Connector 1 -> 2 -->
           <div class="loop-connector" id="loopConn1" aria-hidden="true">
-            <svg class="loop-connector__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            <svg class="loop-connector__down" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <svg class="loop-connector__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+            <svg class="loop-connector__down" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </div>
 
           <!-- Card 02: Predict -->
@@ -2842,7 +3273,11 @@
               <li class="loop-item loop-item--linked">
                 <a href="#product" class="loop-item__link" data-jump-tab="tab-forecast">
                   <span class="loop-item__icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
+                      <polyline points="16 7 22 7 22 13" />
+                    </svg>
                   </span>
                   <div class="loop-item__text">
                     <b>Demand forecasting</b>
@@ -2854,7 +3289,18 @@
               <li class="loop-item loop-item--linked">
                 <a href="#product" class="loop-item__link" data-jump-tab="tab-scenario">
                   <span class="loop-item__icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="21" x2="14" y1="4" y2="4" />
+                      <line x1="10" x2="3" y1="4" y2="4" />
+                      <line x1="21" x2="12" y1="12" y2="12" />
+                      <line x1="8" x2="3" y1="12" y2="12" />
+                      <line x1="21" x2="16" y1="20" y2="20" />
+                      <line x1="12" x2="3" y1="20" y2="20" />
+                      <line x1="14" x2="14" y1="2" y2="6" />
+                      <line x1="8" x2="8" y1="10" y2="14" />
+                      <line x1="16" x2="16" y1="18" y2="22" />
+                    </svg>
                   </span>
                   <div class="loop-item__text">
                     <b>Scenario engine</b>
@@ -2865,7 +3311,19 @@
               </li>
               <li class="loop-item">
                 <span class="loop-item__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <rect width="16" height="16" x="4" y="4" rx="2" />
+                    <rect width="6" height="6" x="9" y="9" rx="1" />
+                    <path d="M15 2v2" />
+                    <path d="M15 20v2" />
+                    <path d="M2 15h2" />
+                    <path d="M2 9h2" />
+                    <path d="M20 15h2" />
+                    <path d="M20 9h2" />
+                    <path d="M9 2v2" />
+                    <path d="M9 20v2" />
+                  </svg>
                 </span>
                 <div class="loop-item__text">
                   <b>ML pipeline</b>
@@ -2874,15 +3332,22 @@
               </li>
             </ul>
             <div class="loop-example">
-              <span class="loop-example__label">Example - SKU-204</span>
+              <span class="loop-example__label">Example - SKU-4471</span>
               <div class="loop-example__chip" id="loopExPredict">Peak of about 545 units a week in week 10</div>
             </div>
           </article>
 
           <!-- Connector 2 -> 3 -->
           <div class="loop-connector" id="loopConn2" aria-hidden="true">
-            <svg class="loop-connector__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
-            <svg class="loop-connector__down" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            <svg class="loop-connector__arrow" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+            <svg class="loop-connector__down" width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
           </div>
 
           <!-- Card 03: Decide -->
@@ -2896,7 +3361,15 @@
               <li class="loop-item loop-item--linked">
                 <a href="#product" class="loop-item__link" data-jump-tab="tab-inventory">
                   <span class="loop-item__icon" aria-hidden="true">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m16 16 2 2 4-4"/><path d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14"/><path d="m7.5 4.27 9 5.15"/><polyline points="3.29 7 12 12 20.71 7"/><line x1="12" x2="12" y1="22" y2="12"/></svg>
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="m16 16 2 2 4-4" />
+                      <path
+                        d="M21 10V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l2-1.14" />
+                      <path d="m7.5 4.27 9 5.15" />
+                      <polyline points="3.29 7 12 12 20.71 7" />
+                      <line x1="12" x2="12" y1="22" y2="12" />
+                    </svg>
                   </span>
                   <div class="loop-item__text">
                     <b>Inventory optimization</b>
@@ -2907,7 +3380,11 @@
               </li>
               <li class="loop-item">
                 <span class="loop-item__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+                    <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+                  </svg>
                 </span>
                 <div class="loop-item__text">
                   <b>Alert center</b>
@@ -2916,7 +3393,13 @@
               </li>
               <li class="loop-item">
                 <span class="loop-item__icon" aria-hidden="true">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M12 18v-6"/><path d="m9 15 3 3 3-3"/></svg>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                    <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                    <path d="M12 18v-6" />
+                    <path d="m9 15 3 3 3-3" />
+                  </svg>
                 </span>
                 <div class="loop-item__text">
                   <b>Reports &amp; exports</b>
@@ -2925,8 +3408,9 @@
               </li>
             </ul>
             <div class="loop-example">
-              <span class="loop-example__label">Example - SKU-204</span>
-              <div class="loop-example__chip loop-example__chip--decide" id="loopExDecide">Order 900 units within the 3-day review window</div>
+              <span class="loop-example__label">Example - SKU-4471</span>
+              <div class="loop-example__chip loop-example__chip--decide" id="loopExDecide">Order 900 units within the
+                3-day review window</div>
             </div>
           </article>
         </div>
@@ -2934,7 +3418,8 @@
         <div class="loop-summary reveal">
           <div class="loop-summary__copy">
             <span class="loop-summary__pill">Connected by design</span>
-            <p>Forecasts, alerts and inventory insights can be explored together—so you can move from an observation to an informed decision.</p>
+            <p>Forecasts, alerts and inventory insights can be explored together—so you can move from an observation to
+              an informed decision.</p>
           </div>
           <a class="button loop-summary__cta" href="/auth">Book a demo</a>
         </div>
@@ -2967,10 +3452,15 @@
             <!-- 1. What data do I need to start? -->
             <div class="faq-item is-open" id="faq-data-needed">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-data-needed" aria-expanded="true" aria-controls="faq-panel-data-needed">
+                <button type="button" class="faq-trigger" id="faq-btn-data-needed" aria-expanded="true"
+                  aria-controls="faq-panel-data-needed">
                   <span class="faq-trigger__label">What data do I need to start?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
@@ -2979,19 +3469,31 @@
                   <div class="faq-panel__content">
                     <div class="faq-checklist" aria-label="Expected CSV fields">
                       <span class="faq-chip">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                         Date
                       </span>
                       <span class="faq-chip">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                         Product SKU
                       </span>
                       <span class="faq-chip">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                         Quantity sold
                       </span>
                       <span class="faq-chip">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                          stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
                         Unit price
                       </span>
                       <span class="faq-chip faq-chip--optional">
@@ -2999,11 +3501,16 @@
                       </span>
                     </div>
                     <p class="faq-file-spec">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/></svg>
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z" />
+                        <path d="M14 2v4a2 2 0 0 0 2 2h4" />
+                      </svg>
                       <span>CSV up to 50 MB</span>
                     </p>
                     <p>The upload flow helps validate and map your columns.</p>
-                    <a href="#how" class="faq-inline-link">See how upload works <span aria-hidden="true">&rarr;</span></a>
+                    <a href="#how" class="faq-inline-link">See how upload works <span
+                        aria-hidden="true">&rarr;</span></a>
                   </div>
                 </div>
               </div>
@@ -3012,17 +3519,24 @@
             <!-- 2. Is the data on this page real? -->
             <div class="faq-item" id="faq-data-real">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-data-real" aria-expanded="false" aria-controls="faq-panel-data-real">
+                <button type="button" class="faq-trigger" id="faq-btn-data-real" aria-expanded="false"
+                  aria-controls="faq-panel-data-real">
                   <span class="faq-trigger__label">Is the data on this page real?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
-              <div class="faq-panel" id="faq-panel-data-real" role="region" aria-labelledby="faq-btn-data-real" aria-hidden="true">
+              <div class="faq-panel" id="faq-panel-data-real" role="region" aria-labelledby="faq-btn-data-real"
+                aria-hidden="true">
                 <div class="faq-panel__inner">
                   <div class="faq-panel__content">
-                    <p>No. Every number here comes from simulated supply-chain transactions, used only to show how Titan works.</p>
+                    <p>No. Every number here comes from simulated supply-chain transactions, used only to show how Titan
+                      works.</p>
                   </div>
                 </div>
               </div>
@@ -3031,17 +3545,25 @@
             <!-- 3. How are forecasts made? -->
             <div class="faq-item" id="faq-forecasts-made">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-forecasts-made" aria-expanded="false" aria-controls="faq-panel-forecasts-made">
+                <button type="button" class="faq-trigger" id="faq-btn-forecasts-made" aria-expanded="false"
+                  aria-controls="faq-panel-forecasts-made">
                   <span class="faq-trigger__label">How are forecasts made?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
-              <div class="faq-panel" id="faq-panel-forecasts-made" role="region" aria-labelledby="faq-btn-forecasts-made" aria-hidden="true">
+              <div class="faq-panel" id="faq-panel-forecasts-made" role="region"
+                aria-labelledby="faq-btn-forecasts-made" aria-hidden="true">
                 <div class="faq-panel__inner">
                   <div class="faq-panel__content">
-                    <p>Titan trains XGBoost models on your history and explains each forecast with SHAP, so you can see how seasonality, promotions and lead time move the number. The forecast view can include a confidence interval when available.</p>
+                    <p>Titan trains XGBoost models on your history and explains each forecast with SHAP, so you can see
+                      how seasonality, promotions and lead time move the number. The forecast view can include a
+                      confidence interval when available.</p>
                   </div>
                 </div>
               </div>
@@ -3050,17 +3572,24 @@
             <!-- 4. How far ahead can it forecast? -->
             <div class="faq-item" id="faq-forecast-horizon">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-forecast-horizon" aria-expanded="false" aria-controls="faq-panel-forecast-horizon">
+                <button type="button" class="faq-trigger" id="faq-btn-forecast-horizon" aria-expanded="false"
+                  aria-controls="faq-panel-forecast-horizon">
                   <span class="faq-trigger__label">How far ahead can it forecast?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
-              <div class="faq-panel" id="faq-panel-forecast-horizon" role="region" aria-labelledby="faq-btn-forecast-horizon" aria-hidden="true">
+              <div class="faq-panel" id="faq-panel-forecast-horizon" role="region"
+                aria-labelledby="faq-btn-forecast-horizon" aria-hidden="true">
                 <div class="faq-panel__inner">
                   <div class="faq-panel__content">
-                    <p>The forecast view shows a 12-week horizon, with uncertainty illustrated alongside the prediction.</p>
+                    <p>The forecast view shows a 12-week horizon, with uncertainty illustrated alongside the prediction.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -3069,17 +3598,24 @@
             <!-- 5. What does Risk Radar flag? -->
             <div class="faq-item" id="faq-risk-radar">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-risk-radar" aria-expanded="false" aria-controls="faq-panel-risk-radar">
+                <button type="button" class="faq-trigger" id="faq-btn-risk-radar" aria-expanded="false"
+                  aria-controls="faq-panel-risk-radar">
                   <span class="faq-trigger__label">What does Risk Radar flag?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
-              <div class="faq-panel" id="faq-panel-risk-radar" role="region" aria-labelledby="faq-btn-risk-radar" aria-hidden="true">
+              <div class="faq-panel" id="faq-panel-risk-radar" role="region" aria-labelledby="faq-btn-risk-radar"
+                aria-hidden="true">
                 <div class="faq-panel__inner">
                   <div class="faq-panel__content">
-                    <p>Demand spikes, drops and forecast misses. It compares each day with a rolling baseline using z-score detection and highlights signals for investigation and possible follow-up.</p>
+                    <p>Demand spikes, drops and forecast misses. It compares each day with a rolling baseline using
+                      z-score detection and highlights signals for investigation and possible follow-up.</p>
                   </div>
                 </div>
               </div>
@@ -3088,17 +3624,24 @@
             <!-- 6. Can I test a decision before making it? -->
             <div class="faq-item" id="faq-test-decision">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-test-decision" aria-expanded="false" aria-controls="faq-panel-test-decision">
+                <button type="button" class="faq-trigger" id="faq-btn-test-decision" aria-expanded="false"
+                  aria-controls="faq-panel-test-decision">
                   <span class="faq-trigger__label">Can I test a decision before making it?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
-              <div class="faq-panel" id="faq-panel-test-decision" role="region" aria-labelledby="faq-btn-test-decision" aria-hidden="true">
+              <div class="faq-panel" id="faq-panel-test-decision" role="region" aria-labelledby="faq-btn-test-decision"
+                aria-hidden="true">
                 <div class="faq-panel__inner">
                   <div class="faq-panel__content">
-                    <p>Yes. Scenario Lab simulates a promotion, a price cut or a supplier delay, then shows the effect on demand, stockout risk and the order you would need to place.</p>
+                    <p>Yes. Scenario Lab simulates a promotion, a price cut or a supplier delay, then shows the effect
+                      on demand, stockout risk and the order you would need to place.</p>
                   </div>
                 </div>
               </div>
@@ -3107,14 +3650,20 @@
             <!-- 7. What can I export? -->
             <div class="faq-item" id="faq-export">
               <h3>
-                <button type="button" class="faq-trigger" id="faq-btn-export" aria-expanded="false" aria-controls="faq-panel-export">
+                <button type="button" class="faq-trigger" id="faq-btn-export" aria-expanded="false"
+                  aria-controls="faq-panel-export">
                   <span class="faq-trigger__label">What can I export?</span>
                   <span class="faq-trigger__icon" aria-hidden="true">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M5 12h14" />
+                      <path d="M12 5v14" />
+                    </svg>
                   </span>
                 </button>
               </h3>
-              <div class="faq-panel" id="faq-panel-export" role="region" aria-labelledby="faq-btn-export" aria-hidden="true">
+              <div class="faq-panel" id="faq-panel-export" role="region" aria-labelledby="faq-btn-export"
+                aria-hidden="true">
                 <div class="faq-panel__inner">
                   <div class="faq-panel__content">
                     <p>Reports as CSV, Excel and PDF.</p>
@@ -3129,24 +3678,20 @@
 
     <section class="closing scene scene-dark" id="closing" aria-labelledby="closing-title" data-theme="dark">
       <div class="closing-stage">
-      <div class="closing-inner">
-        <p class="eyebrow"><span></span> The next move is visible</p>
-        <h2 id="closing-title"><span class="closing-line"><span>Make your next order</span></span> <strong class="closing-line"><span>with a clearer view.</span></strong></h2>
-        <p class="closing-statement">Bring your sales CSV to explore forecasts, investigate inventory alerts, and
-          compare scenarios before you commit.</p>
-        <div class="closing-actions"><div class="closing-ambient" aria-hidden="true"></div><a class="button button-dark" href="/auth">Launch Titan AI <span aria-hidden="true">↗</span></a><a class="button closing-demo" href="/auth">Book a demo</a></div>
-      </div>
-      <footer>
-        <a class="brand lockup" href="#top" aria-label="Titan AI home"><span class="titan-mark-slot titan-mark-slot--footer" data-titan-mark data-size="24" data-mode="still" data-decorative="true"></span><span>TITAN
-            <b>AI</b></span></a>
-        <nav class="closing-links" aria-label="Explore intelligence"><a href="#tab-forecast" data-closing-module="forecast">Demand forecasting</a><a href="#tab-inventory" data-closing-module="inventory">Inventory intelligence</a><a href="#tab-risk" data-closing-module="risk">Risk detection</a><a href="#tab-scenario" data-closing-module="scenario">Scenario planning</a></nav>
-        <div class="footer-meta">
-          <span class="footer-copy">© 2026 Titan AI</span>
-          <a href="#faq" class="footer-link">FAQs</a>
+        <div class="closing-inner">
+          <p class="eyebrow"><span></span> The next move is visible</p>
+          <h2 id="closing-title"><span class="closing-line"><span>Make your next order</span></span> <strong
+              class="closing-line"><span>with a clearer view.</span></strong></h2>
+          <p class="closing-statement">Bring your sales CSV to explore forecasts, investigate inventory alerts, and
+            compare scenarios before you commit.</p>
+          <div class="closing-actions">
+            <div class="closing-ambient" aria-hidden="true"></div><a class="button button-dark" href="/auth">Launch
+              Titan AI <span aria-hidden="true">↗</span></a><a class="button closing-demo" href="/auth">Book a demo</a>
+          </div>
         </div>
-      </footer>
-      <div class="closing-rim" aria-hidden="true"></div>
-      <div class="closing-veil" aria-hidden="true"></div>
+        </footer>
+        <div class="closing-rim liquid-rim" aria-hidden="true"></div>
+        <div class="closing-veil" aria-hidden="true"></div>
       </div>
     </section>
   </main>
@@ -3155,6 +3700,7 @@
     <span>Decision workspace preview</span>
     <button type="button" aria-label="Dismiss notification">×</button>
   </div>
+  <script defer src="./demoScenario.js"></script>
   <script defer src="./motion.js"></script>
   <script defer src="./titan-mark.js"></script>
   <script defer src="./intro.js"></script>

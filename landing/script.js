@@ -16,12 +16,12 @@ const modules = {
     range: "COVERAGE TRACKER · SAFETY BUFFER WATCH",
     question: "Which products need replenishment?",
     decision: "Identify SKUs nearing stock thresholds and review suggested reorder quantities.",
-    title: "SKU-204 requires replenishment within 3 days.",
+    title: "SKU-4471 requires replenishment within 3 days.",
     metricA: "11 Days",
     metricALabel: "CURRENT COVERAGE",
     metricBLabel: "RECOMMENDED PO",
-    metricB: "320 Units",
-    insight: "On-hand stock covers 11 days (660u at 60 u/d). Order 320 units within 3 days to protect an 8-day supplier lead time."
+    metricB: "900 Units",
+    insight: "On-hand stock covers 11 days (660u at 60 u/d). Order 900 units within 3 days to protect an 8-day supplier lead time."
   },
   risk: {
     kicker: "Anomaly detection & risk radar",
@@ -50,18 +50,79 @@ const modules = {
 };
 
 const header = document.querySelector("[data-header]");
-const darkScenes = [...document.querySelectorAll(".scene-dark")];
+const themedSections = [...document.querySelectorAll("main > section[data-theme]")];
+const navLinksContainer = document.querySelector(".site-header .nav-links");
+const navLinks = [...document.querySelectorAll(".site-header .nav-links a")];
+const navIndicator = document.querySelector(".site-header .nav-indicator");
 const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-const updateHeader = () => {
+const updateNavCompact = () => {
   if (!header) return;
-  header.classList.toggle("scrolled", window.scrollY > 38);
-  const y = 46;
-  const isDark = darkScenes.some(scene => {
-    const rect = scene.getBoundingClientRect();
-    return rect.top <= y && rect.bottom >= y && (scene.id !== "closing" || scene.dataset.arcDark !== "false");
-  });
+  header.classList.toggle("scrolled", window.scrollY > 80);
+};
+
+const moveNavIndicator = (activeLink) => {
+  if (!navIndicator || !navLinksContainer) return;
+  if (!activeLink) {
+    navIndicator.style.setProperty("--ind-o", "0");
+    return;
+  }
+  const cRect = navLinksContainer.getBoundingClientRect();
+  const lRect = activeLink.getBoundingClientRect();
+  if (!cRect.width || !lRect.width) return;
+  navIndicator.style.setProperty("--ind-x", `${(lRect.left - cRect.left).toFixed(1)}px`);
+  navIndicator.style.setProperty("--ind-w", `${lRect.width.toFixed(1)}px`);
+  navIndicator.style.setProperty("--ind-o", "1");
+};
+
+const applyNavForSection = (section) => {
+  if (!header || !section) return;
+  const isClosingLight = section.id === "closing" && section.dataset.arcDark === "false";
+  const isDark = section.dataset.theme === "dark" && !isClosingLight;
   header.classList.toggle("on-dark", isDark);
+
+  const id = section.id;
+  let activeLink = null;
+  navLinks.forEach(a => {
+    const match = a.getAttribute("href") === `#${id}`;
+    a.classList.toggle("active", match);
+    if (match) {
+      a.setAttribute("aria-current", "location");
+      activeLink = a;
+    } else {
+      a.removeAttribute("aria-current");
+    }
+  });
+  moveNavIndicator(activeLink);
+};
+
+const syncNavCenterFallback = () => {
+  if (!header || !themedSections.length) return;
+  const r = header.getBoundingClientRect();
+  const y = Math.round(r.top + header.offsetHeight / 2);
+  const active = themedSections.find(sec => {
+    const sr = sec.getBoundingClientRect();
+    return sr.top <= y && sr.bottom > y;
+  });
+  if (active) applyNavForSection(active);
+};
+
+let navCenterObserver = null;
+const setupNavObserver = () => {
+  if (!header || !themedSections.length || !("IntersectionObserver" in window)) return;
+  if (navCenterObserver) navCenterObserver.disconnect();
+  const r = header.getBoundingClientRect();
+  const y = Math.round(r.top + header.offsetHeight / 2);
+  const bottomMargin = Math.max(0, window.innerHeight - y - 1);
+  navCenterObserver = new IntersectionObserver((entries) => {
+    const hitting = entries.find(e => e.isIntersecting);
+    if (hitting) applyNavForSection(hitting.target);
+  }, {
+    rootMargin: `-${y}px 0px -${bottomMargin}px 0px`,
+    threshold: 0
+  });
+  themedSections.forEach(sec => navCenterObserver.observe(sec));
+  syncNavCenterFallback();
 };
 
 const observerOptions = {
@@ -98,20 +159,10 @@ document.querySelectorAll(".pop-card").forEach(el => {
   else popObserver.observe(el);
 });
 
-let scrollTicking = false;
-const handleScroll = () => {
-  if (!scrollTicking) {
-    window.requestAnimationFrame(() => {
-      updateHeader();
-      scrollTicking = false;
-    });
-    scrollTicking = true;
-  }
-};
-
-window.addEventListener("scroll", handleScroll, { passive: true });
-window.addEventListener("resize", handleScroll);
-handleScroll();
+window.addEventListener("resize", () => {
+  setupNavObserver();
+}, { passive: true });
+setupNavObserver();
 
 const urlParams = new URLSearchParams(window.location.search);
 const sectionParam = urlParams.get("section");
@@ -383,6 +434,8 @@ if (toast) {
   const menu = document.querySelector("#mobile-menu");
   if (!toggle || !menu) return;
 
+  const getFocusables = () => [...menu.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
+
   const close = ({ returnFocus = false } = {}) => {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-label", "Open navigation");
@@ -396,6 +449,8 @@ if (toast) {
     toggle.setAttribute("aria-label", "Close navigation");
     menu.hidden = false;
     document.body.classList.add("menu-open");
+    const first = getFocusables()[0];
+    if (first) first.focus();
   };
 
   toggle.addEventListener("click", () => {
@@ -403,12 +458,29 @@ if (toast) {
   });
   menu.querySelectorAll("a").forEach(link => link.addEventListener("click", () => close()));
   document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !menu.hidden) close({ returnFocus: true });
+    if (menu.hidden) return;
+    if (event.key === "Escape") {
+      close({ returnFocus: true });
+      return;
+    }
+    if (event.key === "Tab") {
+      const focusables = getFocusables();
+      if (!focusables.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
   });
   document.addEventListener("click", event => {
     if (!menu.hidden && !event.target.closest(".site-header")) close();
   });
-  matchMedia("(min-width: 821px)").addEventListener("change", event => {
+  matchMedia("(min-width: 800px)").addEventListener("change", event => {
     if (event.matches) close();
   });
 })();
@@ -763,35 +835,7 @@ if (toast) {
     }
   }
 
-  // Theme-aware sticky nav backdrop driven by data-theme and IntersectionObserver + scroll probe
-  const navBackdrop = document.querySelector(".nav-scroll-backdrop");
-  const themedSections = [...document.querySelectorAll("section[data-theme]")];
-  if (navBackdrop && themedSections.length) {
-    const syncNavBackdrop = () => {
-      const probeY = 52; // centered under navbar pill
-      const active = themedSections.find(sec => {
-        const r = sec.getBoundingClientRect();
-        return r.top <= probeY && r.bottom > probeY;
-      });
-      const isDark = active ? active.getAttribute("data-theme") === "dark" && (active.id !== "closing" || active.dataset.arcDark !== "false") : false;
-      navBackdrop.classList.toggle("is-dark", isDark);
-    };
-
-    if ("IntersectionObserver" in window) {
-      const navObserver = new IntersectionObserver(() => {
-        syncNavBackdrop();
-      }, {
-        rootMargin: "-40px 0px -80% 0px",
-        threshold: [0, 0.1, 0.5, 1.0]
-      });
-      themedSections.forEach(sec => navObserver.observe(sec));
-    }
-
-    window.addEventListener("scroll", syncNavBackdrop, { passive: true });
-    document.body.addEventListener("scroll", syncNavBackdrop, { passive: true });
-    window.addEventListener("resize", syncNavBackdrop, { passive: true });
-    syncNavBackdrop();
-  }
+  // Theme-aware sticky nav handled by setupNavObserver()
 })();
 
 
@@ -829,41 +873,7 @@ function morph(el, to, dur = 650) {
     wrap(h);
   }
 
-  // Scroll progress bar + active nav link
-  const bar = document.querySelector(".progress");
-  const setBar = () => bar && bar.style.setProperty("--p", (scrollY / Math.max(1, document.documentElement.scrollHeight - innerHeight)).toFixed(4));
-  addEventListener("scroll", setBar, { passive: true }); setBar();
-  const links = [...document.querySelectorAll(".nav-links a")];
-  const updateActiveNav = () => {
-    // If user is near top (hero view), no sub-section is active
-    if (window.scrollY < 300) {
-      links.forEach(a => {
-        a.classList.remove("active");
-        a.removeAttribute("aria-current");
-      });
-      return;
-    }
-    const scrollPos = window.scrollY + 160;
-    let currentId = null;
-    links.forEach(a => {
-      const target = document.querySelector(a.getAttribute("href"));
-      if (target) {
-        const top = target.offsetTop;
-        const height = target.offsetHeight;
-        if (scrollPos >= top && scrollPos < top + height) {
-          currentId = target.id;
-        }
-      }
-    });
-    links.forEach(a => {
-      const isActive = Boolean(currentId && a.getAttribute("href") === "#" + currentId);
-      a.classList.toggle("active", isActive);
-      if (isActive) a.setAttribute("aria-current", "location");
-      else a.removeAttribute("aria-current");
-    });
-  };
-  window.addEventListener("scroll", updateActiveNav, { passive: true });
-  updateActiveNav();
+  // Scroll progress bar & nav compacting handled by TitanMotion single rAF pipeline
 
   // Product demo draws itself the first time it scrolls into view
   const shell = document.querySelector(".product-shell");
@@ -1139,13 +1149,13 @@ function morph(el, to, dur = 650) {
    -------------------------------------------------------------------------- */
 (() => {
   const demoScenario = window.demoScenario || {
-    sku: 'SKU-204',
+    sku: 'SKU-4471',
     name: 'Apex Sprint Footwear',
     baselineDemand: 60, // units/day
     onHand: 660,        // units
     leadTime: 8,        // days
     targetCover: 18,    // days
-    coverDays: 11       // 660 / 60
+    coverDays: () => 11
   };
   window.demoScenario = demoScenario;
 
@@ -1171,7 +1181,7 @@ function morph(el, to, dur = 650) {
     if (isNaN(orderDay)) orderDay = 3;
 
     const leadTime = demoScenario.leadTime; // 8
-    const coverDays = demoScenario.coverDays; // 11
+    const coverDays = typeof demoScenario.coverDays === 'function' ? demoScenario.coverDays() : demoScenario.coverDays; // 11
     const baselineDemand = demoScenario.baselineDemand; // 60
     const arrival = orderDay + leadTime; // e.g. 3 + 8 = 11
 
@@ -1200,7 +1210,7 @@ function morph(el, to, dur = 650) {
     if (plot) {
       plot.setAttribute(
         'aria-label',
-        `Timeline for SKU-204: current stock lasts 11 days; review window lasts 3 days; supplier transit is 8 days, arriving day ${arrival} when ordering on day ${orderDay}.`
+        `Timeline for ${demoScenario.sku}: current stock lasts ${coverDays} days; review window lasts 3 days; supplier transit is ${leadTime} days, arriving day ${arrival} when ordering on day ${orderDay}.`
       );
     }
 

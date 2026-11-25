@@ -33,18 +33,62 @@
       if (match) {
         view.hidden = false;
         view.removeAttribute('hidden');
-        view.style.display = 'flex';
-        if (!prefersReduced && view.animate) {
-          view.animate([
-            { opacity: 0, transform: 'translateY(4px)' },
-            { opacity: 1, transform: 'translateY(0)' }
-          ], { duration: 180, easing: 'ease-out' });
+        view.setAttribute('aria-hidden', 'false');
+        view.classList.add('is-active-view');
+        if (!prefersReduced) {
+          animateViewIn(view);
         }
       } else {
         view.hidden = true;
         view.setAttribute('hidden', '');
-        view.style.display = 'none';
+        view.setAttribute('aria-hidden', 'true');
+        view.classList.remove('is-active-view');
       }
+    });
+  }
+
+  function animateViewIn(view) {
+    // 600ms chart draw-in for SVG strokes/bars
+    view.querySelectorAll('svg path[stroke]:not([stroke="none"]), svg polyline, svg line.pv-draw').forEach(path => {
+      try {
+        const len = typeof path.getTotalLength === 'function' ? path.getTotalLength() : 0;
+        if (len > 4) {
+          path.style.strokeDasharray = `${len}`;
+          path.style.strokeDashoffset = `${len}`;
+          path.animate(
+            [{ strokeDashoffset: len }, { strokeDashoffset: 0 }],
+            { duration: 600, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' }
+          ).finished.catch(() => {}).finally(() => {
+            path.style.strokeDasharray = '';
+            path.style.strokeDashoffset = '';
+          });
+        }
+      } catch (_) {}
+    });
+
+    // 400ms count-up for numeric KPIs inside active panel
+    view.querySelectorAll('.pv-kpi-val, .pv-stat-val, strong[data-count]').forEach(el => {
+      const raw = el.dataset.rawText || el.textContent.trim();
+      el.dataset.rawText = raw;
+      const m = raw.match(/^([^0-9.-]*)(-?\d+(?:[.,]\d+)?)(.*)$/);
+      if (!m) return;
+      const prefix = m[1], numStr = m[2].replace(/,/g, ''), suffix = m[3];
+      const target = parseFloat(numStr);
+      if (!Number.isFinite(target)) return;
+      const decimals = (numStr.split('.')[1] || '').length;
+      const hasComma = m[2].includes(',');
+      const start = performance.now();
+      const step = now => {
+        const p = Math.min(1, (now - start) / 400);
+        const eased = 1 - Math.pow(1 - p, 3);
+        const cur = target * eased;
+        let formatted = decimals > 0 ? cur.toFixed(decimals) : String(Math.round(cur));
+        if (hasComma) formatted = Number(formatted).toLocaleString();
+        el.textContent = prefix + formatted + suffix;
+        if (p < 1) requestAnimationFrame(step);
+        else el.textContent = raw;
+      };
+      requestAnimationFrame(step);
     });
   }
 

@@ -5,36 +5,29 @@
   const stage = section.querySelector('.closing-stage');
   const title = section.querySelector('h2');
   const header = document.querySelector('[data-header]');
-  const backdrop = document.querySelector('.nav-scroll-backdrop');
   const media = matchMedia('(prefers-reduced-motion: reduce)');
   const coarseMQ = matchMedia('(pointer: coarse)');
-  const isUnpinnedMobile = () => innerWidth < 480 || media.matches;
+  const isUnpinned = () => media.matches;
+
+  let fallback = false;
   const adaptive = window.TitanMotion
     ? window.TitanMotion.createAdaptiveMonitor(tier => {
-        if (tier >= 2) section.dataset.liquidTier = String(tier);
-        if (tier === 3) { fallback = true; lens.classList.add('chromatic'); }
-      })
+      if (tier >= 2) section.dataset.liquidTier = String(tier);
+      if (tier === 3) { fallback = true; lens.classList.add('chromatic'); }
+    })
     : null;
   section.dataset.liquidTier = '1';
-  // Capture before adding the tall sticky section; keep one stable scroll origin.
-  let sectionTop = section.getBoundingClientRect().top + scrollY;
-  const clamp = value => Math.max(0, Math.min(1, value));
-  const ramp = (p, start, end) => clamp((p - start) / (end - start));
-  // Cubic-bezier(.22,1,.36,1), evaluated from progress, never wall-clock time.
-  const ease = x => {
-    let lo = 0, hi = 1;
-    for (let i = 0; i < 12; i++) {
-      const t = (lo + hi) / 2;
-      const bx = 3 * (1-t)**2 * t * .22 + 3 * (1-t) * t*t * .36 + t**3;
-      if (bx < x) lo = t; else hi = t;
-    }
-    return 1 - (1 - (lo + hi) / 2)**3;
-  };
+
+  const clamp = v => Math.max(0, Math.min(1, v));
+  const ramp = (p, start, end) => clamp((p - start) / Math.max(0.0001, end - start));
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+
   const lens = document.createElement('div');
   lens.className = 'lens';
   lens.setAttribute('aria-hidden', 'true');
   lens.innerHTML = title.innerHTML;
   stage.append(lens);
+
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
   svg.setAttribute('aria-hidden', 'true');
   svg.style.cssText = 'position:absolute;width:0;height:0;pointer-events:none';
@@ -49,136 +42,185 @@
     <feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>
   </filter></defs>`;
   stage.append(svg);
+
   const displacements = [...svg.querySelectorAll('feDisplacementMap')];
-  const lines = [...title.querySelectorAll('.closing-line > span')];
-  const lensLines = [...lens.querySelectorAll('.closing-line > span')];
-  const reveals = [section.querySelector('.eyebrow'), section.querySelector('.closing-statement'), section.querySelector('.closing-actions'), section.querySelector('footer')];
-  let geometry, p = 0, visible = false, frame = 0, lastTime = 0, lastFrameTime = 0, slowFrames = 0, fallback = false;
+  const arcLayers = [...section.querySelectorAll('.closing-rim, .closing-rim-band, .closing-rim-spec, .closing-veil')];
+  const reveals = [
+    section.querySelector('.eyebrow'),
+    section.querySelector('.closing-statement'),
+    section.querySelector('.closing-actions'),
+    section.querySelector('footer')
+  ].filter(Boolean);
+
+  let geometry, p = 0, visible = false, lastDark = null;
 
   function measure() {
-    const sr = stage.getBoundingClientRect(), tr = title.getBoundingClientRect();
+    const sr = stage.getBoundingClientRect();
+    const tr = title.getBoundingClientRect();
     const h = innerHeight;
-    geometry = { top: sectionTop, travel: section.offsetHeight - h,
-      h, w: stage.clientWidth, ry: h * 3.2 * (innerWidth < 768 ? .24 : .38),
-      tx: tr.left - sr.left, ty: tr.top - sr.top, th: tr.height,
-      navBottom: header?.getBoundingClientRect().bottom || 80 };
+    const sectionTop = section.getBoundingClientRect().top + scrollY;
+    geometry = {
+      top: sectionTop,
+      height: section.offsetHeight,
+      travel: Math.max(1, section.offsetHeight - h),
+      h,
+      w: stage.clientWidth,
+      ry: h * 3.2 * (innerWidth < 768 ? 0.24 : 0.38),
+      tx: tr.left - sr.left,
+      ty: tr.top - sr.top,
+      th: tr.height,
+      navBottom: header?.getBoundingClientRect().bottom || 72
+    };
     Object.assign(lens.style, { left: `${geometry.tx}px`, top: `${geometry.ty}px`, width: `${tr.width}px` });
-    wake();
   }
-  function render() {
+
+  function render(currentScrollY) {
     const g = geometry;
-    // Bring the light edge into view immediately, then clear the CTA sooner.
-    const rim = g.h * (.82 - 1.12 * ramp(p, 0, .42));
-    // The veil and rim are siblings of the stage, so their shared transform
-    // variable must live on the section rather than the stage.
-    section.style.setProperty('--arc-y', `${rim - g.h * 1.08}px`);
-    const intensity = clamp(1 - Math.abs(rim - (g.ty + g.th / 2)) / 50) * (innerWidth < 768 ? .6 : 1);
-    const ring = 50 / g.ry * 100;
-    const ellipse = `ellipse ${g.w * .8}px ${g.ry}px at ${g.w / 2 - g.tx}px ${rim - g.ry - g.ty}px`;
-    const stops = `${100-ring}%, ${100-ring*.45}%, ${100+ring*.45}%, ${100+ring}%`;
-    const [a,b,c,d] = stops.split(', ');
-    lens.style.maskImage = `radial-gradient(${ellipse}, transparent ${a}, black ${b}, black ${c}, transparent ${d})`;
-    title.style.maskImage = intensity > 0 ? `radial-gradient(${ellipse}, black ${a}, transparent ${b}, transparent ${c}, black ${d})` : 'none';
-    lens.style.opacity = intensity > 0 ? '1' : '0';
-    lens.style.setProperty('filter', intensity > 0 && !fallback ? 'url(#liquid)' : 'none', 'important');
-    lens.style.transformOrigin = `50% ${rim - g.ty}px`;
-    lens.style.transform = `scaleY(${1 + .12 * intensity})`;
-    const tierScale = adaptive && adaptive.tier === 2 ? 0.5 : 1;
-    displacements.forEach((el, i) => el.setAttribute('scale', String(48 * intensity * tierScale * [1,.7,.4][i])));
-    // Keep the two renderings coincident while each line clears its clipping box.
-    const start = Math.max(.1, (1.08 - (g.ty + g.th) / g.h) / 1.38 * .55 - .06);
-    lines.forEach((line, i) => {
-      const y = (1 - ease(ramp(p, start + i * .012, start + .09 + i * .012))) * 100;
-      line.style.transform = lensLines[i].style.transform = `translateY(${y}%)`;
-    });
+    if (!g) return 0;
+    // E1: No hold zone (p=0 starts with rim entering at 92svh, clears at p=0.50)
+    const travelT = ramp(p, 0, 0.50);
+    const rimY = g.h * (0.92 - 1.22 * travelT);
+    const arcTransform = `translate3d(0, ${(rimY - g.h * 1.08).toFixed(2)}px, 0)`;
+    arcLayers.forEach(el => { el.style.transform = arcTransform; });
+
+    const headlineCenterY = g.ty + g.th / 2;
+    const rawIntensity = clamp(1 - Math.abs(rimY - headlineCenterY) / 50);
+    const intensity = rawIntensity * (innerWidth < 768 ? 0.6 : 1);
+
+    const ring = (50 / g.ry) * 100;
+    const ellipse = `ellipse ${g.w * 0.8}px ${g.ry}px at ${g.w / 2 - g.tx}px ${rimY - g.ry - g.ty}px`;
+    const stops = `${100 - ring}%, ${100 - ring * 0.45}%, ${100 + ring * 0.45}%, ${100 + ring}%`;
+    const [a, b, c, d] = stops.split(', ');
+
+    if (intensity > 0.005) {
+      lens.style.display = 'block';
+      lens.style.opacity = '1';
+      lens.style.maskImage = `radial-gradient(${ellipse}, transparent ${a}, black ${b}, black ${c}, transparent ${d})`;
+      title.style.maskImage = `radial-gradient(${ellipse}, black ${a}, transparent ${b}, transparent ${c}, black ${d})`;
+      lens.style.setProperty('filter', !fallback ? 'url(#liquid)' : 'none', 'important');
+      lens.style.transformOrigin = `50% ${rimY - g.ty}px`;
+      lens.style.transform = `scaleY(${(1 + 0.12 * intensity).toFixed(4)})`;
+      const tierScale = adaptive && adaptive.tier === 2 ? 0.5 : 1;
+      const s = 48 * intensity * tierScale;
+      displacements.forEach((el, i) => el.setAttribute('scale', (s * [1, 0.7, 0.4][i]).toFixed(2)));
+    } else {
+      lens.style.opacity = '0';
+      lens.style.display = 'none';
+      title.style.maskImage = 'none';
+      displacements.forEach(el => el.setAttribute('scale', '0'));
+    }
+
     reveals.forEach((el, i) => {
-      const value = ease(ramp(p, .29 + i * .035, .37 + i * .035));
-      el.style.opacity = value;
-      el.style.transform = `translateY(${12 * (1-value)}px)`;
-      el.inert = value < .95;
+      const start = 0.36 + i * 0.04;
+      const value = easeOut(ramp(p, start, start + 0.08));
+      el.style.opacity = String(value);
+      el.style.transform = `translateY(${(12 * (1 - value)).toFixed(2)}px)`;
+      el.inert = value < 0.95;
     });
-    const dark = rim < g.navBottom;
-    section.dataset.arcDark = String(dark);
-    if (scrollY >= g.top - g.navBottom && scrollY <= g.top + section.offsetHeight) {
-      header?.classList.toggle('on-dark', dark);
-      header?.classList.toggle('closing-nav-dark', dark);
-      backdrop?.classList.toggle('is-dark', dark);
-    } else header?.classList.remove('closing-nav-dark');
+
+    // E2: Nav follows the actual veil edge (rimY < navBottom), no flash
+    const dark = rimY < g.navBottom;
+    if (lastDark !== dark) {
+      lastDark = dark;
+      section.dataset.arcDark = String(dark);
+      if (currentScrollY >= g.top - g.navBottom && currentScrollY <= g.top + g.height) {
+        header?.classList.toggle('on-dark', dark);
+        header?.classList.toggle('closing-nav-dark', dark);
+      }
+    }
+    if (currentScrollY < g.top - g.navBottom || currentScrollY > g.top + g.height) {
+      header?.classList.remove('closing-nav-dark');
+    }
     section.dataset.progress = p.toFixed(4);
     return intensity;
   }
-  function tick(time) {
-    frame = 0;
-    if (!visible || media.matches || document.hidden) return;
-    const target = clamp((scrollY - geometry.top) / Math.max(1, geometry.travel));
-    // Keep the liquid feel, but make the rim track wheel/touch input promptly.
-    // A 48ms time constant behaves consistently across 60/120Hz displays.
-    const dt = lastFrameTime ? Math.min(64, time - lastFrameTime) : 16.7;
-    p += (target - p) * (1 - Math.exp(-dt / 48));
-    lastFrameTime = time;
-    if (Math.abs(target - p) < .0001) p = target;
-    const intensity = render();
-    if (adaptive) {
-      adaptive.sample(time, intensity > 0);
-    } else {
-      if (lastTime && intensity > 0 && time-lastTime > 20 && time-lastTime < 200) slowFrames++;
-      else if (intensity > 0) slowFrames = Math.max(0, slowFrames - 1);
-      if (slowFrames >= 30 && !fallback) { fallback = true; lens.classList.add('chromatic'); }
-    }
-    lastTime = time;
-    if (p !== target) frame = requestAnimationFrame(tick);
-    else { lastTime = 0; lastFrameTime = 0; }
+
+  // D3: Direct scroll position, no lerp lag!
+  function onScrollFrame(y, time) {
+    if (!visible || isUnpinned() || document.hidden || !geometry) return;
+    p = clamp((y - geometry.top) / geometry.travel);
+    const intensity = render(y);
+    if (adaptive) adaptive.sample(time || performance.now(), intensity > 0);
   }
-  function wake() { if (visible && !isUnpinnedMobile() && !frame) frame = requestAnimationFrame(tick); }
+
   function configure() {
-    cancelAnimationFrame(frame); frame = 0; lastFrameTime = 0;
-    const unpinned = isUnpinnedMobile();
+    const unpinned = isUnpinned();
     section.classList.toggle('liquid-ready', !unpinned);
-    sectionTop = section.getBoundingClientRect().top + scrollY;
+    measure();
     if (unpinned) {
       title.style.maskImage = 'none';
-      lines.forEach(line => line.style.transform = 'none');
+      lens.style.display = 'none';
       reveals.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; el.inert = false; });
       section.dataset.arcDark = 'true';
       header?.classList.remove('closing-nav-dark');
+    } else {
+      const y = window.scrollY || 0;
+      p = clamp((y - geometry.top) / geometry.travel);
+      render(y);
     }
-    measure();
-    p = clamp((scrollY - geometry.top) / Math.max(1, geometry.travel));
-    if (!unpinned) render();
   }
+
+  window.__setClosingProgress = (val) => {
+    p = clamp(val);
+    render(window.scrollY || 0);
+  };
+
+  const syncActiveState = () => {
+    const active = visible && !media.matches && !document.hidden;
+    section.classList.toggle('is-active', active);
+  };
+
   const observer = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
-    section.classList.toggle('is-active', visible && !media.matches);
-    if (visible) { measure(); wake(); }
-    else { cancelAnimationFrame(frame); frame = 0; lastTime = 0; header?.classList.remove('closing-nav-dark'); }
+    syncActiveState();
+    if (visible) {
+      onScrollFrame(window.scrollY || 0, performance.now());
+    } else {
+      header?.classList.remove('closing-nav-dark');
+    }
   });
   observer.observe(stage);
-  addEventListener('scroll', wake, { passive: true });
-  addEventListener('resize', () => {
-    sectionTop = section.getBoundingClientRect().top + scrollY;
-    measure();
-  }, { passive: true });
-  document.addEventListener('visibilitychange', () => { lastTime = 0; wake(); });
+
+  if (window.TitanMotion) {
+    window.TitanMotion.onScroll(onScrollFrame);
+    window.TitanMotion.onResize(() => { measure(); onScrollFrame(window.scrollY || 0, performance.now()); });
+  } else {
+    addEventListener('scroll', () => onScrollFrame(window.scrollY || 0, performance.now()), { passive: true });
+    addEventListener('resize', measure, { passive: true });
+  }
+
+  document.addEventListener('visibilitychange', syncActiveState);
   media.addEventListener('change', configure);
-  // Layout above the CTA can change when fonts, images or FAQ answers load.
-  new ResizeObserver(measure).observe(document.querySelector('main'));
+
   section.querySelectorAll('[data-closing-module]').forEach(link => link.addEventListener('click', event => {
     const tab = document.getElementById(`tab-${link.dataset.closingModule}`);
     if (!tab) return;
-    event.preventDefault(); tab.click();
+    event.preventDefault();
+    tab.click();
     document.getElementById('product').scrollIntoView({ behavior: media.matches ? 'instant' : 'smooth' });
     tab.focus({ preventScroll: true });
     history.replaceState(null, '', link.hash);
   }));
+
   const actions = section.querySelector('.closing-actions');
-  actions.addEventListener('pointermove', event => {
+  actions?.addEventListener('pointermove', event => {
     if (media.matches || coarseMQ.matches || event.pointerType === 'touch') return;
-    const r = actions.getBoundingClientRect(), x = (event.clientX-r.left)/r.width, y = (event.clientY-r.top)/r.height;
-    actions.style.setProperty('--ambient-x', `${(x-.5)*24}px`);
-    actions.style.setProperty('--ambient-y', `${(y-.5)*24}px`);
+    const r = actions.getBoundingClientRect();
+    const x = (event.clientX - r.left) / r.width;
+    const y = (event.clientY - r.top) / r.height;
+    actions.style.setProperty('--ambient-x', `${(x - 0.5) * 24}px`);
+    actions.style.setProperty('--ambient-y', `${(y - 0.5) * 24}px`);
     const button = event.target.closest('.button');
-    if (button) { const b = button.getBoundingClientRect(); button.style.setProperty('--pointer-x', `${event.clientX-b.left}px`); button.style.setProperty('--pointer-y', `${event.clientY-b.top}px`); }
+    if (button) {
+      const b = button.getBoundingClientRect();
+      button.style.setProperty('--pointer-x', `${event.clientX - b.left}px`);
+      button.style.setProperty('--pointer-y', `${event.clientY - b.top}px`);
+    }
   });
-  actions.addEventListener('pointerleave', () => { actions.style.setProperty('--ambient-x','0px'); actions.style.setProperty('--ambient-y','0px'); });
+  actions?.addEventListener('pointerleave', () => {
+    actions.style.setProperty('--ambient-x', '0px');
+    actions.style.setProperty('--ambient-y', '0px');
+  });
+
   configure();
 })();

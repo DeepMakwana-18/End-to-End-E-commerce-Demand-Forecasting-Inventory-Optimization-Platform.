@@ -74,7 +74,8 @@
 }
 
 html {
-  scrollbar-gutter: stable;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 110, 0.55) transparent;
 }
 
 /* ==========================================================================
@@ -4970,8 +4971,7 @@ h3 strong,
    -------------------------------------------------------------------------- */
 html,
 body {
-  overflow-x: hidden !important;
-  max-width: 100vw !important;
+  overflow-x: clip !important;
   width: 100% !important;
 }
 
