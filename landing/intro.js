@@ -9,21 +9,21 @@
     orbitMs: 900,           // 0.35-1.25s: 360deg orbit + 100->108->100% breathe (min loader = 1.25s)
     handoffMs: 600,         // 1.25-1.85s: travel + scale to nav logo slot
     curtainAtMs: 1400,      // 1.40s: curved curtain exit starts
-    curtainMs: 700,         // 1.40-2.10s: curtain exit (expo.out)
-    navPillAtMs: 1850,      // 1.85s: nav pill y -12->0 + fade (500ms)
+    curtainMs: 900,         // Give the glass edge time to read as it crosses the hero
+    navPillAtMs: 1580,      // 1.85s: nav pill y -12->0 + fade (500ms)
     navPillMs: 500,
-    tabsAtMs: 1900,         // 1.90s: Without/With tabs y 8->0 + fade
+    tabsAtMs: 1570,         // 1.90s: Without/With tabs y 8->0 + fade
     tabsMs: 350,
-    line1AtMs: 1900,        // 1.90s: headline line 1 masked reveal (700ms expo.out)
-    line2AtMs: 2000,        // 2.00s: headline line 2 masked reveal (700ms expo.out)
+    line1AtMs: 1560,        // 1.90s: headline line 1 masked reveal (700ms expo.out)
+    line2AtMs: 1640,        // 2.00s: headline line 2 masked reveal (700ms expo.out)
     headlineMs: 700,
-    wordmarkAtMs: 2000,     // 2.00s: wordmark clip-path left->right (350ms)
+    wordmarkAtMs: 1600,     // 2.00s: wordmark clip-path left->right (350ms)
     wordmarkMs: 350,
-    subheadAtMs: 2200,      // 2.20s: subhead y 12->0 + fade (500ms)
+    subheadAtMs: 1740,      // 2.20s: subhead y 12->0 + fade (500ms)
     subheadMs: 500,
-    ctaAtMs: 2300,          // 2.30s: CTA scale .96->1 + fade (450ms)
+    ctaAtMs: 1820,          // 2.30s: CTA scale .96->1 + fade (450ms)
     ctaMs: 450,
-    mockupAtMs: 2350,       // 2.35s: spreadsheet mockup y 40->0 + fade (900ms)
+    mockupAtMs: 1880,       // 2.35s: spreadsheet mockup y 40->0 + fade (900ms)
     mockupMs: 900,
     rowStaggerMs: 20        // 20ms stagger across visible spreadsheet rows
   };
@@ -277,7 +277,7 @@
     const sats = [...(whiteSvg?.querySelectorAll('.sat') || [])];
     const satAngles = [-90, 30, 150];
 
-    // 0.00-0.35s: Core dot 0->1 (back.out), ring draws via stroke-dashoffset, 3 sats stagger 60ms at orbit positions
+    // Core pop, ring draw, and three satellite arrivals.
     if (track) {
       const len = 2 * Math.PI * 17;
       track.style.strokeDasharray = `${len.toFixed(2)}`;
@@ -304,11 +304,10 @@
         easing: BACK_OUT
       });
     });
-
     await wait(TIMING.assembleMs);
     if (!alive()) return;
 
-    // 0.35-1.25s: Minimum 1.25s loader time — one full 360deg orbit + 100->108->100% breathe
+    // One complete orbit + 100->108->100% breathe.
     const orbitAnim = anim(orbit, [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], {
       duration: TIMING.orbitMs,
       easing: POWER2_IO
