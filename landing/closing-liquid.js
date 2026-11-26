@@ -1,124 +1,151 @@
 (() => {
   'use strict';
+  const CTA_SOFT_SNAP = false;
   const section = document.querySelector('#closing');
   if (!section) return;
   const stage = section.querySelector('.closing-stage');
-  const title = section.querySelector('h2');
+  const title = section.querySelector('#closing-title');
+  const veil = section.querySelector('.closing-veil');
   const header = document.querySelector('[data-header]');
   const media = matchMedia('(prefers-reduced-motion: reduce)');
   const coarseMQ = matchMedia('(pointer: coarse)');
   const isUnpinned = () => media.matches;
 
-  let fallback = false;
-  const adaptive = window.TitanMotion
-    ? window.TitanMotion.createAdaptiveMonitor(tier => {
-      if (tier >= 2) section.dataset.liquidTier = String(tier);
-      if (tier === 3) { fallback = true; lens.classList.add('chromatic'); }
-    })
+  const glass = window.TitanGlass;
+  const qualityMon = glass ? glass.createQualityMonitor() : null;
+  const spring = glass ? glass.createSpring(0, 110) : null;
+  const rimObj = (glass && veil) ? glass.createRimSvg() : null;
+  if (rimObj && veil) veil.appendChild(rimObj.svg);
+
+  const lensObj = (glass && title && stage)
+    ? glass.createLens({ targetEl: title, containerEl: stage, mode: 'screen' })
     : null;
-  section.dataset.liquidTier = '1';
 
-  const clamp = v => Math.max(0, Math.min(1, v));
-  const ramp = (p, start, end) => clamp((p - start) / Math.max(0.0001, end - start));
-  const easeOut = t => 1 - Math.pow(1 - t, 3);
+  const orbitSlot = section.querySelector('.closing-orbit-slot');
+  const getOrbitSvg = () => orbitSlot?.querySelector('.titan');
 
-  const lens = document.createElement('div');
-  lens.className = 'lens';
-  lens.setAttribute('aria-hidden', 'true');
-  lens.innerHTML = title.innerHTML;
-  stage.append(lens);
-
-  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svg.setAttribute('aria-hidden', 'true');
-  svg.style.cssText = 'position:absolute;width:0;height:0;pointer-events:none';
-  svg.innerHTML = `<defs><filter id="liquid" x="-20%" y="-60%" width="140%" height="220%" color-interpolation-filters="sRGB">
-    <feTurbulence type="fractalNoise" baseFrequency="0.012 0.022" numOctaves="2" seed="8" result="noise"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green"/>
-    <feColorMatrix in="SourceGraphic" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue"/>
-    <feDisplacementMap in="red" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" result="r"/>
-    <feDisplacementMap in="green" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" result="g"/>
-    <feDisplacementMap in="blue" in2="noise" scale="0" xChannelSelector="R" yChannelSelector="G" result="b"/>
-    <feBlend in="r" in2="g" mode="screen" result="rg"/><feBlend in="rg" in2="b" mode="screen"/>
-  </filter></defs>`;
-  stage.append(svg);
-
-  const displacements = [...svg.querySelectorAll('feDisplacementMap')];
-  const arcLayers = [...section.querySelectorAll('.closing-rim, .closing-rim-band, .closing-rim-spec, .closing-veil')];
-  const reveals = [
+  const settleTargets = [
+    section.querySelector('.closing-orbit-slot'),
     section.querySelector('.eyebrow'),
     section.querySelector('.closing-statement'),
     section.querySelector('.closing-actions'),
     section.querySelector('footer')
   ].filter(Boolean);
 
-  let geometry, p = 0, visible = false, lastDark = null;
+  const clamp = v => Math.max(0, Math.min(1, v));
+  const ramp = (p, start, end) => clamp((p - start) / Math.max(0.0001, end - start));
+  const easeOut = t => 1 - Math.pow(1 - t, 3);
+
+  let geometry = null;
+  let targetP = 0;
+  let renderedP = 0;
+  let visible = false;
+  let lastDark = null;
+  let springRaf = 0;
+  let lastTickTime = 0;
+  let lastScrollY = window.scrollY || 0;
+  let lastScrollTime = 0;
+  let velocitySmoothed = 0;
+  let snapTimer = null;
+  let settledTriggered = false;
+  let idleBeatTimer = null;
+
+  function triggerOrbitBeat() {
+    const svg = getOrbitSvg();
+    if (!svg || !window.TitanMark || media.matches) return;
+    window.TitanMark.setMode(svg, 'spin');
+    setTimeout(() => {
+      if (svg) window.TitanMark.setMode(svg, 'still');
+    }, 700);
+  }
+
+  function startIdleBeats() {
+    if (idleBeatTimer || media.matches) return;
+    idleBeatTimer = setInterval(() => {
+      if (visible && !document.hidden && settledTriggered && !media.matches) {
+        triggerOrbitBeat();
+      }
+    }, 6000);
+  }
+
+  function stopIdleBeats() {
+    if (idleBeatTimer) {
+      clearInterval(idleBeatTimer);
+      idleBeatTimer = null;
+    }
+  }
 
   function measure() {
-    const sr = stage.getBoundingClientRect();
-    const tr = title.getBoundingClientRect();
-    const h = innerHeight;
-    const sectionTop = section.getBoundingClientRect().top + scrollY;
+    const h = window.innerHeight || 900;
+    const sectionTop = section.getBoundingClientRect().top + window.scrollY;
     geometry = {
       top: sectionTop,
       height: section.offsetHeight,
       travel: Math.max(1, section.offsetHeight - h),
       h,
-      w: stage.clientWidth,
-      ry: h * 3.2 * (innerWidth < 768 ? 0.24 : 0.38),
-      tx: tr.left - sr.left,
-      ty: tr.top - sr.top,
-      th: tr.height,
-      navBottom: header?.getBoundingClientRect().bottom || 72
+      veilHeight: veil ? veil.getBoundingClientRect().height : h * 3.2,
+      navBottom: header?.getBoundingClientRect().bottom || 72,
+      titleCenterY: (() => {
+        const sr = stage.getBoundingClientRect();
+        const tr = title.getBoundingClientRect();
+        return (tr.top - sr.top) + tr.height / 2;
+      })()
     };
-    Object.assign(lens.style, { left: `${geometry.tx}px`, top: `${geometry.ty}px`, width: `${tr.width}px` });
+    if (lensObj) lensObj.measure();
   }
 
-  function render(currentScrollY) {
+  function render(p, currentScrollY) {
     const g = geometry;
     if (!g) return 0;
-    // E1: No hold zone (p=0 starts with rim entering at 92svh, clears at p=0.50)
-    const travelT = ramp(p, 0, 0.50);
-    const rimY = g.h * (0.92 - 1.22 * travelT);
-    const arcTransform = `translate3d(0, ${(rimY - g.h * 1.08).toFixed(2)}px, 0)`;
-    arcLayers.forEach(el => { el.style.transform = arcTransform; });
 
-    const headlineCenterY = g.ty + g.th / 2;
-    const rawIntensity = clamp(1 - Math.abs(rimY - headlineCenterY) / 50);
-    const intensity = rawIntensity * (innerWidth < 768 ? 0.6 : 1);
+    // Task 5: Start rim already entering at bottom (0.90*h) at p=0 so no blank lead-in
+    const sweepT = ramp(p, 0, 0.60);
+    const rimY = g.h * (0.90 - 1.15 * sweepT);
 
-    const ring = (50 / g.ry) * 100;
-    const ellipse = `ellipse ${g.w * 0.8}px ${g.ry}px at ${g.w / 2 - g.tx}px ${rimY - g.ry - g.ty}px`;
-    const stops = `${100 - ring}%, ${100 - ring * 0.45}%, ${100 + ring * 0.45}%, ${100 + ring}%`;
-    const [a, b, c, d] = stops.split(', ');
-
-    if (intensity > 0.005) {
-      lens.style.display = 'block';
-      lens.style.opacity = '1';
-      lens.style.maskImage = `radial-gradient(${ellipse}, transparent ${a}, black ${b}, black ${c}, transparent ${d})`;
-      title.style.maskImage = `radial-gradient(${ellipse}, black ${a}, transparent ${b}, transparent ${c}, black ${d})`;
-      lens.style.setProperty('filter', !fallback ? 'url(#liquid)' : 'none', 'important');
-      lens.style.transformOrigin = `50% ${rimY - g.ty}px`;
-      lens.style.transform = `scaleY(${(1 + 0.12 * intensity).toFixed(4)})`;
-      const tierScale = adaptive && adaptive.tier === 2 ? 0.5 : 1;
-      const s = 48 * intensity * tierScale;
-      displacements.forEach((el, i) => el.setAttribute('scale', (s * [1, 0.7, 0.4][i]).toFixed(2)));
-    } else {
-      lens.style.opacity = '0';
-      lens.style.display = 'none';
-      title.style.maskImage = 'none';
-      displacements.forEach(el => el.setAttribute('scale', '0'));
+    if (veil) {
+      // veil top is -220svh, height is 320svh -> bottom is at 100svh (g.h) when translateY = 0
+      const shiftY = rimY - g.h;
+      veil.style.transform = `translate3d(0, ${shiftY.toFixed(2)}px, 0)`;
     }
 
-    reveals.forEach((el, i) => {
-      const start = 0.36 + i * 0.04;
-      const value = easeOut(ramp(p, start, start + 0.08));
-      el.style.opacity = String(value);
-      el.style.transform = `translateY(${(12 * (1 - value)).toFixed(2)}px)`;
-      el.inert = value < 0.95;
+    if (rimObj) {
+      rimObj.setSpot(sweepT);
+    }
+
+    // Task 3: Lens v2 — velocity-gated, decays to 0 within ~250ms when scrolling stops
+    let intensity = 0;
+    if (lensObj) {
+      intensity = lensObj.update(rimY, velocitySmoothed);
+    }
+
+    // 4.4: Act 3 (60-80%) settle: headline 6px overshoot settle, orbit beat, staggered rise
+    const settleT = easeOut(ramp(p, 0.58, 0.72));
+    if (title) {
+      // Overshoot +6px at settleT ~ 0.5 then settle to 0
+      const overshoot = Math.sin(settleT * Math.PI) * -6 * (1 - settleT);
+      title.style.transform = `translate3d(0, ${overshoot.toFixed(2)}px, 0)`;
+    }
+
+    if (p >= 0.62 && !settledTriggered) {
+      settledTriggered = true;
+      section.classList.add('is-settled');
+      triggerOrbitBeat();
+      startIdleBeats();
+    } else if (p < 0.50 && settledTriggered) {
+      settledTriggered = false;
+      section.classList.remove('is-settled');
+    }
+
+    // Staggered rise (12px, 90ms-equivalent scroll stagger) for orbit, eyebrow, subtitle, actions, footer
+    settleTargets.forEach((el, i) => {
+      const start = i === settleTargets.length - 1 ? 0.78 : 0.60 + i * 0.04;
+      const val = easeOut(ramp(p, start, start + 0.12));
+      el.style.opacity = String(val);
+      el.style.transform = `translate3d(0, ${(12 * (1 - val)).toFixed(2)}px, 0)`;
+      el.inert = val < 0.95;
     });
 
-    // E2: Nav follows the actual veil edge (rimY < navBottom), no flash
+    // 4.5: Nav switches to dark glass when rim passes nav center line
     const dark = rimY < g.navBottom;
     if (lastDark !== dark) {
       lastDark = dark;
@@ -131,16 +158,65 @@
     if (currentScrollY < g.top - g.navBottom || currentScrollY > g.top + g.height) {
       header?.classList.remove('closing-nav-dark');
     }
+
     section.dataset.progress = p.toFixed(4);
     return intensity;
   }
 
-  // D3: Direct scroll position, no lerp lag!
-  function onScrollFrame(y, time) {
+  function stepSpring(now) {
+    springRaf = 0;
     if (!visible || isUnpinned() || document.hidden || !geometry) return;
-    p = clamp((y - geometry.top) / geometry.travel);
-    const intensity = render(y);
-    if (adaptive) adaptive.sample(time || performance.now(), intensity > 0);
+    const dt = lastTickTime ? Math.min(0.05, Math.max(0.001, (now - lastTickTime) / 1000)) : 0.016;
+    lastTickTime = now;
+
+    // Exponential decay of velocity (120ms time constant -> decays to 0 within ~250ms at rest)
+    const decay = Math.exp(-dt / 0.12);
+    velocitySmoothed *= decay;
+    if (velocitySmoothed < 0.01) velocitySmoothed = 0;
+
+    renderedP = spring ? spring.step(targetP, dt) : targetP;
+    const intensity = render(renderedP, window.scrollY || 0);
+    if (qualityMon) qualityMon.sample(now, intensity > 0);
+
+    if (Math.abs(renderedP - targetP) > 0.0005 || velocitySmoothed > 0.01) {
+      springRaf = requestAnimationFrame(stepSpring);
+    } else {
+      lastTickTime = 0;
+    }
+  }
+
+  function onScrollFrame(y, nowArg) {
+    if (!visible || isUnpinned() || document.hidden || !geometry) return;
+    const now = nowArg || performance.now();
+    const dtSec = lastScrollTime ? Math.max(0.004, (now - lastScrollTime) / 1000) : 0.016;
+    const dy = Math.abs(y - lastScrollY);
+    if (dy > 0.5) {
+      const instVel = clamp((dy / dtSec) / 600);
+      const alpha = 1 - Math.exp(-dtSec / 0.12);
+      velocitySmoothed = velocitySmoothed + (instVel - velocitySmoothed) * alpha;
+    }
+    lastScrollY = y;
+    lastScrollTime = now;
+
+    targetP = clamp((y - geometry.top) / geometry.travel);
+
+    if (CTA_SOFT_SNAP && !isUnpinned()) {
+      if (snapTimer) clearTimeout(snapTimer);
+      snapTimer = setTimeout(() => {
+        const g = geometry;
+        if (!g) return;
+        const rimY = g.h * (0.90 - 1.15 * ramp(targetP, 0, 0.60));
+        if (Math.abs(rimY - g.titleCenterY) <= g.h * 0.12) {
+          const cleanP = clamp(((g.titleCenterY - 80) / g.h - 0.90) / -1.15) * 0.60;
+          window.scrollTo({ top: Math.round(g.top + g.travel * cleanP), behavior: 'smooth' });
+        }
+      }, 250);
+    }
+
+    if (!springRaf) {
+      lastTickTime = now;
+      springRaf = requestAnimationFrame(stepSpring);
+    }
   }
 
   function configure() {
@@ -148,78 +224,71 @@
     section.classList.toggle('liquid-ready', !unpinned);
     measure();
     if (unpinned) {
-      title.style.maskImage = 'none';
-      lens.style.display = 'none';
-      reveals.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; el.inert = false; });
+      if (lensObj) lensObj.update(-9999);
+      if (title) title.style.transform = 'none';
+      settleTargets.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; el.inert = false; });
       section.dataset.arcDark = 'true';
+      section.classList.add('is-settled');
       header?.classList.remove('closing-nav-dark');
     } else {
       const y = window.scrollY || 0;
-      p = clamp((y - geometry.top) / geometry.travel);
-      render(y);
+      targetP = clamp((y - geometry.top) / geometry.travel);
+      renderedP = spring ? spring.snap(targetP) : targetP;
+      render(renderedP, y);
     }
   }
 
   window.__setClosingProgress = (val) => {
-    p = clamp(val);
-    render(window.scrollY || 0);
+    targetP = clamp(val);
+    renderedP = spring ? spring.snap(targetP) : targetP;
+    render(renderedP, window.scrollY || 0);
   };
 
   const syncActiveState = () => {
     const active = visible && !media.matches && !document.hidden;
     section.classList.toggle('is-active', active);
+    if (!active) stopIdleBeats();
+    else if (settledTriggered) startIdleBeats();
   };
 
   const observer = new IntersectionObserver(([entry]) => {
     visible = entry.isIntersecting;
     syncActiveState();
     if (visible) {
-      onScrollFrame(window.scrollY || 0, performance.now());
+      measure();
+      onScrollFrame(window.scrollY || 0);
     } else {
       header?.classList.remove('closing-nav-dark');
     }
   });
   observer.observe(stage);
 
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => { measure(); configure(); });
+  }
+  window.addEventListener('load', () => { measure(); configure(); }, { once: true });
+
   if (window.TitanMotion) {
     window.TitanMotion.onScroll(onScrollFrame);
-    window.TitanMotion.onResize(() => { measure(); onScrollFrame(window.scrollY || 0, performance.now()); });
+    window.TitanMotion.onResize(() => { measure(); onScrollFrame(window.scrollY || 0); });
   } else {
-    addEventListener('scroll', () => onScrollFrame(window.scrollY || 0, performance.now()), { passive: true });
+    addEventListener('scroll', () => onScrollFrame(window.scrollY || 0), { passive: true });
     addEventListener('resize', measure, { passive: true });
   }
 
   document.addEventListener('visibilitychange', syncActiveState);
   media.addEventListener('change', configure);
 
-  section.querySelectorAll('[data-closing-module]').forEach(link => link.addEventListener('click', event => {
-    const tab = document.getElementById(`tab-${link.dataset.closingModule}`);
-    if (!tab) return;
-    event.preventDefault();
-    tab.click();
-    document.getElementById('product').scrollIntoView({ behavior: media.matches ? 'instant' : 'smooth' });
-    tab.focus({ preventScroll: true });
-    history.replaceState(null, '', link.hash);
-  }));
-
+  // Pointer-following specular highlight on fine pointers only
   const actions = section.querySelector('.closing-actions');
   actions?.addEventListener('pointermove', event => {
     if (media.matches || coarseMQ.matches || event.pointerType === 'touch') return;
-    const r = actions.getBoundingClientRect();
-    const x = (event.clientX - r.left) / r.width;
-    const y = (event.clientY - r.top) / r.height;
-    actions.style.setProperty('--ambient-x', `${(x - 0.5) * 24}px`);
-    actions.style.setProperty('--ambient-y', `${(y - 0.5) * 24}px`);
-    const button = event.target.closest('.button');
+    const button = event.target.closest('.button-dark');
     if (button) {
       const b = button.getBoundingClientRect();
       button.style.setProperty('--pointer-x', `${event.clientX - b.left}px`);
       button.style.setProperty('--pointer-y', `${event.clientY - b.top}px`);
     }
-  });
-  actions?.addEventListener('pointerleave', () => {
-    actions.style.setProperty('--ambient-x', '0px');
-    actions.style.setProperty('--ambient-y', '0px');
   });
 
   configure();

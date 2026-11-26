@@ -61,17 +61,30 @@ const updateNavCompact = () => {
   header.classList.toggle("scrolled", window.scrollY > 80);
 };
 
+const navLinkRects = new Map();
+const cacheNavLinkRects = () => {
+  if (!navLinksContainer) return;
+  const cLeft = navLinksContainer.getBoundingClientRect().left;
+  navLinks.forEach(a => {
+    const lRect = a.getBoundingClientRect();
+    navLinkRects.set(a, { x: lRect.left - cLeft, w: lRect.width });
+  });
+};
+
 const moveNavIndicator = (activeLink) => {
   if (!navIndicator || !navLinksContainer) return;
   if (!activeLink) {
     navIndicator.style.setProperty("--ind-o", "0");
     return;
   }
-  const cRect = navLinksContainer.getBoundingClientRect();
-  const lRect = activeLink.getBoundingClientRect();
-  if (!cRect.width || !lRect.width) return;
-  navIndicator.style.setProperty("--ind-x", `${(lRect.left - cRect.left).toFixed(1)}px`);
-  navIndicator.style.setProperty("--ind-w", `${lRect.width.toFixed(1)}px`);
+  let cached = navLinkRects.get(activeLink);
+  if (!cached || !cached.w) {
+    cacheNavLinkRects();
+    cached = navLinkRects.get(activeLink);
+  }
+  if (!cached || !cached.w) return;
+  navIndicator.style.setProperty("--ind-x", `${cached.x.toFixed(1)}px`);
+  navIndicator.style.setProperty("--ind-w", `${cached.w.toFixed(1)}px`);
   navIndicator.style.setProperty("--ind-o", "1");
 };
 

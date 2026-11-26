@@ -2,10 +2,26 @@
 <html lang="en">
 
 <head>
-  <script>(function () { try { if (new URLSearchParams(location.search).get('intro') !== '0') { history.scrollRestoration = 'manual'; scrollTo(0, 0); document.documentElement.classList.add('intro-nav', 'intro-hero', 'playing', 'locked'); } } catch (e) { } })();</script>
+  <script>(function () {
+    try {
+      var INTRO_MODE = 'always'; // 'always' | 'session' | 'off'
+      var INTRO_THEME = 'dark';  // 'dark' | 'light'
+      window.TITAN_INTRO_MODE = INTRO_MODE;
+      window.TITAN_INTRO_THEME = INTRO_THEME;
+      var params = new URLSearchParams(location.search);
+      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      var skipSession = INTRO_MODE === 'session' && sessionStorage.getItem('titan_intro_played') === '1';
+      document.documentElement.dataset.introTheme = INTRO_THEME;
+      if (INTRO_MODE !== 'off' && !skipSession && !reduced && params.get('intro') !== '0') {
+        history.scrollRestoration = 'manual';
+        scrollTo(0, 0);
+        document.documentElement.classList.add('intro-nav', 'intro-hero', 'playing');
+      }
+    } catch (e) { }
+  })();</script>
   <style id="intro-critical">
-    html.locked {
-      overflow: hidden !important
+    :root {
+      --big: clamp(140px, 14vw, 220px);
     }
 
     #ov {
@@ -16,14 +32,119 @@
       margin-left: -75vw;
       height: calc(100dvh + 24vh);
       z-index: 40;
-      background: #fafaf9;
-      border-radius: 0 0 50% 50%/0 0 14vh 14vh;
+      --glass-veil-color: #0a0a0a;
+      border-radius: 0 0 50% 50% / 0 0 14vh 14vh;
+      overflow: visible;
       pointer-events: none;
       display: none
     }
 
-    html.playing #ov {
+    .ov-veil-clip {
+      position: absolute;
+      inset: 0;
+      background: #0a0a0a;
+      border-radius: inherit;
+      overflow: hidden;
+    }
+
+    html[data-intro-theme="light"] #ov {
+      --glass-veil-color: #fafaf9;
+    }
+
+    html[data-intro-theme="light"] .ov-veil-clip {
+      background: #fafaf9;
+    }
+
+    @media (max-width: 767px) {
+      #ov {
+        border-radius: 0 0 50% 50% / 0 0 24% 24%;
+      }
+    }
+
+    .ov-aurora {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .ov-aurora::before,
+    .ov-aurora::after {
+      content: "";
+      position: absolute;
+      width: min(56vw, 520px);
+      height: min(56vw, 520px);
+      border-radius: 50%;
+      filter: blur(56px);
+      opacity: 0.3;
+      animation: ov-aurora-breathe 6s ease-in-out infinite alternate;
+    }
+
+    .ov-aurora::before {
+      left: 24%;
+      top: 22%;
+      background: radial-gradient(circle, #f472b6 0%, transparent 70%);
+    }
+
+    .ov-aurora::after {
+      right: 22%;
+      top: 28%;
+      background: radial-gradient(circle, #60a5fa 0%, transparent 70%);
+      animation-delay: -3s;
+    }
+
+    html[data-intro-theme="light"] .ov-aurora {
+      display: none;
+    }
+
+    @keyframes ov-aurora-breathe {
+      0% { transform: translate3d(-12px, -8px, 0) scale(0.95); }
+      100% { transform: translate3d(14px, 10px, 0) scale(1.06); }
+    }
+
+    #intro-mark,
+    #intro-mark-white {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: var(--big);
+      height: var(--big);
+      margin: calc(var(--big) / -2) 0 0 calc(var(--big) / -2);
+      pointer-events: none;
+      display: none;
+      transform-origin: center center;
+    }
+
+    #intro-mark {
+      z-index: 39;
+      color: #0a0a0a;
+    }
+
+    #intro-mark-white {
+      z-index: 42;
+      color: #fafaf9;
+    }
+
+    html[data-intro-theme="light"] #intro-mark-white {
+      display: none !important;
+    }
+
+    #intro-mark .titan,
+    #intro-mark-white .titan {
+      width: 100%;
+      height: 100%;
+      display: block;
+      overflow: visible;
+    }
+
+    html.playing #ov,
+    html.playing #intro-mark,
+    html.playing #intro-mark-white {
       display: block
+    }
+
+    html.playing .mark-slot .titan {
+      visibility: hidden
     }
 
     html.playing .progress,
@@ -58,12 +179,6 @@
       height: 30px;
       overflow: visible;
       display: block
-    }
-
-    html.playing .mark-slot .titan {
-      width: var(--big, 220px);
-      height: var(--big, 220px);
-      transform-origin: 0 0
     }
 
     html.intro-nav .site-header {
@@ -367,49 +482,52 @@
       background: #1735A5
     }
 
-    /* Visual block container: single grid cell & fixed height so hero never jumps */
+    /* Visual block container: single grid cell & animated height so hero never jumps */
     #top .hero-compare__stage {
       position: relative;
       display: grid;
       grid-template-columns: minmax(0, 1fr);
-      align-items: stretch;
+      align-items: start;
       width: 100%;
       max-width: 100%;
       height: var(--hero-stage-h, auto);
+      overflow: visible;
       margin: 40px auto 0;
       background: transparent;
-    }
-
-    #top .hero-compare__visual[data-visual="without"] {
-      height: 100%;
+      transition: height 400ms cubic-bezier(.22, 1, .36, 1);
     }
 
     #top .hero-compare__visual[data-visual="without"] .hero-compare__grid-card {
-      height: 100%;
       display: flex;
       flex-direction: column;
       overflow: hidden;
     }
 
     #top .hero-compare__visual[data-visual="without"] .hero-compare__sheet {
-      flex: 1 1 auto;
       position: relative;
       overflow: hidden;
     }
 
-    #top .hero-compare__visual[data-visual="without"] .hero-compare__sheet::after {
+    #top .hero-compare__visual[data-visual="without"] .hero-compare__sheetbody {
+      position: relative;
+      height: calc(7 * 24px + 6 * 5px);
+      overflow: hidden;
+    }
+
+    #top .hero-compare__visual[data-visual="without"] .hero-compare__sheetbody::after {
       content: "";
       position: absolute;
       left: 0;
       right: 0;
       bottom: 0;
-      height: 72px;
-      background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 92%);
+      height: 52px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0), #ffffff 94%);
       pointer-events: none;
     }
 
     #top .hero-compare__visual {
       grid-area: 1 / 1;
+      align-self: start;
       position: relative;
       display: flex;
       flex-direction: column;
@@ -1438,8 +1556,49 @@
     </nav>
   </header>
   <div id="ov" aria-hidden="true">
-    <div class="ov-rim liquid-rim"></div>
-    <div class="ov-surface"></div>
+    <div class="ov-veil-clip">
+      <div class="ov-aurora" aria-hidden="true"></div>
+    </div>
+  </div>
+  <div id="intro-mark-white" aria-hidden="true">
+    <svg class="titan" viewBox="0 0 48 48" width="220" height="220" xmlns="http://www.w3.org/2000/svg">
+      <g class="orbit">
+        <circle class="track" cx="24" cy="24" r="17" />
+        <g class="sat" style="--a:-90deg;--i:0">
+          <circle class="ring" cx="24" cy="24" r="4" />
+          <circle class="dot" cx="24" cy="24" r="4" />
+        </g>
+        <g class="sat" style="--a:30deg;--i:1">
+          <circle class="ring" cx="24" cy="24" r="4" />
+          <circle class="dot" cx="24" cy="24" r="4" />
+        </g>
+        <g class="sat" style="--a:150deg;--i:2">
+          <circle class="ring" cx="24" cy="24" r="4" />
+          <circle class="dot" cx="24" cy="24" r="4" />
+        </g>
+      </g>
+      <circle class="core" cx="24" cy="24" r="7" />
+    </svg>
+  </div>
+  <div id="intro-mark" aria-hidden="true">
+    <svg class="titan" viewBox="0 0 48 48" width="220" height="220" xmlns="http://www.w3.org/2000/svg">
+      <g class="orbit">
+        <circle class="track" cx="24" cy="24" r="17" />
+        <g class="sat" style="--a:-90deg;--i:0">
+          <circle class="ring" cx="24" cy="24" r="4" />
+          <circle class="dot" cx="24" cy="24" r="4" />
+        </g>
+        <g class="sat" style="--a:30deg;--i:1">
+          <circle class="ring" cx="24" cy="24" r="4" />
+          <circle class="dot" cx="24" cy="24" r="4" />
+        </g>
+        <g class="sat" style="--a:150deg;--i:2">
+          <circle class="ring" cx="24" cy="24" r="4" />
+          <circle class="dot" cx="24" cy="24" r="4" />
+        </g>
+      </g>
+      <circle class="core" cx="24" cy="24" r="7" />
+    </svg>
   </div>
 
   <main id="main">
@@ -1727,12 +1886,16 @@
 
           const syncStageHeight = () => {
             if (!stage) return;
-            stage.style.removeProperty("--hero-stage-h");
-            const heights = visuals.map(v => v.getBoundingClientRect().height);
-            const maxH = Math.max(0, ...heights);
-            if (maxH > 0) stage.style.setProperty("--hero-stage-h", Math.ceil(maxH) + "px");
+            const activeVisual = visuals.find(v => v.dataset.active === "true") || visuals[0];
+            if (!activeVisual) return;
+            const h = Math.ceil(activeVisual.getBoundingClientRect().height);
+            if (h > 0) stage.style.setProperty("--hero-stage-h", h + "px");
           };
           syncStageHeight();
+          if ("ResizeObserver" in window) {
+            const heroRO = new ResizeObserver(syncStageHeight);
+            visuals.forEach(v => heroRO.observe(v));
+          }
           window.addEventListener("resize", syncStageHeight, { passive: true });
           if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncStageHeight);
 
@@ -1798,6 +1961,7 @@
               requestAnimationFrame(() => requestAnimationFrame(() => { nextVisual.classList.remove("is-entering") }));
             } else if (nextVisual) { nextVisual.classList.remove("is-entering") }
             hero.querySelector("[role='tabpanel']")?.setAttribute("aria-labelledby", tabs.find(t => t.dataset.heroState === state)?.id || "hero-tab-without");
+            syncStageHeight();
             if (state === "with") runCountUp();
           };
 
@@ -2359,78 +2523,137 @@
         </header>
 
         <div class="product-split">
-          <!-- Left Navigation: Quiet, natural group (26-30% width, no numbering, no competing active states) -->
-          <nav class="product-nav" role="tablist" aria-label="Explore Intelligence views">
-            <button role="tab" class="nav-item is-selected" aria-selected="true" aria-controls="preview-panel"
-              id="tab-forecast" data-module="forecast" tabindex="0">
-              <span class="nav-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M3 3v18h18" />
-                  <path d="m19 9-5 5-4-4-3 3" />
-                </svg>
+          <!-- Left Navigation: TabRail (340px desktop, fills right card height) -->
+          <nav class="product-nav tab-rail" role="tablist" aria-orientation="vertical" aria-label="Explore Intelligence views">
+            <div class="tab-rail__track" aria-hidden="true"><span class="tab-rail__fill"></span></div>
+
+            <button role="tab" class="nav-item tab-rail__item is-selected" aria-selected="true" aria-controls="preview-panel"
+              id="tab-forecast" data-module="forecast" data-step="1" tabindex="0">
+              <span class="tab-rail__col-rail" aria-hidden="true">
+                <span class="tab-rail__node">01</span>
               </span>
-              <div class="nav-content">
-                <strong class="nav-title">Forecast</strong>
+              <div class="nav-content tab-rail__body">
+                <div class="tab-rail__row-head">
+                  <span class="nav-icon tab-rail__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M3 3v18h18" />
+                      <path d="m19 9-5 5-4-4-3 3" />
+                    </svg>
+                  </span>
+                  <strong class="nav-title">Forecast</strong>
+                </div>
                 <p class="nav-desc">See what demand could look like.</p>
+                <div class="tab-rail__row-foot">
+                  <span class="tab-rail__metric" data-rail-metric="forecast">+30% peak in week 10</span>
+                  <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
+                    <path d="M2 22 C18 20, 32 18, 46 14 C62 10, 76 6, 94 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
               </div>
+              <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
 
-            <button role="tab" class="nav-item" aria-selected="false" aria-controls="preview-panel" id="tab-inventory"
-              data-module="inventory" tabindex="-1">
-              <span class="nav-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path
-                    d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
-                  <path d="m3.3 7 8.7 5 8.7-5" />
-                  <path d="M12 22V12" />
-                </svg>
+            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel" id="tab-inventory"
+              data-module="inventory" data-step="2" tabindex="-1">
+              <span class="tab-rail__col-rail" aria-hidden="true">
+                <span class="tab-rail__node">02</span>
               </span>
-              <div class="nav-content">
-                <strong class="nav-title">Inventory</strong>
+              <div class="nav-content tab-rail__body">
+                <div class="tab-rail__row-head">
+                  <span class="nav-icon tab-rail__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path
+                        d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+                      <path d="m3.3 7 8.7 5 8.7-5" />
+                      <path d="M12 22V12" />
+                    </svg>
+                  </span>
+                  <strong class="nav-title">Inventory</strong>
+                </div>
                 <p class="nav-desc">Find products that need attention.</p>
+                <div class="tab-rail__row-foot">
+                  <span class="tab-rail__metric" data-rail-metric="inventory">1 SKU below target</span>
+                  <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
+                    <rect x="4" y="14" width="22" height="10" rx="2" fill="currentColor" opacity="0.45" />
+                    <rect x="34" y="8" width="26" height="16" rx="2" fill="currentColor" opacity="0.7" />
+                    <rect x="68" y="4" width="24" height="20" rx="2" fill="currentColor" />
+                  </svg>
+                </div>
               </div>
+              <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
 
-            <button role="tab" class="nav-item" aria-selected="false" aria-controls="preview-panel" id="tab-risk"
-              data-module="risk" tabindex="-1">
-              <span class="nav-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
-                  <path d="m9 12 2 2 4-4" />
-                </svg>
+            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel" id="tab-risk"
+              data-module="risk" data-step="3" tabindex="-1">
+              <span class="tab-rail__col-rail" aria-hidden="true">
+                <span class="tab-rail__node">03</span>
               </span>
-              <div class="nav-content">
-                <strong class="nav-title">Risk Radar</strong>
+              <div class="nav-content tab-rail__body">
+                <div class="tab-rail__row-head">
+                  <span class="nav-icon tab-rail__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10" />
+                      <path d="m9 12 2 2 4-4" />
+                    </svg>
+                  </span>
+                  <strong class="nav-title">Risk Radar</strong>
+                </div>
                 <p class="nav-desc">Spot unexpected demand changes.</p>
+                <div class="tab-rail__row-foot">
+                  <span class="tab-rail__metric" data-rail-metric="risk">+48% spike on day 14</span>
+                  <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
+                    <path d="M2 20 L26 19 L40 21 L52 5 L64 20 L94 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <circle cx="52" cy="5" r="3" fill="#f59e0b" />
+                  </svg>
+                </div>
               </div>
+              <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
 
-            <button role="tab" class="nav-item" aria-selected="false" aria-controls="preview-panel" id="tab-scenario"
-              data-module="scenario" tabindex="-1">
-              <span class="nav-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                  stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="12" r="3" />
-                  <path
-                    d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
-                </svg>
+            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel" id="tab-scenario"
+              data-module="scenario" data-step="4" tabindex="-1">
+              <span class="tab-rail__col-rail" aria-hidden="true">
+                <span class="tab-rail__node">04</span>
               </span>
-              <div class="nav-content">
-                <strong class="nav-title">Scenario Lab</strong>
+              <div class="nav-content tab-rail__body">
+                <div class="tab-rail__row-head">
+                  <span class="nav-icon tab-rail__icon" aria-hidden="true">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="3" />
+                      <path
+                        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+                    </svg>
+                  </span>
+                  <strong class="nav-title">Scenario Lab</strong>
+                </div>
                 <p class="nav-desc">Test a change before acting.</p>
+                <div class="tab-rail__row-foot">
+                  <span class="tab-rail__metric" data-rail-metric="scenario">9.2 days of cover with a +20% promotion</span>
+                  <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
+                    <path d="M2 22 L44 14 L94 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.55" />
+                    <path d="M2 22 L44 16 L94 20" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
+                  </svg>
+                </div>
               </div>
+              <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
           </nav>
 
-          <!-- Right Preview Card: Single White Surface (No universal SKU/badge row, no nested boxes) -->
+          <!-- Right Preview Card: Single White Surface, 1px dark border, 24px radius, 8px orange shadow -->
           <div class="product-preview-card" id="preview-panel" role="tabpanel" tabindex="0"
             aria-labelledby="tab-forecast" data-active-view="forecast">
+            <div class="pv-card-meta-bar">
+              <span class="pv-step-label" id="pvStepLabel">STEP 1 OF 4</span>
+              <button type="button" class="autoplay-toggle-btn pv-autoplay-btn" id="pvAutoplayBtn" aria-pressed="false">Pause</button>
+            </div>
+            <div class="pv-views-stack">
 
             <!-- VIEW 1: FORECAST PREVIEW -->
-            <div class="pv-view pv-view-forecast" data-view="forecast">
+            <div class="pv-view panel pv-view-forecast" data-view="forecast" data-active="true" aria-hidden="false">
               <header class="pv-view-header">
                 <h3 class="pv-view-title">See demand ahead.</h3>
               </header>
@@ -2492,23 +2715,10 @@
                 </svg>
               </div>
 
-              <!-- Quiet Footer: Illustrative demo & View assumptions together -->
-              <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · SKU-4471 · <a href="#faq-data-real"
-                    class="why-illustrative-link">Why illustrative?</a></span>
-                <details class="pv-assumptions">
-                  <summary class="pv-assumptions-summary">View assumptions</summary>
-                  <div class="pv-assumptions-content">
-                    <p>12-week horizon modeled with XGBoost regressors and SHAP seasonal decomposition. Baseline demand
-                      is calculated from the prior 12-week moving average (1,554 units mean). Shaded band represents the
-                      95% confidence interval (±1.96σ residual variance).</p>
-                  </div>
-                </details>
-              </footer>
             </div>
 
             <!-- VIEW 2: INVENTORY PREVIEW -->
-            <div class="pv-view pv-view-inventory" data-view="inventory" hidden>
+            <div class="pv-view panel pv-view-inventory" data-view="inventory" data-active="false" aria-hidden="true" inert>
               <header class="pv-view-header">
                 <h3 class="pv-view-title">Know what to replenish.</h3>
               </header>
@@ -2581,24 +2791,10 @@
                 </p>
               </div>
 
-              <!-- Quiet Footer -->
-              <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · 3 active SKUs · <a href="#faq-data-real"
-                    class="why-illustrative-link">Why illustrative?</a></span>
-                <details class="pv-assumptions">
-                  <summary class="pv-assumptions-summary">View assumptions</summary>
-                  <div class="pv-assumptions-content">
-                    <p><strong>Derived Replenishment Math:</strong> Lead item SKU-4471 holds 660 units at 60 units/day
-                      demand (11.0 days cover). Ordering today with an 8-day supplier transit consumes 480 units,
-                      leaving 180 units upon receipt. Restoring the 18.0-day target (1,080 units) at delivery requires
-                      ordering 900 units (1,080 − 180). Consistent 40-day scale applied across all rows.</p>
-                  </div>
-                </details>
-              </footer>
             </div>
 
             <!-- VIEW 3: RISK RADAR PREVIEW -->
-            <div class="pv-view pv-view-risk" data-view="risk" hidden>
+            <div class="pv-view panel pv-view-risk" data-view="risk" data-active="false" aria-hidden="true" inert>
               <header class="pv-view-header pv-risk-header">
                 <h3 class="pv-view-title">Spot a change in demand.</h3>
                 <!-- Compact Day Controls Placed Near Title -->
@@ -2682,23 +2878,10 @@
                 <p class="pv-interp-plain" id="pvRiskInterpText">Review promotions and large orders.</p>
               </div>
 
-              <!-- Quiet Footer -->
-              <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · 30-day telemetry · <a href="#faq-data-real"
-                    class="why-illustrative-link">Why illustrative?</a></span>
-                <details class="pv-assumptions">
-                  <summary class="pv-assumptions-summary">View assumptions</summary>
-                  <div class="pv-assumptions-content">
-                    <p>Stationary baseline μ = 60 units/day with residual σ = 9.0 units/day. Normal expected range
-                      corresponds to ±2.0σ bounds (42 to 78 units). Day 14 recorded 89 units (+3.2σ surge); Day 23
-                      recorded 38 units (−2.4σ dip); Day 08 recorded 61 units (+0.1σ normal variance).</p>
-                  </div>
-                </details>
-              </footer>
             </div>
 
             <!-- VIEW 4: SCENARIO LAB PREVIEW -->
-            <div class="pv-view pv-view-scenario" data-view="scenario" hidden>
+            <div class="pv-view panel pv-view-scenario" data-view="scenario" data-active="false" aria-hidden="true" inert>
               <header class="pv-view-header">
                 <h3 class="pv-view-title">Test your next move.</h3>
               </header>
@@ -2806,20 +2989,29 @@
                 </p>
               </div>
 
-              <!-- Quiet Footer -->
-              <footer class="pv-view-footer">
-                <span class="pv-foot-demo">Illustrative demo · Single parameter simulation · <a href="#faq-data-real"
-                    class="why-illustrative-link">Why illustrative?</a></span>
-                <details class="pv-assumptions">
-                  <summary class="pv-assumptions-summary">View assumptions</summary>
-                  <div class="pv-assumptions-content">
-                    <p id="pvScenarioAssumptions">Baseline: 660 units at 60 units/day demand. Promotional uplift (+20%)
-                      increases daily velocity to 72 units/day, shortening cover to 9.2 days. Restoring the 13.0-day
-                      threshold requires 13 × 72 − 660 = 276 additional units.</p>
-                  </div>
-                </details>
-              </footer>
             </div>
+            </div>
+
+            <!-- Single Shared Card Footer -->
+            <footer class="pv-card-footer">
+              <div class="pv-card-footer__row">
+                <span class="pv-foot-demo">Illustrative demo · SKU-4471 · <a href="#faq-data-real"
+                    class="why-illustrative-link">Why illustrative?</a></span>
+                <button type="button" class="pv-assumptions-btn" id="pvAssumptionsBtn" aria-expanded="false"
+                  aria-controls="pvSharedAssumptions">
+                  <span>View assumptions</span>
+                  <svg class="pv-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+              </div>
+              <div class="pv-assumptions-panel" id="pvSharedAssumptions" hidden>
+                <p id="pvAssumptionsText">12-week horizon modeled with XGBoost regressors and SHAP seasonal decomposition.
+                  Baseline demand is calculated from the prior 12-week moving average (1,554 units mean). Shaded band
+                  represents the 95% confidence interval (±1.96σ residual variance).</p>
+              </div>
+            </footer>
 
           </div>
         </div>
@@ -3678,7 +3870,11 @@
 
     <section class="closing scene scene-dark" id="closing" aria-labelledby="closing-title" data-theme="dark">
       <div class="closing-stage">
+        <div class="closing-aurora" aria-hidden="true"></div>
         <div class="closing-inner">
+          <div class="closing-orbit-slot" aria-hidden="true">
+            <span data-titan-mark data-size="96" data-mode="still" data-decorative="true" data-class="closing-orbit-mark"></span>
+          </div>
           <p class="eyebrow"><span></span> The next move is visible</p>
           <h2 id="closing-title"><span class="closing-line"><span>Make your next order</span></span> <strong
               class="closing-line"><span>with a clearer view.</span></strong></h2>
@@ -3689,9 +3885,19 @@
               Titan AI <span aria-hidden="true">↗</span></a><a class="button closing-demo" href="/auth">Book a demo</a>
           </div>
         </div>
+        <footer class="closing-footer" aria-label="Footer">
+          <div class="closing-links">
+            <a href="#use-cases">Use cases</a>
+            <a href="#how">How it works</a>
+            <a href="#product">Intelligence</a>
+            <a href="#outputs">Capabilities</a>
+            <a href="#faq">FAQs</a>
+          </div>
+          <div class="footer-meta">Titan AI · Demand Planning</div>
         </footer>
-        <div class="closing-rim liquid-rim" aria-hidden="true"></div>
-        <div class="closing-veil" aria-hidden="true"></div>
+        <div class="closing-veil glass-arc-shell" aria-hidden="true">
+          <div class="glass-veil-feather" aria-hidden="true"></div>
+        </div>
       </div>
     </section>
   </main>
@@ -3702,13 +3908,15 @@
   </div>
   <script defer src="./demoScenario.js"></script>
   <script defer src="./motion.js"></script>
+  <script defer src="./glass-module.js"></script>
   <script defer src="./titan-mark.js"></script>
   <script defer src="./intro.js"></script>
   <script defer src="./script.js?v=v15_04"></script>
   <script defer src="./datavision.js?v=v15_01"></script>
   <script defer src="./titan-theme.js"></script>
-  <link rel="stylesheet" href="./closing-liquid.css?v=2" />
+  <link rel="stylesheet" href="./glass-module.css" />
   <link rel="stylesheet" href="./motion.css" />
+  <link rel="stylesheet" href="./closing-liquid.css?v=3" />
   <script defer src="./closing-liquid.js"></script>
 </body>
 

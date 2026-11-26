@@ -216,7 +216,7 @@
       siteHeader.classList.toggle('scrolled', y > 80);
     }
 
-    if (!reducedMQ.matches && !coarseMQ.matches && window.innerWidth >= 768) {
+    if (!supportsViewTimeline && !reducedMQ.matches && !coarseMQ.matches && window.innerWidth >= 768) {
       const endY = cachedVH * 0.4;
       const span = Math.max(1, cachedVH - endY);
       visibleArcs.forEach(sec => {
@@ -265,12 +265,30 @@
     else document.addEventListener('DOMContentLoaded', () => ro.observe(document.body));
   }
 
+  const supportsViewTimeline = typeof CSS !== 'undefined' && typeof CSS.supports === 'function' && CSS.supports('animation-timeline: view()');
+
+  const initOffscreenPause = () => {
+    if (!('IntersectionObserver' in window)) return;
+    const sections = [...document.querySelectorAll('main > section')];
+    if (!sections.length) return;
+    const offscreenObs = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        entry.target.classList.toggle('is-offscreen', !entry.isIntersecting);
+      });
+    }, { rootMargin: '100px 0px 100px 0px', threshold: 0 });
+    sections.forEach(sec => offscreenObs.observe(sec));
+  };
+
   const initArcBoundaries = () => {
     const arcSections = [
       'titan-overview', 'use-cases', 'how', 'product',
       'planning-context', 'decision-trail', 'outputs', 'faq'
     ].map(id => document.getElementById(id)).filter(Boolean);
     if (!arcSections.length) return;
+    if (supportsViewTimeline) {
+      arcSections.forEach(s => s.style.setProperty('--arc-depth', '1'));
+      return;
+    }
 
     arcSections.forEach(sec => arcTopCache.set(sec, 0));
     measureGeometry();
@@ -305,6 +323,7 @@
     siteHeader = document.querySelector('[data-header]');
     syncRootClasses();
     initReveals();
+    initOffscreenPause();
     initArcBoundaries();
     measureGeometry();
     runScrollTick(performance.now());

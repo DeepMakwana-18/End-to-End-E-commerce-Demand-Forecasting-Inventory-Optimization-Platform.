@@ -1,8 +1,9 @@
-/* Requested glass exception, scoped to the final CTA. No-JS defaults stay readable. */
+/* Phase 4: Last Section Rebuild using Glass Module (G1-G5) */
 #closing {
   --arc-pink: #f472b6;
-  --arc-lavender: #a5a0f0;
-  --arc-blue: #6c7bff;
+  --arc-lavender: #c4b5fd;
+  --arc-blue: #60a5fa;
+  background: #0a0a0a;
 }
 
 html,
@@ -19,34 +20,118 @@ body {
   height: auto !important;
 }
 
+/* Task 5: Reduce FAQ bottom padding (<=120px) and overlap closing stage so no blank white lead-in */
+#faq.faq {
+  padding-bottom: 64px !important;
+  border-bottom: 0 !important;
+}
+
+#closing.liquid-ready {
+  height: 190svh !important;
+  margin-top: -64px;
+  cursor: default;
+}
+
 #closing .closing-stage {
   position: relative;
   min-height: 100svh;
-  padding: 110px 24px 24px;
+  padding: clamp(72px, 12svh, 130px) 24px 28px;
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   isolation: isolate;
   overflow: hidden;
   box-sizing: border-box;
   cursor: default;
 }
 
-#closing.liquid-ready {
-  height: 200svh !important;
-  cursor: default;
-}
-
 #closing.liquid-ready .closing-stage {
   position: sticky;
   top: 0;
-  height: 100svh;
+  height: 100svh !important;
+}
+
+/* Act 4 idle aurora blobs behind content (max blur 60px) */
+#closing .closing-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 600ms ease-out;
+}
+
+#closing.is-settled .closing-aurora {
+  opacity: 1;
+}
+
+#closing .closing-aurora::before,
+#closing .closing-aurora::after {
+  content: "";
+  position: absolute;
+  width: min(48vw, 480px);
+  height: min(48vw, 480px);
+  border-radius: 50%;
+  filter: blur(56px);
+  opacity: 0.24;
+}
+
+#closing .closing-aurora::before {
+  left: 16%;
+  top: 22%;
+  background: radial-gradient(circle, #f472b6 0%, transparent 70%);
+}
+
+#closing .closing-aurora::after {
+  right: 14%;
+  bottom: 18%;
+  background: radial-gradient(circle, #60a5fa 0%, transparent 70%);
+}
+
+#closing.is-active.is-settled .closing-aurora::before {
+  animation: closing-aurora-drift-a 11s ease-in-out infinite alternate;
+}
+
+#closing.is-active.is-settled .closing-aurora::after {
+  animation: closing-aurora-drift-b 13s ease-in-out infinite alternate;
+}
+
+@keyframes closing-aurora-drift-a {
+  0% { transform: translate3d(-16px, -10px, 0) scale(0.96); }
+  100% { transform: translate3d(22px, 14px, 0) scale(1.06); }
+}
+
+@keyframes closing-aurora-drift-b {
+  0% { transform: translate3d(18px, 12px, 0) scale(1.04); }
+  100% { transform: translate3d(-20px, -14px, 0) scale(0.95); }
 }
 
 #closing .closing-inner {
   width: min(100%, var(--container, 1240px));
-  margin: auto !important;
+  margin: 0 auto !important;
+  padding-top: clamp(24px, 8svh, 88px);
   position: relative;
-  z-index: 1;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+#closing .closing-orbit-slot {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fafaf9;
+}
+
+#closing .closing-orbit-mark {
+  width: 96px;
+  height: 96px;
+  display: block;
 }
 
 #closing #closing-title,
@@ -55,6 +140,7 @@ body {
   letter-spacing: -.03em !important;
   max-width: 100%;
   color: white !important;
+  margin: 0;
 }
 
 #closing .closing-line {
@@ -63,17 +149,21 @@ body {
   font: inherit;
 }
 
-#closing .closing-line>span {
+#closing .closing-line > span {
   display: block;
 }
 
-#closing .eyebrow,
-#closing .closing-statement {
-  color: var(--text-on-dark) !important;
+#closing .eyebrow {
+  color: #e4e4e7 !important;
+  margin-bottom: 14px;
 }
 
+/* Full contrast subtitle from the start (#d4d4d8) */
+#closing .closing-inner > p.closing-statement,
 #closing .closing-statement {
+  color: #d4d4d8 !important;
   max-width: 600px;
+  margin: 18px auto 0;
 }
 
 #closing .closing-actions {
@@ -82,6 +172,7 @@ body {
   position: relative;
   justify-content: center;
   flex-wrap: wrap;
+  margin-top: 28px;
 }
 
 #closing .closing-actions .button {
@@ -99,10 +190,16 @@ body {
 #closing .closing-actions .closing-demo {
   background: transparent !important;
   border: 1px solid #666670 !important;
+  color: #fafaf9 !important;
 }
 
-#closing .closing-actions .button:hover {
-  transform: scale(1.03);
+@media (hover: hover) and (pointer: fine) {
+  #closing .closing-actions .button:hover {
+    transform: scale(1.03);
+  }
+  #closing .button:hover span {
+    transform: translate(2px, -2px);
+  }
 }
 
 #closing .closing-actions .button:active {
@@ -113,40 +210,19 @@ body {
   transition: transform 180ms ease;
 }
 
-#closing .button:hover span {
-  transform: translate(2px, -2px);
-}
-
-#closing .closing-ambient {
-  position: absolute;
-  inset: -65px -40px;
-  z-index: -1;
-  pointer-events: none;
-  background: radial-gradient(ellipse at 35% 50%, #f472b632, transparent 65%), radial-gradient(ellipse at 65% 50%, #6c7bff45, transparent 65%) !important;
-  transform: translate(var(--ambient-x, 0px), var(--ambient-y, 0px));
-  opacity: .45;
-  mask-image: radial-gradient(ellipse, black 25%, transparent 70%);
-}
-
-#closing.is-active .closing-ambient {
-  animation: closing-breathe 6s ease-in-out infinite alternate;
-}
-
-@keyframes closing-breathe {
-  to {
-    opacity: .65;
-  }
-}
-
 #closing footer {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   width: min(100%, var(--container, 1240px));
-  margin: 64px auto 0;
-  gap: 24px;
-  grid-template-columns: auto 1fr auto !important;
+  margin: 32px auto 0;
+  padding-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
   background: transparent !important;
-  color: var(--text-on-dark, #a1a1aa) !important;
+  color: #a1a1aa !important;
   border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
 }
 
@@ -157,8 +233,14 @@ body {
   padding: 0;
   background: transparent;
   flex-wrap: wrap;
-  gap: 8px 14px;
+  gap: 8px 18px;
   justify-content: center;
+}
+
+#closing .closing-links a {
+  color: #d4d4d8;
+  text-decoration: none;
+  font-size: 14px;
 }
 
 #closing footer a:focus-visible {
@@ -166,105 +248,24 @@ body {
   outline-offset: 5px;
 }
 
-/* Veil + 3-layer crisp rim (90px halo @ 40px blur 30%, 28px band @ 6px blur, 1px white 85% specular line) */
-#closing .closing-rim,
-#closing .closing-rim-band,
-#closing .closing-rim-spec,
+/* Veil using Glass Module (.glass-arc-shell) */
 #closing .closing-veil {
   display: none;
-  pointer-events: none;
   position: absolute;
-  left: -30%;
-  width: 160%;
+  top: -220svh;
   height: 320svh;
-  top: -212svh;
-  border-radius: 0 0 50% 50% / 0 0 38% 38%;
-  transform: translateY(var(--arc-y, 0px));
+  z-index: 5;
+  background: var(--paper-2, #fafaf9);
+  --glass-veil-color: #fafaf9;
+  overflow: visible;
 }
 
-#closing.liquid-ready .closing-rim,
-#closing.liquid-ready .closing-rim-band,
-#closing.liquid-ready .closing-rim-spec,
 #closing.liquid-ready .closing-veil {
   display: block;
 }
 
-#closing .closing-rim {
-  z-index: 2;
-  background: linear-gradient(90deg, var(--arc-pink) 15%, var(--arc-lavender) 50%, var(--arc-blue) 85%) !important;
-  filter: blur(40px) !important;
-  opacity: .30;
-  -webkit-mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, transparent calc(100% - 90px), black 100%);
-  mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, transparent calc(100% - 90px), black 100%);
-}
-
-#closing .closing-rim-band {
-  z-index: 2;
-  background: linear-gradient(90deg, var(--arc-pink) 15%, var(--arc-lavender) 50%, var(--arc-blue) 85%) !important;
-  filter: blur(6px) !important;
-  opacity: .85;
-  -webkit-mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, transparent calc(100% - 28px), black 100%);
-  mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, transparent calc(100% - 28px), black 100%);
-}
-
-#closing .closing-rim-spec {
-  z-index: 5;
-  background: transparent !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.85);
-}
-
-#closing .closing-veil {
-  z-index: 4;
-  background: var(--paper-2, #fafaf9);
-  -webkit-mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, black calc(100% - 40px), transparent 100%), linear-gradient(black, black);
-  -webkit-mask-size: 100% 100%, 100% 62%;
-  -webkit-mask-repeat: no-repeat;
-  mask-image: radial-gradient(ellipse 50% 38% at 50% 62%, black calc(100% - 40px), transparent 100%), linear-gradient(black, black);
-  mask-size: 100% 100%, 100% 62%;
-  mask-repeat: no-repeat;
-}
-
-#closing[data-liquid-tier="2"] .closing-rim {
-  filter: blur(20px) !important;
-}
-
-#closing[data-liquid-tier="2"] .closing-rim-band {
-  filter: blur(3px) !important;
-}
-
-#closing[data-liquid-tier="3"] .closing-rim,
-#closing[data-liquid-tier="3"] .closing-rim-band {
-  filter: none !important;
-  opacity: .45;
-}
-
 #closing .lens {
-  display: none;
-  position: absolute;
-  z-index: 3;
-  margin: 0;
-  pointer-events: none;
-  opacity: 0;
-}
-
-#closing.liquid-ready .lens {
-  display: block;
-}
-
-#closing .lens .closing-line {
-  overflow: visible;
-}
-
-#closing.is-active .closing-rim,
-#closing.is-active .closing-rim-band,
-#closing.is-active .closing-rim-spec,
-#closing.is-active .closing-veil,
-#closing.is-active .lens {
-  will-change: transform, opacity;
-}
-
-#closing .lens.chromatic {
-  text-shadow: -3px 0 #f472b6, 3px 0 #6c7bff;
+  z-index: 6;
 }
 
 @media (max-width: 767px) {
@@ -273,54 +274,24 @@ body {
   }
 
   #closing .closing-stage {
-    padding: 100px 24px 20px;
+    padding: 84px 20px 20px;
   }
 
-  #closing .closing-rim,
-  #closing .closing-rim-band,
-  #closing .closing-rim-spec,
-  #closing .closing-veil {
-    border-radius: 0 0 50% 50% / 0 0 24% 24%;
+  #closing .closing-inner {
+    padding-top: 16px;
   }
 
-  #closing .closing-rim {
-    -webkit-mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, transparent calc(100% - 90px), black 100%);
-    mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, transparent calc(100% - 90px), black 100%);
-  }
-
-  #closing .closing-rim-band {
-    -webkit-mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, transparent calc(100% - 28px), black 100%);
-    mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, transparent calc(100% - 28px), black 100%);
-  }
-
-  #closing .closing-veil {
-    -webkit-mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, black calc(100% - 40px), transparent 100%), linear-gradient(black, black);
-    -webkit-mask-size: 100% 100%, 100% 76%;
-    mask-image: radial-gradient(ellipse 50% 24% at 50% 76%, black calc(100% - 40px), transparent 100%), linear-gradient(black, black);
-    mask-size: 100% 100%, 100% 76%;
+  #closing .closing-orbit-slot,
+  #closing .closing-orbit-mark {
+    width: 72px;
+    height: 72px;
   }
 
   #closing footer {
-    grid-template-columns: 1fr !important;
-    margin-top: 32px;
-    gap: 12px;
-    justify-items: center;
-  }
-
-  #closing footer .footer-meta {
-    justify-self: center !important;
-  }
-
-  #closing .closing-links {
-    max-width: 320px;
-  }
-
-  #closing .eyebrow {
-    font-size: 10px;
-  }
-
-  #closing .closing-statement {
-    font-size: 14px !important;
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    margin-top: 20px;
   }
 }
 
@@ -332,71 +303,11 @@ body {
   #closing.liquid-ready .closing-stage {
     position: relative !important;
     height: auto !important;
-    min-height: 100svh;
+    min-height: 100svh !important;
   }
 
-  #closing .closing-rim,
-  #closing .closing-rim-band,
-  #closing .closing-rim-spec,
   #closing .closing-veil,
-  #closing .lens {
+  #closing .closing-aurora {
     display: none !important;
-  }
-
-  #closing .closing-inner {
-    animation: closing-fade 400ms ease both !important;
-  }
-
-  #closing .closing-stage::before {
-    content: '';
-    position: absolute;
-    top: -60px;
-    left: -30%;
-    width: 160%;
-    height: 90px;
-    border-radius: 0 0 50% 50%;
-    background: var(--paper-2, #fafaf9);
-  }
-
-  #closing .closing-actions .button,
-  #closing .button span {
-    transition: none !important;
-    transform: none;
-  }
-}
-
-@keyframes closing-fade {
-  from {
-    opacity: 0;
-  }
-
-  to {
-    opacity: 1;
-  }
-}
-
-@media (max-width: 767px) and (max-height: 740px) {
-  #closing .closing-stage {
-    padding: 84px 20px 12px;
-  }
-
-  #closing #closing-title,
-  #closing .lens {
-    font-size: 30px !important;
-  }
-
-  #closing .closing-inner>.closing-statement {
-    font-size: 13px !important;
-    margin: 12px auto 16px !important;
-  }
-
-  #closing .closing-actions .button {
-    padding: 10px 24px !important;
-  }
-
-  #closing footer {
-    margin-top: 20px;
-    gap: 8px !important;
-    padding-top: 12px !important;
   }
 }

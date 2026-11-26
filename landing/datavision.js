@@ -10,17 +10,64 @@
   const navItems = [...productSection.querySelectorAll('[data-module]')];
   const previewPanel = productSection.querySelector('#preview-panel');
   const views = [...productSection.querySelectorAll('.pv-view')];
+  const stepLabel = productSection.querySelector('#pvStepLabel');
+  const railEl = productSection.querySelector('.tab-rail');
+  const autoplayBtn = productSection.querySelector('#pvAutoplayBtn');
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const AUTOPLAY_MS = 9000;
+  let currentModule = 'forecast';
+  let autoplayRaf = 0;
+  let autoplayStart = 0;
+  let demoCtrl = null;
+
+  // Hydrate TabRail metrics from demoScenario
+  if (window.demoScenario) {
+    const s = window.demoScenario;
+    const setMetric = (k, txt) => {
+      const el = productSection.querySelector(`[data-rail-metric="${k}"]`);
+      if (el) el.textContent = txt;
+    };
+    setMetric('forecast', `+30% peak in week ${s.forecastPeakWeek || 10}`);
+    setMetric('inventory', '1 SKU below target');
+    setMetric('risk', `+${s.spikePct || 48}% spike on day ${s.spikeDay || 14}`);
+    setMetric('scenario', '9.2 days of cover with a +20% promotion');
+  }
+
+  const ASSUMPTIONS_COPY = {
+    forecast: '12-week horizon modeled with XGBoost regressors and SHAP seasonal decomposition. Baseline demand is calculated from the prior 12-week moving average (1,554 units mean). Shaded band represents the 95% confidence interval (±1.96σ residual variance).',
+    inventory: 'Derived Replenishment Math: Lead item SKU-4471 holds 660 units at 60 units/day demand (11.0 days cover). Ordering today with an 8-day supplier transit consumes 480 units, leaving 180 units upon receipt. Restoring the 18.0-day target (1,080 units) at delivery requires ordering 900 units (1,080 − 180).',
+    risk: 'Stationary baseline μ = 60 units/day with residual σ = 9.0 units/day. Normal expected range corresponds to ±2.0σ bounds (42 to 78 units). Day 14 recorded 89 units (+3.2σ surge); Day 23 recorded 38 units (−2.4σ dip); Day 08 recorded 61 units (+0.1σ normal variance).',
+    scenario: 'Baseline: 660 units at 60 units/day demand. Promotional uplift (+20%) increases daily velocity to 72 units/day, shortening cover to 9.2 days. Restoring the 13.0-day threshold requires 13 × 72 − 660 = 276 additional units.'
+  };
+
+  const assumptionsBtn = productSection.querySelector('#pvAssumptionsBtn');
+  const assumptionsPanel = productSection.querySelector('#pvSharedAssumptions');
+  const assumptionsText = productSection.querySelector('#pvAssumptionsText');
+
+  assumptionsBtn?.addEventListener('click', () => {
+    const expanded = assumptionsBtn.getAttribute('aria-expanded') === 'true';
+    assumptionsBtn.setAttribute('aria-expanded', String(!expanded));
+    if (assumptionsPanel) assumptionsPanel.hidden = expanded;
+  });
 
   // =========================================================================
-  // VIEW SWITCHING
+  // VIEW SWITCHING (Zero-height-jump single grid cell)
   // =========================================================================
   function switchView(viewName) {
+    currentModule = viewName;
+    const activeIdx = Math.max(0, navItems.findIndex(n => n.dataset.module === viewName));
+    if (stepLabel) stepLabel.textContent = `STEP ${activeIdx + 1} OF ${navItems.length}`;
+    if (railEl) railEl.style.setProperty('--rail-progress', String((activeIdx + 1) / navItems.length));
+    if (assumptionsText && ASSUMPTIONS_COPY[viewName]) {
+      assumptionsText.textContent = ASSUMPTIONS_COPY[viewName];
+    }
+
     navItems.forEach(item => {
       const isSelected = item.dataset.module === viewName;
       item.classList.toggle('is-selected', isSelected);
       item.setAttribute('aria-selected', String(isSelected));
       item.tabIndex = isSelected ? 0 : -1;
+      item.style.setProperty('--tab-progress', '0');
     });
 
     if (previewPanel) {
@@ -30,19 +77,14 @@
 
     views.forEach(view => {
       const match = view.dataset.view === viewName;
-      if (match) {
-        view.hidden = false;
-        view.removeAttribute('hidden');
-        view.setAttribute('aria-hidden', 'false');
-        view.classList.add('is-active-view');
-        if (!prefersReduced) {
-          animateViewIn(view);
-        }
-      } else {
-        view.hidden = true;
-        view.setAttribute('hidden', '');
-        view.setAttribute('aria-hidden', 'true');
-        view.classList.remove('is-active-view');
+      view.removeAttribute('hidden');
+      view.hidden = false;
+      view.dataset.active = String(match);
+      view.inert = !match;
+      view.setAttribute('aria-hidden', String(!match));
+      view.classList.toggle('is-active-view', match);
+      if (match && !prefersReduced) {
+        animateViewIn(view);
       }
     });
   }
@@ -92,17 +134,92 @@
     });
   }
 
-  // Keyboard navigation for navigation tabs
+  // Keyboard navigation for navigation tabs (ArrowUp/Down, Home/End)
   navItems.forEach((btn, index) => {
-    btn.addEventListener('click', () => switchView(btn.dataset.module));
+    btn.addEventListener('click', () => {
+      if (demoCtrl) demoCtrl.stopByUser();
+      updateAutoplayBtn(true);
+      switchView(btn.dataset.module);
+    });
     btn.addEventListener('keydown', e => {
-      if (!['ArrowDown', 'ArrowUp', 'ArrowRight', 'ArrowLeft'].includes(e.key)) return;
+      let nextIdx = null;
+      if (e.key === 'ArrowDown' || e.key === 'ArrowRight') nextIdx = (index + 1) % navItems.length;
+      else if (e.key === 'ArrowUp' || e.key === 'ArrowLeft') nextIdx = (index - 1 + navItems.length) % navItems.length;
+      else if (e.key === 'Home') nextIdx = 0;
+      else if (e.key === 'End') nextIdx = navItems.length - 1;
+      else return;
       e.preventDefault();
-      const dir = ['ArrowDown', 'ArrowRight'].includes(e.key) ? 1 : -1;
-      const next = navItems[(index + dir + navItems.length) % navItems.length];
+      if (demoCtrl) demoCtrl.stopByUser();
+      updateAutoplayBtn(true);
+      const next = navItems[nextIdx];
       next.focus();
       switchView(next.dataset.module);
     });
+  });
+
+  function updateAutoplayBtn(paused) {
+    if (!autoplayBtn) return;
+    autoplayBtn.textContent = paused ? 'Resume' : 'Pause';
+    autoplayBtn.setAttribute('aria-pressed', String(paused));
+  }
+
+  function stopAutoplayLoop() {
+    if (autoplayRaf) { cancelAnimationFrame(autoplayRaf); autoplayRaf = 0; }
+  }
+
+  function startAutoplayLoop() {
+    if (prefersReduced || autoplayRaf) return;
+    autoplayStart = performance.now();
+    const tick = (now) => {
+      if (document.hidden || !demoCtrl || demoCtrl.paused || demoCtrl.userStopped) {
+        autoplayRaf = 0;
+        return;
+      }
+      const elapsed = now - autoplayStart;
+      const p = Math.min(1, elapsed / AUTOPLAY_MS);
+      const activeTab = navItems.find(n => n.dataset.module === currentModule);
+      if (activeTab) activeTab.style.setProperty('--tab-progress', p.toFixed(4));
+      if (p >= 1) {
+        const idx = Math.max(0, navItems.findIndex(n => n.dataset.module === currentModule));
+        const next = navItems[(idx + 1) % navItems.length];
+        switchView(next.dataset.module);
+        autoplayStart = now;
+      }
+      autoplayRaf = requestAnimationFrame(tick);
+    };
+    autoplayRaf = requestAnimationFrame(tick);
+  }
+
+  if (window.TitanMotion && !prefersReduced) {
+    demoCtrl = window.TitanMotion.registerDemo('product-rail', productSection, {
+      start: () => { updateAutoplayBtn(false); startAutoplayLoop(); },
+      pause: () => { stopAutoplayLoop(); }
+    });
+    productSection.addEventListener('mouseenter', () => stopAutoplayLoop());
+    productSection.addEventListener('mouseleave', () => {
+      if (demoCtrl && demoCtrl.visible && !demoCtrl.paused && !demoCtrl.userStopped) startAutoplayLoop();
+    });
+    productSection.addEventListener('focusin', () => stopAutoplayLoop());
+    productSection.addEventListener('focusout', () => {
+      if (demoCtrl && demoCtrl.visible && !demoCtrl.paused && !demoCtrl.userStopped && !productSection.contains(document.activeElement)) {
+        startAutoplayLoop();
+      }
+    });
+  } else {
+    updateAutoplayBtn(true);
+  }
+
+  autoplayBtn?.addEventListener('click', () => {
+    if (!demoCtrl) return;
+    if (demoCtrl.paused || demoCtrl.userStopped) {
+      demoCtrl.paused = false;
+      demoCtrl.userStopped = false;
+      updateAutoplayBtn(false);
+      startAutoplayLoop();
+    } else {
+      demoCtrl.stopByUser();
+      updateAutoplayBtn(true);
+    }
   });
 
   // Cross-links from Overview section cards
