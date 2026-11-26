@@ -1,363 +1,403 @@
 (() => {
-  const INTRO_MODE = window.TITAN_INTRO_MODE || 'always';   // 'always' | 'session' | 'off'
-  const INTRO_THEME = window.TITAN_INTRO_THEME || 'dark';   // 'dark' | 'light'
-  const T = {
-    hold: 150,
-    merge: 1000,
-    beat: 700,
-    beats: 2,
-    anticipation: 80,
-    fly: 820,
-    liftDelayAfterFlight: 250, // lift starts at 2800ms (2550 + 250)
-    lift: 900,
-    navReveal: 260,
-    scrollLockMs: 1450
+  'use strict';
+
+  // Tunable timing constants (ms)
+  const TIMING = {
+    reducedFadeMs: 300,     // prefers-reduced-motion fade
+    assembleMs: 350,        // 0.00-0.35s: core overshoot + ring stroke draw + sat stagger
+    satStaggerMs: 60,       // 60ms stagger between the 3 satellites
+    orbitMs: 900,           // 0.35-1.25s: 360deg orbit + 100->108->100% breathe (min loader = 1.25s)
+    handoffMs: 600,         // 1.25-1.85s: travel + scale to nav logo slot
+    curtainAtMs: 1400,      // 1.40s: curved curtain exit starts
+    curtainMs: 700,         // 1.40-2.10s: curtain exit (expo.out)
+    navPillAtMs: 1850,      // 1.85s: nav pill y -12->0 + fade (500ms)
+    navPillMs: 500,
+    tabsAtMs: 1900,         // 1.90s: Without/With tabs y 8->0 + fade
+    tabsMs: 350,
+    line1AtMs: 1900,        // 1.90s: headline line 1 masked reveal (700ms expo.out)
+    line2AtMs: 2000,        // 2.00s: headline line 2 masked reveal (700ms expo.out)
+    headlineMs: 700,
+    wordmarkAtMs: 2000,     // 2.00s: wordmark clip-path left->right (350ms)
+    wordmarkMs: 350,
+    subheadAtMs: 2200,      // 2.20s: subhead y 12->0 + fade (500ms)
+    subheadMs: 500,
+    ctaAtMs: 2300,          // 2.30s: CTA scale .96->1 + fade (450ms)
+    ctaMs: 450,
+    mockupAtMs: 2350,       // 2.35s: spreadsheet mockup y 40->0 + fade (900ms)
+    mockupMs: 900,
+    rowStaggerMs: 20        // 20ms stagger across visible spreadsheet rows
   };
+
+  const EXPO_OUT = 'cubic-bezier(0.16, 1, 0.3, 1)';
+  const HANDOFF_EASE = 'cubic-bezier(0.76, 0, 0.24, 1)';
+  const BACK_OUT = 'cubic-bezier(0.34, 1.56, 0.64, 1)';
+  const POWER2_IO = 'cubic-bezier(0.65, 0, 0.35, 1)';
   const SCROLL_KEYS = new Set([' ', 'Spacebar', 'PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Home', 'End']);
 
   const root = document.documentElement;
+  const params = new URLSearchParams(location.search);
   const reducedMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
-  const mark = document.querySelector('.mark-slot [data-titan-mark]') || document.querySelector('.mark-slot .titan');
-  const slot = mark?.closest('.mark-slot') || mark?.parentElement;
   const ov = document.getElementById('ov');
+  const ribbon = ov?.querySelector('.ov-blue-ribbon');
   const introMark = document.getElementById('intro-mark');
-  const introSvg = introMark?.querySelector('.titan');
   const whiteMark = document.getElementById('intro-mark-white');
   const whiteSvg = whiteMark?.querySelector('.titan');
-  const heroTitle = document.getElementById('hero-title');
-  const heroCopy = document.querySelector('#top .hero-compare__copy');
-  const heroLines = [...document.querySelectorAll('#hero-title [data-copy="without"] .hero-line > span')];
+  const header = document.querySelector('.site-header');
+  const wordmark = header?.querySelector('.word');
+  const navMark = document.querySelector('.mark-slot [data-titan-mark]') || document.querySelector('.mark-slot .titan');
+  const navSlot = navMark?.closest('.mark-slot') || navMark?.parentElement;
 
-  const clear = () => root.classList.remove('intro-nav', 'intro-hero', 'playing');
+  const tabsEl = document.querySelector('#top .hero-compare__tabs');
+  const lineSpans = [...document.querySelectorAll('#hero-title [data-copy="without"] .hero-line > span')];
+  const dekEl = document.querySelector('#top .hero-compare__dek');
+  const ctaEl = document.querySelector('#top .hero-compare__cta');
+  const stageEl = document.querySelector('#top .hero-compare__stage');
+  const sheetCells = [...document.querySelectorAll('#top [data-visual="without"] .hero-compare__cell')].slice(0, 56);
 
-  if (!mark || !slot || !ov || !introMark || !introSvg) { clear(); return; }
+  const clearClasses = () => root.classList.remove('intro-nav', 'intro-hero', 'playing');
+  if (!ov || !header || !navMark || !navSlot) { clearClasses(); return; }
+  if (introMark) introMark.style.display = 'none';
 
   const wait = ms => new Promise(r => setTimeout(r, ms));
   let anims = [];
+  let timers = [];
   let token = 0;
-  let scrollLockTimer = null;
   let scrollLocked = false;
-  let introEndedDispatched = false;
-  let rimObj = null;
-  let lensObj = null;
-  let liftRaf = 0;
+  let introEnded = false;
 
   const emitIntroEnd = () => {
-    if (introEndedDispatched) return;
-    introEndedDispatched = true;
+    if (introEnded) return;
+    introEnded = true;
     window.dispatchEvent(new CustomEvent('titan:intro-end'));
   };
 
-  function preventScrollEvent(e) { if (scrollLocked) e.preventDefault(); }
-  function preventScrollKey(e) { if (scrollLocked && SCROLL_KEYS.has(e.key)) e.preventDefault(); }
+  const preventScroll = e => { if (scrollLocked) e.preventDefault(); };
+  const preventScrollKey = e => { if (scrollLocked && SCROLL_KEYS.has(e.key)) e.preventDefault(); };
 
-  function lockScrollForIntro() {
+  function lockScroll() {
     if (scrollLocked) return;
     scrollLocked = true;
-    window.addEventListener('wheel', preventScrollEvent, { passive: false });
-    window.addEventListener('touchmove', preventScrollEvent, { passive: false });
+    window.addEventListener('wheel', preventScroll, { passive: false });
+    window.addEventListener('touchmove', preventScroll, { passive: false });
     window.addEventListener('keydown', preventScrollKey, { capture: true });
-    scrollLockTimer = setTimeout(releaseScrollLock, T.scrollLockMs);
   }
 
-  function releaseScrollLock() {
+  function unlockScroll() {
     if (!scrollLocked) return;
     scrollLocked = false;
-    if (scrollLockTimer) { clearTimeout(scrollLockTimer); scrollLockTimer = null; }
-    window.removeEventListener('wheel', preventScrollEvent, { passive: false });
-    window.removeEventListener('touchmove', preventScrollEvent, { passive: false });
+    window.removeEventListener('wheel', preventScroll, { passive: false });
+    window.removeEventListener('touchmove', preventScroll, { passive: false });
     window.removeEventListener('keydown', preventScrollKey, { capture: true });
   }
 
-  function handoffToNavMark() {
-    mark.style.visibility = 'visible';
-    introMark.style.display = 'none';
-    if (whiteMark) whiteMark.style.display = 'none';
+  function setWillChange(active) {
+    const els = [ov, whiteMark, header, wordmark, tabsEl, ...lineSpans, dekEl, ctaEl, stageEl].filter(Boolean);
+    els.forEach(el => {
+      if (active) el.style.willChange = el === wordmark ? 'clip-path' : 'transform, opacity';
+      else el.style.removeProperty('will-change');
+    });
   }
 
-  function cleanupEffects() {
-    if (liftRaf) { cancelAnimationFrame(liftRaf); liftRaf = 0; }
-    if (lensObj) { lensObj.destroy(); lensObj = null; }
-    if (rimObj?.svg) { rimObj.svg.remove(); rimObj = null; }
-    heroLines.forEach(s => { s.style.transform = ''; s.style.opacity = ''; });
-  }
-
-  function end(immediate = false) {
-    token++;
-    releaseScrollLock();
-    if (immediate && root.classList.contains('playing')) {
-      cleanupEffects();
-      const fade = ov.animate([{ opacity: getComputedStyle(ov).opacity || 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out', fill: 'forwards' });
-      const markFade = introMark.animate([{ opacity: getComputedStyle(introMark).opacity || 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out', fill: 'forwards' });
-      const whiteFade = whiteMark ? whiteMark.animate([{ opacity: getComputedStyle(whiteMark).opacity || 1 }, { opacity: 0 }], { duration: 150, easing: 'ease-out', fill: 'forwards' }) : null;
-      anims.forEach(a => { try { a.cancel(); } catch (_) {} });
-      anims = [];
-      introSvg.classList.remove('merge', 'spin');
-      whiteSvg?.classList.remove('merge', 'spin');
-      root.classList.remove('intro-nav', 'intro-hero');
-      mark.style.visibility = 'visible';
-      Promise.all([fade.finished, markFade.finished, whiteFade?.finished].filter(Boolean)).catch(() => {}).finally(() => {
-        try { fade.cancel(); markFade.cancel(); whiteFade?.cancel(); } catch (_) {}
-        introMark.remove();
-        whiteMark?.remove();
-        ov.remove();
-        root.classList.remove('playing');
-        emitIntroEnd();
-      });
-      return;
-    }
-    cleanupEffects();
+  function cancelAll() {
+    timers.forEach(id => clearTimeout(id));
+    timers = [];
     anims.forEach(a => { try { a.cancel(); } catch (_) {} });
     anims = [];
-    introSvg.classList.remove('merge', 'spin');
-    whiteSvg?.classList.remove('merge', 'spin');
-    introMark.style.transform = '';
-    introMark.style.clipPath = '';
-    if (whiteMark) { whiteMark.style.transform = ''; whiteMark.style.clipPath = ''; }
-    mark.style.visibility = '';
-    clear();
   }
 
-  function shouldPlay(force) {
-    if (force) return true;
-    if (INTRO_MODE === 'off') return false;
-    if (reducedMQ.matches) return false;
-    const params = new URLSearchParams(location.search);
-    if (params.get('intro') === '0') return false;
-    if (INTRO_MODE === 'session') {
-      try { if (sessionStorage.getItem('titan_intro_played') === '1') return false; } catch (_) {}
-    }
-    return true;
-  }
-
-  function syncSvgs(action, arg) {
-    [introSvg, whiteSvg].forEach(svg => {
-      if (!svg) return;
-      if (action === 'prop') svg.style.setProperty(arg[0], arg[1]);
-      else if (action === 'add') svg.classList.add(arg);
-      else if (action === 'replace') svg.classList.replace(arg[0], arg[1]);
-      else if (action === 'remove') svg.classList.remove(arg);
+  function finishIntro() {
+    cancelAll();
+    unlockScroll();
+    setWillChange(false);
+    [ov, ribbon, whiteMark, header, wordmark, tabsEl, ...lineSpans, dekEl, ctaEl, stageEl, ...sheetCells].forEach(el => {
+      if (!el) return;
+      el.style.removeProperty('transform');
+      el.style.removeProperty('opacity');
+      el.style.removeProperty('clip-path');
     });
-  }
-
-  function buildFlightKeyframes(dx, dy, k, vh) {
-    // Quadratic Bezier control point placed 12vh above midpoint, clamped to [dy, 0] so y never increases
-    const cx = dx * 0.5;
-    const cy = Math.max(dy, dy * 0.5 - 0.12 * vh);
-    const steps = 14;
-    const frames = [];
-    for (let i = 0; i <= steps; i++) {
-      const t = i / steps;
-      const omt = 1 - t;
-      const x = 2 * omt * t * cx + t * t * dx;
-      const y = 2 * omt * t * cy + t * t * dy;
-      let sc;
-      if (t <= 0.82) {
-        const st = t / 0.82;
-        sc = 0.94 + (k * 1.14 - 0.94) * st;
-      } else {
-        const st = (t - 0.82) / 0.18;
-        sc = k * 1.14 + (k - k * 1.14) * st;
-      }
-      frames.push({
-        offset: Number(t.toFixed(4)),
-        transform: `translate(${x.toFixed(2)}px, ${y.toFixed(2)}px) scale(${sc.toFixed(4)})`
-      });
-    }
-    return frames;
-  }
-
-  async function play(force = false) {
-    end();
-    if (!shouldPlay(force)) {
-      clear();
-      ov.remove();
-      introMark.remove();
-      whiteMark?.remove();
-      emitIntroEnd();
-      return;
-    }
-    if (INTRO_MODE === 'session') {
-      try { sessionStorage.setItem('titan_intro_played', '1'); } catch (_) {}
-    }
-
-    const my = token;
-    const alive = () => my === token;
-    root.dataset.introTheme = INTRO_THEME;
-    root.classList.add('intro-nav', 'intro-hero', 'playing');
-    introMark.style.display = '';
-    if (whiteMark && INTRO_THEME === 'dark') {
-      whiteMark.style.display = '';
-      whiteMark.style.clipPath = 'inset(0 0 0% 0)';
-      introMark.style.clipPath = 'inset(100% 0 0 0)';
-    }
-    mark.style.visibility = 'hidden';
-
-    if (window.TitanGlass) {
-      rimObj = window.TitanGlass.createRimSvg();
-      ov.appendChild(rimObj.svg);
-      rimObj.setSpot(0);
-    }
-
-    lockScrollForIntro();
-    syncSvgs('prop', ['--beat', `${T.beat}ms`]);
-    syncSvgs('prop', ['--beats', String(T.beats)]);
-
-    // 0-150ms hold
-    await wait(T.hold);
-    if (!alive()) return;
-
-    // 150-1150ms merge
-    syncSvgs('add', 'merge');
-    await wait(T.merge);
-    if (!alive()) return;
-
-    // 1150-2550ms two spin beats
-    syncSvgs('replace', ['merge', 'spin']);
-    await wait(T.beat * T.beats);
-    if (!alive()) return;
-    syncSvgs('remove', 'spin');
-
-    // 2550-2630ms anticipation (80ms, scale 1 -> 0.94, ease-out, zero Y dip)
-    const antOpts = { duration: T.anticipation, easing: 'cubic-bezier(0.22, 1, 0.36, 1)', fill: 'forwards' };
-    const antFrames = [{ transform: 'translate(0px, 0px) scale(1)' }, { transform: 'translate(0px, 0px) scale(0.94)' }];
-    const antA = introMark.animate(antFrames, antOpts);
-    anims.push(antA);
-    if (whiteMark && INTRO_THEME === 'dark') anims.push(whiteMark.animate(antFrames, antOpts));
-
-    await antA.finished.catch(() => {});
-    if (!alive()) return;
-
-    // 2630-3450ms Bezier flight (both sibling marks share exact transform)
-    const vw = document.documentElement.clientWidth;
-    const vh = document.documentElement.clientHeight;
-    const big = introMark.getBoundingClientRect().width || (vw < 700 ? 140 : 220);
-    const r = slot.getBoundingClientRect();
-    const k = (r.width || 30) / big;
-    const dx = (r.left + r.width / 2) - vw / 2;
-    const dy = (r.top + r.height / 2) - vh / 2;
-
-    const flyKeyframes = buildFlightKeyframes(dx, dy, k, vh);
-    const flyOpts = { duration: T.fly, easing: 'cubic-bezier(.65,0,.35,1)', fill: 'forwards' };
-    const flyA = introMark.animate(flyKeyframes, flyOpts);
-    anims.push(flyA);
-    if (whiteMark && INTRO_THEME === 'dark') anims.push(whiteMark.animate(flyKeyframes, flyOpts));
-
-    // Debug / verification telemetry hook
-    const frameLog = [];
-    window.__introFlightLog = frameLog;
-
-    // Lift starts 250ms after flight starts (~2800ms)
-    const qualityMon = window.TitanGlass ? window.TitanGlass.createQualityMonitor() : null;
-    const ovHeight = ov.getBoundingClientRect().height || window.innerHeight * 1.24;
-    const totalShift = ovHeight + window.innerHeight * 0.04;
-    const bowlRyPx = vh * 0.14;
-    const halfBowlW = vw * 0.75;
-    const vcX = vw / 2;
-
-    let liftStarted = false;
-    let liftStart = 0;
-    const flightStart = performance.now();
-
-    if (window.TitanGlass && heroTitle && heroCopy) {
-      lensObj = window.TitanGlass.createLens({ targetEl: heroTitle, containerEl: heroCopy, mode: 'multiply' });
-      lensObj.measure();
-    }
-    const copyTop = heroCopy ? heroCopy.getBoundingClientRect().top : 0;
-    const lineCenters = heroLines.map(span => {
-      const lr = span.getBoundingClientRect();
-      return lr.top + lr.height / 2;
-    });
-    const easeInOut = t => t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
-
-    const stepFrame = (now) => {
-      if (!alive()) return;
-      const elapsedFlight = now - flightStart;
-      if (!liftStarted && elapsedFlight >= T.liftDelayAfterFlight - T.anticipation) {
-        liftStarted = true;
-        liftStart = now;
-      }
-
-      // 1 measurement of mark rect + 1 measurement of overlay bottom per frame
-      const mr = introMark.getBoundingClientRect();
-      const markCenterX = mr.left + mr.width / 2;
-      const markCenterY = mr.top + mr.height / 2;
-      if (mr.width > 0) {
-        frameLog.push({ t: Math.round(elapsedFlight), x: Number(markCenterX.toFixed(2)), y: Number(markCenterY.toFixed(2)) });
-      }
-
-      let liftP = 0;
-      if (liftStarted) {
-        liftP = Math.min(1, (now - liftStart) / T.lift);
-        const yPx = -totalShift * easeInOut(liftP);
-        ov.style.transform = `translate3d(0, ${yPx.toFixed(2)}px, 0)`;
-        if (rimObj) rimObj.setSpot(liftP);
-
-        const ovBottom = ovHeight + yPx;
-        const normX = Math.max(-1, Math.min(1, (markCenterX - vcX) / halfBowlW));
-        const rimAtMarkX = ovBottom - bowlRyPx + bowlRyPx * Math.sqrt(Math.max(0, 1 - normX * normX));
-
-        if (whiteMark && INTRO_THEME === 'dark') {
-          const localY = Math.max(0, Math.min(mr.height, rimAtMarkX - mr.top));
-          const pct = (localY / Math.max(1, mr.height)) * 100;
-          whiteMark.style.clipPath = `inset(0 0 ${(100 - pct).toFixed(2)}% 0)`;
-          introMark.style.clipPath = `inset(${pct.toFixed(2)}% 0 0 0)`;
-        }
-
-        const rimAtCenter = ovBottom;
-        if (lensObj && heroCopy) {
-          const intensity = lensObj.update(rimAtCenter - copyTop, 1);
-          if (qualityMon) qualityMon.sample(now, intensity > 0);
-        }
-        heroLines.forEach((span, idx) => {
-          if (rimAtCenter <= lineCenters[idx] + 24) {
-            span.style.transform = 'translateY(0)';
-          }
-        });
-      }
-
-      if (!liftStarted || liftP < 1) {
-        liftRaf = requestAnimationFrame(stepFrame);
-      } else {
-        liftRaf = 0;
-      }
-    };
-    liftRaf = requestAnimationFrame(stepFrame);
-
-    await flyA.finished.catch(() => {});
-    if (!alive()) return;
-
-    // Same-tick handoff to real nav mark + wordmark clip + nav fade-in
-    handoffToNavMark();
-    root.classList.remove('intro-nav', 'intro-hero');
-
-    await wait(Math.max(T.navReveal, T.lift - (T.fly - (T.liftDelayAfterFlight - T.anticipation))));
-    if (!alive()) return;
-
-    end();
-    introMark.remove();
-    whiteMark?.remove();
-    ov.remove();
+    ov.style.display = 'none';
+    if (whiteMark) whiteMark.style.display = 'none';
+    navMark.style.visibility = 'visible';
+    clearClasses();
     emitIntroEnd();
   }
 
+  function resetForReplay() {
+    cancelAll();
+    introEnded = false;
+    window.scrollTo({ top: 0, behavior: 'instant' });
+    [ov, ribbon, whiteMark, header, wordmark, tabsEl, ...lineSpans, dekEl, ctaEl, stageEl, ...sheetCells].forEach(el => {
+      if (!el) return;
+      el.style.removeProperty('transform');
+      el.style.removeProperty('opacity');
+      el.style.removeProperty('clip-path');
+    });
+    ov.style.display = '';
+    if (whiteMark) whiteMark.style.display = '';
+    root.classList.add('intro-nav', 'intro-hero', 'playing');
+    navMark.style.visibility = 'hidden';
+  }
+
+  function anim(el, keyframes, options) {
+    if (!el) return null;
+    const a = el.animate(keyframes, Object.assign({ fill: 'both' }, options));
+    anims.push(a);
+    return a;
+  }
+
+  async function quickFade(durationMs) {
+    const my = ++token;
+    clearClasses();
+    navMark.style.visibility = 'visible';
+    if (whiteMark) whiteMark.style.display = 'none';
+    const fade = anim(ov, [{ opacity: 1 }, { opacity: 0 }], { duration: durationMs, easing: 'ease-out', fill: 'forwards' });
+    await fade?.finished.catch(() => {});
+    if (my !== token) return;
+    finishIntro();
+  }
+
+  function revealContentTimeline(baseOffsetMs = 0) {
+    const sched = (atMs, fn) => {
+      const delay = Math.max(0, atMs - baseOffsetMs);
+      timers.push(setTimeout(fn, delay));
+    };
+
+    // 1.85s: nav pill y -12->0 + fade (500ms)
+    sched(TIMING.navPillAtMs, () => {
+      root.classList.remove('intro-nav');
+      header.style.opacity = '1';
+      header.style.transform = 'translateY(0)';
+      anim(header, [{ opacity: 0, transform: 'translateY(-12px)' }, { opacity: 1, transform: 'translateY(0)' }], {
+        duration: TIMING.navPillMs,
+        easing: EXPO_OUT
+      });
+    });
+
+    // 2.00s: wordmark clip-path left->right (350ms, no typewriter)
+    sched(TIMING.wordmarkAtMs, () => {
+      if (!wordmark) return;
+      anim(wordmark, [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], {
+        duration: TIMING.wordmarkMs,
+        easing: 'cubic-bezier(0.22, 1, 0.36, 1)'
+      });
+    });
+
+    // 1.90s: Without/With tabs y 8->0 + fade
+    sched(TIMING.tabsAtMs, () => {
+      if (!tabsEl) return;
+      anim(tabsEl, [{ opacity: 0, transform: 'translateY(8px)' }, { opacity: 1, transform: 'translateY(0)' }], {
+        duration: TIMING.tabsMs,
+        easing: EXPO_OUT
+      });
+    });
+
+    // 1.90s line 1, 2.00s line 2: masked line reveal (after fonts.ready)
+    sched(TIMING.line1AtMs, () => {
+      if (lineSpans[0]) {
+        anim(lineSpans[0], [{ transform: 'translateY(110%)' }, { transform: 'translateY(0)' }], {
+          duration: TIMING.headlineMs,
+          easing: EXPO_OUT
+        });
+      }
+    });
+    sched(TIMING.line2AtMs, () => {
+      if (lineSpans[1]) {
+        anim(lineSpans[1], [{ transform: 'translateY(110%)' }, { transform: 'translateY(0)' }], {
+          duration: TIMING.headlineMs,
+          easing: EXPO_OUT
+        });
+      }
+    });
+
+    // 2.20s: subhead y 12->0 + fade (500ms)
+    sched(TIMING.subheadAtMs, () => {
+      if (!dekEl) return;
+      anim(dekEl, [{ opacity: 0, transform: 'translateY(12px)' }, { opacity: 1, transform: 'translateY(0)' }], {
+        duration: TIMING.subheadMs,
+        easing: EXPO_OUT
+      });
+    });
+
+    // 2.30s: CTA scale .96->1 + fade (450ms, final blue from frame 1)
+    sched(TIMING.ctaAtMs, () => {
+      if (!ctaEl) return;
+      anim(ctaEl, [{ opacity: 0, transform: 'scale(0.96)' }, { opacity: 1, transform: 'scale(1)' }], {
+        duration: TIMING.ctaMs,
+        easing: EXPO_OUT
+      });
+    });
+
+    // 2.35s: spreadsheet mockup y 40->0 + fade (900ms, rows staggered 20ms)
+    sched(TIMING.mockupAtMs, () => {
+      if (stageEl) {
+        anim(stageEl, [{ opacity: 0, transform: 'translateY(40px)' }, { opacity: 1, transform: 'translateY(0)' }], {
+          duration: TIMING.mockupMs,
+          easing: EXPO_OUT
+        });
+      }
+      sheetCells.forEach((cell, idx) => {
+        const row = Math.floor(idx / 8);
+        anim(cell, [{ opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' }], {
+          duration: 320,
+          delay: row * TIMING.rowStaggerMs,
+          easing: EXPO_OUT
+        });
+      });
+    });
+  }
+
+  async function playIntro() {
+    if (params.get('intro') === '0') {
+      finishIntro();
+      return;
+    }
+
+    const my = ++token;
+    const alive = () => my === token;
+
+    resetForReplay();
+
+    if (reducedMQ.matches || root.dataset.introMode === 'reduced') {
+      await quickFade(TIMING.reducedFadeMs);
+      return;
+    }
+
+    lockScroll();
+    setWillChange(true);
+
+    // Wait for fonts at DOMContentLoaded before starting timeline
+    if (document.fonts) {
+      await Promise.race([document.fonts.ready, wait(800)]);
+      if (!alive()) return;
+    }
+
+    const core = whiteSvg?.querySelector('.core');
+    const track = whiteSvg?.querySelector('.track');
+    const orbit = whiteSvg?.querySelector('.orbit');
+    const sats = [...(whiteSvg?.querySelectorAll('.sat') || [])];
+    const satAngles = [-90, 30, 150];
+
+    // 0.00-0.35s: Core dot 0->1 (back.out), ring draws via stroke-dashoffset, 3 sats stagger 60ms at orbit positions
+    if (track) {
+      const len = 2 * Math.PI * 17;
+      track.style.strokeDasharray = `${len.toFixed(2)}`;
+      track.style.strokeDashoffset = `${len.toFixed(2)}`;
+      anim(track, [{ strokeDashoffset: len, opacity: 0 }, { strokeDashoffset: 0, opacity: 0.28 }], {
+        duration: TIMING.assembleMs,
+        easing: EXPO_OUT
+      });
+    }
+    if (core) {
+      anim(core, [{ transform: 'scale(0)' }, { transform: 'scale(1)' }], {
+        duration: TIMING.assembleMs,
+        easing: BACK_OUT
+      });
+    }
+    sats.forEach((sat, i) => {
+      const a = `${satAngles[i]}deg`;
+      anim(sat, [
+        { opacity: 0, transform: `rotate(${a}) translateX(17px) scale(0.4)` },
+        { opacity: 1, transform: `rotate(${a}) translateX(17px) scale(1)` }
+      ], {
+        duration: TIMING.assembleMs - i * TIMING.satStaggerMs,
+        delay: i * TIMING.satStaggerMs,
+        easing: BACK_OUT
+      });
+    });
+
+    await wait(TIMING.assembleMs);
+    if (!alive()) return;
+
+    // 0.35-1.25s: Minimum 1.25s loader time — one full 360deg orbit + 100->108->100% breathe
+    const orbitAnim = anim(orbit, [{ transform: 'rotate(0deg)' }, { transform: 'rotate(360deg)' }], {
+      duration: TIMING.orbitMs,
+      easing: POWER2_IO
+    });
+    sats.forEach((sat, i) => {
+      const a = `${satAngles[i]}deg`;
+      anim(sat, [
+        { transform: `rotate(${a}) translateX(17px) scale(1)` },
+        { transform: `rotate(${a}) translateX(18.36px) scale(1)`, offset: 0.5 },
+        { transform: `rotate(${a}) translateX(17px) scale(1)` }
+      ], {
+        duration: TIMING.orbitMs,
+        easing: POWER2_IO
+      });
+    });
+
+    await Promise.all([orbitAnim?.finished.catch(() => {}), wait(TIMING.orbitMs)]);
+    if (!alive()) return;
+
+    // 1.25-1.85s: Handoff — measure navSlot with getBoundingClientRect, travel & scale in 0.6s
+    const vw = document.documentElement.clientWidth;
+    const vh = document.documentElement.clientHeight;
+    const big = whiteMark?.getBoundingClientRect().width || 220;
+    const sr = navSlot.getBoundingClientRect();
+    const k = (sr.width || 30) / big;
+    const dx = (sr.left + sr.width / 2) - vw / 2;
+    const dy = (sr.top + sr.height / 2) - vh / 2;
+
+    const handoffAnim = anim(whiteMark, [
+      { transform: 'translate(0px, 0px) scale(1)' },
+      { transform: `translate(${dx.toFixed(2)}px, ${dy.toFixed(2)}px) scale(${k.toFixed(4)})` }
+    ], {
+      duration: TIMING.handoffMs,
+      easing: HANDOFF_EASE
+    });
+
+    // 1.40-2.10s: Curtain exits with curved edge (expo.out) + CTA-blue ribbon fading out
+    const curtainDelay = TIMING.curtainAtMs - (TIMING.assembleMs + TIMING.orbitMs);
+    timers.push(setTimeout(() => {
+      if (!alive()) return;
+      anim(ov, [{ transform: 'translateY(0)' }, { transform: 'translateY(calc(-100% - 4vh))' }], {
+        duration: TIMING.curtainMs,
+        easing: EXPO_OUT
+      });
+      if (ribbon) {
+        anim(ribbon, [{ opacity: 0.35 }, { opacity: 0 }], {
+          duration: TIMING.curtainMs,
+          easing: 'ease-out'
+        });
+      }
+    }, Math.max(0, curtainDelay)));
+
+    revealContentTimeline(TIMING.assembleMs + TIMING.orbitMs);
+
+    await handoffAnim?.finished.catch(() => {});
+    if (!alive()) return;
+
+    // 1.85s: Exact handoff to nav mark
+    navMark.style.visibility = 'visible';
+    if (whiteMark) whiteMark.style.display = 'none';
+
+    await wait(Math.max(0, (TIMING.mockupAtMs + TIMING.mockupMs) - (TIMING.assembleMs + TIMING.orbitMs + TIMING.handoffMs)));
+    if (!alive()) return;
+
+    finishIntro();
+  }
+
+  window.playIntro = playIntro;
+  window.playTitanIntro = playIntro;
+
   ['pointerdown', 'keydown', 'resize'].forEach(evt =>
     addEventListener(evt, () => {
-      if (root.classList.contains('playing')) end(true);
+      if (root.classList.contains('playing')) {
+        token++;
+        finishIntro();
+      }
     }, { passive: true })
   );
-  document.addEventListener('visibilitychange', () => {
-    if (document.hidden && root.classList.contains('playing')) end(true);
-  });
 
-  window.playTitanIntro = () => play(true);
-  play();
-
+  // Replay on bfcache restore
   window.addEventListener('pageshow', (event) => {
     if (event.persisted) {
-      introEndedDispatched = false;
-      anims = [];
-      play(false);
+      playIntro();
     }
   });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', playIntro, { once: true });
+  } else {
+    playIntro();
+  }
 })();

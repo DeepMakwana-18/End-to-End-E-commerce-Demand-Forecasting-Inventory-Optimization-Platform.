@@ -1,21 +1,18 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="intro-nav intro-hero playing">
 
 <head>
   <script>(function () {
     try {
-      var INTRO_MODE = 'always'; // 'always' | 'session' | 'off'
-      var INTRO_THEME = 'dark';  // 'dark' | 'light'
-      window.TITAN_INTRO_MODE = INTRO_MODE;
-      window.TITAN_INTRO_THEME = INTRO_THEME;
       var params = new URLSearchParams(location.search);
       var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      var skipSession = INTRO_MODE === 'session' && sessionStorage.getItem('titan_intro_played') === '1';
-      document.documentElement.dataset.introTheme = INTRO_THEME;
-      if (INTRO_MODE !== 'off' && !skipSession && !reduced && params.get('intro') !== '0') {
-        history.scrollRestoration = 'manual';
-        scrollTo(0, 0);
-        document.documentElement.classList.add('intro-nav', 'intro-hero', 'playing');
+      history.scrollRestoration = 'manual';
+      scrollTo(0, 0);
+      if (params.get('intro') === '0') {
+        document.documentElement.classList.remove('intro-nav', 'intro-hero', 'playing');
+        document.documentElement.dataset.introMode = 'off';
+      } else {
+        document.documentElement.dataset.introMode = reduced ? 'reduced' : 'full';
       }
     } catch (e) { }
   })();</script>
@@ -182,18 +179,9 @@
     }
 
     html.intro-nav .site-header {
-      background: transparent !important;
-      border-color: transparent !important;
-      box-shadow: none !important;
-      backdrop-filter: none !important;
-      -webkit-backdrop-filter: none !important
-    }
-
-    html.intro-nav .site-header .nav-links,
-    html.intro-nav .site-header .nav-cta,
-    html.intro-nav .site-header .nav-toggle {
       opacity: 0 !important;
-      pointer-events: none !important
+      transform: translateY(-12px) !important;
+      pointer-events: none !important;
     }
 
     html.intro-nav .site-header .word {
@@ -208,21 +196,43 @@
 
     #hero-title .hero-line>span {
       display: block;
-      transition: transform .8s cubic-bezier(.22, 1, .36, 1)
-    }
-
-    #hero-title .hero-line:nth-child(2)>span {
-      transition-delay: .09s
     }
 
     html.intro-hero #hero-title .hero-line>span {
-      transform: translateY(105%)
+      transform: translateY(110%)
     }
 
-    html.intro-hero #top .hero-compare__dek,
+    html.intro-hero #top .hero-compare__tabs {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    html.intro-hero #top .hero-compare__dek {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+
     html.intro-hero #top .hero-compare__cta {
       opacity: 0;
-      transform: translateY(12px)
+      transform: scale(0.96);
+    }
+
+    html.intro-hero #top .hero-compare__stage {
+      opacity: 0;
+      transform: translateY(40px);
+    }
+
+    /* Thin CTA-blue ribbon on #ov bottom edge (no pink) */
+    #ov .ov-blue-ribbon {
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -3px;
+      height: 6px;
+      border-radius: inherit;
+      background: rgba(30, 63, 200, 0.35);
+      box-shadow: 0 6px 22px rgba(30, 63, 200, 0.35);
+      pointer-events: none;
     }
   </style>
   <meta charset="UTF-8" />
@@ -1556,9 +1566,8 @@
     </nav>
   </header>
   <div id="ov" aria-hidden="true">
-    <div class="ov-veil-clip">
-      <div class="ov-aurora" aria-hidden="true"></div>
-    </div>
+    <div class="ov-veil-clip"></div>
+    <div class="ov-blue-ribbon" aria-hidden="true"></div>
   </div>
   <div id="intro-mark-white" aria-hidden="true">
     <svg class="titan" viewBox="0 0 48 48" width="220" height="220" xmlns="http://www.w3.org/2000/svg">
