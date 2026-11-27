@@ -92,7 +92,15 @@ function AppContent() {
 
   useEffect(() => {
     setTheme(theme);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [theme, setTheme]);
+
+  useEffect(() => {
+    if (theme !== 'system' || typeof window === 'undefined') return;
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = () => setTheme('system');
+    mediaQuery.addEventListener('change', handleChange);
+    return () => mediaQuery.removeEventListener('change', handleChange);
+  }, [theme, setTheme]);
 
   return (
     <>
