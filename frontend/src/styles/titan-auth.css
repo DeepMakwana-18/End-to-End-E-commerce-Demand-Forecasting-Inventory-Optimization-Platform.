@@ -1,0 +1,113 @@
+/* Titan AI Auth Page & Orbit Mark Styles
+ * Aligned with Titan AI Design.md: flat editorial base, quiet transitions,
+ * hover gated to fine pointers, and prefers-reduced-motion support.
+ */
+
+.titan {
+  color: inherit;
+  overflow: visible;
+  display: block;
+  flex-shrink: 0;
+}
+
+.titan .orbit {
+  transform-origin: 24px 24px;
+}
+
+.titan .track {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  opacity: 0.18;
+}
+
+.titan.sm .track {
+  display: none;
+}
+
+.titan .sat {
+  transform-origin: 24px 24px;
+  transform: rotate(var(--a)) translateX(17px);
+}
+
+.titan .ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.titan.sm .ring {
+  stroke-width: 3.6;
+}
+
+.titan .core {
+  fill: currentColor;
+  transform-origin: 24px 24px;
+}
+
+.titan.spin .orbit {
+  animation: titan-orbit-step 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.titan.spin .core {
+  animation: titan-core-breathe 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes titan-orbit-step {
+  to {
+    transform: rotate(120deg);
+  }
+}
+
+@keyframes titan-core-breathe {
+  50% {
+    transform: scale(0.86);
+  }
+}
+
+/* Auth card: restrained orange hard offset shadow */
+.titan-auth-card {
+  background-color: #ffffff;
+  border: 1px solid #0a0a0a;
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 #f59e0b;
+}
+
+/* Primary action button */
+.titan-auth-btn {
+  background-color: #1e3fc8;
+  color: #ffffff;
+  border-radius: 999px;
+  min-height: 46px;
+  transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 80ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .titan-auth-btn:hover:not(:disabled) {
+    background-color: #1632a0;
+    transform: translateY(-1px);
+  }
+}
+
+.titan-auth-btn:active:not(:disabled) {
+  transform: translateY(1px) scale(0.98);
+}
+
+.titan-auth-btn:focus-visible {
+  outline: 2px solid #1e3fc8;
+  outline-offset: 2px;
+}
+
+.titan-auth-btn:disabled {
+  opacity: 0.72;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titan *,
+  .titan-auth-btn {
+    animation: none !important;
+    transition-duration: 0.01ms !important;
+  }
+}

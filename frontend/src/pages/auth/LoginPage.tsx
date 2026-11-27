@@ -1,12 +1,21 @@
-/** Premium login/signup page with glassmorphism card and gradient background. */
+/** Titan AI login and registration page. */
 
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Mail, Lock, Eye, EyeOff, ArrowRight, User, Building2 } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Building2, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { authApi } from '@/services/api';
 import { cn } from '@/lib/utils';
+import { TitanMark } from '@/components/ui/TitanMark';
+import '@/styles/titan-auth.css';
+
+const inputClasses = cn(
+  'w-full min-h-[44px] pl-11 pr-4 py-2.5 rounded-[12px] text-[15px]',
+  'bg-white border border-[#d4d4d8]',
+  'text-[#0a0a0a] placeholder:text-[#71717a]',
+  'focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20',
+  'transition-colors duration-150'
+);
 
 export default function LoginPage() {
   const location = useLocation();
@@ -53,214 +62,217 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden bg-ds-canvas transition-colors duration-300">
-      {/* Animated background with Apple Modern subtle glow */}
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-[#007AFF]/10 rounded-full blur-[140px] animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-[#5856D6]/10 rounded-full blur-[140px] animate-pulse" style={{ animationDelay: '1.2s' }} />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#007AFF]/5 rounded-full blur-[200px]" />
-      </div>
-
-      {/* Grid pattern overlay */}
-      <div
-        className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        style={{
-          backgroundImage: 'linear-gradient(rgba(128,128,128,0.2) 1px, transparent 1px), linear-gradient(90deg, rgba(128,128,128,0.2) 1px, transparent 1px)',
-          backgroundSize: '48px 48px',
-        }}
-      />
-
-      <motion.div
-        initial={{ opacity: 0, y: 24, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.5, ease: [0.32, 0.72, 0, 1] }}
-        className="w-full max-w-md relative z-10"
-      >
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ delay: 0.15, type: 'spring', stiffness: 260, damping: 20 }}
-            className="w-16 h-16 rounded-2xl bg-ds-blue-action flex items-center justify-center mx-auto shadow-[var(--ds-raise-2)] text-white"
-          >
-            <BarChart3 className="w-8 h-8 text-white" />
-          </motion.div>
-          <h1 className="mt-5 text-2xl font-bold text-ds-text tracking-tight">
+    <div className="min-h-[100dvh] bg-[#fafaf9] text-[#0a0a0a] flex flex-col items-center justify-center px-4 py-8 sm:px-6 font-sans">
+      <div className="w-full max-w-[420px]">
+        {/* Brand lockup */}
+        <header className="text-center mb-6">
+          <div className="inline-flex items-center justify-center gap-2.5 text-[#0a0a0a]">
+            <TitanMark size={30} decorative />
+            <span className="text-[15px] font-extrabold uppercase tracking-[0.08em] leading-none">
+              TITAN AI
+            </span>
+          </div>
+          <h1 className="mt-3 text-[22px] sm:text-[24px] font-bold tracking-[-0.02em] leading-[1.2] text-[#0a0a0a]">
             Titan Supply Chain AI
           </h1>
-          <p className="mt-1.5 text-sm text-ds-text-secondary">
-            Enterprise AI-Powered Demand Forecasting Platform
+          <p className="mt-1.5 text-[14px] leading-[1.45] text-[#52525b]">
+            Demand forecasting and inventory intelligence
           </p>
-        </div>
+        </header>
 
-        {/* Login/Signup card */}
-        <div className="card-apple p-8 sm:p-10 shadow-[var(--ds-raise-3)] backdrop-blur-2xl">
-          <h2 className="text-lg font-semibold text-ds-text mb-1">
-            {isSignup ? 'Create your account' : 'Welcome back'}
-          </h2>
-          <p className="text-sm text-ds-text-secondary mb-6">
-            {isSignup ? 'Start your 14-day free trial' : 'Sign in to your account to continue'}
-          </p>
+        {/* Login / Signup card */}
+        <main className="titan-auth-card p-6 sm:p-8 mr-1">
+          <div className="mb-6">
+            <h2 className="text-[20px] font-bold tracking-[-0.015em] leading-[1.25] text-[#0a0a0a]">
+              {isSignup ? 'Create your account' : 'Welcome back'}
+            </h2>
+            <p className="mt-1 text-[14px] leading-[1.45] text-[#52525b]">
+              {isSignup ? 'Start your 14-day free trial' : 'Sign in to your account to continue'}
+            </p>
+          </div>
 
           {error && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mb-4 p-3 rounded-xl bg-ds-red-danger/10 border border-ds-red-danger/25 text-ds-red-danger text-sm font-medium"
+            <div
+              role="alert"
+              aria-live="polite"
+              className="mb-5 flex items-start gap-2.5 p-3.5 rounded-[12px] bg-[#fee2e2] border border-[#fca5a5] text-[#991b1b] text-[14px] font-medium leading-[1.4]"
             >
-              {error}
-            </motion.div>
+              <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
+              <span>{error}</span>
+            </div>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <AnimatePresence mode="wait">
-              {isSignup && (
-                <motion.div
-                  key="signup-fields"
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="space-y-4 overflow-hidden"
-                >
-                  {/* Full Name */}
-                  <div>
-                    <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Full Name</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
-                      <input
-                        type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="Jane Smith"
-                        required={isSignup}
-                        className={cn(
-                          'w-full pl-11 pr-4 py-3 rounded-full text-sm',
-                          'bg-ds-surface-sunken border border-ds-border',
-                          'text-ds-text placeholder:text-ds-text-secondary',
-                          'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
-                          'transition-all duration-200'
-                        )}
-                      />
-                    </div>
+            {isSignup && (
+              <div className="space-y-4">
+                {/* Full Name */}
+                <div>
+                  <label
+                    htmlFor="auth-name"
+                    className="block text-[13px] font-semibold text-[#0a0a0a] mb-1.5"
+                  >
+                    Full Name
+                  </label>
+                  <div className="relative">
+                    <User
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525b]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="auth-name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Jane Smith"
+                      required={isSignup}
+                      autoComplete="name"
+                      className={inputClasses}
+                    />
                   </div>
+                </div>
 
-                  {/* Organization Name */}
-                  <div>
-                    <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Organization Name</label>
-                    <div className="relative">
-                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
-                      <input
-                        type="text"
-                        value={orgName}
-                        onChange={(e) => setOrgName(e.target.value)}
-                        placeholder="Acme Corporation"
-                        required={isSignup}
-                        className={cn(
-                          'w-full pl-11 pr-4 py-3 rounded-full text-sm',
-                          'bg-ds-surface-sunken border border-ds-border',
-                          'text-ds-text placeholder:text-ds-text-secondary',
-                          'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
-                          'transition-all duration-200'
-                        )}
-                      />
-                    </div>
+                {/* Organization Name */}
+                <div>
+                  <label
+                    htmlFor="auth-org"
+                    className="block text-[13px] font-semibold text-[#0a0a0a] mb-1.5"
+                  >
+                    Organization Name
+                  </label>
+                  <div className="relative">
+                    <Building2
+                      className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525b]"
+                      aria-hidden="true"
+                    />
+                    <input
+                      id="auth-org"
+                      type="text"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="Acme Corporation"
+                      required={isSignup}
+                      autoComplete="organization"
+                      className={inputClasses}
+                    />
                   </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                </div>
+              </div>
+            )}
 
             {/* Email */}
             <div>
-              <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Email Address</label>
+              <label
+                htmlFor="auth-email"
+                className="block text-[13px] font-semibold text-[#0a0a0a] mb-1.5"
+              >
+                Email Address
+              </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
+                <Mail
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525b]"
+                  aria-hidden="true"
+                />
                 <input
+                  id="auth-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@company.com"
                   required
-                  className={cn(
-                    'w-full pl-11 pr-4 py-3 rounded-full text-sm',
-                    'bg-ds-surface-sunken border border-ds-border',
-                    'text-ds-text placeholder:text-ds-text-secondary',
-                    'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
-                    'transition-all duration-200'
-                  )}
+                  autoComplete="email"
+                  className={inputClasses}
                 />
               </div>
             </div>
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-medium text-ds-text-secondary mb-1.5">Password</label>
+              <label
+                htmlFor="auth-password"
+                className="block text-[13px] font-semibold text-[#0a0a0a] mb-1.5"
+              >
+                Password
+              </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ds-text-secondary" />
+                <Lock
+                  className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525b]"
+                  aria-hidden="true"
+                />
                 <input
+                  id="auth-password"
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
                   required
-                  className={cn(
-                    'w-full pl-11 pr-12 py-3 rounded-full text-sm',
-                    'bg-ds-surface-sunken border border-ds-border',
-                    'text-ds-text placeholder:text-ds-text-secondary',
-                    'focus:outline-none focus:ring-2 focus:ring-ds-blue-action/30 focus:border-ds-blue-action',
-                    'transition-all duration-200'
-                  )}
+                  autoComplete={isSignup ? 'new-password' : 'current-password'}
+                  className={cn(inputClasses, 'pr-12')}
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-ds-text-secondary hover:text-ds-text transition-colors"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  aria-pressed={showPassword}
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-[10px] text-[#52525b] hover:text-[#0a0a0a] focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px] transition-colors"
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  {showPassword ? (
+                    <EyeOff className="w-4 h-4" aria-hidden="true" />
+                  ) : (
+                    <Eye className="w-4 h-4" aria-hidden="true" />
+                  )}
                 </button>
               </div>
             </div>
 
             {/* Submit */}
-            <motion.button
+            <button
               type="submit"
               disabled={isLoading}
-              whileTap={{ scale: 0.98 }}
-              className="btn-apple btn-apple-primary w-full py-3.5 text-sm font-semibold justify-center shadow-[var(--ds-raise-1)] mt-2"
+              className="titan-auth-btn w-full mt-2 px-5 py-3 text-[15px] font-semibold inline-flex items-center justify-center gap-2"
             >
               {isLoading ? (
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                <>
+                  <TitanMark size={18} mode="spin" decorative />
+                  <span>{isSignup ? 'Creating Account...' : 'Signing In...'}</span>
+                </>
               ) : (
                 <>
-                  {isSignup ? 'Create Account' : 'Sign In'} <ArrowRight className="w-4 h-4" />
+                  <span>{isSignup ? 'Create Account' : 'Sign In'}</span>
+                  <ArrowRight className="w-4 h-4" aria-hidden="true" />
                 </>
               )}
-            </motion.button>
+            </button>
           </form>
 
           {/* Toggle login/signup */}
-          <p className="mt-6 text-center text-sm text-ds-text-secondary">
+          <p className="mt-6 text-center text-[14px] text-[#52525b]">
             {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
             <button
               type="button"
-              onClick={() => { setIsSignup(!isSignup); setError(''); }}
-              className="text-ds-blue-action hover:underline font-medium transition-colors"
+              onClick={() => {
+                setIsSignup(!isSignup);
+                setError('');
+              }}
+              className="inline-flex items-center min-h-[44px] px-1 text-[#1e3fc8] hover:underline font-semibold focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2 rounded"
             >
               {isSignup ? 'Sign In' : 'Sign Up'}
             </button>
           </p>
 
-          <div className="mt-4 text-center">
-            <span className="inline-block px-3 py-1 rounded-full text-xs font-mono bg-ds-surface-sunken border border-ds-border text-ds-text-secondary">
+          {/* Demo credentials */}
+          <div className="mt-4 pt-4 border-t border-[#e4e4e7] text-center">
+            <span className="inline-block px-3 py-1.5 rounded-[10px] text-[12px] font-mono bg-[#f6f6f7] border border-[#e4e4e7] text-[#52525b]">
               Demo: admin@titan.demo / admin123
             </span>
           </div>
-        </div>
+        </main>
 
-        <p className="mt-6 text-center text-xs text-ds-text-secondary">
-          © 2026 Titan Supply Chain AI. Enterprise-Grade Platform.
-        </p>
-      </motion.div>
+        <footer className="mt-6 text-center">
+          <p className="text-[12px] leading-[1.4] text-[#52525b]">
+            © 2026 Titan Supply Chain AI. Enterprise-Grade Platform.
+          </p>
+        </footer>
+      </div>
     </div>
   );
 }

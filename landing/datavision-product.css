@@ -74,7 +74,8 @@
   width: 1px;
   background: #e4e4e7;
   pointer-events: none;
-  z-index: 2;
+  /* Sit behind each card surface; the rail should only bridge the gaps. */
+  z-index: 0;
 }
 
 #product .tab-rail__fill {

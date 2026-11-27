@@ -97,13 +97,23 @@ body {
 }
 
 @keyframes closing-aurora-drift-a {
-  0% { transform: translate3d(-16px, -10px, 0) scale(0.96); }
-  100% { transform: translate3d(22px, 14px, 0) scale(1.06); }
+  0% {
+    transform: translate3d(-16px, -10px, 0) scale(0.96);
+  }
+
+  100% {
+    transform: translate3d(22px, 14px, 0) scale(1.06);
+  }
 }
 
 @keyframes closing-aurora-drift-b {
-  0% { transform: translate3d(18px, 12px, 0) scale(1.04); }
-  100% { transform: translate3d(-20px, -14px, 0) scale(0.95); }
+  0% {
+    transform: translate3d(18px, 12px, 0) scale(1.04);
+  }
+
+  100% {
+    transform: translate3d(-20px, -14px, 0) scale(0.95);
+  }
 }
 
 #closing .closing-inner {
@@ -149,7 +159,7 @@ body {
   font: inherit;
 }
 
-#closing .closing-line > span {
+#closing .closing-line>span {
   display: block;
 }
 
@@ -159,7 +169,7 @@ body {
 }
 
 /* Full contrast subtitle from the start (#d4d4d8) */
-#closing .closing-inner > p.closing-statement,
+#closing .closing-inner>p.closing-statement,
 #closing .closing-statement {
   color: #d4d4d8 !important;
   max-width: 600px;
@@ -197,6 +207,7 @@ body {
   #closing .closing-actions .button:hover {
     transform: scale(1.03);
   }
+
   #closing .button:hover span {
     transform: translate(2px, -2px);
   }
