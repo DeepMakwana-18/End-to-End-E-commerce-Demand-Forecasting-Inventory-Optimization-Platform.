@@ -329,12 +329,13 @@ export function AICopilotDrawer() {
         id="ai-copilot-trigger"
         onClick={() => setIsOpen(true)}
         className={`
-          fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full
-          bg-ds-blue-action text-white
-          shadow-ds-float-2 border border-ds-hairline
+          fixed bottom-6 right-6 z-50 w-12 h-12 rounded-full
+          bg-[#1e3fc8] hover:bg-[#1632a0] text-white
+          border border-[#0a0a0a]/20 dark:border-white/15
+          shadow-[0_4px_14px_rgba(10,10,10,0.18)]
           flex items-center justify-center
-          hover:bg-ds-blue-strong
-          transition-all duration-200
+          focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2
+          transition-colors duration-150
           ${isOpen ? 'hidden' : 'flex'}
         `}
         whileHover={{ scale: 1.05 }}

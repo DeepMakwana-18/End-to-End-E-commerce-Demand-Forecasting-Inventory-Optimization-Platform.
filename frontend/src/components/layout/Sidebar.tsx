@@ -4,12 +4,13 @@ import { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  LayoutDashboard, TrendingUp, Package, BarChart3, PieChart,
+  LayoutDashboard, TrendingUp, Package, PieChart,
   FileText, Settings, ChevronLeft, ChevronRight, Bell,
   Upload, Users, Activity, Boxes, LogOut, FlaskConical, ShieldAlert,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { cn } from '@/lib/utils';
+import { TitanMark } from '@/components/ui/TitanMark';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/app' },
@@ -58,31 +59,31 @@ export function Sidebar() {
         transition={{ duration: 0.3, ease: [0.28, 0.11, 0.32, 1] }}
         className={cn(
           'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
-          'border-r border-slate-200/90 dark:border-ds-hairline',
-          'bg-white dark:bg-ds-sidebar-surface',
-          'overflow-hidden shadow-[1px_0_12px_rgba(15,23,42,0.03)]'
+          'border-r border-[#e4e4e7] dark:border-[#27272a]',
+          'bg-white dark:bg-[#111113]',
+          'overflow-hidden'
         )}
       >
       {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-slate-200/80 dark:border-ds-hairline flex-shrink-0 bg-slate-50/40 dark:bg-transparent">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
-            <BarChart3 className="w-5 h-5 text-white" />
+      <div className="flex items-center h-16 px-4 border-b border-[#e4e4e7] dark:border-[#27272a] flex-shrink-0">
+        <div className="flex items-center gap-2.5 overflow-hidden text-[#0a0a0a] dark:text-[#fafaf9]">
+          <div className="w-9 h-9 flex items-center justify-center flex-shrink-0">
+            <TitanMark size={28} decorative />
           </div>
           <AnimatePresence>
             {!sidebarCollapsed && (
               <motion.div
-                initial={{ opacity: 0, x: -10 }}
+                initial={{ opacity: 0, x: -8 }}
                 animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
+                exit={{ opacity: 0, x: -8 }}
+                transition={{ duration: 0.16 }}
                 className="whitespace-nowrap"
               >
                 <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm font-extrabold text-slate-900 dark:text-ds-text-primary tracking-tight">Titan AI</h1>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v2.4</span>
+                  <h1 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-[#0a0a0a] dark:text-[#fafaf9]">TITAN AI</h1>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#f1f1f3] text-[#52525b] border border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]">v2.4</span>
                 </div>
-                <p className="text-[10px] text-slate-500 dark:text-ds-text-muted font-medium">Supply Chain Intelligence</p>
+                <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">Supply Chain Intelligence</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -93,7 +94,7 @@ export function Sidebar() {
       <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1">
         <div className="mb-4">
           {!sidebarCollapsed && (
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#52525b] dark:text-[#a1a1aa]">
               Main Menu
             </p>
           )}
@@ -106,26 +107,25 @@ export function Sidebar() {
               aria-label={item.label}
               className={({ isActive }) =>
                 cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                  'group relative',
+                  'flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-[12px] text-[13px] font-medium transition-colors duration-150',
+                  'group relative focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px]',
                   isActive
-                    ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
-                    : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
+                    ? 'bg-[#0a0a0a] text-[#fafaf9] font-semibold dark:bg-[#18181b] dark:text-[#fafaf9] dark:border dark:border-[#27272a]'
+                    : 'text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b]'
                 )
               }
             >
               {({ isActive }) => (
                 <>
                   {isActive && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#f59e0b]"
                     />
                   )}
                   <item.icon className={cn(
-                    'w-4.5 h-4.5 flex-shrink-0 transition-colors',
-                    isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
+                    'w-4 h-4 flex-shrink-0 transition-colors',
+                    isActive ? 'text-[#fafaf9]' : 'text-[#52525b] dark:text-[#a1a1aa] group-hover:text-[#0a0a0a] dark:group-hover:text-[#fafaf9]'
                   )} />
                   <AnimatePresence>
                     {!sidebarCollapsed && (
@@ -133,7 +133,7 @@ export function Sidebar() {
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
+                        transition={{ duration: 0.14 }}
                       >
                         {item.label}
                       </motion.span>
@@ -149,7 +149,7 @@ export function Sidebar() {
         {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst') && (
           <div>
             {!sidebarCollapsed && (
-              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-[0.1em] text-[#52525b] dark:text-[#a1a1aa]">
                 Administration
               </p>
             )}
@@ -161,26 +161,25 @@ export function Sidebar() {
                 aria-label={item.label}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                    'group relative',
+                    'flex items-center gap-3 px-3.5 py-2.5 min-h-[44px] rounded-[12px] text-[13px] font-medium transition-colors duration-150',
+                    'group relative focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px]',
                     isActive
-                      ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
-                      : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
+                      ? 'bg-[#0a0a0a] text-[#fafaf9] font-semibold dark:bg-[#18181b] dark:text-[#fafaf9] dark:border dark:border-[#27272a]'
+                      : 'text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b]'
                   )
                 }
               >
                 {({ isActive }) => (
                   <>
                     {isActive && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+                      <span
+                        aria-hidden="true"
+                        className="absolute left-0 top-2.5 bottom-2.5 w-[3px] rounded-r-full bg-[#f59e0b]"
                       />
                     )}
                     <item.icon className={cn(
-                      'w-4.5 h-4.5 flex-shrink-0 transition-colors',
-                      isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
+                      'w-4 h-4 flex-shrink-0 transition-colors',
+                      isActive ? 'text-[#fafaf9]' : 'text-[#52525b] dark:text-[#a1a1aa] group-hover:text-[#0a0a0a] dark:group-hover:text-[#fafaf9]'
                     )} />
                     <AnimatePresence>
                       {!sidebarCollapsed && (
@@ -188,7 +187,7 @@ export function Sidebar() {
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           exit={{ opacity: 0 }}
-                          transition={{ duration: 0.15 }}
+                          transition={{ duration: 0.14 }}
                         >
                           {item.label}
                         </motion.span>
@@ -203,11 +202,12 @@ export function Sidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="p-2.5 border-t border-slate-200/80 dark:border-ds-hairline space-y-1 bg-slate-50/30 dark:bg-transparent">
+      <div className="p-2.5 border-t border-[#e4e4e7] dark:border-[#27272a] space-y-1">
         {/* Collapse toggle */}
         <button
           onClick={toggleSidebar}
-          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-ds-surface-alt/60 transition-all border border-transparent hover:border-slate-200/60"
+          aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          className="w-full min-h-[44px] flex items-center justify-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] transition-colors focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px]"
         >
           {sidebarCollapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -222,7 +222,8 @@ export function Sidebar() {
         {/* User / Logout */}
         <button
           onClick={logout}
-          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-ds-red dark:hover:bg-ds-red-surface transition-all border border-transparent hover:border-rose-100 dark:hover:border-transparent"
+          aria-label="Sign Out"
+          className="w-full min-h-[44px] flex items-center justify-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa] hover:text-[#991b1b] hover:bg-[#fee2e2] dark:hover:text-[#fda4af] dark:hover:bg-[#7f1d1d]/30 transition-colors focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px]"
         >
           <LogOut className="w-4 h-4 flex-shrink-0" />
           <AnimatePresence>

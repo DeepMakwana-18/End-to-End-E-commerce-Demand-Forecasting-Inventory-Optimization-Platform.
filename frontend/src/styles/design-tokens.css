@@ -12,44 +12,44 @@
    ========================================================================== */
 :root,
 :root.dark {
-  /* Neutrals & Surfaces - Section 4.2 */
-  --ds-canvas:           #0F1117;   /* Application background */
-  --ds-sidebar-surface:  #151922;   /* Sidebar background */
-  --ds-surface:          #1B202A;   /* Primary card */
-  --ds-surface-alt:      #242A36;   /* Secondary card */
-  --ds-surface-elevated: #2A3240;   /* Elevated surface */
-  --ds-surface-sunken:   #151922;   /* Sunken / background panel */
-  --ds-ink:              #F1F5F9;
-  --ds-hairline:         #353D4D;   /* Border */
-  --ds-border:           #353D4D;   /* Border */
-  --ds-border-subtle:    #242A36;
-  --ds-border-strong:    #475369;
-  --ds-border-control:   #64748B;
-  --ds-gray-400:         #94A3B8;
-  --ds-gray-500:         #A9B7CC;
+  /* Neutrals & Surfaces - Titan AI Design System (Dark) */
+  --ds-canvas:           #0a0a0a;   /* Application background */
+  --ds-sidebar-surface:  #111113;   /* Sidebar background */
+  --ds-surface:          #111113;   /* Primary card */
+  --ds-surface-alt:      #18181b;   /* Secondary card */
+  --ds-surface-elevated: #18181b;   /* Elevated surface */
+  --ds-surface-sunken:   #18181b;   /* Sunken / background panel */
+  --ds-ink:              #fafaf9;
+  --ds-hairline:         #27272a;   /* Border */
+  --ds-border:           #27272a;   /* Border */
+  --ds-border-subtle:    #18181b;
+  --ds-border-strong:    rgba(255, 255, 255, 0.14);
+  --ds-border-control:   rgba(255, 255, 255, 0.18);
+  --ds-gray-400:         #a1a1aa;
+  --ds-gray-500:         #a1a1aa;
 
   /* Sidebar Active Navigation Tokens */
-  --ds-sidebar-active:          #1E3553;
-  --ds-sidebar-active-text:     #FFFFFF;
-  --ds-sidebar-active-border:   rgba(96, 165, 250, 0.40);
-  --ds-sidebar-active-indicator:#3B82F6;
+  --ds-sidebar-active:          #18181b;
+  --ds-sidebar-active-text:     #fafaf9;
+  --ds-sidebar-active-border:   #27272a;
+  --ds-sidebar-active-indicator:#f59e0b;
 
-  /* Text - Section 4.2 */
-  --ds-text-primary:     #F1F5F9;   /* Primary text */
-  --ds-text-secondary:   #CBD5E1;   /* Brighter secondary text in dark mode */
-  --ds-text-muted:       #94A3B8;   /* Muted text */
-  --ds-text-disabled:    #64748B;
-  --ds-text-inverse:     #0F1117;
-  --ds-btn-primary-bg:   #60A5FA;
-  --ds-btn-primary-text: #0F1117;
+  /* Text - Titan AI Design System (Dark) */
+  --ds-text-primary:     #fafaf9;   /* Primary text */
+  --ds-text-secondary:   #d4d4d8;   /* Secondary text */
+  --ds-text-muted:       #a1a1aa;   /* Muted text */
+  --ds-text-disabled:    #71717a;
+  --ds-text-inverse:     #0a0a0a;
+  --ds-btn-primary-bg:   #1e3fc8;
+  --ds-btn-primary-text: #ffffff;
 
-  /* Primary Blue - Section 4.2 */
-  --ds-blue:             #60A5FA;
-  --ds-blue-action:      #3B82F6;
-  --ds-blue-strong:      #60A5FA;
-  --ds-blue-text:        #60A5FA;
-  --ds-blue-surface:     rgba(96, 165, 250, 0.15);
-  --ds-blue-on-surface:  #93C5FD;
+  /* Primary Blue */
+  --ds-blue:             #3b82f6;
+  --ds-blue-action:      #1e3fc8;
+  --ds-blue-strong:      #1632a0;
+  --ds-blue-text:        #60a5fa;
+  --ds-blue-surface:     rgba(30, 63, 200, 0.20);
+  --ds-blue-on-surface:  #93c5fd;
 
   /* Indigo - Section 4.2 */
   --ds-indigo:           #818CF8;
@@ -217,47 +217,47 @@
    2. LIGHT THEME (:root.light) — Titan AI Enterprise SaaS Light Mode
    ========================================================================== */
 :root.light {
-  /* Backgrounds & Surfaces - Section 4.1 */
-  --ds-canvas:           #F3F6FC;   /* Application background */
-  --ds-sidebar-surface:  #EDF2FA;   /* Sidebar background */
-  --ds-surface:          #FFFFFF;   /* Primary card */
-  --ds-surface-alt:      #F8FAFF;   /* Secondary surface */
-  --ds-surface-elevated: #FFFFFF;
-  --ds-surface-sunken:   #EAF0F9;   /* Subtle section background */
-  --ds-ink:              #17233B;
-  --ds-hairline:         #DCE5F2;   /* Border */
-  --ds-border:           #DCE5F2;   /* Border */
-  --ds-border-subtle:    #EEF3FA;
-  --ds-border-strong:    #CBD5E1;
-  --ds-border-control:   #94A3B8;
-  --ds-gray-400:         #94A3B8;
-  --ds-gray-500:         #64748B;
+  /* Backgrounds & Surfaces - Titan AI Design System (Light) */
+  --ds-canvas:           #fafaf9;   /* Paper background */
+  --ds-sidebar-surface:  #ffffff;   /* Sidebar background */
+  --ds-surface:          #ffffff;   /* Primary card */
+  --ds-surface-alt:      #f6f6f7;   /* Secondary surface */
+  --ds-surface-elevated: #ffffff;
+  --ds-surface-sunken:   #f1f1f3;   /* Tile / sunken background */
+  --ds-ink:              #0a0a0a;
+  --ds-hairline:         #e4e4e7;   /* 1px Border */
+  --ds-border:           #e4e4e7;   /* 1px Border */
+  --ds-border-subtle:    #f1f1f3;
+  --ds-border-strong:    #d4d4d8;
+  --ds-border-control:   #d4d4d8;
+  --ds-gray-400:         #a1a1aa;
+  --ds-gray-500:         #52525b;
 
   /* Sidebar Active Navigation Tokens */
-  --ds-sidebar-active:          #EFF6FF;
-  --ds-sidebar-active-text:     #1D4ED8;
-  --ds-sidebar-active-border:   #BFDBFE;
-  --ds-sidebar-active-indicator:#2563EB;
+  --ds-sidebar-active:          #0a0a0a;
+  --ds-sidebar-active-text:     #fafaf9;
+  --ds-sidebar-active-border:   #0a0a0a;
+  --ds-sidebar-active-indicator:#f59e0b;
 
-  /* Typography - Section 4.1 */
-  --ds-text:             #17233B;   /* Main text */
-  --ds-text-heading:     #17233B;
-  --ds-text-primary:     #17233B;
-  --ds-text-body:        #475569;   /* Darker secondary text for contrast in light mode */
-  --ds-text-secondary:   #475569;
-  --ds-text-muted:       #475569;   /* Darker muted text for high readability */
-  --ds-text-disabled:    #94A3B8;
-  --ds-text-inverse:     #FFFFFF;
-  --ds-btn-primary-bg:   #2563EB;
-  --ds-btn-primary-text: #FFFFFF;
+  /* Typography - Titan AI Design System (Light) */
+  --ds-text:             #0a0a0a;   /* Main text */
+  --ds-text-heading:     #0a0a0a;
+  --ds-text-primary:     #0a0a0a;
+  --ds-text-body:        #52525b;   /* Muted text */
+  --ds-text-secondary:   #52525b;
+  --ds-text-muted:       #52525b;
+  --ds-text-disabled:    #a1a1aa;
+  --ds-text-inverse:     #fafaf9;
+  --ds-btn-primary-bg:   #1e3fc8;
+  --ds-btn-primary-text: #ffffff;
 
-  /* Primary Palette - Section 4.1 */
-  --ds-blue:             #2563EB;
-  --ds-blue-action:      #2563EB;
-  --ds-blue-strong:      #1D4ED8;
-  --ds-blue-text:        #1D4ED8;
-  --ds-blue-surface:     #EFF6FF;
-  --ds-blue-on-surface:  #1E40AF;
+  /* Primary Palette - Titan AI */
+  --ds-blue:             #1e3fc8;
+  --ds-blue-action:      #1e3fc8;
+  --ds-blue-strong:      #1632a0;
+  --ds-blue-text:        #1e3fc8;
+  --ds-blue-surface:     #e0e7ff;
+  --ds-blue-on-surface:  #1e3a8a;
 
   --ds-indigo:           #6366F1;
   --ds-indigo-surface:   #EEF2FF;

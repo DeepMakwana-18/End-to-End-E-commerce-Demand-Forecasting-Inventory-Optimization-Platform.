@@ -1,0 +1,68 @@
+/* Titan AI Orbit Mark — shared across landing, auth, and product shell */
+.titan {
+  color: inherit;
+  overflow: visible;
+  display: block;
+  flex-shrink: 0;
+}
+
+.titan .orbit {
+  transform-origin: 24px 24px;
+}
+
+.titan .track {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  opacity: 0.18;
+}
+
+.titan.sm .track {
+  display: none;
+}
+
+.titan .sat {
+  transform-origin: 24px 24px;
+  transform: rotate(var(--a)) translateX(17px);
+}
+
+.titan .ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.titan.sm .ring {
+  stroke-width: 3.6;
+}
+
+.titan .core {
+  fill: currentColor;
+  transform-origin: 24px 24px;
+}
+
+.titan.spin .orbit {
+  animation: titan-orbit-step 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.titan.spin .core {
+  animation: titan-core-breathe 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes titan-orbit-step {
+  to {
+    transform: rotate(120deg);
+  }
+}
+
+@keyframes titan-core-breathe {
+  50% {
+    transform: scale(0.86);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titan * {
+    animation: none !important;
+  }
+}

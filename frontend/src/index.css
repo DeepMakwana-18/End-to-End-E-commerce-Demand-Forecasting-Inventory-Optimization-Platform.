@@ -235,10 +235,10 @@
   .light .card-raised-1,
   .light .card-raised-2,
   .light .card-raised-3 {
-    background: #FFFFFF;
-    border: 1px solid #E2E8F0;
-    border-radius: var(--ds-r-xl);
-    box-shadow: var(--ds-card-shadow);
+    background: #ffffff;
+    border: 1px solid #e4e4e7;
+    border-radius: 16px;
+    box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -247,51 +247,33 @@
   .light .card-raised-1:hover,
   .light .card-raised-2:hover,
   .light .card-raised-3:hover {
-    box-shadow: var(--ds-card-hover);
-    transform: translateY(-2px);
+    border-color: #d4d4d8;
+    box-shadow: none;
+    transform: none;
   }
 
-  /* Subtle gradient on selected KPI card surfaces in Light Mode */
-  .light .kpi-surface-gradient {
-    background: linear-gradient(180deg, #FFFFFF 0%, #F8FAFD 100%);
-    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.04), 0 2px 8px -2px rgba(15, 23, 42, 0.05);
-  }
-
-  .light .kpi-surface-blue {
-    background: linear-gradient(180deg, rgba(239, 246, 255, 0.55) 0%, rgba(248, 250, 252, 0.35) 60%, #FFFFFF 100%);
-    border-color: rgba(191, 219, 254, 0.45);
-    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 2px 8px -2px rgba(37, 99, 235, 0.03);
-  }
-  .light .kpi-surface-teal {
-    background: linear-gradient(180deg, rgba(240, 253, 250, 0.55) 0%, rgba(248, 250, 252, 0.35) 60%, #FFFFFF 100%);
-    border-color: rgba(153, 246, 228, 0.45);
-    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 2px 8px -2px rgba(13, 148, 136, 0.03);
-  }
-  .light .kpi-surface-amber {
-    background: linear-gradient(180deg, rgba(255, 251, 235, 0.55) 0%, rgba(248, 250, 252, 0.35) 60%, #FFFFFF 100%);
-    border-color: rgba(253, 230, 138, 0.45);
-    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 2px 8px -2px rgba(217, 119, 6, 0.03);
-  }
-  .light .kpi-surface-rose {
-    background: linear-gradient(180deg, rgba(255, 241, 242, 0.55) 0%, rgba(248, 250, 252, 0.35) 60%, #FFFFFF 100%);
-    border-color: rgba(254, 205, 211, 0.45);
-    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 2px 8px -2px rgba(220, 38, 38, 0.03);
-  }
+  /* Flat Titan KPI card surfaces in Light Mode */
+  .light .kpi-surface-gradient,
+  .light .kpi-surface-blue,
+  .light .kpi-surface-teal,
+  .light .kpi-surface-amber,
+  .light .kpi-surface-rose,
   .light .kpi-surface-indigo {
-    background: linear-gradient(180deg, rgba(238, 242, 255, 0.55) 0%, rgba(248, 250, 252, 0.35) 60%, #FFFFFF 100%);
-    border-color: rgba(199, 210, 254, 0.45);
-    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.03), 0 2px 8px -2px rgba(99, 102, 241, 0.03);
+    background: #ffffff;
+    border-color: #e4e4e7;
+    box-shadow: none;
   }
 
-  /* Dark mode solid charcoal KPI surfaces - NO white/gray gradients */
+  /* Dark mode flat charcoal surfaces - Titan AI Design System */
   .dark .glass-card,
   .dark .card-apple,
   .dark .card-raised-1,
   .dark .card-raised-2,
   .dark .card-raised-3 {
-    background: #1B202A;
-    border: 1px solid #353D4D;
-    box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
+    background: #111113;
+    border: 1px solid #27272a;
+    border-radius: 16px;
+    box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -300,9 +282,9 @@
   .dark .card-raised-1:hover,
   .dark .card-raised-2:hover,
   .dark .card-raised-3:hover {
-    border-color: #4B5563;
-    box-shadow: 0 8px 24px -2px rgba(0, 0, 0, 0.55);
-    transform: translateY(-2px);
+    border-color: rgba(255, 255, 255, 0.18);
+    box-shadow: none;
+    transform: none;
   }
 
   .dark .kpi-surface-blue,
@@ -311,22 +293,8 @@
   .dark .kpi-surface-rose,
   .dark .kpi-surface-indigo,
   .dark .kpi-surface-gradient {
-    background: #1B202A !important;
-  }
-  .dark .kpi-surface-blue {
-    border-color: rgba(96, 165, 250, 0.25) !important;
-  }
-  .dark .kpi-surface-teal {
-    border-color: rgba(45, 212, 191, 0.25) !important;
-  }
-  .dark .kpi-surface-amber {
-    border-color: rgba(251, 191, 36, 0.25) !important;
-  }
-  .dark .kpi-surface-rose {
-    border-color: rgba(251, 113, 133, 0.25) !important;
-  }
-  .dark .kpi-surface-indigo {
-    border-color: rgba(129, 140, 248, 0.25) !important;
+    background: #111113 !important;
+    border-color: #27272a !important;
   }
 
   /* ---- Button Utilities ---- */

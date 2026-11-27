@@ -41,6 +41,7 @@ export function Header() {
   const [searchQuery, setSearchQuery] = useState('');
   const [showResults, setShowResults] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   const cycleTheme = () => {
     const nextTheme: ThemeMode = theme === 'dark' ? 'light' : 'dark';
@@ -59,59 +60,74 @@ export function Header() {
     setShowResults(false);
   };
 
-  // Close search results when clicking outside
+  // Close search results when clicking outside + Cmd/Ctrl+K shortcut
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
         setShowResults(false);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   return (
     <header
       className={cn(
         'sticky top-0 z-30 h-16 flex items-center justify-between px-4 sm:px-6',
-        'border-b border-slate-200/90 dark:border-ds-hairline',
-        'backdrop-blur-xl bg-white/95 dark:bg-ds-surface/90 shadow-[0_1px_4px_rgba(15,23,42,0.03)]'
+        'border-b border-[#e4e4e7] dark:border-[#27272a]',
+        'bg-[#fafaf9]/95 dark:bg-[#0a0a0a]/95 backdrop-blur-sm'
       )}
     >
       {/* Mobile toggle & Search */}
       <div className="flex items-center gap-2.5 flex-1 max-w-md" ref={searchRef}>
         <button
           onClick={toggleSidebar}
-          className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 dark:text-ds-text-secondary dark:hover:text-ds-text-primary dark:hover:bg-ds-surface-sunken border border-slate-200 dark:border-ds-hairline transition-colors flex-shrink-0"
+          className="md:hidden min-w-[44px] min-h-[44px] flex items-center justify-center rounded-[12px] text-[#52525b] hover:text-[#0a0a0a] hover:bg-[#f1f1f3] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] dark:hover:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] transition-colors flex-shrink-0 focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2"
           aria-label="Toggle navigation menu"
         >
           <Menu className="w-4 h-4" />
         </button>
 
         <div className="relative w-full">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-ds-gray-500 pointer-events-none" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] pointer-events-none" />
           <input
+            ref={searchInputRef}
             type="text"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setShowResults(true); }}
             onFocus={() => searchQuery.trim() && setShowResults(true)}
             placeholder="Search products, forecasts, alerts..."
+            aria-label="Search products, forecasts, alerts"
             className={cn(
-              'w-full h-10 pl-10 pr-10 rounded-full text-xs font-medium',
-              'bg-slate-50/90 dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-hairline',
-              'text-slate-900 dark:text-ds-text-primary placeholder:text-slate-400 dark:placeholder:text-ds-text-muted',
-              'hover:border-slate-300 dark:hover:border-ds-border-strong focus:bg-white',
-              'focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
-              'transition-all duration-200 shadow-2xs'
+              'w-full h-10 pl-10 pr-10 rounded-[12px] text-[13px] font-medium',
+              'bg-white dark:bg-[#111113] border border-[#d4d4d8] dark:border-[#27272a]',
+              'text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#71717a] dark:placeholder:text-[#a1a1aa]',
+              'hover:border-[#a1a1aa] dark:hover:border-white/25',
+              'focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20',
+              'transition-colors duration-150'
             )}
           />
           {searchQuery ? (
-            <button onClick={() => { setSearchQuery(''); setShowResults(false); }}
-              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-ds-text-muted hover:text-ds-text-primary">
+            <button
+              onClick={() => { setSearchQuery(''); setShowResults(false); }}
+              aria-label="Clear search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center rounded-md text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9]"
+            >
               <X className="w-4 h-4" />
             </button>
           ) : (
-            <kbd className="absolute right-3.5 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded-md border border-ds-hairline bg-ds-surface-alt px-1.5 font-mono text-[10px] font-medium text-ds-text-muted">
+            <kbd className="absolute right-3 top-1/2 -translate-y-1/2 hidden sm:inline-flex h-5 items-center gap-1 rounded border border-[#e4e4e7] dark:border-[#27272a] bg-[#f6f6f7] dark:bg-[#18181b] px-1.5 font-mono text-[10px] font-medium text-[#52525b] dark:text-[#a1a1aa]">
               ⌘K
             </kbd>
           )}
@@ -120,22 +136,24 @@ export function Header() {
           <AnimatePresence>
             {showResults && filteredResults.length > 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full mt-2 w-full glass-card shadow-2xl py-2 z-50 max-h-64 overflow-y-auto">
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.14 }}
+                className="absolute top-full mt-2 w-full rounded-[14px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-lg py-1.5 z-50 max-h-64 overflow-y-auto">
                 {filteredResults.map((item, i) => (
                   <button key={i} onClick={() => handleSelect(item.path)}
-                    className="w-full text-left px-4 py-2.5 text-sm text-ds-text-secondary hover:bg-ds-blue-surface hover:text-ds-blue-on-surface transition flex items-center justify-between">
+                    className="w-full text-left px-4 py-2.5 text-sm text-[#0a0a0a] dark:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] transition-colors flex items-center justify-between">
                     <span>{item.label}</span>
-                    <span className="text-[10px] px-2 py-0.5 rounded-full bg-ds-surface-sunken text-ds-text-muted uppercase">{item.type}</span>
+                    <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#f6f6f7] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#52525b] dark:text-[#a1a1aa] uppercase">{item.type}</span>
                   </button>
                 ))}
               </motion.div>
             )}
             {showResults && searchQuery.trim().length > 0 && filteredResults.length === 0 && (
               <motion.div
-                initial={{ opacity: 0, y: 5 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 5 }}
-                className="absolute top-full mt-2 w-full glass-card shadow-2xl p-4 z-50 text-center">
-                <p className="text-xs text-ds-text-muted">No results found for "{searchQuery}"</p>
+                initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 4 }}
+                transition={{ duration: 0.14 }}
+                className="absolute top-full mt-2 w-full rounded-[14px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-lg p-4 z-50 text-center">
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa]">No results found for &ldquo;{searchQuery}&rdquo;</p>
               </motion.div>
             )}
           </AnimatePresence>
@@ -143,69 +161,62 @@ export function Header() {
       </div>
 
       {/* Right side actions */}
-      <div className="flex items-center gap-2.5">
+      <div className="flex items-center gap-2">
         {/* Theme toggle */}
-        <motion.button
+        <button
           id="theme-toggle-button"
           aria-label="Toggle theme"
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
           onClick={cycleTheme}
-          className="p-2.5 rounded-xl text-slate-500 hover:text-slate-800 dark:text-ds-text-muted dark:hover:text-ds-text-primary bg-slate-50 hover:bg-slate-100 dark:bg-ds-surface-alt/60 dark:hover:bg-ds-surface-alt border border-slate-200/80 dark:border-ds-hairline shadow-2xs transition-all"
+          className="w-10 h-10 flex items-center justify-center rounded-[12px] text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] bg-white hover:bg-[#f1f1f3] dark:bg-[#111113] dark:hover:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] transition-colors focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2"
           title={`Theme: ${theme}`}
         >
           <ThemeIcon className="w-4 h-4" />
-        </motion.button>
+        </button>
 
         {/* WS status + Notifications */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => navigate('/alerts')}
-          className="relative p-2.5 rounded-xl text-slate-500 hover:text-slate-800 dark:text-ds-text-muted dark:hover:text-ds-text-primary bg-slate-50 hover:bg-slate-100 dark:bg-ds-surface-alt/60 dark:hover:bg-ds-surface-alt border border-slate-200/80 dark:border-ds-hairline shadow-2xs transition-all"
+        <button
+          aria-label="Notifications"
+          onClick={() => navigate('/app/alerts')}
+          className="relative w-10 h-10 flex items-center justify-center rounded-[12px] text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] bg-white hover:bg-[#f1f1f3] dark:bg-[#111113] dark:hover:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] transition-colors focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2"
           title={isConnected ? 'Realtime: Connected' : 'Realtime: Disconnected'}
         >
           <Bell className="w-4 h-4" />
-          {/* Notification dot */}
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 border-2 border-white dark:border-ds-canvas animate-pulse" />
-        </motion.button>
+          <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-[#dc2626] border border-white dark:border-[#111113]" />
+        </button>
 
         {/* WS live indicator */}
-        <motion.div
+        <div
           title={isConnected ? 'Realtime connected' : 'Realtime disconnected — reconnecting…'}
           className={cn(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[11px] font-semibold transition-colors cursor-default select-none border',
+            'flex items-center gap-1.5 px-3 h-10 rounded-[12px] text-xs font-semibold cursor-default select-none border',
             isConnected
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20'
-              : 'bg-slate-50 text-slate-500 border-slate-200 dark:bg-ds-surface-sunken dark:text-ds-text-muted',
+              ? 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60'
+              : 'bg-[#f6f6f7] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]',
           )}
         >
           {isConnected ? (
             <>
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-600" />
-              </span>
-              <Wifi className="w-3.5 h-3.5 text-emerald-600 dark:text-ds-green" />
+              <span className="w-2 h-2 rounded-full bg-[#16a34a] dark:bg-[#4ade80]" />
+              <Wifi className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Live</span>
             </>
           ) : (
             <>
-              <span className="w-2 h-2 rounded-full bg-slate-400" />
+              <span className="w-2 h-2 rounded-full bg-[#a1a1aa]" />
               <WifiOff className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Offline</span>
             </>
           )}
-        </motion.div>
+        </div>
 
         {/* User avatar */}
-        <div className="flex items-center gap-3 ml-2 pl-3 border-l border-slate-200/80 dark:border-ds-hairline">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-xs">
+        <div className="flex items-center gap-2.5 ml-1 pl-3 border-l border-[#e4e4e7] dark:border-[#27272a]">
+          <div className="w-9 h-9 rounded-[10px] bg-[#0a0a0a] dark:bg-[#18181b] border border-[#0a0a0a] dark:border-[#27272a] text-[#fafaf9] flex items-center justify-center text-xs font-bold">
             {user?.name?.charAt(0)?.toUpperCase() || 'U'}
           </div>
           <div className="hidden md:block">
-            <p className="text-xs font-bold text-slate-900 dark:text-ds-text-primary leading-none">{user?.name || 'User'}</p>
-            <p className="text-[10px] text-slate-400 dark:text-ds-text-muted mt-1 capitalize font-medium">{user?.role || 'viewer'}</p>
+            <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] leading-none">{user?.name || 'User'}</p>
+            <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-1 capitalize font-medium">{user?.role || 'viewer'}</p>
           </div>
         </div>
       </div>

@@ -1,4 +1,5 @@
 import { cn } from '@/lib/utils';
+import '@/styles/titan-mark.css';
 
 export interface TitanMarkProps {
   size?: number;

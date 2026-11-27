@@ -1,0 +1,111 @@
+/* Titan AI Executive Dashboard — Card Depth & Functional Motion
+ * Uses stationary orange pseudo-element backing + transform/opacity transitions.
+ * Hover effects gated to fine pointers; prefers-reduced-motion respected.
+ */
+
+/* One-time subtle entrance for header and two KPI groups (<500ms total) */
+@keyframes titan-dash-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-dash-reveal {
+  animation: titan-dash-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+/* Metric card wrapper with stationary orange backing */
+.titan-kpi-wrap {
+  position: relative;
+  height: 100%;
+}
+
+.titan-kpi-wrap::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background-color: #f59e0b;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transform: translate(2.5px, 2.5px);
+  transition: opacity 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.titan-kpi-card {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Single persistent emphasis card ("Active Alerts") */
+.titan-kpi-wrap--emphasized::before {
+  opacity: 1;
+  transform: translate(6px, 6px);
+}
+
+.titan-kpi-wrap--emphasized .titan-kpi-card {
+  border-color: #0a0a0a;
+}
+
+.dark .titan-kpi-wrap--emphasized .titan-kpi-card {
+  border-color: rgba(250, 250, 249, 0.72);
+}
+
+/* Tactile pop on fine-pointer hover only (no sticky touch hover) */
+@media (hover: hover) and (pointer: fine) {
+  .titan-kpi-wrap:hover::before {
+    opacity: 1;
+  }
+
+  .titan-kpi-wrap:hover .titan-kpi-card {
+    transform: translate(-2px, -2px);
+    border-color: #0a0a0a;
+  }
+
+  .dark .titan-kpi-wrap:hover .titan-kpi-card {
+    border-color: rgba(250, 250, 249, 0.72);
+  }
+}
+
+/* Chart tooltip fade */
+.titan-chart-tooltip {
+  animation: titan-tooltip-fade 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes titan-tooltip-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titan-dash-reveal,
+  .titan-chart-tooltip {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .titan-kpi-wrap::before,
+  .titan-kpi-card {
+    transition-duration: 0.01ms !important;
+  }
+
+  .titan-kpi-wrap:hover .titan-kpi-card {
+    transform: none !important;
+  }
+}
