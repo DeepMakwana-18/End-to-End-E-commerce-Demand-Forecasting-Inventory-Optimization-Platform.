@@ -1,30 +1,25 @@
 /**
- * Admin - ML Pipeline Page.
+ * Titan AI — ML Pipeline Page (/app/admin/pipeline)
  *
- * Titan AI Page 12 Refinements:
- * - Four comprehensive KPI cards with explicit Model Accuracy definition:
- *   Normalized MAE Accuracy (1 - WAPE) calculated on holdout validation split
- * - Distinct Action Controls: Clear operational distinction between "Retrain Model"
- *   (model estimator reweighting) and "Run Pipeline" (end-to-end catalog sync, retraining,
- *   12-week forecast generation & anomaly scan)
- * - Enhanced Training Convergence Chart: Solved line overlap with distinct line styles
- *   (solid blue MAE vs dashed amber RMSE), specialized point markers, dynamic Y-axis scaling,
- *   and rich tooltip detailing variance spread penalty (RMSE - MAE)
- * - Coordinated Feature Importance: User-friendly labels (Week of Year, Month of Year,
- *   Prior Week Demand, Prior Month Demand, Macro Trend Year) while keeping technical identifiers
- *   transparent; explicit non-causal attribution disclaimer
- * - Training History & Model Registry: Full timestamp resolution (date + time),
- *   per-version metrics verification, training sample counts, and execution mode indicators
- * - Real-time Training Progress Panel with step-by-step pipeline stages during active execution
- * - AI Assistant bottom clearance (pb-28 sm:pb-32) and cohesive Light/Dark theme support
+ * Refined with Titan AI editorial design system:
+ * - Editorial header, warm paper / near-black surfaces, blue primary actions, restrained amber accents.
+ * - Truthful KPIs: removes fabricated +0.9% / -4.3% / -4.2% deltas; clarifies 1 - WAPE accuracy,
+ *   demand-unit MAE/RMSE ("lower is better"), and Last Trained vs Active/Serving version.
+ * - Honest action controls: clarifies that Retrain Model and Run Pipeline both invoke POST /forecast/retrain
+ *   (which retrains, validates, and activates a new serving model version), with permission checks,
+ *   confirmation before replacing the serving model, and duplicate-submission protection.
+ * - Training Convergence chart: solid MAE vs dashed RMSE with distinct markers, connectNulls={false},
+ *   and reduced-motion support.
+ * - Feature Importance: clarifies normalized model-level absolute correlation vs local SHAP on Forecasting.
+ * - Model Registry: preserves all versions/metrics/samples/timestamps with desktop table & mobile cards.
  */
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import api, { systemApi } from '@/services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useDataStore } from '@/stores/dataStore';
 import { useAppStore } from '@/stores/appStore';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Activity,
   Brain,
@@ -35,13 +30,10 @@ import {
   Play,
   RefreshCw,
   Zap,
-  TrendingUp,
-  TrendingDown,
   Upload,
   Info,
-  Layers,
-  Sparkles,
-  GitBranch,
+  HelpCircle,
+  AlertCircle,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import {
@@ -55,6 +47,7 @@ import {
   Legend,
 } from 'recharts';
 import { cn } from '@/lib/utils';
+import '@/styles/titan-dashboard.css';
 
 interface FeatureImportanceItem {
   name: string;
@@ -92,7 +85,6 @@ interface TrainingVersionResponse {
   is_active?: boolean;
 }
 
-// Friendly metadata for ML features with explanatory domain context
 const FEATURE_METADATA: Record<string, { label: string; desc: string }> = {
   week: {
     label: 'Week of Year',
@@ -119,116 +111,75 @@ const FEATURE_METADATA: Record<string, { label: string; desc: string }> = {
 interface PipelineKPICardProps {
   title: string;
   value: React.ReactNode;
-  change?: number;
-  changeLabel?: string;
-  sub?: string;
-  tooltipText?: string;
+  sub: string;
+  tooltipText: string;
   icon: React.ElementType;
-  iconBg: string;
   iconColor: string;
-  cardBg: string;
-  borderColor: string;
-  valueColor: string;
-  delay?: number;
+  emphasized?: boolean;
+  delayMs?: number;
 }
 
 function PipelineKPICard({
   title,
   value,
-  change,
-  changeLabel = 'vs baseline',
   sub,
   tooltipText,
   icon: Icon,
-  iconBg,
   iconColor,
-  cardBg,
-  borderColor,
-  valueColor,
-  delay = 0,
+  emphasized = false,
+  delayMs = 0,
 }: PipelineKPICardProps) {
-  const isPositive = change !== undefined && change > 0;
-  const isNegative = change !== undefined && change < 0;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    <div
+      style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
       className={cn(
-        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[148px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
-        cardBg,
-        borderColor
+        'titan-dash-reveal titan-kpi-wrap',
+        emphasized && 'titan-kpi-wrap--emphasized'
       )}
     >
-      <div className="flex items-start justify-between relative z-10 w-full gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider truncate">
-              {title}
-            </p>
-            {tooltipText && (
-              <span title={tooltipText} className="cursor-help text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                <Info className="w-3 h-3" />
-              </span>
-            )}
-          </div>
-
-          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
-            {value}
-          </p>
-
-          {change !== undefined ? (
-            <div className="flex items-center gap-1.5 mt-3">
+      <div className="titan-kpi-card rounded-[16px] p-5 border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] flex flex-col justify-between min-h-[144px]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-2">
+              <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.08em] truncate">
+                {title}
+              </p>
               <span
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums border shadow-2xs',
-                  isPositive &&
-                    'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20',
-                  isNegative &&
-                    'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40'
-                )}
+                title={tooltipText}
+                aria-label={tooltipText}
+                className="cursor-help text-[#52525b]/70 hover:text-[#0a0a0a] dark:text-[#a1a1aa]/70 dark:hover:text-[#fafaf9] flex-shrink-0"
               >
-                {isPositive ? (
-                  <TrendingUp className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                ) : (
-                  <TrendingDown className="w-3 h-3 text-blue-600 dark:text-blue-400" />
-                )}
-                {isPositive ? `+${change.toFixed(1)}%` : `${change.toFixed(1)}%`}
-              </span>
-              <span className="text-xs text-slate-500 dark:text-ds-text-muted font-medium truncate">
-                {changeLabel}
+                <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
               </span>
             </div>
-          ) : sub ? (
-            <div className="mt-3 flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control flex-shrink-0" />
-              <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted truncate">
-                {sub}
-              </span>
-            </div>
-          ) : null}
+            <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-[#0a0a0a] dark:text-[#fafaf9]">
+              {value}
+            </p>
+          </div>
+          <div className="w-10 h-10 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-center flex-shrink-0">
+            <Icon className={cn('w-4.5 h-4.5', iconColor)} aria-hidden="true" />
+          </div>
         </div>
-
-        <div
-          className={cn(
-            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border',
-            iconBg
-          )}
-        >
-          <Icon className={cn('w-5 h-5', iconColor)} />
-        </div>
+        <p className="mt-3 text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] leading-snug">
+          {sub}
+        </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function PipelinePage() {
+  const prefersReducedMotion = useReducedMotion();
   const isCustomDataset = useDataStore((s) => s.isCustomDataset);
   const rawCsvText = useDataStore((s) => s.rawCsvText);
   const datasetName = useDataStore((s) => s.datasetName);
   const theme = useAppStore((s) => s.theme);
+  const currentUser = useAppStore((s) => s.user);
+  const canWrite =
+    !currentUser ||
+    ['admin', 'org_admin', 'super_admin', 'manager', 'analyst'].includes(
+      (currentUser.role || '').toLowerCase()
+    );
 
   const isDark = useMemo(() => {
     if (typeof window === 'undefined') return false;
@@ -252,10 +203,46 @@ export default function PipelinePage() {
   const [featureImportance, setFeatureImportance] = useState<FeatureImportanceItem[]>([]);
   const [modelMetrics, setModelMetrics] = useState<ConvergenceItem[]>([]);
   const [isTraining, setIsTraining] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [isPipelineRunning, setIsPipelineRunning] = useState(false);
-  const [activeJobStage, setActiveJobStage] = useState<string>('Initializing pipeline...');
+  const [isLoading, setIsLoading] = useState(true);
+  const [activeJobStage, setActiveJobStage] = useState<string>('Queued for execution...');
+  const [pendingActionConfirm, setPendingActionConfirm] = useState<'retrain' | 'pipeline' | null>(null);
   const [toast, setToast] = useState<{ message: string; isError?: boolean } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+      if (pollTimerRef.current) window.clearTimeout(pollTimerRef.current);
+    };
+  }, []);
+
+  const mapVersions = (versions: TrainingVersionResponse[]): TrainingHistoryItem[] =>
+    versions.map((v) => {
+      const dt = v.created_at ? new Date(v.created_at) : null;
+      const valid = dt && !Number.isNaN(dt.getTime());
+      return {
+        id: v.id,
+        version: v.version_tag,
+        accuracy: v.accuracy,
+        mae: v.mae,
+        rmse: v.rmse,
+        samples: v.training_samples,
+        duration: 'Async (Celery)',
+        date: valid
+          ? dt.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+          : '—',
+        time: valid
+          ? dt.toLocaleTimeString(undefined, {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZoneName: 'short',
+            })
+          : undefined,
+        status: v.is_active ? 'active' : 'archived',
+      };
+    });
 
   useEffect(() => {
     if (isEmptyOrg) return;
@@ -265,8 +252,6 @@ export default function PipelinePage() {
       try {
         const res = await api.get('/forecast/model-info');
         const data = res.data;
-
-        // Map backend features to UI format
         const features = Object.entries(data.feature_importance || {})
           .map(([name, importance]) => ({
             name,
@@ -288,35 +273,8 @@ export default function PipelinePage() {
     const fetchHistory = async () => {
       try {
         const res = await api.get('/forecast/training-history');
-        if (res.data && res.data.versions && active) {
-          const mappedHistory: TrainingHistoryItem[] = res.data.versions.map(
-            (v: TrainingVersionResponse) => {
-              const dt = v.created_at ? new Date(v.created_at) : new Date();
-              const datePart = dt.toLocaleDateString(undefined, {
-                year: 'numeric',
-                month: 'short',
-                day: 'numeric',
-              });
-              const timePart = dt.toLocaleTimeString(undefined, {
-                hour: '2-digit',
-                minute: '2-digit',
-              });
-
-              return {
-                id: v.id,
-                version: v.version_tag,
-                accuracy: v.accuracy,
-                mae: v.mae,
-                rmse: v.rmse,
-                samples: v.training_samples,
-                duration: 'Async (Celery)',
-                date: datePart,
-                time: timePart,
-                status: v.is_active ? 'active' : 'archived',
-              };
-            }
-          );
-          setTrainingHistory(mappedHistory);
+        if (res.data?.versions && active) {
+          setTrainingHistory(mapVersions(res.data.versions));
         }
       } catch (err) {
         console.error('Failed to load training history', err);
@@ -336,17 +294,20 @@ export default function PipelinePage() {
 
   const showToast = (message: string, isError = false) => {
     setToast({ message, isError });
-    setTimeout(() => setToast(null), 3500);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 4000);
   };
 
-  // Unified training trigger with support for both Retrain Model and Run Pipeline
   const executeTrainingRun = async (isFullPipeline: boolean) => {
+    if (isTraining || isPipelineRunning || !canWrite) return;
+    setPendingActionConfirm(null);
+
     if (isFullPipeline) {
       setIsPipelineRunning(true);
-      setActiveJobStage('Syncing catalog & engineering lag features...');
+      setActiveJobStage('Submitting retraining job to worker...');
     } else {
       setIsTraining(true);
-      setActiveJobStage('Re-estimating gradient boosting tree weights...');
+      setActiveJobStage('Submitting retraining job to worker...');
     }
 
     try {
@@ -372,75 +333,36 @@ export default function PipelinePage() {
             const state = taskRes.data.state;
             const msg = taskRes.data.message;
 
-            if (msg) {
-              setActiveJobStage(msg);
-            }
+            if (msg) setActiveJobStage(msg);
 
             if (state === 'completed') {
-              showToast(
-                isFullPipeline
-                  ? 'End-to-end ML pipeline successfully executed'
-                  : 'Model weights successfully retrained and validated'
-              );
+              showToast('Model retraining completed and new version activated');
               setIsTraining(false);
               setIsPipelineRunning(false);
 
-              // Refresh training history
-              const histRes = await api.get('/forecast/training-history');
-              if (histRes.data && histRes.data.versions) {
-                const mappedHistory: TrainingHistoryItem[] = histRes.data.versions.map(
-                  (v: TrainingVersionResponse) => {
-                    const dt = v.created_at ? new Date(v.created_at) : new Date();
-                    return {
-                      id: v.id,
-                      version: v.version_tag,
-                      accuracy: v.accuracy,
-                      mae: v.mae,
-                      rmse: v.rmse,
-                      samples: v.training_samples,
-                      duration: 'Async (Celery)',
-                      date: dt.toLocaleDateString(undefined, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                      }),
-                      time: dt.toLocaleTimeString(undefined, {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      }),
-                      status: v.is_active ? 'active' : 'archived',
-                    };
-                  }
-                );
-                setTrainingHistory(mappedHistory);
+              const [histRes, infoRes] = await Promise.all([
+                api.get('/forecast/training-history'),
+                api.get('/forecast/model-info'),
+              ]);
+              if (histRes.data?.versions) {
+                setTrainingHistory(mapVersions(histRes.data.versions));
               }
-
-              // Refresh model info & feature attribution
-              try {
-                const infoRes = await api.get('/forecast/model-info');
-                const data = infoRes.data;
-                const features = Object.entries(data.feature_importance || {})
-                  .map(([name, importance]) => ({
-                    name,
-                    importance: importance as number,
-                  }))
-                  .sort((a, b) => b.importance - a.importance);
-                setFeatureImportance(features);
-                if (data.convergence && data.convergence.length > 0) {
-                  setModelMetrics(data.convergence);
-                }
-              } catch (e) {
-                console.error('Failed to refresh ML model info', e);
+              const features = Object.entries(infoRes.data.feature_importance || {})
+                .map(([name, importance]) => ({ name, importance: importance as number }))
+                .sort((a, b) => b.importance - a.importance);
+              setFeatureImportance(features);
+              if (infoRes.data.convergence?.length > 0) {
+                setModelMetrics(infoRes.data.convergence);
               }
             } else if (state === 'failed') {
-              showToast(taskRes.data.error || 'Training failed', true);
+              showToast(taskRes.data.error || 'Training job failed', true);
               setIsTraining(false);
               setIsPipelineRunning(false);
             } else {
-              setTimeout(pollTask, 1500);
+              pollTimerRef.current = window.setTimeout(pollTask, 1500);
             }
           } catch {
-            setTimeout(pollTask, 1500);
+            pollTimerRef.current = window.setTimeout(pollTask, 1500);
           }
         };
         pollTask();
@@ -455,7 +377,11 @@ export default function PipelinePage() {
           rmse: res.data.rmse || 0,
           duration: 'Sync',
           date: now.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }),
-          time: now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }),
+          time: now.toLocaleTimeString(undefined, {
+            hour: '2-digit',
+            minute: '2-digit',
+            timeZoneName: 'short',
+          }),
           status: 'active',
         };
         setTrainingHistory((prev) => [
@@ -467,7 +393,6 @@ export default function PipelinePage() {
         setIsPipelineRunning(false);
       }
     } catch (err: unknown) {
-      console.error(err);
       const detail =
         (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ||
         'Failed to execute training operation';
@@ -477,10 +402,6 @@ export default function PipelinePage() {
     }
   };
 
-  const handleRetrain = () => executeTrainingRun(false);
-  const handleRunPipeline = () => executeTrainingRun(true);
-
-  // Derive dynamic Y-axis min and max to ensure visible separation between MAE & RMSE
   const yAxisDomain = useMemo(() => {
     if (!modelMetrics || modelMetrics.length === 0) return [0, 100];
     let minVal = Infinity;
@@ -500,295 +421,297 @@ export default function PipelinePage() {
     return [Math.max(0, Math.floor(minVal - pad)), Math.ceil(maxVal + pad)];
   }, [modelMetrics]);
 
+  const activeVersion = useMemo(
+    () => trainingHistory.find((t) => t.status === 'active') ?? trainingHistory[0],
+    [trainingHistory]
+  );
+
+  const isAnyRunning = isTraining || isPipelineRunning;
+
   return (
-    <div className="space-y-6 max-w-7xl pb-28 sm:pb-32">
+    <div className="space-y-6 pb-28 sm:pb-32">
       {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            role="status"
+            aria-live="polite"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
+            transition={{ duration: 0.16 }}
             className={cn(
-              'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2.5 shadow-xl border backdrop-blur-md',
+              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-lg border max-w-sm',
               toast.isError
-                ? 'bg-rose-50/95 text-rose-800 border-rose-200/90 dark:bg-rose-950/90 dark:text-rose-200 dark:border-rose-800/60'
-                : 'bg-emerald-50/95 text-emerald-800 border-emerald-200/90 dark:bg-emerald-950/90 dark:text-emerald-200 dark:border-emerald-800/60'
+                ? 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800'
+                : 'bg-white text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#111113] dark:text-[#fafaf9] dark:border-[#27272a]'
             )}
           >
             {toast.isError ? (
-              <Zap className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
             )}
             <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 1. PAGE HEADER (Subtle Indigo-Blue Accent) ───────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden gap-4"
+      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
+      <header
+        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
+        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col lg:flex-row lg:items-end justify-between gap-4"
       >
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
-
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <Cpu className="w-5 h-5 text-white" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
+            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
+            <span>ML OPERATIONS · MODEL REGISTRY</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 inline-block" />
-              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
-                ML Pipeline
-              </h1>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              Gradient boosting model training, convergence monitoring &amp; feature attribution
+          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
+            ML Pipeline
+          </h1>
+          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
+            Demand forecasting model metrics, training convergence, global feature correlation, and version registry
+          </p>
+        </div>
+
+        {/* Action Controls (Permission-checked, with Confirmation) */}
+        <div className="flex flex-wrap items-center gap-2.5 self-start lg:self-end flex-shrink-0">
+          <button
+            type="button"
+            onClick={() => setPendingActionConfirm('retrain')}
+            disabled={isAnyRunning || isEmptyOrg || !canWrite}
+            title={
+              !canWrite
+                ? 'Requires write/admin permissions'
+                : 'Triggers POST /forecast/retrain via Celery and activates a new serving model version'
+            }
+            className="min-h-[44px] sm:min-h-[38px] px-4 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
+          >
+            {isTraining ? (
+              <Loader2 className="w-3.5 h-3.5 text-[#1e3fc8] animate-spin" aria-hidden="true" />
+            ) : (
+              <RefreshCw className="w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
+            )}
+            <span>{isTraining ? 'Training...' : 'Retrain Model'}</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setPendingActionConfirm('pipeline')}
+            disabled={isAnyRunning || isEmptyOrg || !canWrite}
+            title={
+              !canWrite
+                ? 'Requires write/admin permissions'
+                : 'Runs POST /forecast/retrain via Celery to retrain, validate, and activate the serving model'
+            }
+            className="min-h-[44px] sm:min-h-[38px] px-4 rounded-[10px] text-xs font-semibold inline-flex items-center gap-2 text-white bg-[#1e3fc8] hover:bg-[#1935a8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+          >
+            {isPipelineRunning ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+            ) : (
+              <Play className="w-3.5 h-3.5" aria-hidden="true" />
+            )}
+            <span>{isPipelineRunning ? 'Running Pipeline...' : 'Run Pipeline'}</span>
+          </button>
+        </div>
+      </header>
+
+      {/* Confirmation Banner before triggering POST /forecast/retrain */}
+      {pendingActionConfirm && (
+        <div
+          role="alertdialog"
+          aria-labelledby="confirm-retrain-title"
+          className="p-4 rounded-[14px] border border-amber-300 dark:border-amber-700/60 bg-amber-50/70 dark:bg-amber-950/25 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+        >
+          <div className="space-y-0.5">
+            <p id="confirm-retrain-title" className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+              Confirm {pendingActionConfirm === 'pipeline' ? 'Run Pipeline' : 'Retrain Model'}
+            </p>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa]">
+              Both actions dispatch <span className="font-mono">POST /forecast/retrain</span> via Celery on the active dataset and will promote a new serving model version upon completion (currently serving: <span className="font-mono font-semibold">{activeVersion?.version || 'none'}</span>).
             </p>
           </div>
-        </div>
-
-        {/* Distinct Action Controls with Explanatory Tooltips */}
-        <div className="relative flex items-center gap-2.5 self-start sm:self-center">
-          <div className="group relative">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <button
-              onClick={handleRetrain}
-              disabled={isTraining || isPipelineRunning || isEmptyOrg}
-              className="h-9 px-4 rounded-xl border text-xs font-semibold flex items-center gap-2 shadow-2xs transition-all duration-150 active:scale-95 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 disabled:opacity-50 disabled:cursor-wait"
+              type="button"
+              onClick={() => setPendingActionConfirm(null)}
+              className="min-h-[36px] px-3 rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] cursor-pointer"
             >
-              {isTraining ? (
-                <Loader2 className="w-3.5 h-3.5 text-blue-600 animate-spin" />
-              ) : (
-                <RefreshCw className="w-3.5 h-3.5 text-slate-500" />
-              )}
-              <span>{isTraining ? 'Training...' : 'Retrain Model'}</span>
+              Cancel
             </button>
-            <div className="pointer-events-none absolute right-0 top-full mt-1.5 hidden group-hover:block z-30 w-56 p-2 rounded-xl bg-slate-900 text-white text-[11px] leading-tight shadow-lg border border-slate-700">
-              Re-estimates estimator weights &amp; metrics on current dataset without re-running full ETL.
-            </div>
-          </div>
-
-          <div className="group relative">
             <button
-              onClick={handleRunPipeline}
-              disabled={isTraining || isPipelineRunning || isEmptyOrg}
-              className="h-9 px-4.5 rounded-xl text-xs font-semibold flex items-center gap-2 text-white shadow-2xs transition-all duration-150 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-wait"
+              type="button"
+              onClick={() => executeTrainingRun(pendingActionConfirm === 'pipeline')}
+              className="min-h-[36px] px-3.5 rounded-[8px] bg-[#1e3fc8] hover:bg-[#1935a8] text-white text-xs font-semibold cursor-pointer"
             >
-              {isPipelineRunning ? (
-                <Loader2 className="w-3.5 h-3.5 text-white animate-spin" />
-              ) : (
-                <Play className="w-3.5 h-3.5 text-white" />
-              )}
-              <span>{isPipelineRunning ? 'Running Pipeline...' : 'Run Pipeline'}</span>
+              Start Job
             </button>
-            <div className="pointer-events-none absolute right-0 top-full mt-1.5 hidden group-hover:block z-30 w-64 p-2 rounded-xl bg-slate-900 text-white text-[11px] leading-tight shadow-lg border border-slate-700">
-              Executes end-to-end: catalog sync, lag feature engineering, retraining, 12-week forecast &amp; anomaly scan.
-            </div>
           </div>
         </div>
-      </motion.div>
+      )}
 
-      {/* ── 2. REAL PIPELINE EXECUTION STATUS BANNER ─────────────────── */}
-      {(isTraining || isPipelineRunning) && (
-        <motion.div
-          initial={{ opacity: 0, y: -6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-blue-50/90 via-indigo-50/50 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/90 dark:border-blue-800/40 shadow-2xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+      {/* ── 2. Real Pipeline Execution Status Banner ─────────────────── */}
+      {isAnyRunning && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="p-4 rounded-[14px] bg-[#eff6ff]/80 dark:bg-[#1e3fc8]/15 border border-[#bfdbfe] dark:border-[#1e3fc8]/40 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
         >
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-2xl bg-blue-100 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center flex-shrink-0 shadow-2xs">
-              <Loader2 className="w-5 h-5 animate-spin text-blue-600 dark:text-blue-400" />
-            </div>
+          <div className="flex items-center gap-3">
+            <Loader2 className="w-5 h-5 animate-spin text-[#1e3fc8] dark:text-[#60a5fa] flex-shrink-0" aria-hidden="true" />
             <div>
-              <div className="flex items-center gap-2">
-                <p className="text-xs font-bold text-slate-900 dark:text-white">
-                  {isPipelineRunning ? 'End-to-End ML Pipeline In Progress' : 'Model Retraining In Progress'}
-                </p>
-                <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-              </div>
-              <p className="text-[11px] text-slate-600 dark:text-slate-300 mt-0.5 font-medium">
+              <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                {isPipelineRunning ? 'Pipeline Job Running' : 'Model Retraining Running'}
+              </p>
+              <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
                 {activeJobStage}
               </p>
             </div>
           </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] font-mono font-semibold text-blue-700 dark:text-blue-300 bg-blue-100/80 dark:bg-blue-900/50 px-3 py-1 rounded-lg border border-blue-200/80 dark:border-blue-800/50">
-              Execution: Celery Async
-            </span>
-          </div>
-        </motion.div>
+          <span className="text-[11px] font-mono font-semibold text-[#1e3fc8] dark:text-[#93c5fd] bg-white dark:bg-[#111113] px-3 py-1 rounded-[8px] border border-[#bfdbfe] dark:border-[#1e3fc8]/40">
+            Execution: Celery Async
+          </span>
+        </div>
       )}
 
-      {/* ── LOADING & EMPTY STATES ─────────────────────────────────── */}
+      {/* ── Loading & Empty States ───────────────────────────────────── */}
       {effectiveLoading ? (
-        <div className="space-y-6 animate-pulse">
+        <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
               <div
                 key={i}
-                className="h-28 rounded-2xl bg-slate-100/80 dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border"
+                className="h-36 rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]"
               />
             ))}
           </div>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="h-80 rounded-2xl bg-slate-100/80 dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border" />
-            <div className="h-80 rounded-2xl bg-slate-100/80 dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="h-80 rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]" />
+            <div className="h-80 rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]" />
           </div>
         </div>
       ) : trainingHistory.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 px-6 rounded-3xl bg-gradient-to-b from-blue-50/60 via-indigo-50/30 to-white dark:bg-none dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border text-center shadow-2xs">
-          <div className="w-16 h-16 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-4 border border-indigo-100 dark:border-indigo-900/40 shadow-2xs">
-            <Brain className="w-8 h-8" />
+        <div className="flex flex-col items-center justify-center py-14 px-6 rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-center">
+          <div className="w-14 h-14 rounded-[14px] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 text-[#1e3fc8] dark:text-[#60a5fa] flex items-center justify-center mb-4 border border-[#bfdbfe] dark:border-[#1e3fc8]/40">
+            <Brain className="w-7 h-7" aria-hidden="true" />
           </div>
-          <h2 className="text-lg font-bold text-slate-900 dark:text-ds-text mb-1">
+          <h2 className="text-lg font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1">
             No Model Has Been Trained Yet
           </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed mb-6">
-            Upload an initial dataset to automatically train your first demand forecasting model and generate convergence telemetry.
+          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] max-w-md leading-relaxed mb-5">
+            Upload an initial sales CSV dataset to train your first demand forecasting model and record convergence telemetry.
           </p>
           <Link
             to="/upload"
-            className="inline-flex items-center gap-2 h-9 px-4.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 shadow-2xs transition-all active:scale-95"
+            className="inline-flex items-center gap-2 min-h-[40px] px-4 rounded-[10px] text-xs font-semibold text-white bg-[#1e3fc8] hover:bg-[#1935a8]"
           >
-            <Upload className="w-3.5 h-3.5" />
+            <Upload className="w-3.5 h-3.5" aria-hidden="true" />
             <span>Upload Dataset</span>
           </Link>
         </div>
       ) : (
         <>
-          {/* ── 3. MODEL KPI CARDS ───────────────────────────────────── */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {/* Model Accuracy - Blue */}
+          {/* ── 3. Honest Model KPI Strip ────────────────────────────── */}
+          <section aria-label="Active Model Metrics" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <PipelineKPICard
               title="Model Accuracy"
-              value={trainingHistory.length > 0 ? `${trainingHistory[0]?.accuracy || 0}%` : '—'}
-              change={trainingHistory.length > 0 ? 0.9 : undefined}
-              changeLabel="vs baseline"
-              sub="Normalized MAE Accuracy (1 - WAPE)"
-              tooltipText="Calculated as 100% × (1 - MAE / Mean Demand) on the validation holdout split. Higher is better."
+              value={activeVersion ? `${activeVersion.accuracy}%` : '—'}
+              sub="1 − WAPE on validation split · Higher is better"
+              tooltipText="Computed as 100 × (1 − MAE / Mean Demand) on the holdout validation split."
               icon={Brain}
-              cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
-              borderColor="border-blue-200/80 dark:border-ds-border"
-              iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
-              iconColor="text-blue-600 dark:text-blue-400"
-              valueColor="text-blue-950 dark:text-ds-text-primary"
-              delay={0}
+              iconColor="text-[#1e3fc8] dark:text-[#60a5fa]"
+              emphasized={true}
+              delayMs={30}
             />
 
-            {/* MAE Score - Teal */}
             <PipelineKPICard
               title="MAE Score"
-              value={trainingHistory.length > 0 ? String(trainingHistory[0]?.mae || 0) : '—'}
-              change={trainingHistory.length > 0 ? -4.3 : undefined}
-              changeLabel="loss reduction"
-              sub="Mean Absolute Error (L1 Loss)"
-              tooltipText="Average magnitude of forecasting errors in units. Directly penalizes median deviation without squaring."
+              value={activeVersion ? `${activeVersion.mae} units` : '—'}
+              sub="Mean Absolute Error (L1) · Lower is better"
+              tooltipText="Average absolute forecast error in demand units. Lower values indicate tighter accuracy."
               icon={Activity}
-              cardBg="bg-gradient-to-b from-teal-50/70 via-teal-50/30 to-white dark:bg-ds-surface"
-              borderColor="border-teal-200/80 dark:border-ds-border"
-              iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400"
               iconColor="text-teal-600 dark:text-teal-400"
-              valueColor="text-teal-950 dark:text-ds-text-primary"
-              delay={0.05}
+              delayMs={60}
             />
 
-            {/* RMSE Score - Amber */}
             <PipelineKPICard
               title="RMSE Score"
-              value={trainingHistory.length > 0 ? String(trainingHistory[0]?.rmse || 0) : '—'}
-              change={trainingHistory.length > 0 ? -4.2 : undefined}
-              changeLabel="loss reduction"
-              sub="Root Mean Squared Error (L2 Loss)"
-              tooltipText="Quadratic loss metric sensitive to large demand spikes. Disproportionately penalizes severe outlier forecasts."
+              value={activeVersion ? `${activeVersion.rmse} units` : '—'}
+              sub="Root Mean Squared Error (L2) · Lower is better"
+              tooltipText="Quadratic error metric in demand units; penalizes larger demand-spike errors more heavily."
               icon={Zap}
-              cardBg="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
-              borderColor="border-amber-200/80 dark:border-ds-border"
-              iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
               iconColor="text-amber-600 dark:text-amber-400"
-              valueColor="text-amber-950 dark:text-ds-text-primary"
-              delay={0.1}
+              delayMs={90}
             />
 
-            {/* Last Trained - Slate */}
             <PipelineKPICard
               title="Last Trained"
-              value={trainingHistory[0]?.date || '—'}
+              value={activeVersion?.date || '—'}
               sub={
-                trainingHistory[0]?.version
-                  ? `Active: ${trainingHistory[0].version}${trainingHistory[0].time ? ` (${trainingHistory[0].time})` : ''}`
-                  : 'No trained build'
+                activeVersion
+                  ? `Serving ${activeVersion.version}${activeVersion.time ? ` · ${activeVersion.time}` : ''}`
+                  : 'No active model'
               }
-              tooltipText="Most recently activated model version serving live demand forecasts."
+              tooltipText="Timestamp when the currently serving model version was trained (browser local timezone)."
               icon={Clock}
-              cardBg="bg-gradient-to-b from-slate-50/80 via-slate-50/40 to-white dark:bg-ds-surface"
-              borderColor="border-slate-200/90 dark:border-ds-border"
-              iconBg="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-              iconColor="text-slate-600 dark:text-slate-300"
-              valueColor="text-slate-900 dark:text-ds-text-primary"
-              delay={0.15}
+              iconColor="text-[#52525b] dark:text-[#a1a1aa]"
+              delayMs={120}
             />
-          </div>
+          </section>
 
-          {/* ── 4 & 5. CONVERGENCE & FEATURE IMPORTANCE ───────────────── */}
+          {/* ── 4 & 5. Convergence & Global Feature Importance ───────── */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* 4. Training Convergence Chart */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[400px]"
+            {/* Training Convergence Chart */}
+            <section
+              aria-label="Training Convergence"
+              className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden flex flex-col"
             >
-              <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+              <div className="px-5 py-4 border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9]/70 dark:bg-[#18181b]/40 flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+                  <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
                     Training Convergence
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-                    MAE &amp; RMSE progression across boosting iterations
+                  </h2>
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+                    Logged MAE &amp; RMSE error curves across {modelMetrics.length} iterations (units; lower is better)
                   </p>
                 </div>
                 {modelMetrics.length > 0 && (
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 font-mono bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700">
-                    {modelMetrics.length} Iterations Logged
+                  <span className="text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] font-mono bg-white dark:bg-[#111113] px-2.5 py-1 rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a]">
+                    {modelMetrics.length} Iterations
                   </span>
                 )}
               </div>
 
-              <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
+              <div className="p-5 flex-1 flex flex-col justify-center">
                 {modelMetrics.length === 0 ? (
-                  <div className="w-full h-[270px] flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mb-3 border border-indigo-100 dark:border-indigo-900/40">
-                      <Activity className="w-6 h-6" />
-                    </div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <div className="w-full h-[270px] flex flex-col items-center justify-center text-center p-6 bg-[#fafaf9] dark:bg-[#18181b]/40 rounded-[12px] border border-dashed border-[#e4e4e7] dark:border-[#27272a]">
+                    <Activity className="w-6 h-6 text-[#52525b] dark:text-[#a1a1aa] mb-2" aria-hidden="true" />
+                    <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
                       No Convergence Telemetry Available
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-                      Run a model training iteration to record epoch-level MAE and RMSE convergence curves.
+                    </p>
+                    <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] max-w-xs mt-1">
+                      Run model training to record iteration-level MAE and RMSE values.
                     </p>
                   </div>
                 ) : (
-                  <ResponsiveContainer width="100%" height={270}>
-                    <LineChart data={modelMetrics} margin={{ top: 12, right: 12, left: -10, bottom: 4 }}>
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={modelMetrics} margin={{ top: 10, right: 16, left: -6, bottom: 4 }}>
                       <CartesianGrid
                         strokeDasharray="3 3"
-                        stroke={isDark ? '#334155' : '#E2E8F0'}
+                        stroke={isDark ? '#27272a' : '#e4e4e7'}
                         vertical={false}
                       />
                       <XAxis
                         dataKey="epoch"
-                        tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 500 }}
-                        axisLine={{ stroke: isDark ? '#475569' : '#CBD5E1' }}
+                        tick={{ fill: isDark ? '#a1a1aa' : '#52525b', fontSize: 11, fontWeight: 500 }}
+                        axisLine={{ stroke: isDark ? '#3f3f46' : '#d4d4d8' }}
                         tickLine={false}
-                        tickFormatter={(val) => `Iter #${val}`}
+                        tickFormatter={(val) => `#${val}`}
                       />
                       <YAxis
                         domain={yAxisDomain}
-                        tick={{ fill: isDark ? '#94A3B8' : '#64748B', fontSize: 11, fontWeight: 500 }}
+                        tick={{ fill: isDark ? '#a1a1aa' : '#52525b', fontSize: 11, fontWeight: 500 }}
                         axisLine={false}
                         tickLine={false}
                       />
@@ -800,37 +723,30 @@ export default function PipelinePage() {
                           const spread = rmseVal !== undefined && maeVal !== undefined ? rmseVal - maeVal : null;
 
                           return (
-                            <div className="bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border border-slate-200/90 dark:border-slate-800 rounded-xl shadow-lg p-3 text-xs min-w-[170px]">
-                              <p className="font-bold text-slate-900 dark:text-slate-100 pb-1.5 mb-1.5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
-                                <span>Iteration #{label}</span>
-                                <span className="text-[10px] text-slate-400 font-normal">Checkpoint</span>
+                            <div className="bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] rounded-[12px] shadow-lg p-3 text-xs min-w-[180px]">
+                              <p className="font-bold text-[#0a0a0a] dark:text-[#fafaf9] pb-1.5 mb-1.5 border-b border-[#e4e4e7] dark:border-[#27272a]">
+                                Iteration #{label}
                               </p>
                               <div className="space-y-1.5">
                                 {payload.map((entry) => (
-                                  <div
-                                    key={entry.name}
-                                    className="flex items-center justify-between gap-3"
-                                  >
-                                    <div className="flex items-center gap-1.5">
+                                  <div key={entry.name} className="flex items-center justify-between gap-3">
+                                    <span className="flex items-center gap-1.5 text-[#52525b] dark:text-[#a1a1aa] font-medium">
                                       <span
-                                        className="w-2.5 h-2.5 rounded-full"
+                                        className="w-2.5 h-2.5 rounded-full flex-shrink-0"
                                         style={{ backgroundColor: entry.color }}
                                       />
-                                      <span className="text-slate-600 dark:text-slate-300 font-medium">
-                                        {entry.name === 'MAE' ? 'MAE (L1)' : 'RMSE (L2)'}
-                                      </span>
-                                    </div>
-                                    <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
-                                      {Number(entry.value).toFixed(2)}
+                                      <span>{entry.name === 'MAE' ? 'MAE (L1)' : 'RMSE (L2)'}</span>
+                                    </span>
+                                    <span className="font-mono font-bold text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums">
+                                      {Number(entry.value).toFixed(2)} units
                                     </span>
                                   </div>
                                 ))}
-
                                 {spread !== null && (
-                                  <div className="pt-1.5 mt-1 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[10px]">
-                                    <span className="text-slate-400 font-medium">Variance Penalty (Δ)</span>
+                                  <div className="pt-1.5 mt-1 border-t border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-between text-[11px]">
+                                    <span className="text-[#52525b] dark:text-[#a1a1aa]">RMSE − MAE Spread</span>
                                     <span className="font-mono font-bold text-amber-600 dark:text-amber-400">
-                                      +{spread.toFixed(2)}
+                                      {spread >= 0 ? `+${spread.toFixed(2)}` : spread.toFixed(2)}
                                     </span>
                                   </div>
                                 )}
@@ -840,163 +756,158 @@ export default function PipelinePage() {
                         }}
                       />
                       <Legend
-                        wrapperStyle={{ fontSize: '11px', paddingTop: '12px' }}
+                        wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
                         formatter={(val: string) => (
-                          <span className="text-slate-700 dark:text-slate-300 font-semibold px-1">
-                            {val === 'MAE' ? 'MAE (Mean Absolute Error, L1)' : 'RMSE (Root Mean Squared Error, L2)'}
+                          <span className="text-[#0a0a0a] dark:text-[#fafaf9] font-semibold px-1">
+                            {val === 'MAE' ? 'MAE (Solid · Circle)' : 'RMSE (Dashed · Diamond)'}
                           </span>
                         )}
                       />
-                      {/* Solid Line with circular markers for MAE */}
                       <Line
                         type="monotone"
                         dataKey="mae"
                         name="MAE"
-                        stroke="#2563EB"
+                        stroke="#1e3fc8"
                         strokeWidth={2.5}
-                        dot={{ r: 3.5, fill: '#2563EB', stroke: '#ffffff', strokeWidth: 1.5 }}
-                        activeDot={{ r: 5, fill: '#2563EB', stroke: '#ffffff', strokeWidth: 2 }}
+                        connectNulls={false}
+                        isAnimationActive={!prefersReducedMotion}
+                        dot={{ r: 3.5, fill: '#1e3fc8', stroke: '#ffffff', strokeWidth: 1.5 }}
+                        activeDot={{ r: 5, fill: '#1e3fc8', stroke: '#ffffff', strokeWidth: 2 }}
                       />
-                      {/* Dashed Line with square markers for RMSE to guarantee visual differentiation */}
                       <Line
                         type="monotone"
                         dataKey="rmse"
                         name="RMSE"
-                        stroke="#F59E0B"
+                        stroke="#d97706"
                         strokeWidth={2.5}
-                        strokeDasharray="5 4"
-                        dot={{ r: 3.5, fill: '#F59E0B', stroke: '#ffffff', strokeWidth: 1.5 }}
-                        activeDot={{ r: 5, fill: '#F59E0B', stroke: '#ffffff', strokeWidth: 2 }}
+                        strokeDasharray="6 4"
+                        connectNulls={false}
+                        isAnimationActive={!prefersReducedMotion}
+                        dot={{ r: 4, fill: '#d97706', stroke: '#ffffff', strokeWidth: 1.5, strokeDasharray: '0' }}
+                        activeDot={{ r: 6, fill: '#d97706', stroke: '#ffffff', strokeWidth: 2 }}
                       />
                     </LineChart>
                   </ResponsiveContainer>
                 )}
               </div>
-            </motion.div>
+            </section>
 
-            {/* 5. Feature Importance */}
-            <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.25 }}
-              className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs hover:shadow-sm transition-all duration-200 overflow-hidden flex flex-col min-h-[400px]"
+            {/* Global Feature Importance */}
+            <section
+              aria-label="Global Feature Importance"
+              className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden flex flex-col"
             >
-              <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+              <div className="px-5 py-4 border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9]/70 dark:bg-[#18181b]/40 flex items-center justify-between flex-wrap gap-2">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
-                    Feature Importance
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-                    Relative predictive attribution normalized to 100%
+                  <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
+                    Global Feature Importance
+                  </h2>
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+                    Model-level normalized absolute correlation with demand (sums to 100%)
                   </p>
                 </div>
                 {featureImportance.length > 0 && (
-                  <span className="text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/60 dark:border-slate-700">
-                    Top {featureImportance.length} Predictors
+                  <span className="text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] bg-white dark:bg-[#111113] px-2.5 py-1 rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a]">
+                    {featureImportance.length} Predictors
                   </span>
                 )}
               </div>
 
-              <div className="p-5 sm:p-6 flex-1 flex flex-col justify-between">
+              <div className="p-5 flex-1 flex flex-col justify-between">
                 {featureImportance.length === 0 ? (
-                  <div className="w-full h-[270px] flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 dark:bg-slate-900/20 rounded-xl border border-dashed border-slate-200 dark:border-slate-800">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-50 dark:bg-blue-950/40 flex items-center justify-center text-blue-600 dark:text-blue-400 mb-3 border border-blue-100 dark:border-blue-900/40">
-                      <Cpu className="w-6 h-6" />
-                    </div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
+                  <div className="w-full h-[270px] flex flex-col items-center justify-center text-center p-6 bg-[#fafaf9] dark:bg-[#18181b]/40 rounded-[12px] border border-dashed border-[#e4e4e7] dark:border-[#27272a]">
+                    <Cpu className="w-6 h-6 text-[#52525b] dark:text-[#a1a1aa] mb-2" aria-hidden="true" />
+                    <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
                       No Feature Attribution Recorded
-                    </h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-                      Feature contribution scores will be derived upon initial pipeline execution.
+                    </p>
+                    <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] max-w-xs mt-1">
+                      Feature importance scores are recorded after model training completes.
                     </p>
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {featureImportance.map((f, i) => {
+                    {featureImportance.map((f) => {
                       const meta = FEATURE_METADATA[f.name];
                       const friendlyLabel = meta?.label || f.name;
+                      const pct = (f.importance * 100).toFixed(1);
+                      const barWidth = `${(f.importance / (featureImportance[0]?.importance || 1)) * 100}%`;
 
                       return (
-                        <motion.div
-                          key={f.name}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + i * 0.04 }}
-                          className="group"
-                        >
-                          <div className="flex items-center justify-between mb-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                        <div key={f.name}>
+                          <div className="flex items-center justify-between mb-1.5 gap-2">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] truncate">
                                 {friendlyLabel}
                               </span>
-                              <span className="font-mono text-[10px] text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/60 dark:border-slate-700">
+                              <span className="font-mono text-[10px] text-[#52525b] dark:text-[#a1a1aa] bg-[#fafaf9] dark:bg-[#18181b] px-1.5 py-0.5 rounded border border-[#e4e4e7] dark:border-[#27272a] flex-shrink-0">
                                 {f.name}
                               </span>
                             </div>
 
-                            <span className="text-xs font-bold font-mono text-slate-900 dark:text-slate-100 tabular-nums">
-                              {(f.importance * 100).toFixed(1)}%
+                            <span className="text-xs font-bold font-mono text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums flex-shrink-0">
+                              {pct}%
                             </span>
                           </div>
 
-                          <div className="w-full h-2.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-slate-200/60 dark:border-slate-700/60 shadow-inner">
-                            <motion.div
-                              initial={{ width: 0 }}
-                              animate={{
-                                width: `${(f.importance / (featureImportance[0]?.importance || 1)) * 100}%`,
-                              }}
-                              transition={{ duration: 0.8, delay: 0.35 + i * 0.05, ease: 'easeOut' }}
-                              className="h-full rounded-full bg-gradient-to-r from-blue-600 to-indigo-600"
+                          <div
+                            role="progressbar"
+                            aria-label={`${friendlyLabel} global importance`}
+                            aria-valuenow={Number(pct)}
+                            aria-valuemin={0}
+                            aria-valuemax={100}
+                            className="w-full h-2.5 bg-[#fafaf9] dark:bg-[#18181b] rounded-full overflow-hidden border border-[#e4e4e7] dark:border-[#27272a]"
+                          >
+                            <div
+                              className="h-full rounded-full bg-[#1e3fc8] dark:bg-[#60a5fa] transition-all duration-300"
+                              style={{ width: barWidth }}
                             />
                           </div>
 
                           {meta?.desc && (
-                            <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1 hidden sm:block">
+                            <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-1">
                               {meta.desc}
                             </p>
                           )}
-                        </motion.div>
+                        </div>
                       );
                     })}
                   </div>
                 )}
 
-                {/* Non-causal disclaimer */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-ds-border flex items-start gap-2 text-[11px] text-slate-500 dark:text-slate-400">
-                  <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-blue-500" />
+                <div className="mt-4 pt-3 border-t border-[#e4e4e7] dark:border-[#27272a] flex items-start gap-2 text-[11px] text-[#52525b] dark:text-[#a1a1aa] leading-relaxed">
+                  <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
                   <span>
-                    Attribution reflects tree split frequency &amp; correlation within the model; does not imply causal real-world driver effects.
+                    Measures global model-level absolute correlation with demand across the training set (not causal impact, and distinct from per-week local SHAP values on Demand Forecasting).
                   </span>
                 </div>
               </div>
-            </motion.div>
+            </section>
           </div>
 
-          {/* ── 6. TRAINING HISTORY & MODEL REGISTRY ───────────────────── */}
-          <motion.div
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
-            className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+          {/* ── 6. Training History & Model Registry ─────────────────── */}
+          <section
+            aria-label="Training History and Model Registry"
+            className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden"
           >
-            <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+            <div className="px-5 py-4 border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9]/70 dark:bg-[#18181b]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+                <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
                   Training History &amp; Model Registry
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-                  Historical gradient boosting checkpoints and validation telemetry
+                </h2>
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+                  Recorded model checkpoints, validation scores, training sample counts, and serving status
                 </p>
               </div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200/60 dark:border-slate-700">
-                {trainingHistory.length} {trainingHistory.length === 1 ? 'version recorded' : 'versions recorded'}
+              <span className="inline-flex items-center px-2.5 py-1 rounded-[8px] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold border border-[#e4e4e7] dark:border-[#27272a] font-mono tabular-nums self-start sm:self-center">
+                {trainingHistory.length} {trainingHistory.length === 1 ? 'version' : 'versions'}
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-left min-w-[700px]">
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
                 <thead>
-                  <tr className="border-b border-slate-200/80 dark:border-ds-border bg-slate-50/80 dark:bg-ds-surface-sunken/50">
+                  <tr className="border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b]/60">
                     {[
                       'Version Tag',
                       'Model Accuracy',
@@ -1004,68 +915,71 @@ export default function PipelinePage() {
                       'RMSE (L2)',
                       'Training Samples',
                       'Execution Mode',
-                      'Timestamp',
+                      'Trained At (Local)',
                       'Status',
                     ].map((h) => (
                       <th
                         key={h}
-                        className="px-5 py-3 text-[11px] font-bold text-slate-600 dark:text-ds-text-secondary uppercase tracking-wider"
+                        scope="col"
+                        className="px-5 py-3 text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]"
                       >
                         {h}
                       </th>
                     ))}
                   </tr>
                 </thead>
-                <tbody>
-                  {trainingHistory.map((t, i) => (
-                    <motion.tr
+                <tbody className="divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+                  {trainingHistory.map((t) => (
+                    <tr
                       key={t.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.35 + i * 0.03 }}
-                      className="border-b border-slate-100/80 dark:border-ds-border/40 hover:bg-slate-50/70 dark:hover:bg-ds-surface-sunken/40 transition-colors"
+                      className={cn(
+                        'transition-colors duration-150',
+                        t.status === 'active'
+                          ? 'bg-[#eff6ff]/40 dark:bg-[#1e3fc8]/10 hover:bg-[#eff6ff]/70 dark:hover:bg-[#1e3fc8]/15'
+                          : 'hover:bg-[#fafaf9] dark:hover:bg-[#18181b]/40'
+                      )}
                     >
                       <td className="px-5 py-3.5">
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-bold text-xs text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/40 px-2 py-0.5 rounded-md shadow-2xs">
+                          <span className="font-mono font-bold text-xs text-[#1e3fc8] dark:text-[#93c5fd] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 border border-[#bfdbfe] dark:border-[#1e3fc8]/40 px-2 py-0.5 rounded">
                             {t.version}
                           </span>
                           {t.status === 'active' && (
-                            <span className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
+                            <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/50">
                               Serving
                             </span>
                           )}
                         </div>
                       </td>
 
-                      <td className="px-5 py-3.5 text-sm font-bold text-emerald-600 dark:text-emerald-400 tabular-nums">
+                      <td className="px-5 py-3.5 text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums">
                         {t.accuracy}%
-                        <span className="text-[10px] font-normal text-slate-400 ml-1">
-                          (1 - WAPE)
+                        <span className="text-[10px] font-normal text-[#52525b] dark:text-[#a1a1aa] ml-1">
+                          (1 − WAPE)
                         </span>
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums">
                         {typeof t.mae === 'number' ? t.mae.toFixed(2) : t.mae}
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-slate-800 dark:text-slate-200 tabular-nums">
+                      <td className="px-5 py-3.5 text-xs font-mono font-bold text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums">
                         {typeof t.rmse === 'number' ? t.rmse.toFixed(2) : t.rmse}
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs font-medium text-slate-600 dark:text-slate-400">
-                        {t.samples ? `${t.samples.toLocaleString()} records` : '52 weeks'}
+                      <td className="px-5 py-3.5 text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] tabular-nums">
+                        {t.samples !== undefined ? `${t.samples.toLocaleString()} records` : '—'}
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs font-medium text-slate-600 dark:text-slate-400 font-mono">
+                      <td className="px-5 py-3.5 text-xs font-mono text-[#52525b] dark:text-[#a1a1aa]">
                         {t.duration}
                       </td>
 
-                      <td className="px-5 py-3.5 text-xs font-medium text-slate-600 dark:text-slate-400 tabular-nums">
+                      <td className="px-5 py-3.5 text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] tabular-nums">
                         <div>
                           <span>{t.date}</span>
                           {t.time && (
-                            <span className="text-[11px] text-slate-400 block font-mono">
+                            <span className="text-[11px] block font-mono">
                               {t.time}
                             </span>
                           )}
@@ -1075,27 +989,68 @@ export default function PipelinePage() {
                       <td className="px-5 py-3.5">
                         <span
                           className={cn(
-                            'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider border shadow-2xs',
+                            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border',
                             t.status === 'active'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                              : 'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
+                              : 'bg-[#fafaf9] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
                           )}
                         >
-                          <span
-                            className={cn(
-                              'w-1.5 h-1.5 rounded-full',
-                              t.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
-                            )}
-                          />
                           {t.status === 'active' ? 'Active' : 'Archived'}
                         </span>
                       </td>
-                    </motion.tr>
+                    </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-          </motion.div>
+
+            {/* Mobile Stacked Cards (<768px) */}
+            <div className="md:hidden divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+              {trainingHistory.map((t) => (
+                <div key={t.id} className="p-4 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-bold text-xs text-[#1e3fc8] dark:text-[#93c5fd] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 border border-[#bfdbfe] dark:border-[#1e3fc8]/40 px-2 py-0.5 rounded">
+                        {t.version}
+                      </span>
+                      {t.status === 'active' && (
+                        <span className="text-[10px] font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/50 px-1.5 py-0.5 rounded border border-emerald-200 dark:border-emerald-800/50">
+                          Serving
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-bold uppercase text-[#52525b] dark:text-[#a1a1aa]">
+                      {t.status === 'active' ? 'Active' : 'Archived'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] block">Accuracy</span>
+                      <strong className="tabular-nums text-[#0a0a0a] dark:text-[#fafaf9]">{t.accuracy}%</strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] block">MAE</span>
+                      <strong className="font-mono tabular-nums text-[#0a0a0a] dark:text-[#fafaf9]">
+                        {typeof t.mae === 'number' ? t.mae.toFixed(2) : t.mae}
+                      </strong>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] block">RMSE</span>
+                      <strong className="font-mono tabular-nums text-[#0a0a0a] dark:text-[#fafaf9]">
+                        {typeof t.rmse === 'number' ? t.rmse.toFixed(2) : t.rmse}
+                      </strong>
+                    </div>
+                  </div>
+
+                  <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] tabular-nums">
+                    {t.samples !== undefined ? `${t.samples.toLocaleString()} records · ` : ''}
+                    {t.date} {t.time ? `· ${t.time}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </section>
         </>
       )}
     </div>

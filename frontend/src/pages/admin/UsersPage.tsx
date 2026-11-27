@@ -1,19 +1,17 @@
 /**
- * Admin - User Management Page.
+ * Titan AI — User Management Page (/app/admin/users)
  *
- * Frontend Refinements:
- * 1. Fixed truncated KPI descriptions with multi-line wrapping and consistent card min-height.
- * 2. High-contrast table with clear typography, avatar styling, and distinct role/status indicators.
- * 3. Role badges with concise permission tooltips explaining capabilities (Admin, Manager, Analyst, Viewer).
- * 4. Enhanced row action menu with outside-click handling, keyboard navigation, and safe deletion confirmation.
- * 5. Improved Add User modal: accessible form inputs, role capability previews, and validation indicators.
- * 6. Multi-facet search and role filtering with quick reset.
- * 7. Generous bottom clearance (pb-28 sm:pb-32) preventing floating AI assistant from obscuring controls.
- * 8. Full light and dark mode design-system consistency.
+ * Refined with Titan AI editorial design system:
+ * - Warm paper / near-black surfaces, editorial header, blue primary actions, semantic status badges.
+ * - Truthful KPIs computed strictly from GET /users (no hardcoded "New This Month 2" or fake "+100%").
+ * - Clarifies account enablement ("Active" = enabled access) vs sign-in history ("Last Login: Never").
+ * - Accessible row actions ("Actions for <Name>") with Escape/outside-click dismissal, self-action guards,
+ *   pending states, and authoritative server error handling (no silent localStorage fake-success fallbacks).
+ * - Accessible Add User modal with form validation, server error placement, Escape handling, and focus management.
  */
 
 import { useState, useMemo, useEffect, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Users,
   UserPlus,
@@ -24,7 +22,6 @@ import {
   Calendar,
   X,
   CheckCircle2,
-  TrendingUp,
   UserCheck,
   UserX,
   Trash2,
@@ -40,6 +37,8 @@ import {
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '@/services/api';
+import { useAppStore } from '@/stores/appStore';
+import '@/styles/titan-dashboard.css';
 
 interface UserModel {
   id: number;
@@ -48,20 +47,12 @@ interface UserModel {
   role: string;
   status: 'active' | 'inactive';
   lastLogin: string;
+  hasSignedIn: boolean;
   created: string;
+  createdMonthKey: string;
 }
 
-const initialDemoUsers: UserModel[] = [
-  { id: 1, name: 'Admin User', email: 'admin@demandforecaster.com', role: 'admin', status: 'active', lastLogin: '2 hours ago', created: '2026-01-15' },
-  { id: 2, name: 'Sarah Chen', email: 'sarah.chen@company.com', role: 'manager', status: 'active', lastLogin: '1 day ago', created: '2026-02-20' },
-  { id: 3, name: 'James Wilson', email: 'james.w@company.com', role: 'analyst', status: 'active', lastLogin: '3 hours ago', created: '2026-03-10' },
-  { id: 4, name: 'Maria Garcia', email: 'maria.g@company.com', role: 'analyst', status: 'active', lastLogin: '5 hours ago', created: '2026-03-15' },
-  { id: 5, name: 'Robert Kim', email: 'robert.k@company.com', role: 'viewer', status: 'inactive', lastLogin: '2 weeks ago', created: '2026-04-01' },
-  { id: 6, name: 'Emily Taylor', email: 'emily.t@company.com', role: 'viewer', status: 'active', lastLogin: '1 hour ago', created: '2026-04-10' },
-];
-
-// Role descriptions based on backend RBAC model
-const roleDescriptions: Record<string, string> = {
+const ROLE_DESCRIPTIONS: Record<string, string> = {
   admin: 'Full platform administration: models, configuration, users & security logs',
   org_admin: 'Full platform administration: models, configuration, users & security logs',
   super_admin: 'Global system administration: all tenants & infrastructure settings',
@@ -70,13 +61,13 @@ const roleDescriptions: Record<string, string> = {
   viewer: 'Read-only access: view dashboards, inventory summaries & predictions',
 };
 
-const roleBadgeStyles: Record<string, string> = {
-  admin: 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40',
-  org_admin: 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40',
-  super_admin: 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40',
-  manager: 'bg-purple-50 text-purple-700 border-purple-200/80 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-800/40',
-  analyst: 'bg-teal-50 text-teal-700 border-teal-200/80 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/40',
-  viewer: 'bg-slate-100 text-slate-700 border-slate-200/80 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700',
+const ROLE_BADGE_STYLES: Record<string, string> = {
+  admin: 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
+  org_admin: 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
+  super_admin: 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
+  manager: 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50',
+  analyst: 'bg-teal-50 text-teal-800 border-teal-200 dark:bg-teal-950/40 dark:text-teal-300 dark:border-teal-800/50',
+  viewer: 'bg-[#fafaf9] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]',
 };
 
 const formatRoleLabel = (role: string) => {
@@ -84,144 +75,131 @@ const formatRoleLabel = (role: string) => {
   return role.charAt(0).toUpperCase() + role.slice(1);
 };
 
-// ── Custom User KPI Card ─────────────────────────────────────────────
+const getApiErrorMessage = (err: unknown, fallback: string): string => {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+  if (typeof detail === 'string' && detail.trim()) return detail;
+  return fallback;
+};
 
 interface UserKPICardProps {
   title: string;
   value: React.ReactNode;
-  change?: number;
-  changeLabel?: string;
-  sub?: string;
+  sub: string;
   icon: React.ElementType;
-  iconBg: string;
   iconColor: string;
-  cardBg: string;
-  borderColor: string;
-  valueColor: string;
-  tooltipText?: string;
-  delay?: number;
+  tooltipText: string;
+  emphasized?: boolean;
+  delayMs?: number;
 }
 
 function UserKPICard({
   title,
   value,
-  change,
-  changeLabel = 'vs prior period',
   sub,
   icon: Icon,
-  iconBg,
   iconColor,
-  cardBg,
-  borderColor,
-  valueColor,
   tooltipText,
-  delay = 0,
+  emphasized = false,
+  delayMs = 0,
 }: UserKPICardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    <div
+      style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
       className={cn(
-        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[156px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
-        cardBg,
-        borderColor
+        'titan-dash-reveal titan-kpi-wrap',
+        emphasized && 'titan-kpi-wrap--emphasized'
       )}
     >
-      <div className="flex items-start justify-between relative z-10 w-full gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider truncate">
-              {title}
-            </p>
-            {tooltipText && (
+      <div className="titan-kpi-card rounded-[16px] p-5 border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] flex flex-col justify-between min-h-[144px]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-2">
+              <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.08em] truncate">
+                {title}
+              </p>
               <span
-                className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-help"
+                className="text-[#52525b]/70 hover:text-[#0a0a0a] dark:text-[#a1a1aa]/70 dark:hover:text-[#fafaf9] cursor-help flex-shrink-0"
                 title={tooltipText}
+                aria-label={tooltipText}
               >
-                <HelpCircle className="w-3 h-3" />
+                <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
               </span>
-            )}
+            </div>
+            <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-[#0a0a0a] dark:text-[#fafaf9]">
+              {value}
+            </p>
           </div>
-          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
-            {value}
-          </p>
-
-          {change !== undefined ? (
-            <div className="flex flex-wrap items-center gap-1.5 mt-3">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums border shadow-2xs bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20 flex-shrink-0">
-                <TrendingUp className="w-3 h-3 text-emerald-600" />
-                +{change.toFixed(1)}%
-              </span>
-              <span className="text-xs text-slate-500 dark:text-ds-text-muted font-medium leading-tight">
-                {changeLabel}
-              </span>
-            </div>
-          ) : sub ? (
-            <div className="mt-3 flex items-start gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control mt-1.5 flex-shrink-0" />
-              <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted leading-snug">
-                {sub}
-              </span>
-            </div>
-          ) : null}
+          <div className="w-10 h-10 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-center flex-shrink-0">
+            <Icon className={cn('w-4.5 h-4.5', iconColor)} aria-hidden="true" />
+          </div>
         </div>
-
-        <div
-          className={cn(
-            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border',
-            iconBg
-          )}
-        >
-          <Icon className={cn('w-5 h-5', iconColor)} />
-        </div>
+        <p className="mt-3 text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] leading-snug">
+          {sub}
+        </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
-// ── Main Page Component ──────────────────────────────────────────────
-
 export default function AdminUsersPage() {
+  const prefersReducedMotion = useReducedMotion();
   const queryClient = useQueryClient();
-  const menuRef = useRef<HTMLDivElement>(null);
+  const currentUser = useAppStore((s) => s.user);
+  const canManageUsers =
+    !currentUser ||
+    ['admin', 'org_admin', 'super_admin'].includes((currentUser.role || '').toLowerCase());
 
-  // Fallback demo users state in case backend has not returned yet
-  const [localUsers, setLocalUsers] = useState<UserModel[]>(() => {
-    const saved = localStorage.getItem('df_users');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch {
-        return initialDemoUsers;
-      }
-    }
-    return initialDemoUsers;
-  });
+  const menuRef = useRef<HTMLDivElement>(null);
+  const nameInputRef = useRef<HTMLInputElement>(null);
+  const toastTimerRef = useRef<number | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'viewer', password: '' });
+  const [formError, setFormError] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; isError?: boolean } | null>(null);
+  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
+  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
+  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
 
   useEffect(() => {
-    localStorage.setItem('df_users', JSON.stringify(localUsers));
-  }, [localUsers]);
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const showToast = (message: string, isError = false) => {
+    setToast({ message, isError });
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 4000);
+  };
 
   // Real backend query for tenant users
-  const { data: apiUsers } = useQuery({
+  const {
+    data: apiUsers,
+    isLoading,
+    isError: isUsersError,
+    error: usersError,
+    refetch: refetchUsers,
+  } = useQuery({
     queryKey: ['users'],
-    queryFn: async () => {
-      try {
-        const res = await usersApi.getAll();
-        return res.data;
-      } catch {
-        return null;
-      }
-    },
+    queryFn: () => usersApi.getAll().then((res) => res.data),
     staleTime: 30_000,
   });
 
-  // Reconcile live backend users with fallback
   const users: UserModel[] = useMemo(() => {
-    if (apiUsers && Array.isArray(apiUsers) && apiUsers.length > 0) {
-      return apiUsers.map((u) => ({
+    if (!apiUsers || !Array.isArray(apiUsers)) return [];
+    return apiUsers.map((u) => {
+      const createdIso = u.created_at ? new Date(u.created_at) : null;
+      const createdValid = createdIso && !Number.isNaN(createdIso.getTime());
+      const createdDateStr = createdValid ? createdIso.toISOString().split('T')[0] : '—';
+      const createdMonthKey = createdValid
+        ? `${createdIso.getFullYear()}-${String(createdIso.getMonth() + 1).padStart(2, '0')}`
+        : '';
+
+      return {
         id: u.id,
         name: u.name,
         email: u.email,
@@ -230,30 +208,14 @@ export default function AdminUsersPage() {
         lastLogin: u.last_login_at
           ? new Date(u.last_login_at).toLocaleDateString()
           : 'Never',
-        created: u.created_at
-          ? new Date(u.created_at).toISOString().split('T')[0]
-          : '2026-01-01',
-      }));
-    }
-    return localUsers;
-  }, [apiUsers, localUsers]);
+        hasSignedIn: Boolean(u.last_login_at),
+        created: createdDateStr,
+        createdMonthKey,
+      };
+    });
+  }, [apiUsers]);
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [roleFilter, setRoleFilter] = useState<string>('all');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [newUser, setNewUser] = useState({ name: '', email: '', role: 'viewer', password: '' });
-  const [toast, setToast] = useState<{ message: string; isError?: boolean } | null>(null);
-  const [menuOpenId, setMenuOpenId] = useState<number | null>(null);
-  const [confirmingDeleteId, setConfirmingDeleteId] = useState<number | null>(null);
-  const [editingRoleId, setEditingRoleId] = useState<number | null>(null);
-
-  const showToast = (message: string, isError = false) => {
-    setToast({ message, isError });
-    setTimeout(() => setToast(null), 3500);
-  };
-
-  // Close menus on outside click
+  // Close menus & modals on Escape or outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -262,21 +224,40 @@ export default function AdminUsersPage() {
         setEditingRoleId(null);
       }
     };
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (menuOpenId !== null) {
+          setMenuOpenId(null);
+          setConfirmingDeleteId(null);
+          setEditingRoleId(null);
+        } else if (showAddModal) {
+          setShowAddModal(false);
+        }
+      }
+    };
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [menuOpenId, showAddModal]);
+
+  useEffect(() => {
+    if (showAddModal) {
+      window.setTimeout(() => nameInputRef.current?.focus(), 40);
+    }
+  }, [showAddModal]);
 
   // Filtered users
   const filteredUsers = useMemo(() => {
     return users.filter((u) => {
-      // Role filter
       if (roleFilter !== 'all') {
-        const normalizedRole = u.role === 'org_admin' || u.role === 'super_admin' ? 'admin' : u.role;
+        const normalizedRole =
+          u.role === 'org_admin' || u.role === 'super_admin' ? 'admin' : u.role;
         if (normalizedRole.toLowerCase() !== roleFilter.toLowerCase()) return false;
       }
-      // Status filter
       if (statusFilter !== 'all' && u.status !== statusFilter) return false;
-      // Search
       if (searchTerm.trim()) {
         const q = searchTerm.toLowerCase();
         const matchesName = u.name.toLowerCase().includes(q);
@@ -288,44 +269,21 @@ export default function AdminUsersPage() {
     });
   }, [users, roleFilter, statusFilter, searchTerm]);
 
-  // Mutations
+  // Authoritative Mutations (no silent fake-success fallbacks)
   const createMutation = useMutation({
     mutationFn: (data: { name: string; email: string; role: string; password?: string }) =>
       usersApi.create(data),
     onSuccess: (res) => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      const createdUser = res.data;
-      setLocalUsers((prev) => [
-        ...prev,
-        {
-          id: createdUser.id,
-          name: createdUser.name,
-          email: createdUser.email,
-          role: createdUser.role,
-          status: 'active',
-          lastLogin: 'Never',
-          created: new Date().toISOString().split('T')[0],
-        },
-      ]);
       setShowAddModal(false);
       setNewUser({ name: '', email: '', role: 'viewer', password: '' });
-      showToast(`User "${createdUser.name}" created successfully`);
+      setFormError(null);
+      showToast(`User "${res.data.name}" created successfully`);
     },
     onError: (err: unknown) => {
-      // Fallback local update
-      const mockUser: UserModel = {
-        id: Date.now(),
-        name: newUser.name,
-        email: newUser.email,
-        role: newUser.role,
-        status: 'active',
-        lastLogin: 'Never',
-        created: new Date().toISOString().split('T')[0],
-      };
-      setLocalUsers((prev) => [...prev, mockUser]);
-      setShowAddModal(false);
-      setNewUser({ name: '', email: '', role: 'viewer', password: '' });
-      showToast(`User "${mockUser.name}" created`);
+      const msg = getApiErrorMessage(err, 'Failed to create user account.');
+      setFormError(msg);
+      showToast(msg, true);
     },
   });
 
@@ -333,18 +291,12 @@ export default function AdminUsersPage() {
     mutationFn: (id: number) => usersApi.toggleStatus(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      showToast('User status updated');
+      setMenuOpenId(null);
+      showToast('Account access status updated');
     },
-    onError: () => {
-      // Fallback local update
-      setLocalUsers((prev) =>
-        prev.map((u) =>
-          u.id === menuOpenId
-            ? { ...u, status: u.status === 'active' ? 'inactive' : 'active' }
-            : u
-        )
-      );
-      showToast('User status updated');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Could not update account status.');
+      showToast(msg, true);
     },
   });
 
@@ -352,12 +304,14 @@ export default function AdminUsersPage() {
     mutationFn: (id: number) => usersApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      showToast('User removed from platform');
+      setConfirmingDeleteId(null);
+      setMenuOpenId(null);
+      showToast('User removed from organization');
     },
-    onError: () => {
-      // Fallback local update
-      setLocalUsers((prev) => prev.filter((u) => u.id !== confirmingDeleteId));
-      showToast('User removed');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Could not delete user account.');
+      setConfirmingDeleteId(null);
+      showToast(msg, true);
     },
   });
 
@@ -366,50 +320,50 @@ export default function AdminUsersPage() {
       usersApi.update(id, { role: role as 'viewer' | 'analyst' | 'org_admin' | 'super_admin' }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['users'] });
-      showToast('Role updated successfully');
+      setEditingRoleId(null);
+      setMenuOpenId(null);
+      showToast('User role updated');
     },
-    onError: () => {
-      setLocalUsers((prev) =>
-        prev.map((u) => (u.id === editingRoleId ? { ...u, role: newRoleTemp } : u))
-      );
-      showToast('Role updated');
+    onError: (err: unknown) => {
+      const msg = getApiErrorMessage(err, 'Could not update user role.');
+      showToast(msg, true);
     },
   });
 
-  const [newRoleTemp, setNewRoleTemp] = useState('viewer');
+  const handleAddUser = (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmedName = newUser.name.trim();
+    const trimmedEmail = newUser.email.trim();
 
-  const handleAddUser = () => {
-    if (!newUser.name || !newUser.email) return;
+    if (!trimmedName) {
+      setFormError('Full name is required.');
+      return;
+    }
+    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
+      setFormError('Enter a valid email address.');
+      return;
+    }
+
+    setFormError(null);
     const roleToSend = newUser.role === 'admin' ? 'org_admin' : newUser.role;
     createMutation.mutate({
-      name: newUser.name,
-      email: newUser.email,
+      name: trimmedName,
+      email: trimmedEmail,
       role: roleToSend,
       password: newUser.password || 'TitanSecure2026!',
     });
   };
 
-  const handleToggleStatus = (id: number) => {
-    toggleStatusMutation.mutate(id);
-    setMenuOpenId(null);
-  };
-
-  const handleDeleteUser = (id: number) => {
-    deleteMutation.mutate(id);
-    setConfirmingDeleteId(null);
-    setMenuOpenId(null);
-  };
-
-  const handleChangeRole = (id: number, role: string) => {
-    setNewRoleTemp(role);
-    const roleToSend = role === 'admin' ? 'org_admin' : role;
-    updateRoleMutation.mutate({ id, role: roleToSend });
-    setEditingRoleId(null);
-    setMenuOpenId(null);
-  };
-
   const activeCount = users.filter((u) => u.status === 'active').length;
-  const adminCount = users.filter((u) => u.role === 'admin' || u.role === 'org_admin' || u.role === 'super_admin').length;
+  const enabledPct = users.length > 0 ? Math.round((activeCount / users.length) * 100) : 0;
+  const adminCount = users.filter(
+    (u) => u.role === 'admin' || u.role === 'org_admin' || u.role === 'super_admin'
+  ).length;
+
+  const now = new Date();
+  const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const currentMonthLabel = now.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  const newThisMonthCount = users.filter((u) => u.createdMonthKey === currentMonthKey).length;
 
   const activeFilterCount =
     (roleFilter !== 'all' ? 1 : 0) +
@@ -422,26 +376,34 @@ export default function AdminUsersPage() {
     setStatusFilter('all');
   };
 
+  const isRowMutating =
+    toggleStatusMutation.isPending ||
+    deleteMutation.isPending ||
+    updateRoleMutation.isPending;
+
   return (
     <div className="space-y-6 pb-28 sm:pb-32">
       {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            role="status"
+            aria-live="polite"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
+            transition={{ duration: 0.16 }}
             className={cn(
-              'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2.5 shadow-xl border backdrop-blur-md',
+              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-lg border max-w-sm',
               toast.isError
-                ? 'bg-rose-50/95 text-rose-800 border-rose-200/90 dark:bg-rose-950/90 dark:text-rose-200 dark:border-rose-800/60'
-                : 'bg-emerald-50/95 text-emerald-800 border-emerald-200/90 dark:bg-emerald-950/90 dark:text-emerald-200 dark:border-emerald-800/60'
+                ? 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800'
+                : 'bg-white text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#111113] dark:text-[#fafaf9] dark:border-[#27272a]'
             )}
           >
             {toast.isError ? (
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
             )}
             <span>{toast.message}</span>
           </motion.div>
@@ -452,99 +414,128 @@ export default function AdminUsersPage() {
       <AnimatePresence>
         {showAddModal && (
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={prefersReducedMotion ? false : { opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.16 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
             onClick={() => setShowAddModal(false)}
           >
             <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="p-6 w-full max-w-md rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="add-user-modal-title"
+              initial={prefersReducedMotion ? false : { scale: 0.97, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={prefersReducedMotion ? undefined : { scale: 0.97, opacity: 0 }}
+              transition={{ duration: 0.16 }}
+              className="p-6 w-full max-w-md rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-100 dark:border-slate-800">
+              <div className="flex items-center justify-between pb-4 mb-4 border-b border-[#e4e4e7] dark:border-[#27272a]">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 flex items-center justify-center border border-blue-100 dark:border-blue-900/40">
-                    <UserPlus className="w-4.5 h-4.5" />
+                  <div className="w-9 h-9 rounded-[10px] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 text-[#1e3fc8] dark:text-[#60a5fa] flex items-center justify-center border border-[#bfdbfe] dark:border-[#1e3fc8]/40">
+                    <UserPlus className="w-4.5 h-4.5" aria-hidden="true" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-900 dark:text-ds-text">
+                    <h2 id="add-user-modal-title" className="text-base font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
                       Add New User
-                    </h3>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
-                      Provision platform credentials &amp; assign RBAC permissions
+                    </h2>
+                    <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">
+                      Provision platform account &amp; assign role permissions
                     </p>
                   </div>
                 </div>
                 <button
+                  type="button"
+                  aria-label="Close Add User dialog"
                   onClick={() => setShowAddModal(false)}
-                  className="w-7 h-7 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  className="w-8 h-8 rounded-[8px] flex items-center justify-center text-[#52525b] hover:text-[#0a0a0a] hover:bg-[#fafaf9] dark:text-[#a1a1aa] dark:hover:bg-[#18181b] transition-colors cursor-pointer"
                 >
-                  <X className="w-4 h-4" />
+                  <X className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
 
-              <div className="space-y-4">
+              <form onSubmit={handleAddUser} noValidate className="space-y-4">
+                {formError && (
+                  <div
+                    role="alert"
+                    className="p-3 rounded-[10px] bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-2"
+                  >
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                    <span>{formError}</span>
+                  </div>
+                )}
+
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Full Name <span className="text-rose-500">*</span>
+                  <label htmlFor="add-user-name" className="block text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1.5">
+                    Full Name <span className="text-rose-600">*</span>
                   </label>
                   <input
+                    ref={nameInputRef}
+                    id="add-user-name"
+                    required
                     value={newUser.name}
                     onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
                     placeholder="e.g. Alex Morgan"
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-ds-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                    className="w-full min-h-[40px] px-3.5 py-2 rounded-[10px] text-xs bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                    Email Address <span className="text-rose-500">*</span>
+                  <label htmlFor="add-user-email" className="block text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1.5">
+                    Email Address <span className="text-rose-600">*</span>
                   </label>
                   <input
+                    id="add-user-email"
+                    required
+                    type="email"
                     value={newUser.email}
                     onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
-                    type="email"
                     placeholder="alex@company.com"
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-ds-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                    className="w-full min-h-[40px] px-3.5 py-2 rounded-[10px] text-xs bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                  <label htmlFor="add-user-role" className="block text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1.5">
                     Platform Role &amp; Permissions
                   </label>
                   <select
+                    id="add-user-role"
                     value={newUser.role}
                     onChange={(e) => setNewUser({ ...newUser, role: e.target.value })}
-                    className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-ds-text focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                    className="w-full min-h-[40px] px-3.5 py-2 rounded-[10px] text-xs bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20"
                   >
                     <option value="viewer">Viewer — Read-only dashboards &amp; reports</option>
                     <option value="analyst">Analyst — Demand forecasts, reports &amp; simulations</option>
                     <option value="manager">Manager — Inventory approvals &amp; reorder points</option>
                     <option value="admin">Admin — Full organization control &amp; user management</option>
                   </select>
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1.5 leading-snug">
-                    {roleDescriptions[newUser.role] || 'Assigned platform capabilities'}
+                  <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-1.5 leading-snug">
+                    {ROLE_DESCRIPTIONS[newUser.role] || 'Assigned platform capabilities'}
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 flex items-center justify-between">
+                  <label
+                    htmlFor="add-user-password"
+                    className="block text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1.5 flex items-center justify-between"
+                  >
                     <span>Initial Temporary Password</span>
-                    <span className="text-[10px] font-normal text-slate-400">Optional (Defaults to secure key)</span>
+                    <span className="text-[10px] font-normal text-[#52525b] dark:text-[#a1a1aa]">
+                      Optional (defaults to initial key)
+                    </span>
                   </label>
                   <div className="relative">
-                    <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                    <Lock className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
                     <input
+                      id="add-user-password"
                       type="password"
                       value={newUser.password}
                       onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
-                      placeholder="Leave blank for auto-generated password"
-                      className="w-full pl-9 pr-3.5 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-800/80 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-ds-text placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                      placeholder="Leave blank for default temporary password"
+                      className="w-full min-h-[40px] pl-9 pr-3.5 py-2 rounded-[10px] text-xs bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20"
                     />
                   </div>
                 </div>
@@ -553,19 +544,18 @@ export default function AdminUsersPage() {
                   <button
                     type="button"
                     onClick={() => setShowAddModal(false)}
-                    className="w-1/3 py-2.5 rounded-xl text-xs font-semibold text-slate-700 dark:text-slate-300 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 transition cursor-pointer"
+                    className="w-1/3 min-h-[42px] rounded-[10px] text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] bg-[#fafaf9] hover:bg-[#e4e4e7]/60 dark:bg-[#18181b] dark:hover:bg-[#27272a] border border-[#e4e4e7] dark:border-[#27272a] transition-colors cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
-                    type="button"
-                    onClick={handleAddUser}
-                    disabled={!newUser.name || !newUser.email || createMutation.isPending}
-                    className="flex-1 py-2.5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-sm transition-all duration-150 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1.5 cursor-pointer"
+                    type="submit"
+                    disabled={createMutation.isPending}
+                    className="flex-1 min-h-[42px] rounded-[10px] text-xs font-semibold text-white bg-[#1e3fc8] hover:bg-[#1935a8] transition-colors disabled:opacity-50 disabled:cursor-wait flex items-center justify-center gap-1.5 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
                   >
                     {createMutation.isPending ? (
                       <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
                         <span>Creating User...</span>
                       </>
                     ) : (
@@ -573,148 +563,132 @@ export default function AdminUsersPage() {
                     )}
                   </button>
                 </div>
-              </div>
+              </form>
             </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 1. PAGE HEADER (with Subtle Blue/Indigo Accent) ───────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
+      <header
+        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
+        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
       >
-        {/* Subtle decorative blue-to-indigo gradient glow */}
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
-
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <Users className="w-5 h-5 text-white" />
+        <div className="min-w-0">
+          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
+            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
+            <span>ADMINISTRATION · ACCESS CONTROL</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 inline-block" />
-              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
-                User Management
-              </h1>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              Manage organization accounts, role-based access control, and platform privileges
-            </p>
-          </div>
+          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
+            User Management
+          </h1>
+          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
+            Manage organization accounts, role-based access control, and sign-in enablement
+          </p>
         </div>
 
-        {/* Primary Action: Add User Button */}
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="relative h-9 px-4 rounded-xl text-xs font-semibold flex items-center gap-2 text-white shadow-2xs transition-all duration-150 active:scale-95 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-1 cursor-pointer"
-        >
-          <UserPlus className="w-3.5 h-3.5 text-white" />
-          <span>Add User</span>
-        </button>
-      </motion.div>
+        {canManageUsers && (
+          <button
+            type="button"
+            onClick={() => {
+              setFormError(null);
+              setShowAddModal(true);
+            }}
+            className="min-h-[44px] sm:min-h-[38px] px-4 rounded-[10px] text-xs font-semibold inline-flex items-center gap-2 text-white bg-[#1e3fc8] hover:bg-[#1935a8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] cursor-pointer self-start sm:self-end flex-shrink-0"
+          >
+            <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Add User</span>
+          </button>
+        )}
+      </header>
 
-      {/* ── 2. KPI CARDS (Blue, Emerald, Indigo, Teal) ───────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Total Users - Blue */}
+      {/* ── 2. Honest KPI Summary Strip ──────────────────────────────── */}
+      <section aria-label="User Account Metrics" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <UserKPICard
           title="Total Users"
-          value={String(users.length)}
-          sub="All registered accounts across organization"
+          value={isLoading ? '—' : String(users.length)}
+          sub="Registered accounts in organization"
           icon={Users}
-          cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-blue-200/80 dark:border-ds-border"
-          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
-          iconColor="text-blue-600 dark:text-blue-400"
-          valueColor="text-blue-950 dark:text-ds-text-primary"
-          tooltipText="Total platform user accounts provisioned in this tenant"
-          delay={0}
+          iconColor="text-[#1e3fc8] dark:text-[#60a5fa]"
+          tooltipText="Total user accounts returned by GET /users for this tenant"
+          emphasized={true}
+          delayMs={30}
         />
 
-        {/* Active Users - Emerald */}
         <UserKPICard
-          title="Active Users"
-          value={String(activeCount)}
-          sub={`${Math.round((activeCount / Math.max(1, users.length)) * 100)}% platform availability rate`}
-          icon={Users}
-          cardBg="bg-gradient-to-b from-emerald-50/70 via-emerald-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-emerald-200/80 dark:border-ds-border"
-          iconBg="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
+          title="Enabled Accounts"
+          value={isLoading ? '—' : String(activeCount)}
+          sub={
+            users.length > 0
+              ? `${enabledPct}% of accounts have sign-in access enabled`
+              : 'No registered accounts'
+          }
+          icon={UserCheck}
           iconColor="text-emerald-600 dark:text-emerald-400"
-          valueColor="text-emerald-950 dark:text-ds-text-primary"
-          tooltipText="Accounts with active sign-in status and enabled system access"
-          delay={0.05}
+          tooltipText="Accounts with is_active=true (enabled for sign-in; distinct from whether they have logged in)"
+          delayMs={60}
         />
 
-        {/* Admin Users - Indigo */}
         <UserKPICard
           title="Admin Users"
-          value={String(adminCount)}
+          value={isLoading ? '—' : String(adminCount)}
           sub="Full platform administration permissions"
           icon={Shield}
-          cardBg="bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-indigo-200/80 dark:border-ds-border"
-          iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
-          iconColor="text-indigo-600 dark:text-indigo-400"
-          valueColor="text-indigo-950 dark:text-ds-text-primary"
-          tooltipText="Users with administrative capabilities to configure models and users"
-          delay={0.1}
+          iconColor="text-amber-600 dark:text-amber-400"
+          tooltipText="Accounts holding admin, org_admin, or super_admin roles"
+          delayMs={90}
         />
 
-        {/* New This Month - Teal */}
         <UserKPICard
           title="New This Month"
-          value="2"
-          change={100}
-          changeLabel="vs prior cycle"
-          sub="Recently provisioned"
+          value={isLoading ? '—' : String(newThisMonthCount)}
+          sub={`Created in ${currentMonthLabel}`}
           icon={UserPlus}
-          cardBg="bg-gradient-to-b from-teal-50/70 via-teal-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-teal-200/80 dark:border-ds-border"
-          iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400"
           iconColor="text-teal-600 dark:text-teal-400"
-          valueColor="text-teal-950 dark:text-ds-text-primary"
-          tooltipText="User accounts created during the current calendar month"
-          delay={0.15}
+          tooltipText="Accounts whose created_at timestamp falls in the current local calendar month"
+          delayMs={120}
         />
-      </div>
+      </section>
 
-      {/* ── 3. USER TABLE ────────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2 }}
-        className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+      {/* ── 3. User Registry Table / Mobile Cards ────────────────────── */}
+      <section
+        aria-label="Organization User Directory"
+        className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden"
       >
-        {/* Table Top Bar: Title, Role Tabs & Search */}
-        <div className="p-4 sm:px-5 sm:py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-3">
+        {/* Top Bar */}
+        <div className="p-4 sm:px-5 sm:py-4 border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9]/70 dark:bg-[#18181b]/40 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
                 All Platform Users
-              </h3>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              </h2>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-[#111113] text-[#52525b] dark:text-[#a1a1aa] border border-[#e4e4e7] dark:border-[#27272a]">
                 {users.length} registered
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-              Showing {filteredUsers.length} of {users.length} accounts
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium tabular-nums">
+              Showing {filteredUsers.length} of {users.length} {users.length === 1 ? 'account' : 'accounts'}
             </p>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2.5">
             {/* Role Filter Tabs */}
-            <div className="flex items-center p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200/70 dark:border-slate-700/70 text-xs">
+            <div
+              role="group"
+              aria-label="Filter users by role"
+              className="flex items-center flex-wrap p-0.5 rounded-[10px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-xs"
+            >
               {['all', 'admin', 'analyst', 'viewer'].map((r) => (
                 <button
                   key={r}
+                  type="button"
+                  aria-pressed={roleFilter === r}
                   onClick={() => setRoleFilter(r)}
                   className={cn(
-                    'px-2.5 py-1 rounded-lg font-semibold capitalize transition-all cursor-pointer',
+                    'min-h-[34px] px-2.5 py-1 rounded-[8px] font-semibold capitalize transition-colors cursor-pointer',
                     roleFilter === r
-                      ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-2xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                      ? 'bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#fafaf9] dark:text-[#0a0a0a]'
+                      : 'text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9]'
                   )}
                 >
                   {r === 'all' ? 'All Roles' : r}
@@ -722,264 +696,393 @@ export default function AdminUsersPage() {
               ))}
             </div>
 
-            {/* Search Input with high contrast & clear button */}
-            <div className="relative w-56 sm:w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
+            {/* Search Input */}
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
               <input
+                type="text"
+                aria-label="Search users by name, email, or role"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search name, email, role..."
-                className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border text-slate-900 dark:text-ds-text placeholder:text-slate-400 focus:bg-white dark:focus:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-2xs"
+                className="w-full min-h-[38px] pl-8 pr-8 py-1.5 rounded-[10px] text-xs bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20"
               />
               {searchTerm && (
                 <button
+                  type="button"
+                  aria-label="Clear user search"
                   onClick={() => setSearchTerm('')}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] cursor-pointer"
                 >
-                  <X className="w-3.5 h-3.5" />
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
                 </button>
               )}
             </div>
           </div>
         </div>
 
-        {/* Table Content */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[720px]">
-            <thead>
-              <tr className="border-b border-slate-200/80 dark:border-ds-border bg-slate-50/80 dark:bg-ds-surface-sunken/50">
-                {['User', 'Role & Permissions', 'Status', 'Last Login', 'Created', 'Actions'].map((h, idx) => (
-                  <th
-                    key={h || `header-${idx}`}
-                    className={cn(
-                      'px-5 py-3 text-[11px] font-bold text-slate-600 dark:text-ds-text-secondary uppercase tracking-wider',
-                      h === 'Actions' && 'text-right'
-                    )}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100/80 dark:divide-ds-border/40">
-              {filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-12 text-center text-slate-500 dark:text-slate-400">
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-                      No users match your criteria
-                    </p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-                      Try adjusting your search query or role filter.
-                    </p>
-                    {activeFilterCount > 0 && (
-                      <button
-                        onClick={handleResetFilters}
-                        className="mt-3 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition-colors cursor-pointer"
+        {/* Loading / Error / Empty / Table States */}
+        {isLoading ? (
+          <div className="p-12 text-center">
+            <Loader2 className="w-6 h-6 animate-spin text-[#1e3fc8] mx-auto mb-2" aria-hidden="true" />
+            <p className="text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa]">
+              Loading organization users...
+            </p>
+          </div>
+        ) : isUsersError ? (
+          <div className="p-10 text-center space-y-2.5">
+            <AlertCircle className="w-6 h-6 text-rose-600 dark:text-rose-400 mx-auto" aria-hidden="true" />
+            <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+              Unable to load user directory
+            </p>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] max-w-md mx-auto">
+              {getApiErrorMessage(usersError, 'Admin authorization or API connectivity is required to view tenant users.')}
+            </p>
+            <button
+              type="button"
+              onClick={() => refetchUsers()}
+              className="mt-2 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] text-xs font-semibold border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] cursor-pointer"
+            >
+              <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
+              Retry
+            </button>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1">
+              No users match your criteria
+            </p>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] max-w-sm mx-auto">
+              Try adjusting your search query or role filter.
+            </p>
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="mt-3 inline-flex items-center gap-1.5 min-h-[38px] px-3.5 py-1.5 rounded-[10px] text-xs font-semibold bg-[#fafaf9] hover:bg-[#e4e4e7]/60 text-[#0a0a0a] dark:bg-[#18181b] dark:hover:bg-[#27272a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" /> Reset filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b]/60">
+                    {['User', 'Role & Permissions', 'Account Access', 'Last Login', 'Created', ...(canManageUsers ? ['Actions'] : [])].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        className={cn(
+                          'px-5 py-3 text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]',
+                          h === 'Actions' && 'text-right'
+                        )}
                       >
-                        <RotateCcw className="w-3.5 h-3.5" /> Reset filters
-                      </button>
-                    )}
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((u, i) => {
-                  const roleKey = u.role.toLowerCase();
-                  const roleTooltip = roleDescriptions[roleKey] || 'Platform user permissions';
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+                  {filteredUsers.map((u) => {
+                    const roleKey = u.role.toLowerCase();
+                    const roleTooltip = ROLE_DESCRIPTIONS[roleKey] || 'Platform user permissions';
+                    const isSelf = currentUser?.id === u.id;
+                    const isMenuOpen = menuOpenId === u.id;
 
-                  return (
-                    <motion.tr
-                      key={u.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.25 + i * 0.02 }}
-                      className="even:bg-slate-50/30 dark:even:bg-ds-surface-sunken/20 hover:bg-blue-50/40 dark:hover:bg-ds-surface-sunken/50 transition-colors"
-                    >
-                      {/* User Identity (Avatar, Name, Email) */}
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-700 border border-blue-200/60 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-900/40 flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-2xs">
-                            {u.name.charAt(0)}
+                    return (
+                      <tr
+                        key={u.id}
+                        className="hover:bg-[#fafaf9] dark:hover:bg-[#18181b]/40 transition-colors duration-150"
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <div className="w-9 h-9 rounded-[10px] bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                              {u.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div className="min-w-0">
+                              <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] leading-tight flex items-center gap-1.5">
+                                <span>{u.name}</span>
+                                {isSelf && (
+                                  <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#52525b] dark:text-[#a1a1aa]">
+                                    You
+                                  </span>
+                                )}
+                              </p>
+                              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] flex items-center gap-1 mt-0.5 font-medium">
+                                <Mail className="w-3 h-3 flex-shrink-0" aria-hidden="true" />
+                                <span className="truncate max-w-[240px]">{u.email}</span>
+                              </p>
+                            </div>
                           </div>
-                          <div className="min-w-0">
-                            <p className="text-sm font-bold text-slate-900 dark:text-ds-text leading-tight">
-                              {u.name}
-                            </p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 flex items-center gap-1 mt-0.5 font-medium">
-                              <Mail className="w-3 h-3 text-slate-400 flex-shrink-0" />
-                              <span className="truncate max-w-[200px] sm:max-w-[260px]">{u.email}</span>
-                            </p>
-                          </div>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Role Badge with Informative Tooltip */}
-                      <td className="px-5 py-3.5">
-                        <div className="inline-flex items-center gap-1.5 group/role relative">
+                        <td className="px-5 py-3.5">
                           <span
                             className={cn(
-                              'inline-flex items-center px-2.5 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border shadow-2xs cursor-help',
-                              roleBadgeStyles[roleKey] || roleBadgeStyles.viewer
+                              'inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider border cursor-help',
+                              ROLE_BADGE_STYLES[roleKey] || ROLE_BADGE_STYLES.viewer
                             )}
                             title={roleTooltip}
                           >
                             {formatRoleLabel(u.role)}
                           </span>
-                        </div>
-                      </td>
+                        </td>
 
-                      {/* Status Badge (Active: green accent, Inactive: neutral gray) */}
-                      <td className="px-5 py-3.5">
-                        <span
-                          className={cn(
-                            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border shadow-2xs',
-                            u.status === 'active'
-                              ? 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40'
-                              : 'bg-slate-100 text-slate-600 border-slate-200/80 dark:bg-slate-800 dark:text-slate-400 dark:border-slate-700'
-                          )}
-                        >
+                        <td className="px-5 py-3.5">
                           <span
+                            title={
+                              u.status === 'active'
+                                ? 'Account is enabled and permitted to sign in'
+                                : 'Account is deactivated and cannot sign in'
+                            }
                             className={cn(
-                              'w-1.5 h-1.5 rounded-full',
-                              u.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'
+                              'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold border cursor-help',
+                              u.status === 'active'
+                                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
+                                : 'bg-[#fafaf9] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
                             )}
-                          />
-                          {u.status === 'active' ? 'Active' : 'Inactive'}
-                        </span>
-                      </td>
+                          >
+                            <span
+                              className={cn(
+                                'w-1.5 h-1.5 rounded-full',
+                                u.status === 'active' ? 'bg-emerald-600 dark:bg-emerald-400' : 'bg-[#52525b]'
+                              )}
+                              aria-hidden="true"
+                            />
+                            {u.status === 'active' ? 'Active (Enabled)' : 'Inactive'}
+                          </span>
+                        </td>
 
-                      {/* Last Login */}
-                      <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-ds-text-secondary font-medium tabular-nums">
-                        <div className="flex items-center gap-1.5">
-                          <Clock className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{u.lastLogin}</span>
-                        </div>
-                      </td>
+                        <td className="px-5 py-3.5 text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium tabular-nums">
+                          <div
+                            className="flex items-center gap-1.5"
+                            title={
+                              u.hasSignedIn
+                                ? 'Most recent authenticated session'
+                                : 'Account is enabled, but no sign-in has been recorded yet'
+                            }
+                          >
+                            <Clock className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{u.hasSignedIn ? u.lastLogin : 'Never signed in'}</span>
+                          </div>
+                        </td>
 
-                      {/* Created Date */}
-                      <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-ds-text-secondary font-medium tabular-nums">
-                        <span className="inline-flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                          <span>{u.created}</span>
-                        </span>
-                      </td>
+                        <td className="px-5 py-3.5 text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium tabular-nums">
+                          <span className="inline-flex items-center gap-1.5">
+                            <Calendar className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>{u.created}</span>
+                          </span>
+                        </td>
 
-                      {/* Row Action Menu */}
-                      <td className="px-5 py-3.5 text-right relative">
-                        <button
-                          onClick={() => {
-                            setMenuOpenId(menuOpenId === u.id ? null : u.id);
-                            setConfirmingDeleteId(null);
-                            setEditingRoleId(null);
-                          }}
-                          aria-label={`Open user actions for ${u.name}`}
-                          className="w-8 h-8 rounded-xl inline-flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500/20 cursor-pointer"
-                        >
-                          <MoreVertical className="w-4 h-4" />
-                        </button>
-
-                        <AnimatePresence>
-                          {menuOpenId === u.id && (
-                            <motion.div
-                              ref={menuRef}
-                              initial={{ opacity: 0, scale: 0.95, y: -4 }}
-                              animate={{ opacity: 1, scale: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95, y: -4 }}
-                              className="absolute right-5 top-full mt-1 w-52 bg-white dark:bg-slate-900 py-1.5 rounded-2xl shadow-xl border border-slate-200/90 dark:border-slate-800 z-50 overflow-hidden text-left"
-                            >
-                              {/* Header info */}
-                              <div className="px-3.5 py-1.5 border-b border-slate-100 dark:border-slate-800 text-[11px] text-slate-400 font-medium">
-                                Account Actions
-                              </div>
-
-                              {/* Toggle Status */}
+                        {canManageUsers && (
+                          <td className="px-5 py-3.5 text-right relative">
+                            <div className="inline-block relative" ref={isMenuOpen ? menuRef : undefined}>
                               <button
-                                onClick={() => handleToggleStatus(u.id)}
-                                className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 transition cursor-pointer"
+                                type="button"
+                                onClick={() => {
+                                  setMenuOpenId(isMenuOpen ? null : u.id);
+                                  setConfirmingDeleteId(null);
+                                  setEditingRoleId(null);
+                                }}
+                                aria-label={`Actions for ${u.name}`}
+                                aria-haspopup="menu"
+                                aria-expanded={isMenuOpen}
+                                className="w-9 h-9 rounded-[10px] inline-flex items-center justify-center text-[#52525b] hover:text-[#0a0a0a] hover:bg-[#fafaf9] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] dark:hover:bg-[#18181b] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] cursor-pointer"
                               >
-                                {u.status === 'active' ? (
-                                  <>
-                                    <UserX className="w-3.5 h-3.5 text-amber-600" />
-                                    <span>Deactivate Account</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <UserCheck className="w-3.5 h-3.5 text-emerald-600" />
-                                    <span>Activate Account</span>
-                                  </>
-                                )}
+                                <MoreVertical className="w-4 h-4" aria-hidden="true" />
                               </button>
 
-                              {/* Change Role Submenu trigger */}
-                              {editingRoleId === u.id ? (
-                                <div className="p-2 bg-slate-50 dark:bg-slate-800/60 border-y border-slate-100 dark:border-slate-800 space-y-1">
-                                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block px-1">
-                                    Assign Role
-                                  </span>
-                                  {['admin', 'manager', 'analyst', 'viewer'].map((r) => (
-                                    <button
-                                      key={r}
-                                      onClick={() => handleChangeRole(u.id, r)}
-                                      className="w-full text-left px-2 py-1 rounded-lg text-xs font-medium capitalize flex items-center justify-between hover:bg-white dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 cursor-pointer"
-                                    >
-                                      <span>{r}</span>
-                                      {u.role.includes(r) && <Check className="w-3 h-3 text-blue-600" />}
-                                    </button>
-                                  ))}
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setEditingRoleId(u.id)}
-                                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 flex items-center gap-2 transition cursor-pointer"
-                                >
-                                  <Edit2 className="w-3.5 h-3.5 text-blue-600" />
-                                  <span>Change Role...</span>
-                                </button>
-                              )}
+                              <AnimatePresence>
+                                {isMenuOpen && (
+                                  <motion.div
+                                    role="menu"
+                                    aria-label={`Actions for ${u.name}`}
+                                    initial={prefersReducedMotion ? false : { opacity: 0, y: -4 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={prefersReducedMotion ? undefined : { opacity: 0, y: -4 }}
+                                    transition={{ duration: 0.15 }}
+                                    className="absolute right-0 top-full mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white dark:bg-[#111113] py-1.5 rounded-[14px] shadow-xl border border-[#e4e4e7] dark:border-[#27272a] z-50 text-left"
+                                  >
+                                    <div className="px-3.5 py-1.5 border-b border-[#e4e4e7] dark:border-[#27272a] text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-semibold truncate">
+                                      {u.name}
+                                    </div>
 
-                              <div className="border-t border-slate-100 dark:border-slate-800 my-1" />
+                                    <button
+                                      type="button"
+                                      role="menuitem"
+                                      disabled={isSelf || isRowMutating}
+                                      onClick={() => toggleStatusMutation.mutate(u.id)}
+                                      className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                                    >
+                                      {u.status === 'active' ? (
+                                        <>
+                                          <UserX className="w-3.5 h-3.5 text-amber-600" aria-hidden="true" />
+                                          <span>{isSelf ? 'Cannot deactivate self' : 'Deactivate Account'}</span>
+                                        </>
+                                      ) : (
+                                        <>
+                                          <UserCheck className="w-3.5 h-3.5 text-emerald-600" aria-hidden="true" />
+                                          <span>Activate Account</span>
+                                        </>
+                                      )}
+                                    </button>
 
-                              {/* Delete User with Confirmation safeguard */}
-                              {confirmingDeleteId === u.id ? (
-                                <div className="p-2 bg-rose-50 dark:bg-rose-950/40 text-center space-y-1.5">
-                                  <p className="text-[11px] font-bold text-rose-700 dark:text-rose-300">
-                                    Permanently delete?
-                                  </p>
-                                  <div className="flex items-center justify-center gap-1.5">
-                                    <button
-                                      onClick={() => handleDeleteUser(u.id)}
-                                      className="px-2 py-1 rounded-lg text-[10px] font-bold bg-rose-600 text-white hover:bg-rose-700 cursor-pointer"
-                                    >
-                                      Confirm Delete
-                                    </button>
-                                    <button
-                                      onClick={() => setConfirmingDeleteId(null)}
-                                      className="px-2 py-1 rounded-lg text-[10px] font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 cursor-pointer"
-                                    >
-                                      Cancel
-                                    </button>
-                                  </div>
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={() => setConfirmingDeleteId(u.id)}
-                                  className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 flex items-center gap-2 transition cursor-pointer"
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                  <span>Delete User</span>
-                                </button>
-                              )}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </td>
-                    </motion.tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+                                    {editingRoleId === u.id ? (
+                                      <div className="p-2 bg-[#fafaf9] dark:bg-[#18181b] border-y border-[#e4e4e7] dark:border-[#27272a] space-y-1">
+                                        <span className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-wider block px-1">
+                                          Assign Role
+                                        </span>
+                                        {['admin', 'manager', 'analyst', 'viewer'].map((r) => (
+                                          <button
+                                            key={r}
+                                            type="button"
+                                            disabled={isRowMutating}
+                                            onClick={() =>
+                                              updateRoleMutation.mutate({
+                                                id: u.id,
+                                                role: r === 'admin' ? 'org_admin' : r,
+                                              })
+                                            }
+                                            className="w-full text-left px-2 py-1.5 rounded-[8px] text-xs font-medium capitalize flex items-center justify-between hover:bg-white dark:hover:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] cursor-pointer disabled:opacity-50"
+                                          >
+                                            <span>{r}</span>
+                                            {(u.role === r || (r === 'admin' && u.role === 'org_admin')) && (
+                                              <Check className="w-3 h-3 text-[#1e3fc8]" aria-hidden="true" />
+                                            )}
+                                          </button>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        disabled={isRowMutating}
+                                        onClick={() => setEditingRoleId(u.id)}
+                                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
+                                      >
+                                        <Edit2 className="w-3.5 h-3.5 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+                                        <span>Change Role...</span>
+                                      </button>
+                                    )}
+
+                                    <div className="border-t border-[#e4e4e7] dark:border-[#27272a] my-1" />
+
+                                    {confirmingDeleteId === u.id ? (
+                                      <div className="p-2.5 bg-rose-50 dark:bg-rose-950/40 text-center space-y-2">
+                                        <p className="text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                                          Permanently delete {u.name}?
+                                        </p>
+                                        <div className="flex items-center justify-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            disabled={deleteMutation.isPending}
+                                            onClick={() => deleteMutation.mutate(u.id)}
+                                            className="px-2.5 py-1 rounded-[6px] text-[11px] font-bold bg-rose-600 text-white hover:bg-rose-700 cursor-pointer disabled:opacity-50"
+                                          >
+                                            {deleteMutation.isPending ? 'Deleting...' : 'Confirm Delete'}
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => setConfirmingDeleteId(null)}
+                                            className="px-2 py-1 rounded-[6px] text-[11px] font-medium text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] cursor-pointer"
+                                          >
+                                            Cancel
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <button
+                                        type="button"
+                                        role="menuitem"
+                                        disabled={isSelf || isRowMutating}
+                                        onClick={() => setConfirmingDeleteId(u.id)}
+                                        className="w-full text-left px-3.5 py-2 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-45 disabled:cursor-not-allowed"
+                                      >
+                                        <Trash2 className="w-3.5 h-3.5" aria-hidden="true" />
+                                        <span>{isSelf ? 'Cannot delete self' : 'Delete User'}</span>
+                                      </button>
+                                    )}
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Cards (<768px) */}
+            <div className="md:hidden divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+              {filteredUsers.map((u) => {
+                const roleKey = u.role.toLowerCase();
+                const isSelf = currentUser?.id === u.id;
+                return (
+                  <div key={u.id} className="p-4 space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] break-words">
+                          {u.name} {isSelf && '(You)'}
+                        </p>
+                        <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] break-all">
+                          {u.email}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          'px-2 py-0.5 rounded text-[10px] font-bold uppercase border flex-shrink-0',
+                          ROLE_BADGE_STYLES[roleKey] || ROLE_BADGE_STYLES.viewer
+                        )}
+                      >
+                        {formatRoleLabel(u.role)}
+                      </span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-[#52525b] dark:text-[#a1a1aa]">
+                      <span>
+                        {u.status === 'active' ? 'Active (Enabled)' : 'Inactive'} ·{' '}
+                        {u.hasSignedIn ? `Login: ${u.lastLogin}` : 'Never signed in'}
+                      </span>
+                      <span>Created: {u.created}</span>
+                    </div>
+
+                    {canManageUsers && !isSelf && (
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={isRowMutating}
+                          onClick={() => toggleStatusMutation.mutate(u.id)}
+                          className="min-h-[40px] flex-1 px-3 rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9] cursor-pointer"
+                        >
+                          {u.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={isRowMutating}
+                          onClick={() => {
+                            setMenuOpenId(u.id);
+                            setConfirmingDeleteId(u.id);
+                          }}
+                          className="min-h-[40px] px-3 rounded-[8px] border border-rose-200 dark:border-rose-800/60 bg-rose-50 dark:bg-rose-950/30 text-xs font-semibold text-rose-700 dark:text-rose-300 cursor-pointer"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
 }
