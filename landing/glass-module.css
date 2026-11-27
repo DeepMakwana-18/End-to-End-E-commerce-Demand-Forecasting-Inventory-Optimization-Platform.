@@ -1,0 +1,89 @@
+/* ==========================================================================
+   GLASS MODULE (Shared Spec for Intro v3 & Closing CTA Rim v2 / Lens v2)
+   ========================================================================== */
+.glass-arc-shell {
+  position: relative;
+  width: 160vw;
+  left: 50%;
+  margin-left: -80vw;
+  border-radius: 0 0 50% 50% / 0 0 38% 38%;
+  pointer-events: none;
+}
+
+@media (max-width: 767px) {
+  .glass-arc-shell {
+    border-radius: 0 0 50% 50% / 0 0 24% 24%;
+  }
+}
+
+.glass-rim-svg {
+  position: absolute;
+  left: 0;
+  bottom: -100px;
+  width: 100%;
+  height: calc(14vh + 100px);
+  overflow: visible;
+  pointer-events: none;
+}
+
+#ov .glass-rim-glow {
+  mix-blend-mode: normal;
+  opacity: 0.82;
+}
+
+#closing .closing-veil .glass-rim-svg {
+  height: calc(var(--glass-ry, 121.6svh) + 100px);
+}
+
+@media (max-width: 767px) {
+  .glass-rim-svg {
+    height: calc(14vh + 100px);
+  }
+  #closing .closing-veil .glass-rim-svg {
+    height: calc(var(--glass-ry-m, 76.8svh) + 100px);
+  }
+}
+
+.glass-rim-glow {
+  mix-blend-mode: screen;
+  filter: blur(18px);
+}
+
+.glass-rim-lip {
+  opacity: 0.16;
+  filter: blur(4px);
+}
+
+.glass-rim-edge {
+  opacity: 1;
+}
+
+.glass-rim-spec {
+  opacity: 0.85;
+}
+
+[data-glass-tier="2"] .glass-rim-glow {
+  filter: blur(12px);
+}
+
+[data-glass-tier="3"] .glass-rim-glow,
+[data-glass-tier="3"] .glass-rim-lip {
+  display: none;
+}
+
+.glass-lens-copy {
+  position: absolute;
+  margin: 0;
+  pointer-events: none;
+  display: none;
+  visibility: hidden;
+  z-index: 6;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-rim-glow,
+  .glass-rim-lip,
+  .glass-lens-copy {
+    display: none !important;
+  }
+}

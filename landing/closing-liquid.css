@@ -1,0 +1,313 @@
+/* Phase 4: Last Section Rebuild using Glass Module (G1-G5) */
+#closing {
+  --arc-pink: #f472b6;
+  --arc-lavender: #c4b5fd;
+  --arc-blue: #60a5fa;
+  background: #0a0a0a;
+}
+
+html,
+body {
+  overflow-x: clip !important;
+}
+
+#closing.closing {
+  display: block !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: visible !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+/* Task 5: Reduce FAQ bottom padding (<=120px) and overlap closing stage so no blank white lead-in */
+#faq.faq {
+  padding-bottom: 64px !important;
+  border-bottom: 0 !important;
+}
+
+#closing.liquid-ready {
+  height: 190svh !important;
+  margin-top: -64px;
+  cursor: default;
+}
+
+#closing .closing-stage {
+  position: relative;
+  min-height: 100svh;
+  padding: clamp(72px, 12svh, 130px) 24px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  isolation: isolate;
+  overflow: hidden;
+  box-sizing: border-box;
+  cursor: default;
+}
+
+#closing.liquid-ready .closing-stage {
+  position: sticky;
+  top: 0;
+  height: 100svh !important;
+}
+
+/* Act 4 idle aurora blobs behind content (max blur 60px) */
+#closing .closing-aurora {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0;
+  transition: opacity 600ms ease-out;
+}
+
+#closing.is-settled .closing-aurora {
+  opacity: 1;
+}
+
+#closing .closing-aurora::before,
+#closing .closing-aurora::after {
+  content: "";
+  position: absolute;
+  width: min(48vw, 480px);
+  height: min(48vw, 480px);
+  border-radius: 50%;
+  filter: blur(56px);
+  opacity: 0.24;
+}
+
+#closing .closing-aurora::before {
+  left: 16%;
+  top: 22%;
+  background: radial-gradient(circle, #f472b6 0%, transparent 70%);
+}
+
+#closing .closing-aurora::after {
+  right: 14%;
+  bottom: 18%;
+  background: radial-gradient(circle, #60a5fa 0%, transparent 70%);
+}
+
+#closing.is-active.is-settled .closing-aurora::before {
+  animation: closing-aurora-drift-a 11s ease-in-out infinite alternate;
+}
+
+#closing.is-active.is-settled .closing-aurora::after {
+  animation: closing-aurora-drift-b 13s ease-in-out infinite alternate;
+}
+
+@keyframes closing-aurora-drift-a {
+  0% { transform: translate3d(-16px, -10px, 0) scale(0.96); }
+  100% { transform: translate3d(22px, 14px, 0) scale(1.06); }
+}
+
+@keyframes closing-aurora-drift-b {
+  0% { transform: translate3d(18px, 12px, 0) scale(1.04); }
+  100% { transform: translate3d(-20px, -14px, 0) scale(0.95); }
+}
+
+#closing .closing-inner {
+  width: min(100%, var(--container, 1240px));
+  margin: 0 auto !important;
+  padding-top: clamp(24px, 8svh, 88px);
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+#closing .closing-orbit-slot {
+  width: 96px;
+  height: 96px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fafaf9;
+}
+
+#closing .closing-orbit-mark {
+  width: 96px;
+  height: 96px;
+  display: block;
+}
+
+#closing #closing-title,
+#closing .lens {
+  font: 700 clamp(36px, 4.8vw, 76px)/1.04 var(--font-sans) !important;
+  letter-spacing: -.03em !important;
+  max-width: 100%;
+  color: white !important;
+  margin: 0;
+}
+
+#closing .closing-line {
+  display: block;
+  overflow: hidden;
+  font: inherit;
+}
+
+#closing .closing-line > span {
+  display: block;
+}
+
+#closing .eyebrow {
+  color: #e4e4e7 !important;
+  margin-bottom: 14px;
+}
+
+/* Full contrast subtitle from the start (#d4d4d8) */
+#closing .closing-inner > p.closing-statement,
+#closing .closing-statement {
+  color: #d4d4d8 !important;
+  max-width: 600px;
+  margin: 18px auto 0;
+}
+
+#closing .closing-actions {
+  display: flex;
+  gap: 12px;
+  position: relative;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 28px;
+}
+
+#closing .closing-actions .button {
+  border-radius: var(--radius-pill) !important;
+  position: relative;
+  transition: transform 180ms ease, background-color 180ms ease !important;
+}
+
+#closing .closing-actions .button-dark {
+  background: radial-gradient(circle at var(--pointer-x, 50%) var(--pointer-y, 0%), rgba(255, 255, 255, .3), transparent 65%), rgba(30, 63, 200, .85) !important;
+  backdrop-filter: blur(12px) saturate(140%) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35) !important;
+}
+
+#closing .closing-actions .closing-demo {
+  background: transparent !important;
+  border: 1px solid #666670 !important;
+  color: #fafaf9 !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  #closing .closing-actions .button:hover {
+    transform: scale(1.03);
+  }
+  #closing .button:hover span {
+    transform: translate(2px, -2px);
+  }
+}
+
+#closing .closing-actions .button:active {
+  transform: scale(.98);
+}
+
+#closing .button span {
+  transition: transform 180ms ease;
+}
+
+#closing footer {
+  position: relative;
+  z-index: 2;
+  width: min(100%, var(--container, 1240px));
+  margin: 32px auto 0;
+  padding-top: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px 24px;
+  background: transparent !important;
+  color: #a1a1aa !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.12) !important;
+}
+
+#closing .closing-links {
+  display: flex !important;
+  position: static;
+  width: auto;
+  padding: 0;
+  background: transparent;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  justify-content: center;
+}
+
+#closing .closing-links a {
+  color: #d4d4d8;
+  text-decoration: none;
+  font-size: 14px;
+}
+
+#closing footer a:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 5px;
+}
+
+/* Veil using Glass Module (.glass-arc-shell) */
+#closing .closing-veil {
+  display: none;
+  position: absolute;
+  top: -220svh;
+  height: 320svh;
+  z-index: 5;
+  background: var(--paper-2, #fafaf9);
+  --glass-veil-color: #fafaf9;
+  overflow: visible;
+}
+
+#closing.liquid-ready .closing-veil {
+  display: block;
+}
+
+#closing .lens {
+  z-index: 6;
+}
+
+@media (max-width: 767px) {
+  #closing.liquid-ready {
+    height: 150svh !important;
+  }
+
+  #closing .closing-stage {
+    padding: 84px 20px 20px;
+  }
+
+  #closing .closing-inner {
+    padding-top: 16px;
+  }
+
+  #closing .closing-orbit-slot,
+  #closing .closing-orbit-mark {
+    width: 72px;
+    height: 72px;
+  }
+
+  #closing footer {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    margin-top: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #closing.liquid-ready {
+    height: auto !important;
+  }
+
+  #closing.liquid-ready .closing-stage {
+    position: relative !important;
+    height: auto !important;
+    min-height: 100svh !important;
+  }
+
+  #closing .closing-veil,
+  #closing .closing-aurora {
+    display: none !important;
+  }
+}

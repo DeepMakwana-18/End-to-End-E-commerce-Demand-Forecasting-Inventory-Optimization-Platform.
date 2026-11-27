@@ -1,0 +1,1036 @@
+/* ============================================================================
+   TITAN AI — UNIFIED MOTION, RESPONSIVE & PERFORMANCE SYSTEM (motion.css)
+   1. Shared Motion Tokens (120 / 200 / 320 / 600ms; ease-out / ease-in-out)
+   2. Input-Aware Interactions (@media (hover: hover) and (pointer: fine) + :active)
+   3. Viewport Stability (svh / dvh / safe-area-inset-top / desktop scrollbar-gutter)
+   4. Section-by-Section Mobile Behavior
+   5. Performance Budget (content-visibility, mobile blur caps, document.hidden pause)
+   6. Accessibility (prefers-reduced-motion, 44x44 tap targets, Pause/Play controls)
+   ============================================================================ */
+
+/* 1. SHARED MOTION & FOUNDATION TOKENS */
+:root {
+  --z-content: 0;
+  --z-sticky: 30;
+  --z-overlay: 40;
+  --z-nav: 50;
+  --z-tools: 60;
+  --container: 1240px;
+  --gutter: clamp(16px, 4vw, 48px);
+  --dur-120: 120ms;
+  --dur-200: 200ms;
+  --dur-320: 320ms;
+  --dur-600: 600ms;
+  --dur-900: 900ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-io: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+/* Section theme tokens */
+[data-theme="light"] {
+  --bg: #fafaf9;
+  --ink: #0a0a0a;
+  --mute: #52525b;
+  --line: #e5e7eb;
+  --card: #ffffff;
+}
+
+[data-theme="dark"] {
+  --bg: #0b0b0c;
+  --ink: #fafaf9;
+  --mute: #a1a1aa;
+  --line: #27272a;
+  --card: #141416;
+}
+
+/* Keep light feature cards readable inside dark sections */
+[data-theme="dark"] .feature-card,
+[data-theme="dark"] [data-component="feature-card"],
+[data-theme="dark"] .bcard,
+[data-theme="dark"] .wipe-feature-card,
+[data-theme="dark"] .wipe-before .board,
+[data-theme="dark"] .wipe-after .board,
+[data-theme="dark"] .wipe,
+[data-theme="dark"] .pill-toggle__tab[aria-selected="true"] {
+  --ink: #0a0a0a;
+  --mute: #52525b;
+  --line: #e5e7eb;
+  color: #0a0a0a;
+  border-color: #0a0a0a;
+}
+
+main > section {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+main > section[data-theme],
+#titan-overview.titan-overview[data-theme="dark"],
+#how.how[data-theme="dark"],
+#planning-context[data-theme="dark"],
+#outputs[data-theme="dark"],
+#closing[data-theme="dark"] {
+  background-color: var(--bg) !important;
+  color: var(--ink);
+}
+
+main > section[data-theme]:not(#top):not(#closing) {
+  padding-inline: var(--gutter) !important;
+}
+
+#titan-overview .titan-overview__shell,
+#use-cases .use-cases__container,
+#how .how-inner,
+#planning-context .chain-story__inner,
+#decision-trail .decision-trail__inner,
+#outputs .loop-inner,
+#faq .faq-inner {
+  width: min(var(--container), 100%) !important;
+  max-width: var(--container) !important;
+  margin-inline: auto !important;
+  padding-inline: 0 !important;
+  box-sizing: border-box;
+}
+
+/* Font metrics fallback for Inter to minimize CLS during webfont swap */
+@font-face {
+  font-family: 'InterFallback';
+  src: local('Arial'), local('Helvetica Neue'), local('Segoe UI');
+  size-adjust: 107%;
+  ascent-override: 90%;
+  descent-override: 22%;
+  line-gap-override: 0%;
+}
+
+body {
+  font-family: 'Inter', 'InterFallback', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* No entrance animation on cards or paragraphs; section headings use masked slide-up (600ms) */
+.reveal,
+.pop-card {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+.titan-heading-mask {
+  overflow-x: visible !important;
+  overflow-y: clip !important;
+  padding-inline-end: 0.08em;
+  margin-inline-end: -0.08em;
+  padding-bottom: 0.12em;
+  margin-bottom: -0.12em;
+  transition: transform 420ms var(--ease-out), opacity 100ms linear;
+  transition-delay: 0ms !important;
+}
+
+#decision-trail h2,
+#decision-trail h2 .amber-underline {
+  padding-inline-end: 0.08em;
+  margin-inline-end: -0.08em;
+}
+
+.titan-heading-mask:not(.is-revealed) {
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.titan-heading-mask.is-revealed {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* 3. VIEWPORT & LAYOUT STABILITY */
+/* Scrollbar slim & quiet, no scrollbar-gutter */
+html {
+  scrollbar-gutter: auto !important;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(100, 100, 110, 0.55) transparent;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(100, 100, 110, 0.55);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+.progress {
+  z-index: var(--z-tools);
+}
+
+.toast {
+  z-index: var(--z-tools);
+}
+
+/* Safe-area-inset-top for fixed nav & mobile sheet */
+/* ==========================================================================
+   9. PHASE 2: NAV (Single-pill glass, theme observer, sliding indicator, mobile sheet)
+   ========================================================================== */
+.nav-scroll-backdrop {
+  display: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.site-header,
+.site-header.scrolled,
+.site-header.on-dark,
+.site-header.on-dark.scrolled {
+  height: 56px !important;
+  min-height: 56px !important;
+  padding: 0 10px 0 18px !important;
+  backdrop-filter: blur(14px) saturate(1.2) !important;
+  -webkit-backdrop-filter: blur(14px) saturate(1.2) !important;
+  transition: background-color 240ms var(--ease-out), border-color 240ms var(--ease-out), color 240ms var(--ease-out), height var(--dur-200) var(--ease-out), padding var(--dur-200) var(--ease-out) !important;
+}
+
+.site-header.scrolled,
+.site-header.on-dark.scrolled {
+  height: 48px !important;
+  min-height: 48px !important;
+  padding: 0 8px 0 16px !important;
+}
+
+.site-header:not(.on-dark),
+.site-header.scrolled:not(.on-dark) {
+  background-color: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(10, 10, 10, 0.1) !important;
+  color: #0a0a0a !important;
+  box-shadow: 0 8px 24px rgba(10, 10, 10, 0.06) !important;
+}
+
+.site-header.on-dark,
+.site-header.on-dark.scrolled,
+.site-header[data-header].closing-nav-dark,
+.site-header[data-header].closing-nav-dark.scrolled {
+  background-color: rgba(18, 18, 20, 0.88) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  color: #fafaf9 !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28) !important;
+}
+
+.site-header:not(.on-dark) .brand,
+.site-header:not(.on-dark) .brand b {
+  color: #0a0a0a !important;
+}
+
+.site-header.on-dark .brand,
+.site-header.on-dark .brand b {
+  color: #fafaf9 !important;
+}
+
+.site-header .nav-links {
+  position: relative;
+}
+
+.site-header .nav-links .nav-indicator {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 34px;
+  border-radius: 999px;
+  background-color: rgba(10, 10, 10, 0.07);
+  transform: translate3d(var(--ind-x, 0px), -50%, 0);
+  width: var(--ind-w, 0px);
+  opacity: var(--ind-o, 0);
+  pointer-events: none;
+  z-index: 0;
+  transition: transform 280ms var(--ease-out), width 280ms var(--ease-out), opacity var(--dur-200) var(--ease-out), background-color 240ms var(--ease-out);
+}
+
+.site-header.on-dark .nav-links .nav-indicator {
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.site-header .nav-links a {
+  position: relative;
+  z-index: 1;
+  background: transparent !important;
+  color: #52525b !important;
+  transition: color 240ms var(--ease-out) !important;
+}
+
+.site-header .nav-links a:hover,
+.site-header .nav-links a.active {
+  background: transparent !important;
+  color: #0a0a0a !important;
+}
+
+.site-header.on-dark .nav-links a {
+  color: rgba(250, 250, 249, 0.72) !important;
+}
+
+.site-header.on-dark .nav-links a:hover,
+.site-header.on-dark .nav-links a.active {
+  background: transparent !important;
+  color: #fafaf9 !important;
+}
+
+.site-header.on-dark .nav-toggle span {
+  background: #fafaf9 !important;
+}
+
+/* ==========================================================================
+   10. PHASE 3: SECTION BOUNDARIES (8 arc bowls + rims, scroll-linked depth)
+   ========================================================================== */
+#titan-overview,
+#use-cases,
+#how,
+#product,
+#planning-context,
+#decision-trail,
+#outputs,
+#faq {
+  position: relative;
+  overflow-x: clip;
+  isolation: isolate;
+  border-top: 0 !important;
+}
+
+#top.hero.hero-v3 {
+  border-bottom: 0 !important;
+}
+
+#titan-overview > *,
+#use-cases > *,
+#how > *,
+#product > *,
+#planning-context > *,
+#decision-trail > *,
+#outputs > *,
+#faq > * {
+  position: relative;
+  z-index: 2;
+}
+
+#titan-overview { --prev-bg: #fafaf9; }
+#use-cases { --prev-bg: #0b0b0c; }
+#how { --prev-bg: #ffffff; }
+#product { --prev-bg: #0b0b0c; }
+#planning-context { --prev-bg: #ffffff; }
+#decision-trail { --prev-bg: #0b0b0c; }
+#outputs { --prev-bg: #ffffff; }
+#faq { --prev-bg: #0b0b0c; }
+
+#titan-overview::before,
+#use-cases::before,
+#how::before,
+#product::before,
+#planning-context::before,
+#decision-trail::before,
+#outputs::before,
+#faq::before {
+  content: "";
+  display: block !important;
+  position: absolute;
+  top: -1px;
+  left: -10%;
+  right: -10%;
+  width: auto !important;
+  height: 72px;
+  background: var(--prev-bg) !important;
+  border: 0 !important;
+  filter: none !important;
+  opacity: 1 !important;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  transform-origin: top center;
+  transform: scaleY(var(--arc-depth, 0.35));
+  pointer-events: none;
+  z-index: 1;
+}
+
+#titan-overview::after,
+#use-cases::after,
+#how::after,
+#product::after,
+#planning-context::after,
+#decision-trail::after,
+#outputs::after,
+#faq::after {
+  content: "";
+  display: block !important;
+  position: absolute;
+  top: -1px;
+  left: -10%;
+  right: -10%;
+  height: 73.5px;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background: linear-gradient(90deg, rgba(244, 114, 182, 0.55) 15%, rgba(165, 160, 240, 0.55) 50%, rgba(108, 123, 255, 0.55) 85%);
+  box-shadow: 0 8px 24px rgba(165, 160, 240, 0.18);
+  transform-origin: top center;
+  transform: scaleY(var(--arc-depth, 0.35));
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 767px) {
+  #titan-overview::before,
+  #use-cases::before,
+  #how::before,
+  #product::before,
+  #planning-context::before,
+  #decision-trail::before,
+  #outputs::before,
+  #faq::before {
+    height: 48px;
+  }
+
+  #titan-overview::after,
+  #use-cases::after,
+  #how::after,
+  #product::after,
+  #planning-context::after,
+  #decision-trail::after,
+  #outputs::after,
+  #faq::after {
+    height: 49.5px;
+  }
+}
+
+/* ==========================================================================
+   11. PHASE A: CARD TOKEN ISOLATION (SECTIONS 2, 4, 8), SECTION 5 VERTICAL TABS, ::selection
+   ========================================================================== */
+
+/* A7. Global amber selection & user-select: none on interactive step cards and tabs */
+::selection {
+  background: rgba(245, 158, 11, 0.35) !important;
+  color: inherit !important;
+}
+
+#titan-overview .titan-overview__question-card,
+#how .how-steps li,
+#outputs .loop-col,
+#use-cases .use-cases__tab,
+#product .nav-item,
+#decision-trail .decision-step__btn,
+.pill-toggle,
+#top .hero-compare__tab {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* A6. Card-level token isolation (--card-bg, --card-ink, --card-mute, --card-line) */
+.feature-card,
+[data-component="feature-card"],
+.flat-card,
+#use-cases .use-cases__panel,
+#product .product-preview-card,
+#decision-trail .decision-trail__note,
+#faq .faq-item {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #e5e7eb;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  background-color: var(--card-bg);
+  color: var(--card-ink);
+}
+
+/* Section 2 (#titan-overview): dark card at rest, light card + amber shadow on hover/active */
+#titan-overview .titan-overview__question-card {
+  --card-bg: #111113;
+  --card-ink: #fafaf9;
+  --card-mute: #a1a1aa;
+  --card-line: #27272a;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__question-card::before {
+  background: var(--card-bg) !important;
+  border-color: var(--card-line) !important;
+}
+
+#titan-overview .titan-overview__card-question {
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__card-num,
+#titan-overview .titan-overview__card-category,
+#titan-overview .titan-overview__card-desc {
+  color: var(--card-mute) !important;
+}
+
+#titan-overview .titan-overview__card-icon {
+  background: #1c1c20 !important;
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__question-card:hover,
+#titan-overview .titan-overview__question-card:focus-visible,
+#titan-overview .titan-overview__question-card.is-active {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #0a0a0a;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  color: var(--card-ink) !important;
+}
+
+#titan-overview .titan-overview__question-card:hover .titan-overview__card-icon,
+#titan-overview .titan-overview__question-card:focus-visible .titan-overview__card-icon,
+#titan-overview .titan-overview__question-card.is-active .titan-overview__card-icon {
+  background: var(--card-ink) !important;
+  color: #4ade80 !important;
+}
+
+#titan-overview .titan-overview__question-card:hover .titan-overview__card-num,
+#titan-overview .titan-overview__question-card:focus-visible .titan-overview__card-num,
+#titan-overview .titan-overview__question-card.is-active .titan-overview__card-num {
+  color: var(--card-ink) !important;
+}
+
+/* Section 4 (#how): step cards & board cards own light surface + dark ink */
+#how .how-steps li,
+#how .bcard,
+#how .wipe-feature-card,
+#how .wipe-before .board,
+#how .wipe-after .board {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #e5e7eb;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  background-color: var(--card-bg) !important;
+  color: var(--card-ink) !important;
+}
+
+#how .how-steps li b {
+  color: var(--card-ink) !important;
+}
+
+#how .how-steps li b i {
+  background: var(--card-ink) !important;
+  color: var(--card-bg) !important;
+}
+
+#how .how-steps li span {
+  color: var(--card-mute) !important;
+}
+
+/* Section 8 (#outputs): Sense / Predict / Decide cards & connectors own light surface + dark ink */
+#outputs .loop-col,
+#outputs .loop-connector {
+  --card-bg: #ffffff;
+  --card-ink: #0a0a0a;
+  --card-mute: #52525b;
+  --card-line: #e5e7eb;
+  --ink: var(--card-ink);
+  --mute: var(--card-mute);
+  --line: var(--card-line);
+  background-color: var(--card-bg) !important;
+  color: var(--card-ink) !important;
+}
+
+#outputs .loop-col__head h3 {
+  color: var(--card-ink) !important;
+}
+
+#outputs .loop-col__num,
+#outputs .loop-col__tag {
+  color: var(--card-mute) !important;
+}
+
+#outputs .loop-col.is-active .loop-col__num {
+  background: var(--card-ink) !important;
+  color: var(--card-bg) !important;
+}
+
+#outputs .loop-connector.is-filled {
+  background: var(--amber, #f59e0b) !important;
+  border-color: var(--amber, #f59e0b) !important;
+  color: #0a0a0a !important;
+}
+
+/* A5. Section 5 (#product) layout & panel visibility managed by datavision-product.css */
+
+@media (prefers-reduced-motion: reduce) {
+  #titan-overview::before,
+  #use-cases::before,
+  #how::before,
+  #product::before,
+  #planning-context::before,
+  #decision-trail::before,
+  #outputs::before,
+  #faq::before,
+  #titan-overview::after,
+  #use-cases::after,
+  #how::after,
+  #product::after,
+  #planning-context::after,
+  #decision-trail::after,
+  #outputs::after,
+  #faq::after {
+    transform: scaleY(1) !important;
+  }
+}
+
+@media (max-width: 799px) {
+  .site-header .nav-links,
+  .site-header .word {
+    display: none !important;
+  }
+
+  .site-header .nav-toggle {
+    display: inline-flex !important;
+    width: 44px !important;
+    height: 44px !important;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-nav {
+    position: fixed !important;
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    top: calc(74px + env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(100dvh - 90px - env(safe-area-inset-top, 0px)) !important;
+    z-index: var(--z-nav) !important;
+  }
+}
+
+/* svh stages for CTA arc (sizing managed by closing-liquid.css) */
+#closing .closing-stage,
+#top .hero-compare__stage,
+#how .wipe {
+  cursor: default;
+}
+
+/* 2. INPUT-AWARE INTERACTIONS */
+/* Disable sticky hover transforms/lifts on coarse pointers / touch */
+@media (hover: none), (pointer: coarse) {
+  #titan-overview .titan-overview__question-card:hover,
+  #how .bcard:hover,
+  #outputs .loop-col:hover,
+  #decision-trail .decision-step__btn:hover,
+  #decision-trail .decision-trail__note:hover,
+  #closing .closing-actions .button:hover,
+  .use-cases__tab:hover,
+  .faq-list details:hover {
+    transform: none !important;
+  }
+
+  #titan-overview .titan-overview__questions-grid:has(.titan-overview__question-card:hover) .titan-overview__question-card:not(:hover) {
+    opacity: 1 !important;
+  }
+
+  /* Coarse-pointer slow 8s idle shimmer on primary dark CTA (transform/opacity only) */
+  #closing.is-active .closing-actions .button-dark::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.22) 50%, transparent 75%);
+    transform: translateX(-100%);
+    opacity: 0;
+    pointer-events: none;
+    animation: titan-idle-shimmer 8s var(--ease-in-out) infinite;
+  }
+}
+
+@keyframes titan-idle-shimmer {
+  0%, 70% { transform: translateX(-100%); opacity: 0; }
+  80% { opacity: 0.9; }
+  95%, 100% { transform: translateX(100%); opacity: 0; }
+}
+
+/* Touch :active press state (translate back 2px, smaller shadow, 80ms) */
+#titan-overview .titan-overview__question-card:active,
+#how .bcard:active,
+#outputs .loop-col:active,
+#decision-trail .decision-step__btn:active,
+#use-cases .use-cases__tab:active,
+#closing .closing-actions .button:active,
+.calc-stepper-btn:active,
+.faq-trigger:active {
+  transform: translate(2px, 2px) !important;
+  transition-duration: 80ms !important;
+}
+
+/* 44x44px minimum tap targets on interactive controls */
+.hero-compare__toggle button,
+.pill-toggle__btn,
+#product .product-nav .nav-item,
+#decision-trail .calc-stepper-btn,
+#decision-trail .decision-trail__reset,
+#faq .faq-trigger,
+.nav-toggle,
+.toast button {
+  min-height: 44px !important;
+}
+
+#decision-trail .calc-stepper-btn,
+#decision-trail .decision-trail__reset,
+.nav-toggle {
+  min-width: 44px !important;
+}
+
+/* 44px hit area with 24px visible thumb on range inputs */
+#planning-context #orderDaySlider,
+#product input[type="range"] {
+  min-height: 44px !important;
+  cursor: pointer;
+}
+
+#planning-context #orderDaySlider::-webkit-slider-thumb,
+#product input[type="range"]::-webkit-slider-thumb {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+#planning-context #orderDaySlider::-moz-range-thumb,
+#product input[type="range"]::-moz-range-thumb {
+  width: 24px !important;
+  height: 24px !important;
+}
+
+/* 5. SECTION-BY-SECTION MOBILE BEHAVIOR */
+@media (max-width: 900px) {
+  /* Hero: full-width segmented toggle, 4 static columns, 600ms merge */
+  #top .hero-compare__toggle,
+  #top .pill-toggle {
+    width: 100% !important;
+    max-width: 360px !important;
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  #top .hero-cols,
+  #top .hero-columns-bg {
+    background-size: 25% 100% !important;
+    animation: none !important;
+  }
+
+  #top.is-with-titan .hero-merge-chip,
+  #top .hero-visual {
+    transition-duration: var(--dur-600) !important;
+    animation-duration: var(--dur-600) !important;
+  }
+
+  /* Planning by category: horizontal scroll-snap pill row + crossfade panels */
+  #use-cases .use-cases__tabs {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding: 6px !important;
+    scrollbar-width: none !important;
+  }
+
+  #use-cases .use-cases__tabs::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #use-cases .use-cases__tab {
+    flex: 0 0 auto !important;
+    min-height: 44px !important;
+    scroll-snap-align: start !important;
+    white-space: nowrap !important;
+  }
+
+  #use-cases .use-cases__tab-copy small,
+  #use-cases .use-cases__chevron {
+    display: none !important;
+  }
+
+  #use-cases .use-cases__panels {
+    touch-action: pan-y !important;
+  }
+
+  /* How it works slider: touch-action pan-y + 44px handle hit area + stacked cards */
+  #how .wipe {
+    touch-action: pan-y !important;
+  }
+
+  #how .wipe-handle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  #how .how-steps,
+  #how .how-cards {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Intelligence: horizontal scroll-snap pill row */
+  #product .product-nav {
+    display: flex !important;
+    flex-direction: row !important;
+    overflow-x: auto !important;
+    scroll-snap-type: x mandatory !important;
+    -webkit-overflow-scrolling: touch !important;
+    gap: 8px !important;
+    padding-bottom: 4px !important;
+    scrollbar-width: none !important;
+  }
+
+  #product .product-nav::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #product .product-nav .nav-item {
+    flex: 0 0 auto !important;
+    scroll-snap-align: start !important;
+    white-space: nowrap !important;
+  }
+
+  /* Shorter CTA arc stage on tablet/mobile */
+  #closing.liquid-ready {
+    height: 150svh !important;
+  }
+}
+
+/* Below 600px: thin out chart labels & odd ticks */
+@media (max-width: 600px) {
+  #planning-context .axis-tick:nth-child(even) .tick-line {
+    opacity: 0.35 !important;
+  }
+
+  #product .pv-axis-tick:nth-child(even) {
+    display: none !important;
+  }
+}
+
+/* Below 480px: unpin CTA stage so mobile scrolling stays effortless */
+@media (max-width: 479px) {
+  #closing.liquid-ready {
+    height: auto !important;
+    min-height: 100svh !important;
+  }
+
+  #closing.liquid-ready .closing-stage {
+    position: relative !important;
+    height: auto !important;
+    min-height: 100svh !important;
+  }
+}
+
+/* D7. Keep #faq rendered to avoid blank pop-in during fast scrolling */
+#faq {
+  content-visibility: visible;
+}
+
+/* D6. Never transition box-shadow anywhere; use transform/opacity on pseudo-elements */
+.button,
+.bcard,
+.loop-col,
+#how .how-steps li,
+.decision-trail__note,
+.decision-step__btn,
+.use-cases__tab,
+.nav-item,
+.feature-card,
+[data-component="feature-card"],
+.titan-overview__question-card,
+.hero-compare__cta,
+.hero-btn-primary,
+.hero-btn-secondary {
+  transition-property: transform, opacity, background-color, border-color, color !important;
+}
+
+/* D8. backdrop-filter ONLY on nav pill (.site-header) and glass button (.button-dark in #closing) */
+*:not(.site-header):not(.button-dark) {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* Cap blur radii at 24px on non-CTA elements (CTA halo is 40px per spec) */
+
+/* On mobile/coarse pointers: no backdrop-filter on areas larger than nav pill & button */
+@media (max-width: 767px), (pointer: coarse) {
+  .nav-scroll-backdrop {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    background: rgba(255, 255, 255, 0.94) !important;
+  }
+
+  .nav-scroll-backdrop.is-dark {
+    background: rgba(11, 11, 12, 0.92) !important;
+  }
+}
+
+/* Pause all CSS animations when tab is hidden or section is off-screen */
+body.is-hidden *,
+body.is-hidden *::before,
+body.is-hidden *::after,
+main > section.is-offscreen *,
+main > section.is-offscreen *::before,
+main > section.is-offscreen *::after {
+  animation-play-state: paused !important;
+}
+
+/* Cap permanent will-change compositor layers */
+* {
+  will-change: auto !important;
+}
+
+/* CSS scroll-driven animation for boundary arcs when supported */
+@supports (animation-timeline: view()) {
+  @media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+    @keyframes titan-arc-grow {
+      from { transform: scaleY(0.35); }
+      to { transform: scaleY(1); }
+    }
+    #titan-overview::before,
+    #use-cases::before,
+    #how::before,
+    #product::before,
+    #planning-context::before,
+    #decision-trail::before,
+    #outputs::before,
+    #faq::before {
+      transform-origin: 50% 100%;
+      animation: titan-arc-grow linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 60%;
+    }
+  }
+}
+
+/* Pause/Play button for >5s autoplays (Explainable planning) */
+.autoplay-toggle-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-height: 36px !important;
+  padding: 6px 12px !important;
+  border-radius: 999px !important;
+  border: 1px solid #d4d4d8 !important;
+  background: var(--paper) !important;
+  color: var(--ink) !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  cursor: pointer !important;
+  margin-top: 8px !important;
+}
+
+.autoplay-toggle-btn:focus-visible {
+  outline: 2px solid var(--blue) !important;
+  outline-offset: 2px !important;
+}
+
+/* 7. REDUCED MOTION ACCESSIBILITY */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .reveal,
+  .pop-card {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: opacity 150ms ease !important;
+  }
+
+  #closing .closing-actions .button-dark::after {
+    display: none !important;
+  }
+}
+
+/* ==========================================================================
+   8. PAGE-LOAD BRAND INTRO (Step 3 CSS mapped to real selectors)
+   ========================================================================== */
+.titan{color:inherit;overflow:visible;display:block}
+.titan .orbit{transform-origin:24px 24px}
+.titan .track{fill:none;stroke:currentColor;stroke-width:1.2;opacity:.18}
+.titan .sat{transform-origin:24px 24px;transform:rotate(var(--a)) translateX(17px)}
+.titan .ring{fill:none;stroke:currentColor;stroke-width:2.4}
+.titan .dot{fill:currentColor;transform-box:fill-box;transform-origin:center;transform:scale(0)}
+.titan .core{fill:currentColor;transform-origin:24px 24px}
+.merge .sat{animation:merge 1s cubic-bezier(.22,1,.36,1) both}
+.merge .core{animation:pop .7s .45s cubic-bezier(.34,1.56,.64,1) both}
+.merge .track{animation:fade .6s .5s both}
+.spin .orbit{animation:step var(--beat,700ms) cubic-bezier(.65,0,.35,1) var(--beats,2)}
+.spin .core{animation:breathe var(--beat,700ms) cubic-bezier(.65,0,.35,1) var(--beats,2)}
+@keyframes merge{from{transform:rotate(calc(var(--a) + 200deg)) translateX(34px);opacity:0}to{transform:rotate(var(--a)) translateX(17px);opacity:1}}
+@keyframes pop{from{transform:scale(0)}}
+@keyframes fade{from{opacity:0}}
+@keyframes step{to{transform:rotate(120deg)}}
+@keyframes breathe{50%{transform:scale(.86)}}
+
+/* Intro overlay & marks managed by index.html #intro-critical + glass-module.css */
+html.playing .progress,
+html.playing .nav-scroll-backdrop{opacity:0 !important;z-index:10 !important;pointer-events:none !important}
+
+/* MAP: .site-header has z-index > 40, position fixed, overflow: visible */
+.site-header{z-index:var(--z-nav,50);overflow:visible !important;transition:background .5s,border-color .5s,box-shadow .5s}
+.site-header .lockup{overflow:visible !important}
+.site-header .mark-slot{position:relative;flex:none;width:30px;height:30px;overflow:visible;display:inline-block}
+.mark-slot .titan{position:absolute;left:0;top:0;width:30px;height:30px;overflow:visible;display:block}
+html.intro-nav .site-header{opacity:0 !important;transform:translateY(-12px) !important;pointer-events:none !important}
+.site-header{transition:opacity .5s cubic-bezier(.16,1,.3,1),transform .5s cubic-bezier(.16,1,.3,1),background .5s,border-color .5s,box-shadow .5s}
+
+.site-header .word{display:inline-block;clip-path:inset(0 0 0 0);transition:clip-path .35s cubic-bezier(.22,1,.36,1)}
+html.intro-nav .site-header .word{clip-path:inset(0 100% 0 0)}
+
+#hero-title .hero-line{display:block;overflow:hidden;padding-bottom:.08em}
+#hero-title .hero-line>span{display:block}
+html.intro-hero #hero-title .hero-line>span{transform:translateY(110%)}
+html.intro-hero #top .hero-compare__tabs{opacity:0;transform:translateY(8px)}
+html.intro-hero #top .hero-compare__dek{opacity:0;transform:translateY(12px)}
+html.intro-hero #top .hero-compare__cta{opacity:0;transform:scale(.96)}
+html.intro-hero #top .hero-compare__stage{opacity:0;transform:translateY(40px)}
+
+/* Hero Without Titan: 1 warning cell pulses every 2.5s while visible */
+@keyframes hero-cell-pulse {
+  0%, 76%, 100% { transform: scale(1); opacity: 1; }
+  88% { transform: scale(1.06); opacity: 0.78; }
+}
+
+#top[data-state="without"]:not(.is-offscreen) .hero-compare__cell.is-warning:first-of-type {
+  animation: hero-cell-pulse 2.5s var(--ease-in-out) infinite;
+}
+
+/* Hero chip stagger (30ms) during merge */
+#top .hero-compare__chip--tl { transition-delay: 0ms; }
+#top .hero-compare__chip--tr { transition-delay: 30ms; }
+#top .hero-compare__chip--bl { transition-delay: 60ms; }
+#top .hero-compare__chip--br { transition-delay: 90ms; }
+
+/* Phase 6.1: Sliders touch-action: pan-y & minimum 44px tap targets */
+input[type="range"],
+[role="slider"],
+.wipe,
+.wipe-range {
+  touch-action: pan-y;
+}
+
+button,
+[role="tab"],
+.autoplay-toggle-btn,
+.hero-compare__tab,
+.faq-trigger {
+  min-height: 44px;
+}
+
+@media (prefers-reduced-motion:reduce){.titan *{animation:none!important}}

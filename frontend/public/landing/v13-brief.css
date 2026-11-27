@@ -1,0 +1,640 @@
+/* ══════════════════════════════════════════════════════════════
+   TITAN AI — Section 05: The Decision Spotlight (In Practice)
+   Art-directed, expansive operational intelligence diptych.
+   ══════════════════════════════════════════════════════════════ */
+
+.action-brief-scene {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: #061911; /* Rich forest green */
+  color: #fbfaf5;
+  padding: clamp(80px, 8.5vw, 120px) 0 clamp(84px, 9vw, 124px);
+  border-top: 1px solid rgba(220, 247, 232, 0.08);
+  border-bottom: 1px solid rgba(220, 247, 232, 0.08);
+}
+
+.action-brief-scene::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 120px;
+  background: linear-gradient(to bottom, rgba(251, 250, 245, 0.04), transparent);
+  pointer-events: none;
+}
+
+.brief-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 60% 45% at 50% 15%, rgba(18, 157, 78, 0.08), transparent 70%),
+    radial-gradient(ellipse 45% 35% at 85% 75%, rgba(9, 41, 28, 0.25), transparent 70%);
+  z-index: 0;
+}
+
+.brief-inner {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 1280px);
+  margin: 0 auto;
+  padding: 0 clamp(20px, 4vw, 56px);
+  box-sizing: border-box;
+}
+
+/* ─── Heading ────────────────────────────────────────── */
+.brief-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
+  align-items: flex-end;
+  gap: clamp(24px, 4vw, 56px);
+  margin-bottom: clamp(44px, 5.5vw, 68px);
+}
+
+.brief-heading .eyebrow {
+  margin: 0 0 16px;
+}
+
+.action-brief-scene h2 {
+  margin: 0;
+  font-size: clamp(40px, 5vw, 68px);
+  line-height: 1.04;
+  font-weight: 600;
+  letter-spacing: -0.048em;
+  color: #fbfaf5;
+}
+
+.action-brief-scene h2 em {
+  display: inline-block;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--emerald);
+}
+
+.brief-heading-dek {
+  margin: 0 0 6px;
+  font-size: clamp(15.5px, 1.15vw, 17.5px);
+  line-height: 1.65;
+  color: var(--text-secondary-dark);
+  max-width: 480px;
+}
+
+/* ─── The Signature Diptych Stage ────────────────────── */
+.spotlight-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 0.88fr) minmax(0, 1.12fr);
+  gap: clamp(28px, 4vw, 56px);
+  align-items: stretch;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LEFT: THE SIGNAL ANCHOR (NATIVE TO DEEP FOREST CANVAS)
+   ══════════════════════════════════════════════════════════════ */
+.signal-anchor {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: clamp(28px, 3.5vw, 44px) 0;
+}
+
+.signal-top-cluster {
+  margin-bottom: 28px;
+}
+
+.signal-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.signal-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--soft-mint);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.signal-sku-pill {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 5px;
+  background: rgba(220, 247, 232, 0.1);
+  color: var(--soft-mint);
+  border: 1px solid rgba(220, 247, 232, 0.16);
+}
+
+/* The Monumental Numeral Display */
+.signal-numeral-lockup {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.signal-giant-number {
+  font-size: clamp(68px, 7.5vw, 98px);
+  line-height: 0.92;
+  font-weight: 700;
+  letter-spacing: -0.055em;
+  color: #ffffff;
+  font-variant-numeric: tabular-nums;
+}
+
+.signal-giant-unit {
+  font-size: clamp(24px, 2.8vw, 36px);
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--emerald);
+  text-transform: lowercase;
+}
+
+.signal-headline {
+  font-size: clamp(22px, 2.2vw, 28px);
+  line-height: 1.22;
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #fbfaf5;
+  margin: 0 0 16px;
+}
+
+.signal-dek {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-secondary-dark);
+  margin: 0 0 28px;
+  max-width: 440px;
+}
+
+/* Architectural Variance Caliper */
+.caliper-card {
+  background: rgba(9, 41, 28, 0.45);
+  border: 1px solid rgba(220, 247, 232, 0.14);
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 24px;
+}
+
+.caliper-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--soft-mint);
+}
+
+.caliper-header span:last-child {
+  color: #facc15;
+}
+
+.caliper-ruler {
+  position: relative;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  margin: 16px 0 22px;
+}
+
+.caliper-fill-stock {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 68.75%; /* 11 of 16 days */
+  background: var(--emerald);
+  border-radius: 999px;
+}
+
+.caliper-fill-deficit {
+  position: absolute;
+  left: 68.75%;
+  width: 12.5%; /* 2 of 16 days */
+  top: 0;
+  bottom: 0;
+  background: #facc15;
+  border-radius: 0 999px 999px 0;
+  opacity: 0.9;
+}
+
+.caliper-datum-pin {
+  position: absolute;
+  left: 81.25%; /* 13 of 16 days */
+  top: -6px;
+  bottom: -6px;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 8px rgba(255, 255, 255, 0.6);
+}
+
+.caliper-scale-labels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11.5px;
+  color: var(--text-muted-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.caliper-scale-labels strong {
+  color: #fbfaf5;
+  font-weight: 700;
+}
+
+/* Operational Arrival Buffer Note */
+.arrival-buffer-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  background: rgba(250, 204, 21, 0.08);
+  border: 1px solid rgba(250, 204, 21, 0.22);
+  font-size: 13px;
+  line-height: 1.55;
+  color: #fef08a;
+}
+
+.arrival-buffer-callout svg {
+  color: #facc15;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.arrival-buffer-callout strong {
+  color: #ffffff;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RIGHT: THE DECISION MONOLITH (WARM IVORY ARCHITECTURAL PLANE)
+   ══════════════════════════════════════════════════════════════ */
+.decision-monolith {
+  background: #fbfaf5; /* Warm ivory parchment */
+  color: #09291c;
+  border-radius: 24px;
+  border: 1px solid #e7e2d4;
+  box-shadow:
+    0 30px 80px rgba(0, 0, 0, 0.4),
+    0 6px 20px rgba(0, 0, 0, 0.15);
+  padding: clamp(28px, 4vw, 44px);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+}
+
+/* Monolith Masthead */
+.monolith-masthead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e6e0d2;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.monolith-brand-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #09291c;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.monolith-brand-title svg {
+  color: var(--emerald);
+}
+
+.monolith-review-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.monolith-review-pip {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d97706;
+}
+
+/* Primary Recommendation Hero Block */
+.monolith-rec-wrap {
+  margin-bottom: 24px;
+}
+
+.monolith-rec-kicker {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--emerald);
+  display: block;
+  margin-bottom: 8px;
+}
+
+.monolith-rec-title {
+  margin: 0 0 10px;
+  font-size: clamp(26px, 2.5vw, 36px);
+  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.035em;
+  color: #09291c;
+}
+
+.monolith-rec-summary {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #3b5246;
+}
+
+/* Horizontal Evidence Parameter Ribbon */
+.monolith-ribbon {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  background: #f4f1e6;
+  border: 1px solid #e5dfd0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 24px;
+}
+
+.ribbon-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.ribbon-cell small {
+  font-size: 10.5px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #637a6d;
+  margin-bottom: 3px;
+}
+
+.ribbon-cell strong {
+  font-size: 15px;
+  font-weight: 750;
+  color: #09291c;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Human-in-the-Loop Planner Evaluation Scope */
+.monolith-human-scope {
+  background: #ffffff;
+  border: 1px solid #e7e1d4;
+  border-radius: 14px;
+  padding: 20px;
+  margin-bottom: 24px;
+}
+
+.human-scope-title {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #09291c;
+  margin: 0 0 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.human-scope-title svg {
+  color: var(--emerald);
+}
+
+.human-scope-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.human-scope-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #2e473b;
+}
+
+.human-scope-num {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: #f0ece1;
+  color: #09291c;
+  font-size: 10.5px;
+  font-weight: 800;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Governance Note */
+.monolith-governance {
+  font-size: 12px;
+  line-height: 1.5;
+  color: #557263;
+  border-left: 2px solid var(--emerald);
+  padding-left: 10px;
+  margin-bottom: 24px;
+}
+
+.monolith-governance strong {
+  color: #09291c;
+}
+
+/* Action Routing Cluster */
+.monolith-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.monolith-primary-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 9px;
+  background: #09291c;
+  color: #fbfaf5;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+}
+
+.monolith-primary-cta:hover {
+  background: #123d2b;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.monolith-secondary-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  color: #09291c;
+  font-size: 13px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-color: #beb7a5;
+  transition: color 0.2s ease;
+}
+
+.monolith-secondary-toggle:hover {
+  color: var(--emerald);
+  text-decoration-color: var(--emerald);
+}
+
+/* Seamless Nested Reasoning Drawer */
+.monolith-reasoning-drawer {
+  border-top: 1px solid #e7e1d4;
+  margin-top: 24px;
+  padding-top: 24px;
+}
+
+.drawer-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.drawer-step-card {
+  background: #f4f1e6;
+  border: 1px solid #e5dfd0;
+  border-radius: 10px;
+  padding: 14px;
+}
+
+.drawer-step-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--emerald);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.drawer-step-card h5 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #09291c;
+}
+
+.drawer-step-math {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #09291c;
+  background: #e9e4d6;
+  padding: 3px 6px;
+  border-radius: 4px;
+  display: inline-block;
+  margin-bottom: 6px;
+}
+
+.drawer-step-card p {
+  margin: 0;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #557263;
+}
+
+.drawer-assumptions-note {
+  background: #ebe5d6;
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #3b5246;
+}
+
+.drawer-assumptions-note strong {
+  color: #09291c;
+}
+
+/* ─── Responsive Media Queries ───────────────────────── */
+@media (max-width: 960px) {
+  .brief-heading {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .spotlight-stage {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+  .signal-anchor {
+    padding: 0;
+  }
+  .monolith-ribbon {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+  .drawer-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .signal-numeral-lockup {
+    gap: 8px;
+  }
+  .monolith-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .monolith-primary-cta {
+    justify-content: center;
+  }
+  .monolith-secondary-toggle {
+    justify-content: center;
+  }
+}

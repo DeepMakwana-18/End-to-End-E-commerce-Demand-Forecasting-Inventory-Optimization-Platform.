@@ -121,3 +121,5 @@ phase9_acceptance_suite.py
 backend/scratch_verify.py
 backend/test_pipeline_apis.py
 e2e_test.py
+# Temporary scratch & automation artifacts
+scratch/
