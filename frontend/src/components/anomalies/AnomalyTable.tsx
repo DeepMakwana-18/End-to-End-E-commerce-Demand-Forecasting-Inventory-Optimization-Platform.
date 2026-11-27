@@ -1,88 +1,23 @@
 /**
- * AnomalyTable — Main investigation data table
- * Refined layout:
- *  - Proportional column widths
- *  - Guaranteed single-line dates (whitespace-nowrap min-w-[110px])
- *  - Compact badges that preserve horizontal room
- *  - Clear Expected vs Actual and Deviation % formatting
- *  - Polished selection checkboxes, hover states, and pagination
+ * AnomalyTable — Primary investigation data table (desktop) + stacked cards (tablet/mobile)
+ * • Full visibility of Type, Severity, Expected vs Actual, Deviation %, Event Date, Status, and Inspect
+ * • Synchronized activeId highlight with timeline & drawer
+ * • Consistent newest-event-first ordering with AnomalyTimeline
  */
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
-  CheckSquare, Square, CheckCircle2, ChevronDown, ChevronUp,
-  ChevronLeft, ChevronRight, Minus,
+  CheckSquare, Square, CheckCircle2, ChevronRight,
+  ChevronLeft, Minus,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
 import { SeverityBadge, TypeBadge } from './AnomalyBadges';
 import type { Anomaly } from '@/types/anomaly';
 
-// ── Row detail expand ─────────────────────────────────────────────────
-
-function AnomalyDetail({ anomaly }: { anomaly: Anomaly }) {
-  return (
-    <motion.tr
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.15 }}
-    >
-      <td colSpan={9} className="px-5 py-0 bg-slate-50/70 dark:bg-ds-surface-sunken/40">
-        <div className="py-4 border-t border-slate-200/60 dark:border-ds-border grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Explanation */}
-          <div className="col-span-full">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary mb-1.5">
-              Anomaly Explanation &amp; Root Cause Analysis
-            </p>
-            <p className="text-sm text-slate-800 dark:text-ds-text-heading leading-relaxed bg-white dark:bg-ds-surface p-3.5 rounded-xl border border-slate-200/80 dark:border-ds-border shadow-2xs">
-              {anomaly.explanation ?? 'No automated explanation generated for this record.'}
-            </p>
-          </div>
-
-          {/* Stats grid */}
-          <div className="grid grid-cols-3 gap-2.5">
-            {[
-              { label: 'Z-Score', value: anomaly.z_score?.toFixed(3) ?? '—' },
-              { label: 'Expected Value', value: anomaly.expected_value != null ? formatNumber(anomaly.expected_value) : '—' },
-              { label: 'Actual Value', value: anomaly.actual_value != null ? formatNumber(anomaly.actual_value) : '—' },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-white dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border rounded-xl p-3 shadow-2xs">
-                <p className="text-[10px] text-slate-400 dark:text-ds-text-muted uppercase font-bold tracking-wider mb-1">{label}</p>
-                <p className="text-sm font-bold font-mono text-slate-900 dark:text-ds-text-heading">{value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-3 gap-2.5">
-            {[
-              { label: 'Event Date', value: anomaly.event_date ?? '—' },
-              { label: 'Detected At', value: new Date(anomaly.detected_at).toLocaleDateString() },
-              {
-                label: 'Status',
-                value: anomaly.is_resolved
-                  ? `Resolved ${anomaly.resolved_at ? new Date(anomaly.resolved_at).toLocaleDateString() : ''}`
-                  : 'Active'
-              },
-            ].map(({ label, value }) => (
-              <div key={label} className="bg-white dark:bg-ds-surface border border-slate-200/80 dark:border-ds-border rounded-xl p-3 shadow-2xs">
-                <p className="text-[10px] text-slate-400 dark:text-ds-text-muted uppercase font-bold tracking-wider mb-1">{label}</p>
-                <p className="text-xs font-bold text-slate-800 dark:text-ds-text-heading font-mono">{value}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </td>
-    </motion.tr>
-  );
-}
-
-// ── Main table ────────────────────────────────────────────────────────
-
 interface Props {
   anomalies: Anomaly[];
   isLoading: boolean;
   selectedIds: Set<number>;
+  activeId?: number | null;
   onSelectToggle: (id: number) => void;
   onSelectAll: () => void;
   onResolve: (ids: number[]) => void;
@@ -96,7 +31,7 @@ interface Props {
 
 const TH = ({ children, className }: { children?: React.ReactNode; className?: string }) => (
   <th className={cn(
-    'px-4 py-3 text-left text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary bg-slate-50/80 dark:bg-ds-surface-sunken/80 border-b border-slate-200/80 dark:border-ds-border select-none whitespace-nowrap',
+    'px-4 py-3 text-left text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] bg-[#fafaf9] dark:bg-[#18181b] border-b border-[#e4e4e7] dark:border-[#27272a] select-none whitespace-nowrap',
     className
   )}>
     {children}
@@ -104,12 +39,10 @@ const TH = ({ children, className }: { children?: React.ReactNode; className?: s
 );
 
 export function AnomalyTable({
-  anomalies, isLoading, selectedIds, onSelectToggle,
+  anomalies, isLoading, selectedIds, activeId, onSelectToggle,
   onSelectAll, onResolve, page, totalPages, total, perPage, onPageChange,
   onRowClick,
 }: Props) {
-  const [expandedId, setExpandedId] = useState<number | null>(null);
-
   const allSelected = anomalies.length > 0 && anomalies.every((a) => selectedIds.has(a.id));
   const someSelected = selectedIds.size > 0;
   const activeSelected = anomalies
@@ -118,193 +51,182 @@ export function AnomalyTable({
 
   if (isLoading) {
     return (
-      <div className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden">
-        <div className="p-4 space-y-2.5">
-          {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="h-12 skeleton rounded-xl bg-slate-100 dark:bg-ds-surface-sunken" />
-          ))}
-        </div>
+      <div className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden p-4 space-y-2.5">
+        {[1, 2, 3, 4, 5, 6].map((i) => (
+          <div key={i} className="h-12 skeleton rounded-[10px] bg-[#f1f1f3] dark:bg-[#18181b]" />
+        ))}
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden">
+    <div className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden">
       {/* Bulk action bar */}
-      <AnimatePresence>
-        {someSelected && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
-          >
-            <div className="px-5 py-3 bg-indigo-50/90 dark:bg-indigo-950/40 border-b border-indigo-200/80 dark:border-indigo-800/40 flex items-center justify-between gap-3">
-              <span className="text-xs font-bold text-indigo-900 dark:text-indigo-200">
-                {selectedIds.size} anomaly record{selectedIds.size !== 1 ? 's' : ''} selected
-              </span>
-              {activeSelected.length > 0 && (
-                <button
-                  id="bulk-resolve-btn"
-                  onClick={() => onResolve(activeSelected)}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs transition-all"
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  Resolve {activeSelected.length} active
-                </button>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {someSelected && (
+        <div className="px-5 py-3 bg-[#eff6ff] dark:bg-[#1e3fc8]/20 border-b border-[#bfdbfe] dark:border-[#1e3fc8]/40 flex items-center justify-between gap-3 flex-wrap">
+          <span className="text-xs font-bold text-[#1e3fc8] dark:text-[#93c5fd]">
+            {selectedIds.size} anomaly record{selectedIds.size !== 1 ? 's' : ''} selected
+          </span>
+          {activeSelected.length > 0 && (
+            <button
+              id="bulk-resolve-btn"
+              type="button"
+              onClick={() => onResolve(activeSelected)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[8px] text-xs font-semibold bg-[#16a34a] hover:bg-[#15803d] text-white transition-colors cursor-pointer"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Resolve {activeSelected.length} active</span>
+            </button>
+          )}
+        </div>
+      )}
 
-      {/* Table */}
-      <div className="overflow-x-auto">
+      {/* Desktop Table (md+) */}
+      <div className="hidden md:block overflow-x-auto">
         <table className="w-full border-collapse text-left">
           <thead>
             <tr>
-              <TH className="w-10 text-center">
+              <TH className="w-11 text-center">
                 <button
                   id="select-all-btn"
+                  type="button"
                   onClick={onSelectAll}
-                  className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors inline-flex items-center justify-center"
+                  className="text-[#52525b] hover:text-[#1e3fc8] dark:text-[#a1a1aa] dark:hover:text-[#60a5fa] transition-colors inline-flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] rounded"
                   aria-label="Select all anomalies"
                 >
                   {allSelected
-                    ? <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    ? <CheckSquare className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" />
                     : someSelected
-                    ? <Minus className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                    : <Square className="w-4 h-4" />}
+                      ? <Minus className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" />
+                      : <Square className="w-4 h-4" />}
                 </button>
               </TH>
               <TH>Type</TH>
               <TH>Severity</TH>
               <TH>Deviation</TH>
-              <TH className="hidden md:table-cell">Expected</TH>
-              <TH className="hidden md:table-cell">Actual</TH>
-              <TH className="whitespace-nowrap min-w-[110px]">Event Date</TH>
-              <TH className="hidden sm:table-cell">Status</TH>
-              <TH className="w-8" />
+              <TH>Expected</TH>
+              <TH>Actual</TH>
+              <TH className="whitespace-nowrap">Event Date</TH>
+              <TH>Status</TH>
+              <TH className="text-right">Action</TH>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-ds-border">
+          <tbody className="divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
             {anomalies.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-5 py-14 text-center">
-                  <p className="text-sm font-semibold text-slate-500 dark:text-ds-text-secondary">No anomalies matching criteria</p>
-                  <p className="text-xs text-slate-400 dark:text-ds-text-muted mt-1">Try clearing filters or run an anomaly scan</p>
+                <td colSpan={9} className="px-5 py-12 text-center">
+                  <p className="text-sm font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">No anomalies matching criteria</p>
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1">Try clearing filters or run an anomaly scan</p>
                 </td>
               </tr>
             ) : (
-              anomalies.map((a, idx) => {
-                const isExpanded = expandedId === a.id;
+              anomalies.map((a) => {
                 const isSelected = selectedIds.has(a.id);
+                const isInspected = activeId === a.id;
                 const deviationAbs = a.deviation_pct != null ? Math.abs(a.deviation_pct) : null;
                 const isPositive = (a.deviation_pct ?? 0) > 0;
+                const dateLabel = a.event_date ?? (a.detected_at ? new Date(a.detected_at).toLocaleDateString() : '—');
 
                 return (
-                  <motion.tr
+                  <tr
                     key={a.id}
-                    initial={{ opacity: 0, x: -4 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: Math.min(idx * 0.02, 0.3) }}
-                    onClick={() => {
-                      if (onRowClick) {
-                        onRowClick(a);
-                      } else {
-                        setExpandedId(isExpanded ? null : a.id);
+                    onClick={() => onRowClick?.(a)}
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onRowClick?.(a);
                       }
                     }}
+                    aria-selected={isInspected}
                     className={cn(
-                      'group cursor-pointer transition-colors duration-150',
-                      isSelected
-                        ? 'bg-indigo-50/50 dark:bg-indigo-950/30'
-                        : 'hover:bg-slate-50/80 dark:hover:bg-ds-surface-sunken/60',
-                      a.is_resolved && 'opacity-60'
+                      'group cursor-pointer transition-colors duration-150 focus:outline-none focus-visible:bg-[#eff6ff] dark:focus-visible:bg-[#1e3fc8]/20',
+                      isInspected
+                        ? 'bg-[#fafaf9] dark:bg-[#18181b] ring-1 ring-inset ring-[#0a0a0a] dark:ring-[#fafaf9]'
+                        : isSelected
+                          ? 'bg-[#eff6ff]/60 dark:bg-[#1e3fc8]/15'
+                          : 'hover:bg-[#fafaf9] dark:hover:bg-[#18181b]/70',
+                      a.is_resolved && 'opacity-70'
                     )}
                   >
-                    {/* Checkbox */}
                     <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
                       <button
+                        type="button"
                         onClick={() => onSelectToggle(a.id)}
-                        className="text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400 transition-colors inline-flex items-center justify-center"
-                        aria-label={`Select anomaly ${a.id}`}
+                        className="text-[#52525b] hover:text-[#1e3fc8] dark:text-[#a1a1aa] dark:hover:text-[#60a5fa] transition-colors inline-flex items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] rounded"
+                        aria-label={`Select anomaly ${a.anomaly_type} on ${dateLabel}`}
                       >
                         {isSelected
-                          ? <CheckSquare className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                          ? <CheckSquare className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" />
                           : <Square className="w-4 h-4" />}
                       </button>
                     </td>
 
-                    {/* Type */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <TypeBadge type={a.anomaly_type} />
                     </td>
 
-                    {/* Severity */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       <SeverityBadge severity={a.severity} />
                     </td>
 
-                    {/* Deviation % */}
                     <td className="px-4 py-3 whitespace-nowrap">
                       {deviationAbs != null ? (
                         <span className={cn(
-                          'text-xs sm:text-sm font-bold font-mono tabular-nums px-2 py-0.5 rounded-md',
+                          'text-xs font-bold font-mono tabular-nums px-2 py-0.5 rounded-md',
                           isPositive
-                            ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/30 dark:text-emerald-400'
-                            : 'text-rose-700 bg-rose-50 dark:bg-rose-950/30 dark:text-rose-400'
+                            ? 'text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 dark:text-emerald-400'
+                            : 'text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400'
                         )}>
                           {isPositive ? '+' : '-'}{deviationAbs.toFixed(1)}%
                         </span>
-                      ) : <span className="text-slate-400 dark:text-ds-text-muted">—</span>}
+                      ) : <span className="text-[#52525b] dark:text-[#a1a1aa]">—</span>}
                     </td>
 
-                    {/* Expected */}
-                    <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
-                      <span className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-muted font-mono tabular-nums">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-xs sm:text-sm text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums">
                         {a.expected_value != null ? formatNumber(a.expected_value) : '—'}
                       </span>
                     </td>
 
-                    {/* Actual */}
-                    <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
-                      <span className="text-xs sm:text-sm text-slate-900 dark:text-ds-text-heading font-mono tabular-nums font-bold">
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-xs sm:text-sm text-[#0a0a0a] dark:text-[#fafaf9] font-mono tabular-nums font-bold">
                         {a.actual_value != null ? formatNumber(a.actual_value) : '—'}
                       </span>
                     </td>
 
-                    {/* Event date — CRITICAL: whitespace-nowrap prevents line wrap */}
-                    <td className="px-4 py-3 whitespace-nowrap min-w-[110px]">
-                      <span className="text-xs font-mono font-medium text-slate-700 dark:text-ds-text-secondary whitespace-nowrap">
-                        {a.event_date ?? (a.detected_at ? new Date(a.detected_at).toLocaleDateString() : '—')}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      <span className="text-xs font-mono font-medium text-[#0a0a0a] dark:text-[#fafaf9]">
+                        {dateLabel}
                       </span>
                     </td>
 
-                    {/* Status */}
-                    <td className="px-4 py-3 hidden sm:table-cell whitespace-nowrap">
+                    <td className="px-4 py-3 whitespace-nowrap">
                       {a.is_resolved ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800/40 shadow-2xs">
-                          <CheckCircle2 className="w-3 h-3" />
-                          Resolved
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] bg-[#dcfce7] text-[#166534] font-semibold border border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60">
+                          <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                          <span>Resolved</span>
                         </span>
                       ) : (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] bg-rose-50 text-rose-700 font-semibold border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/40 shadow-2xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                          Active
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] bg-[#fee2e2] text-[#991b1b] font-semibold border border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60">
+                          <span className="w-1.5 h-1.5 rounded-full bg-rose-600 dark:bg-rose-400" aria-hidden="true" />
+                          <span>Active</span>
                         </span>
                       )}
                     </td>
 
-                    {/* Expand chevron */}
-                    <td className="px-3 py-3 w-8 text-center">
-                      <div className="w-6 h-6 rounded-lg flex items-center justify-center text-slate-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
-                        {isExpanded
-                          ? <ChevronUp className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
-                          : <ChevronDown className="w-4 h-4" />}
-                      </div>
+                    <td className="px-4 py-3 text-right whitespace-nowrap">
+                      <span className={cn(
+                        'inline-flex items-center gap-1 text-xs font-semibold',
+                        isInspected
+                          ? 'text-[#0a0a0a] dark:text-[#fafaf9]'
+                          : 'text-[#1e3fc8] dark:text-[#60a5fa] group-hover:underline'
+                      )}>
+                        <span>{isInspected ? 'Inspecting' : 'Inspect'}</span>
+                        <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                      </span>
                     </td>
-                  </motion.tr>
+                  </tr>
                 );
               })
             )}
@@ -312,38 +234,118 @@ export function AnomalyTable({
         </table>
       </div>
 
-      {/* Expanded detail row if any */}
-      <AnimatePresence>
-        {expandedId !== null && (() => {
-          const item = anomalies.find((a) => a.id === expandedId);
-          return item ? <AnomalyDetail key={`detail-${item.id}`} anomaly={item} /> : null;
-        })()}
-      </AnimatePresence>
+      {/* Tablet & Mobile Stacked Card View (< md) — zero horizontal scroll */}
+      <div className="md:hidden divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+        {anomalies.length === 0 ? (
+          <div className="px-5 py-12 text-center">
+            <p className="text-sm font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">No anomalies matching criteria</p>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1">Try clearing filters or run an anomaly scan</p>
+          </div>
+        ) : (
+          anomalies.map((a) => {
+            const isSelected = selectedIds.has(a.id);
+            const isInspected = activeId === a.id;
+            const deviationAbs = a.deviation_pct != null ? Math.abs(a.deviation_pct) : null;
+            const isPositive = (a.deviation_pct ?? 0) > 0;
+            const dateLabel = a.event_date ?? (a.detected_at ? new Date(a.detected_at).toLocaleDateString() : '—');
+
+            return (
+              <div
+                key={a.id}
+                onClick={() => onRowClick?.(a)}
+                className={cn(
+                  'p-4 space-y-3 cursor-pointer transition-colors duration-150',
+                  isInspected && 'bg-[#fafaf9] dark:bg-[#18181b]',
+                  a.is_resolved && 'opacity-70'
+                )}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); onSelectToggle(a.id); }}
+                      aria-label={`Select anomaly ${a.anomaly_type} on ${dateLabel}`}
+                      className="text-[#52525b] dark:text-[#a1a1aa] p-0.5 cursor-pointer"
+                    >
+                      {isSelected
+                        ? <CheckSquare className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" />
+                        : <Square className="w-4 h-4" />}
+                    </button>
+                    <TypeBadge type={a.anomaly_type} />
+                    <SeverityBadge severity={a.severity} />
+                  </div>
+
+                  {a.is_resolved ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-[#dcfce7] text-[#166534] font-semibold border border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60 flex-shrink-0">
+                      Resolved
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-[#fee2e2] text-[#991b1b] font-semibold border border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60 flex-shrink-0">
+                      Active
+                    </span>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-[#52525b] dark:text-[#a1a1aa]">Deviation</p>
+                    <p className={cn(
+                      'font-mono font-bold mt-0.5 tabular-nums',
+                      isPositive ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
+                    )}>
+                      {deviationAbs != null ? `${isPositive ? '+' : '-'}${deviationAbs.toFixed(1)}%` : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-[#52525b] dark:text-[#a1a1aa]">Actual / Exp</p>
+                    <p className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9] mt-0.5 tabular-nums">
+                      {a.actual_value != null ? formatNumber(a.actual_value) : '—'} / {a.expected_value != null ? formatNumber(a.expected_value) : '—'}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold uppercase text-[#52525b] dark:text-[#a1a1aa]">Date</p>
+                    <p className="font-mono text-[#0a0a0a] dark:text-[#fafaf9] mt-0.5">{dateLabel}</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end pt-1">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-[#1e3fc8] dark:text-[#60a5fa]">
+                    <span>{isInspected ? 'Inspecting' : 'Inspect event'}</span>
+                    <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                  </span>
+                </div>
+              </div>
+            );
+          })
+        )}
+      </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="px-5 py-3.5 border-t border-slate-200/80 dark:border-ds-border bg-slate-50/50 dark:bg-ds-surface-sunken/30 flex items-center justify-between">
-          <span className="text-xs text-slate-500 dark:text-ds-text-muted font-mono font-medium">
+        <div className="px-5 py-3.5 border-t border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] flex items-center justify-between flex-wrap gap-2">
+          <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono font-medium">
             Showing {(page - 1) * perPage + 1}–{Math.min(page * perPage, total)} of {total} records
           </span>
           <div className="flex items-center gap-2">
             <button
               id="prev-page-btn"
+              type="button"
               onClick={() => onPageChange(page - 1)}
               disabled={page <= 1}
-              className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 dark:border-ds-border bg-white dark:bg-ds-surface text-slate-600 dark:text-ds-text-muted hover:text-slate-900 dark:hover:text-ds-text-heading hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+              className="w-8 h-8 flex items-center justify-center rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               aria-label="Previous page"
             >
               <ChevronLeft className="w-4 h-4" />
             </button>
-            <span className="text-xs text-slate-600 dark:text-ds-text-secondary font-mono px-2 font-semibold">
+            <span className="text-xs text-[#0a0a0a] dark:text-[#fafaf9] font-mono px-2 font-semibold">
               Page {page} of {totalPages}
             </span>
             <button
               id="next-page-btn"
+              type="button"
               onClick={() => onPageChange(page + 1)}
               disabled={page >= totalPages}
-              className="w-8 h-8 flex items-center justify-center rounded-xl border border-slate-200 dark:border-ds-border bg-white dark:bg-ds-surface text-slate-600 dark:text-ds-text-muted hover:text-slate-900 dark:hover:text-ds-text-heading hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed transition-all shadow-2xs"
+              className="w-8 h-8 flex items-center justify-center rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
               aria-label="Next page"
             >
               <ChevronRight className="w-4 h-4" />
