@@ -1,12 +1,13 @@
 /** Titan AI login and registration page. */
 
-import { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useRef, useState } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, User, Building2, AlertCircle } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { authApi } from '@/services/api';
 import { cn } from '@/lib/utils';
 import { TitanMark } from '@/components/ui/TitanMark';
+import { AuthLayout } from '@/components/auth/AuthLayout';
 import '@/styles/titan-auth.css';
 
 const inputClasses = cn(
@@ -19,16 +20,29 @@ const inputClasses = cn(
 
 export default function LoginPage() {
   const location = useLocation();
-  const [isSignup, setIsSignup] = useState(location.pathname === '/auth/register');
+  const isSignup = location.pathname === '/auth/register';
   const [email, setEmail] = useState('admin@titan.demo');
   const [password, setPassword] = useState('admin123');
   const [name, setName] = useState('');
   const [orgName, setOrgName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [errorState, setErrorState] = useState<{ path: string; message: string }>({
+    path: location.pathname,
+    message: '',
+  });
+  const error = errorState.path === location.pathname ? errorState.message : '';
+  const setError = (message: string) =>
+    setErrorState({ path: location.pathname, message });
+  const headingRef = useRef<HTMLHeadingElement>(null);
   const navigate = useNavigate();
   const { setAuth } = useAppStore();
+
+  const handleSecondaryRouteSwitch = () => {
+    requestAnimationFrame(() => {
+      headingRef.current?.focus();
+    });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,32 +76,50 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-[100dvh] bg-[#fafaf9] text-[#0a0a0a] flex flex-col items-center justify-center px-4 py-8 sm:px-6 font-sans">
-      <div className="w-full max-w-[420px]">
-        {/* Brand lockup */}
-        <header className="text-center mb-6">
-          <div className="inline-flex items-center justify-center gap-2.5 text-[#0a0a0a]">
-            <TitanMark size={30} decorative />
-            <span className="text-[15px] font-extrabold uppercase tracking-[0.08em] leading-none">
-              TITAN AI
-            </span>
-          </div>
-          <h1 className="mt-3 text-[22px] sm:text-[24px] font-bold tracking-[-0.02em] leading-[1.2] text-[#0a0a0a]">
-            Titan Supply Chain AI
-          </h1>
-          <p className="mt-1.5 text-[14px] leading-[1.45] text-[#52525b]">
-            Demand forecasting and inventory intelligence
-          </p>
-        </header>
+    <AuthLayout centerOnDesktop={!isSignup}>
+      {/* Login / Signup card */}
+      <main className="titan-auth-card p-6 sm:p-8 mr-1">
+        {/* Route-backed Sign in / Create account choice with sliding indicator */}
+        <nav aria-label="Authentication mode" className="titan-auth-switcher mb-6">
+          <span
+            aria-hidden="true"
+            className="titan-auth-switch-thumb"
+            data-mode={isSignup ? 'register' : 'login'}
+          />
+          <Link
+            to="/auth"
+            aria-current={!isSignup ? 'page' : undefined}
+            className={cn(
+              'titan-auth-switch-link flex items-center justify-center text-[14px] font-semibold',
+              !isSignup ? 'text-white' : 'text-[#0a0a0a]'
+            )}
+          >
+            Sign in
+          </Link>
+          <Link
+            to="/auth/register"
+            aria-current={isSignup ? 'page' : undefined}
+            className={cn(
+              'titan-auth-switch-link flex items-center justify-center text-[14px] font-semibold',
+              isSignup ? 'text-white' : 'text-[#0a0a0a]'
+            )}
+          >
+            Create account
+          </Link>
+        </nav>
 
-        {/* Login / Signup card */}
-        <main className="titan-auth-card p-6 sm:p-8 mr-1">
+        {/* Keyed form panel for clean route transition (never overlaps two forms) */}
+        <div key={isSignup ? 'register' : 'login'} className="titan-auth-form-panel">
           <div className="mb-6">
-            <h2 className="text-[20px] font-bold tracking-[-0.015em] leading-[1.25] text-[#0a0a0a]">
+            <h2
+              ref={headingRef}
+              tabIndex={-1}
+              className="text-[22px] font-bold tracking-[-0.02em] leading-[1.2] text-[#0a0a0a] focus:outline-none"
+            >
               {isSignup ? 'Create your account' : 'Welcome back'}
             </h2>
-            <p className="mt-1 text-[14px] leading-[1.45] text-[#52525b]">
-              {isSignup ? 'Start your 14-day free trial' : 'Sign in to your account to continue'}
+            <p className="mt-1.5 text-[14px] leading-[1.45] text-[#52525b]">
+              {isSignup ? 'Set up your Titan AI account.' : 'Sign in to your account to continue'}
             </p>
           </div>
 
@@ -95,7 +127,7 @@ export default function LoginPage() {
             <div
               role="alert"
               aria-live="polite"
-              className="mb-5 flex items-start gap-2.5 p-3.5 rounded-[12px] bg-[#fee2e2] border border-[#fca5a5] text-[#991b1b] text-[14px] font-medium leading-[1.4]"
+              className="titan-auth-error mb-5 flex items-start gap-2.5 p-3.5 rounded-[12px] bg-[#fee2e2] border border-[#fca5a5] text-[#991b1b] text-[14px] font-medium leading-[1.4]"
             >
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" aria-hidden="true" />
               <span>{error}</span>
@@ -213,7 +245,7 @@ export default function LoginPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                   aria-pressed={showPassword}
-                  className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-[10px] text-[#52525b] hover:text-[#0a0a0a] focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px] transition-colors"
+                  className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 flex items-center justify-center rounded-[10px] text-[#52525b] hover:text-[#0a0a0a] focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-[-2px] transition-colors duration-150"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" aria-hidden="true" />
@@ -244,35 +276,34 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Toggle login/signup */}
-          <p className="mt-6 text-center text-[14px] text-[#52525b]">
+          {/* Secondary route link */}
+          <p className="mt-5 text-center text-[14px] text-[#52525b]">
             {isSignup ? 'Already have an account?' : "Don't have an account?"}{' '}
-            <button
-              type="button"
-              onClick={() => {
-                setIsSignup(!isSignup);
-                setError('');
-              }}
+            <Link
+              to={isSignup ? '/auth' : '/auth/register'}
+              onClick={handleSecondaryRouteSwitch}
               className="inline-flex items-center min-h-[44px] px-1 text-[#1e3fc8] hover:underline font-semibold focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2 rounded"
             >
               {isSignup ? 'Sign In' : 'Sign Up'}
-            </button>
+            </Link>
           </p>
 
-          {/* Demo credentials */}
-          <div className="mt-4 pt-4 border-t border-[#e4e4e7] text-center">
-            <span className="inline-block px-3 py-1.5 rounded-[10px] text-[12px] font-mono bg-[#f6f6f7] border border-[#e4e4e7] text-[#52525b]">
-              Demo: admin@titan.demo / admin123
-            </span>
-          </div>
-        </main>
+          {/* Demo credentials (Sign in only) */}
+          {!isSignup && (
+            <div className="mt-4 pt-4 border-t border-[#e4e4e7] text-center">
+              <span className="inline-block px-3 py-1.5 rounded-[10px] text-[12px] font-mono bg-[#f6f6f7] border border-[#e4e4e7] text-[#52525b]">
+                Demo: admin@titan.demo / admin123
+              </span>
+            </div>
+          )}
+        </div>
+      </main>
 
-        <footer className="mt-6 text-center">
-          <p className="text-[12px] leading-[1.4] text-[#52525b]">
-            © 2026 Titan Supply Chain AI. Enterprise-Grade Platform.
-          </p>
-        </footer>
-      </div>
-    </div>
+      <footer className="mt-6 text-center">
+        <p className="text-[12px] leading-[1.4] text-[#52525b]">
+          © 2026 Titan Supply Chain AI. Enterprise-Grade Platform.
+        </p>
+      </footer>
+    </AuthLayout>
   );
 }

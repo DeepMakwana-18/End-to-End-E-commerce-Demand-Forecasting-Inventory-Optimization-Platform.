@@ -1,6 +1,7 @@
-/* Titan AI Auth Page & Orbit Mark Styles
- * Aligned with Titan AI Design.md: flat editorial base, quiet transitions,
- * hover gated to fine pointers, and prefers-reduced-motion support.
+/* Titan AI Auth Page, Showcase Sequence & Orbit Mark Styles
+ * Aligned with Titan AI Design.md: flat editorial base, transform/opacity motion,
+ * ease-out cubic-bezier(.22, 1, .36, 1), hover gated to fine pointers,
+ * safe-area insets, and prefers-reduced-motion support.
  */
 
 .titan {
@@ -65,12 +66,206 @@
   }
 }
 
-/* Auth card: restrained orange hard offset shadow */
+/* ==========================================================================
+   Left Showcase: One-Time Signal-to-Decision Sequence (~920ms total)
+   ========================================================================== */
+
+@keyframes titan-signal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes titan-stroke-reveal {
+  from {
+    stroke-dashoffset: var(--dash-len, 100);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes titan-junction-pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  45% {
+    transform: scale(1.38);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+@keyframes titan-decision-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-signal-item {
+  animation: titan-signal-enter 280ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--signal-index, 0) * 80ms);
+}
+
+.titan-connector-branch {
+  stroke-dasharray: var(--dash-len, 120);
+  stroke-dashoffset: var(--dash-len, 120);
+  animation: titan-stroke-reveal 360ms cubic-bezier(0.22, 1, 0.36, 1) 220ms forwards;
+}
+
+.titan-connector-trunk {
+  stroke-dasharray: var(--dash-len, 48);
+  stroke-dashoffset: var(--dash-len, 48);
+  animation: titan-stroke-reveal 200ms cubic-bezier(0.22, 1, 0.36, 1) 500ms forwards;
+}
+
+.titan-connector-arrow {
+  opacity: 0;
+  animation: titan-fade-in 140ms cubic-bezier(0.22, 1, 0.36, 1) 620ms forwards;
+}
+
+.titan-junction-dot {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: titan-junction-pulse 320ms cubic-bezier(0.22, 1, 0.36, 1) 500ms 1 both;
+}
+
+.titan-decision-card {
+  animation: titan-decision-enter 300ms cubic-bezier(0.22, 1, 0.36, 1) 620ms both;
+}
+
+@keyframes titan-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Settle immediately when page becomes hidden */
+.titan-showcase-settled .titan-signal-item,
+.titan-showcase-settled .titan-connector-branch,
+.titan-showcase-settled .titan-connector-trunk,
+.titan-showcase-settled .titan-connector-arrow,
+.titan-showcase-settled .titan-junction-dot,
+.titan-showcase-settled .titan-decision-card {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  stroke-dashoffset: 0 !important;
+}
+
+/* ==========================================================================
+   Right Auth Area, Route Switcher & Form Micro-interactions
+   ========================================================================== */
+
+.titan-auth-right {
+  padding-top: max(2rem, env(safe-area-inset-top));
+  padding-bottom: max(2rem, env(safe-area-inset-bottom));
+}
+
 .titan-auth-card {
   background-color: #ffffff;
   border: 1px solid #0a0a0a;
   border-radius: 16px;
   box-shadow: 4px 4px 0 #f59e0b;
+}
+
+/* Segmented route switcher with sliding indicator */
+.titan-auth-switcher {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border-radius: 12px;
+  background-color: #f6f6f7;
+  border: 1px solid #e4e4e7;
+}
+
+.titan-auth-switch-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 9px;
+  background-color: #0a0a0a;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.titan-auth-switch-thumb[data-mode="register"] {
+  transform: translateX(100%);
+}
+
+.titan-auth-switch-link {
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  border-radius: 9px;
+  transition: color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .titan-auth-switch-link:not([aria-current="page"]):hover {
+    color: #1e3fc8;
+  }
+}
+
+.titan-auth-switch-link:active {
+  transform: scale(0.99);
+}
+
+.titan-auth-switch-link:focus-visible {
+  outline: 2px solid #1e3fc8;
+  outline-offset: 2px;
+}
+
+/* Incoming route form panel entrance */
+@keyframes titan-form-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-auth-form-panel {
+  animation: titan-form-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Error entrance */
+@keyframes titan-error-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-auth-error {
+  animation: titan-error-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Primary action button */
@@ -79,19 +274,18 @@
   color: #ffffff;
   border-radius: 999px;
   min-height: 46px;
-  transition: background-color 160ms cubic-bezier(0.22, 1, 0.36, 1),
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
     transform 80ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (hover: hover) and (pointer: fine) {
   .titan-auth-btn:hover:not(:disabled) {
     background-color: #1632a0;
-    transform: translateY(-1px);
   }
 }
 
 .titan-auth-btn:active:not(:disabled) {
-  transform: translateY(1px) scale(0.98);
+  transform: translateY(1.5px);
 }
 
 .titan-auth-btn:focus-visible {
@@ -100,14 +294,33 @@
 }
 
 .titan-auth-btn:disabled {
-  opacity: 0.72;
+  opacity: 0.78;
   cursor: not-allowed;
 }
 
+/* Reduced motion: final static showcase, opacity-only or instant transitions */
 @media (prefers-reduced-motion: reduce) {
   .titan *,
-  .titan-auth-btn {
+  .titan-signal-item,
+  .titan-connector-branch,
+  .titan-connector-trunk,
+  .titan-connector-arrow,
+  .titan-junction-dot,
+  .titan-decision-card,
+  .titan-auth-error {
     animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .titan-auth-form-panel {
+    animation: titan-fade-in 140ms ease both;
+  }
+
+  .titan-auth-switch-thumb,
+  .titan-auth-switch-link,
+  .titan-auth-btn {
     transition-duration: 0.01ms !important;
   }
 }
