@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import { TitanMark } from '@/components/ui/TitanMark';
 import { cn } from '@/lib/utils';
 
@@ -165,6 +166,14 @@ export function AuthLayout({ children, centerOnDesktop = false }: AuthLayoutProp
         )}
       >
         <div className="w-full max-w-[440px]">
+          <a
+            href="/"
+            className="mb-6 inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#d4d4d8] bg-white px-3 text-[14px] font-medium text-[#52525b] transition-colors hover:border-[#a1a1aa] hover:text-[#0a0a0a] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#1e3fc8]"
+          >
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" />
+            Back to landing page
+          </a>
+
           {/* Compact mobile/tablet brand header */}
           <header className="lg:hidden text-center mb-6">
             <div className="inline-flex items-center justify-center gap-2.5 text-[#0a0a0a]">

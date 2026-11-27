@@ -6,7 +6,7 @@ import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { useAppStore } from '@/stores/appStore';
 
-export function MainLayout() {
+export function MainLayout({ startupReady = true }: { startupReady?: boolean }) {
   const { sidebarCollapsed, setSidebarCollapsed } = useAppStore();
   const [isMobile, setIsMobile] = useState(false);
 
@@ -26,7 +26,10 @@ export function MainLayout() {
   const marginLeft = isMobile ? 0 : (sidebarCollapsed ? 72 : 260);
 
   return (
-    <div className="min-h-screen bg-ds-canvas text-ds-text-primary antialiased">
+    <div
+      inert={!startupReady}
+      className={`min-h-screen bg-ds-canvas text-ds-text-primary antialiased ${startupReady ? 'titan-app-ready' : 'titan-app-starting'}`}
+    >
       <Sidebar />
       <div
         style={{ marginLeft }}

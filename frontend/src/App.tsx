@@ -5,9 +5,9 @@
  * Phase 5E-B: Global WebSocket singleton, realtime notifications, task progress
  */
 
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useEffect, lazy, Suspense } from 'react';
+import { useCallback, useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAppStore } from '@/stores/appStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -18,6 +18,7 @@ import { GlobalTaskProgress } from '@/components/ui/GlobalTaskProgress';
 import { AICopilotDrawer } from '@/components/ui/AICopilotDrawer';
 import { useRealtimeKPIs } from '@/hooks/useRealtimeKPIs';
 import { toast } from '@/hooks/useToast';
+import { StartupLoader, StartupErrorBoundary } from '@/components/ui/StartupLoader';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,7 +52,7 @@ const UploadPage      = lazy(() => import('@/pages/admin/UploadPage'));
 const PipelinePage    = lazy(() => import('@/pages/admin/PipelinePage'));
 const SettingsPage    = lazy(() => import('@/pages/admin/SettingsPage'));
 
-/** Fullscreen loading fallback */
+/** Local fallback for lazy pages opened after application startup. */
 function PageLoader() {
   return (
     <div className="flex items-center justify-center h-64">
@@ -60,6 +61,26 @@ function PageLoader() {
         <p className="text-xs text-surface-500">Loading...</p>
       </div>
     </div>
+  );
+}
+
+function StartupReady({ children, onReady }: { children: ReactNode; onReady: () => void }) {
+  useEffect(() => onReady(), [onReady]);
+  return children;
+}
+
+function AppPage({ children, startupReady, onReady, onError }: {
+  children: ReactNode;
+  startupReady: boolean;
+  onReady: () => void;
+  onError: () => void;
+}) {
+  return (
+    <StartupErrorBoundary onError={onError}>
+      <Suspense fallback={startupReady ? <PageLoader /> : null}>
+        <StartupReady onReady={onReady}>{children}</StartupReady>
+      </Suspense>
+    </StartupErrorBoundary>
   );
 }
 
@@ -88,7 +109,12 @@ function RealtimeServices() {
 }
 
 function AppContent() {
-  const { theme, setTheme } = useAppStore();
+  const { theme, setTheme, isAuthenticated } = useAppStore();
+  const { pathname } = useLocation();
+  const [startupReady, setStartupReady] = useState(false);
+  const [startupFailed, setStartupFailed] = useState(false);
+  const markStartupReady = useCallback(() => setStartupReady(true), []);
+  const markStartupFailed = useCallback(() => setStartupFailed(true), []);
 
   useEffect(() => {
     setTheme(theme);
@@ -102,10 +128,18 @@ function AppContent() {
     return () => mediaQuery.removeEventListener('change', handleChange);
   }, [theme, setTheme]);
 
+  useEffect(() => {
+    if (startupReady || !pathname.startsWith('/app')) {
+      document.getElementById('boot-loader')?.remove();
+    }
+  }, [pathname, startupReady]);
+
   return (
     <>
       {/* Realtime services mounted once, always */}
       <RealtimeServices />
+
+      {pathname.startsWith('/app') && isAuthenticated && !startupReady && !startupFailed && <StartupLoader />}
 
       <Suspense fallback={<PageLoader />}>
         <Routes>
@@ -116,23 +150,23 @@ function AppContent() {
             path="/app"
             element={
               <ProtectedRoute>
-                <MainLayout />
+                <MainLayout startupReady={startupReady} />
               </ProtectedRoute>
             }
           >
-            <Route index                element={<Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>} />
-            <Route path="forecasting"   element={<Suspense fallback={<PageLoader />}><ForecastPage /></Suspense>} />
-            <Route path="scenarios"     element={<Suspense fallback={<PageLoader />}><ScenariosPage /></Suspense>} />
-            <Route path="anomalies"     element={<Suspense fallback={<PageLoader />}><AnomaliesPage /></Suspense>} />
-            <Route path="inventory"     element={<Suspense fallback={<PageLoader />}><InventoryPage /></Suspense>} />
-            <Route path="products"      element={<Suspense fallback={<PageLoader />}><ProductsPage /></Suspense>} />
-            <Route path="categories"    element={<Suspense fallback={<PageLoader />}><CategoriesPage /></Suspense>} />
-            <Route path="reports"       element={<Suspense fallback={<PageLoader />}><ReportsPage /></Suspense>} />
-            <Route path="alerts"        element={<Suspense fallback={<PageLoader />}><AlertsPage /></Suspense>} />
-            <Route path="admin/users"   element={<Suspense fallback={<PageLoader />}><AdminUsersPage /></Suspense>} />
-            <Route path="admin/upload"  element={<Suspense fallback={<PageLoader />}><UploadPage /></Suspense>} />
-            <Route path="admin/pipeline" element={<Suspense fallback={<PageLoader />}><PipelinePage /></Suspense>} />
-            <Route path="admin/settings" element={<Suspense fallback={<PageLoader />}><SettingsPage /></Suspense>} />
+            <Route index                element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><DashboardPage /></AppPage>} />
+            <Route path="forecasting"   element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><ForecastPage /></AppPage>} />
+            <Route path="scenarios"     element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><ScenariosPage /></AppPage>} />
+            <Route path="anomalies"     element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><AnomaliesPage /></AppPage>} />
+            <Route path="inventory"     element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><InventoryPage /></AppPage>} />
+            <Route path="products"      element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><ProductsPage /></AppPage>} />
+            <Route path="categories"    element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><CategoriesPage /></AppPage>} />
+            <Route path="reports"       element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><ReportsPage /></AppPage>} />
+            <Route path="alerts"        element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><AlertsPage /></AppPage>} />
+            <Route path="admin/users"   element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><AdminUsersPage /></AppPage>} />
+            <Route path="admin/upload"  element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><UploadPage /></AppPage>} />
+            <Route path="admin/pipeline" element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><PipelinePage /></AppPage>} />
+            <Route path="admin/settings" element={<AppPage startupReady={startupReady} onReady={markStartupReady} onError={markStartupFailed}><SettingsPage /></AppPage>} />
           </Route>
 
           <Route path="*" element={<Navigate to="/app" replace />} />
