@@ -208,7 +208,7 @@ export function ScenarioBuilder({ onRun, isRunning, disabled, lastSimulatedSnaps
                   'flex items-center justify-between gap-2.5 p-3 rounded-[12px] text-left transition-colors duration-150 border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
                   isCustom ? 'sm:col-span-2' : '',
                   isSelected
-                    ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#fafaf9] dark:text-[#0a0a0a] dark:border-[#fafaf9]'
+                    ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#1e3fc8]/20 dark:text-[#fafaf9] dark:border-[#60a5fa] ring-1 ring-[#0a0a0a] dark:ring-[#60a5fa]'
                     : 'bg-[#fafaf9] dark:bg-[#18181b] border-[#e4e4e7] dark:border-[#27272a] hover:border-[#0a0a0a]/40 dark:hover:border-[#fafaf9]/40'
                 )}
               >
@@ -227,13 +227,13 @@ export function ScenarioBuilder({ onRun, isRunning, disabled, lastSimulatedSnaps
                   <div className="min-w-0">
                     <p className={cn(
                       'text-xs font-bold truncate',
-                      isSelected ? 'text-[#fafaf9] dark:text-[#0a0a0a]' : 'text-[#0a0a0a] dark:text-[#fafaf9]'
+                      isSelected ? 'text-[#fafaf9]' : 'text-[#0a0a0a] dark:text-[#fafaf9]'
                     )}>
                       {opt.label}
                     </p>
                     <p className={cn(
                       'text-[11px] truncate',
-                      isSelected ? 'text-[#a1a1aa] dark:text-[#52525b]' : 'text-[#52525b] dark:text-[#a1a1aa]'
+                      isSelected ? 'text-[#a1a1aa] dark:text-[#cbd5e1]' : 'text-[#52525b] dark:text-[#a1a1aa]'
                     )}>
                       {opt.desc}
                     </p>

@@ -63,17 +63,34 @@ function formatRunTimestamp(iso?: string | null): string | null {
   });
 }
 
+function formatAssumptionSummary(params?: Record<string, number> | null): string {
+  if (!params) return 'Default assumptions';
+  const parts: string[] = [];
+  const mkt = params.marketing_spend_pct ?? 0;
+  const price = params.price_change_pct ?? 0;
+  const lead = params.lead_time_days ?? 14;
+  const safety = params.safety_stock_multiplier ?? 1.0;
+
+  if (Math.abs(mkt) >= 0.5) parts.push(`Mkt ${mkt > 0 ? '+' : ''}${mkt.toFixed(0)}%`);
+  if (Math.abs(price) >= 0.5) parts.push(`Price ${price > 0 ? '+' : ''}${price.toFixed(0)}%`);
+  if (Math.abs(lead - 14) >= 0.5) parts.push(`Lead ${lead.toFixed(0)}d`);
+  if (Math.abs(safety - 1.0) >= 0.01) parts.push(`Safety ${safety.toFixed(2)}×`);
+
+  return parts.length > 0 ? parts.join(' · ') : 'Baseline defaults (0% / 14d / 1.0×)';
+}
+
 interface Props {
   scenarios: Scenario[];
   activeId: number | null;
   isLoading: boolean;
+  isRunning?: boolean;
   onSelect: (s: Scenario) => void;
   onRun: (id: number) => void;
   onDelete: (id: number) => void;
 }
 
 export function ScenarioHistory({
-  scenarios, activeId, isLoading, onSelect, onRun, onDelete,
+  scenarios, activeId, isLoading, isRunning = false, onSelect, onRun, onDelete,
 }: Props) {
   if (isLoading) {
     return (
@@ -147,7 +164,7 @@ export function ScenarioHistory({
                 className={cn(
                   'flex flex-col justify-between p-4 rounded-[14px] border transition-colors duration-150',
                   isActive
-                    ? 'bg-[#fafaf9] dark:bg-[#18181b] border-[#0a0a0a] dark:border-[#fafaf9] ring-1 ring-[#0a0a0a] dark:ring-[#fafaf9]'
+                    ? 'bg-[#eff6ff]/60 dark:bg-[#1e3fc8]/15 border-[#1e3fc8] dark:border-[#60a5fa] ring-1 ring-[#1e3fc8] dark:ring-[#60a5fa]'
                     : 'bg-white dark:bg-[#111113] border-[#e4e4e7] dark:border-[#27272a] hover:border-[#0a0a0a]/40 dark:hover:border-[#fafaf9]/40'
                 )}
               >
@@ -200,11 +217,15 @@ export function ScenarioHistory({
                   </div>
 
                   {runTimestamp && (
-                    <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium mb-2">
+                    <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium mb-1.5">
                       {s.last_run_at ? 'Last run: ' : 'Created: '}
                       <span className="text-[#0a0a0a] dark:text-[#fafaf9]">{runTimestamp}</span>
                     </p>
                   )}
+
+                  <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-mono mb-2 truncate" title={formatAssumptionSummary(s.parameters)}>
+                    {formatAssumptionSummary(s.parameters)}
+                  </p>
 
                   {isCompleted && result?.stockout_risk_pct !== null && result?.stockout_risk_pct !== undefined && (
                     <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mb-3">
@@ -229,7 +250,7 @@ export function ScenarioHistory({
                       className={cn(
                         'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-xs font-semibold transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
                         isActive
-                          ? 'bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#fafaf9] dark:text-[#0a0a0a]'
+                          ? 'bg-[#1e3fc8] text-white'
                           : 'text-[#1e3fc8] dark:text-[#60a5fa] hover:bg-[#eff6ff] dark:hover:bg-[#1e3fc8]/20'
                       )}
                     >
@@ -256,8 +277,9 @@ export function ScenarioHistory({
                       <button
                         type="button"
                         id={`run-scenario-${s.id}`}
+                        disabled={isRunning}
                         onClick={() => onRun(s.id)}
-                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] text-xs font-semibold bg-[#fafaf9] hover:bg-[#1e3fc8] text-[#0a0a0a] hover:text-white dark:bg-[#18181b] dark:hover:bg-[#1e3fc8] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
+                        className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[8px] text-xs font-semibold bg-[#fafaf9] hover:bg-[#1e3fc8] text-[#0a0a0a] hover:text-white dark:bg-[#18181b] dark:hover:bg-[#1e3fc8] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
                         aria-label={`${isFailed ? 'Retry' : 'Run again'} ${s.name}`}
                       >
                         <Play className="w-3 h-3 fill-current" aria-hidden="true" />

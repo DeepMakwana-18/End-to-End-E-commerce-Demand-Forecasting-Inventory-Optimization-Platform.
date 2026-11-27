@@ -15,7 +15,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { copilotApi, type CopilotMessage, type StarterPrompt } from '@/services/copilotApi';
+import { copilotApi, type StarterPrompt } from '@/services/copilotApi';
 import { useAppStore } from '@/stores/appStore';
 
 // ── Types ──────────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ function PromptCard({ prompt, onClick }: { prompt: StarterPrompt; onClick: () =>
 // ── Main Drawer ─────────────────────────────────────────────────────
 
 export function AICopilotDrawer() {
-  const { isAuthenticated } = useAppStore();
+  const { isAuthenticated, activeDrawerOpen } = useAppStore();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
@@ -240,14 +240,21 @@ export function AICopilotDrawer() {
 
   // Load starter prompts when drawer opens
   useEffect(() => {
-    if (isOpen && starterPrompts.length === 0 && !promptsLoading) {
+    if (!isOpen || starterPrompts.length > 0 || promptsLoading) return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
       setPromptsLoading(true);
-      copilotApi
-        .getPrompts()
-        .then((res) => setStarterPrompts(res.prompts))
-        .catch(() => {/* silent fail */})
-        .finally(() => setPromptsLoading(false));
-    }
+      return copilotApi.getPrompts();
+    })
+      .then((res) => {
+        if (!cancelled && res) setStarterPrompts(res.prompts);
+      })
+      .catch(() => {/* silent fail */})
+      .finally(() => {
+        if (!cancelled) setPromptsLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [isOpen, starterPrompts.length, promptsLoading]);
 
   // Auto-scroll to bottom on new messages
@@ -296,7 +303,7 @@ export function AICopilotDrawer() {
       };
       // Replace loading message
       setMessages((prev) => [...prev.slice(0, -1), assistantMsg]);
-    } catch (err) {
+    } catch {
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -336,7 +343,7 @@ export function AICopilotDrawer() {
           flex items-center justify-center
           focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2
           transition-colors duration-150
-          ${isOpen ? 'hidden' : 'flex'}
+          ${isOpen || activeDrawerOpen ? 'hidden' : 'flex'}
         `}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}

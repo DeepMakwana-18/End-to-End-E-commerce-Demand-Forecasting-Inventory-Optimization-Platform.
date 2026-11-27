@@ -384,7 +384,7 @@ export function ForecastExplainPanel({
                 className={cn(
                   'flex-shrink-0 px-3.5 py-1.5 rounded-[10px] text-xs font-semibold transition-colors duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
                   selected
-                    ? 'bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#fafaf9] dark:text-[#0a0a0a] border border-[#0a0a0a] dark:border-[#fafaf9]'
+                    ? 'bg-[#0a0a0a] text-[#fafaf9] border border-[#0a0a0a] dark:bg-[#1e3fc8]/25 dark:text-[#fafaf9] dark:border-[#60a5fa]'
                     : 'text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]'
                 )}
               >
@@ -427,137 +427,150 @@ export function ForecastExplainPanel({
                 </div>
               </div>
 
-              {/* ── 2. Baseline and Adjustments ──────────────────────── */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
-                <div className="p-3.5 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113]">
-                  <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
-                    Model Base Value
-                  </p>
-                  <p className="text-sm font-bold font-mono text-[#0a0a0a] dark:text-[#fafaf9] mt-1 tabular-nums">
-                    {formatShap(weekData.base_value ?? 0)}
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113]">
-                  <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
-                    SHAP Feature Total
-                  </p>
-                  <p className={cn(
-                    'text-sm font-bold font-mono mt-1 tabular-nums',
-                    Math.abs(shapTotal) < 0.005
-                      ? 'text-[#52525b] dark:text-[#a1a1aa]'
-                      : shapTotal > 0
-                        ? 'text-emerald-600 dark:text-emerald-400'
-                        : 'text-rose-600 dark:text-rose-400'
-                  )}>
-                    {shapTotal >= 0.005 ? '+' : ''}{formatShap(shapTotal)}
-                  </p>
-                </div>
-
-                <div className="p-3.5 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113]">
-                  <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
-                    Seasonal Factor
-                  </p>
-                  <p className={cn(
-                    'text-sm font-bold font-mono mt-1 tabular-nums',
-                    hasSeasonal ? 'text-[#1e3fc8] dark:text-[#60a5fa]' : 'text-[#52525b] dark:text-[#a1a1aa]'
-                  )}>
-                    {hasSeasonal
-                      ? `${weekData.seasonal_adjustment! >= 0 ? '+' : ''}${formatShap(weekData.seasonal_adjustment!)}`
-                      : '0.00 (None)'}
-                  </p>
-                </div>
-              </div>
-
-              {/* ── 3. Feature Contributions ─────────────────────────── */}
+              {/* ── 2. Baseline, Adjustments & Feature Contributions ── */}
               {hasNonZeroShap ? (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                  <div className="lg:col-span-2">
-                    <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
-                      <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
-                        Feature Contributions (Δ from Base Value)
+                <>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
+                    <div className="p-3.5 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113]">
+                      <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                        Model Base Value
                       </p>
-                      <span className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">
-                        Green = Increases · Red = Decreases
-                      </span>
+                      <p className="text-sm font-bold font-mono text-[#0a0a0a] dark:text-[#fafaf9] mt-1 tabular-nums">
+                        {formatShap(weekData.base_value ?? 0)}
+                      </p>
                     </div>
 
-                    <ResponsiveContainer width="100%" height={220}>
-                      <BarChart
-                        data={chartData}
-                        layout="vertical"
-                        margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--ds-hairline)" />
-                        <XAxis
-                          type="number"
-                          tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
-                          axisLine={false}
-                          tickLine={false}
-                          tickFormatter={v => formatShap(v)}
-                        />
-                        <YAxis
-                          type="category"
-                          dataKey="label"
-                          width={120}
-                          tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 600 }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <Tooltip content={<ShapTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
-                        <ReferenceLine x={0} stroke="var(--ds-border-strong)" strokeWidth={1} />
-                        <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
-                          {chartData.map((entry, i) => (
-                            <Cell
-                              key={i}
-                              fill={entry.value >= 0 ? '#059669' : '#DC2626'}
-                            />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
+                    <div className="p-3.5 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113]">
+                      <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                        SHAP Feature Total
+                      </p>
+                      <p className={cn(
+                        'text-sm font-bold font-mono mt-1 tabular-nums',
+                        Math.abs(shapTotal) < 0.005
+                          ? 'text-[#52525b] dark:text-[#a1a1aa]'
+                          : shapTotal > 0
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-rose-600 dark:text-rose-400'
+                      )}>
+                        {shapTotal >= 0.005 ? '+' : ''}{formatShap(shapTotal)}
+                      </p>
+                    </div>
+
+                    <div className="p-3.5 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113]">
+                      <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                        Seasonal Factor
+                      </p>
+                      <p className={cn(
+                        'text-sm font-bold font-mono mt-1 tabular-nums',
+                        hasSeasonal ? 'text-[#1e3fc8] dark:text-[#60a5fa]' : 'text-[#52525b] dark:text-[#a1a1aa]'
+                      )}>
+                        {hasSeasonal
+                          ? `${weekData.seasonal_adjustment! >= 0 ? '+' : ''}${formatShap(weekData.seasonal_adjustment!)}`
+                          : '0.00 (None)'}
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="space-y-3">
-                    {positiveDrivers.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold text-[#065F46] dark:text-emerald-400 flex items-center gap-1.5 mb-2">
-                          <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> Top Positive Drivers
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                    <div className="lg:col-span-2">
+                      <div className="flex items-center justify-between mb-2 flex-wrap gap-1">
+                        <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                          Feature Contributions (Δ from Base Value)
                         </p>
-                        <div className="space-y-1.5">
-                          {positiveDrivers.map((d, i) => (
-                            <DriverChip key={d.feature} driver={d} rank={i + 1} />
-                          ))}
-                        </div>
+                        <span className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">
+                          Green = Increases · Red = Decreases
+                        </span>
                       </div>
-                    )}
-                    {negativeDrivers.length > 0 && (
-                      <div>
-                        <p className="text-xs font-bold text-[#9F1239] dark:text-rose-400 flex items-center gap-1.5 mb-2">
-                          <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" /> Top Negative Suppressors
-                        </p>
-                        <div className="space-y-1.5">
-                          {negativeDrivers.map((d, i) => (
-                            <DriverChip key={d.feature} driver={d} rank={i + 1} />
-                          ))}
+
+                      <ResponsiveContainer width="100%" height={220}>
+                        <BarChart
+                          data={chartData}
+                          layout="vertical"
+                          margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--ds-hairline)" />
+                          <XAxis
+                            type="number"
+                            tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
+                            axisLine={false}
+                            tickLine={false}
+                            tickFormatter={v => formatShap(v)}
+                          />
+                          <YAxis
+                            type="category"
+                            dataKey="label"
+                            width={120}
+                            tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 600 }}
+                            axisLine={false}
+                            tickLine={false}
+                          />
+                          <Tooltip content={<ShapTooltip />} cursor={{ fill: 'rgba(0,0,0,0.03)' }} />
+                          <ReferenceLine x={0} stroke="var(--ds-border-strong)" strokeWidth={1} />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                            {chartData.map((entry, i) => (
+                              <Cell
+                                key={i}
+                                fill={entry.value >= 0 ? '#059669' : '#DC2626'}
+                              />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-3">
+                      {positiveDrivers.length > 0 && (
+                        <div>
+                          <p className="text-xs font-bold text-[#065F46] dark:text-emerald-400 flex items-center gap-1.5 mb-2">
+                            <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" /> Top Positive Drivers
+                          </p>
+                          <div className="space-y-1.5">
+                            {positiveDrivers.map((d, i) => (
+                              <DriverChip key={d.feature} driver={d} rank={i + 1} />
+                            ))}
+                          </div>
                         </div>
-                      </div>
-                    )}
+                      )}
+                      {negativeDrivers.length > 0 && (
+                        <div>
+                          <p className="text-xs font-bold text-[#9F1239] dark:text-rose-400 flex items-center gap-1.5 mb-2">
+                            <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" /> Top Negative Suppressors
+                          </p>
+                          <div className="space-y-1.5">
+                            {negativeDrivers.map((d, i) => (
+                              <DriverChip key={d.feature} driver={d} rank={i + 1} />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
+                </>
               ) : (
-                <div className="flex items-start gap-3 p-4 rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b]">
-                  <Info className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] flex-shrink-0 mt-0.5" aria-hidden="true" />
-                  <div className="text-xs">
-                    <p className="font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
-                      Neutral Feature Attribution for Week {weekData.week}
-                    </p>
-                    <p className="text-[#52525b] dark:text-[#a1a1aa] mt-0.5 leading-relaxed">
-                      All individual feature SHAP contributions are <span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">0.00</span> for this horizon week.
-                      The model’s raw prediction matches its expected base value ({formatShap(weekData.base_value ?? 0)})
-                      {hasSeasonal ? `, adjusted by a seasonal factor of ${weekData.seasonal_adjustment! >= 0 ? '+' : ''}${formatShap(weekData.seasonal_adjustment!)}.` : '.'}
-                    </p>
+                <div className="rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] p-4 space-y-2.5">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Info className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] flex-shrink-0" aria-hidden="true" />
+                      <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                        Neutral Feature Attribution (0.00 across all features)
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-3 text-xs font-mono tabular-nums">
+                      <span className="text-[#52525b] dark:text-[#a1a1aa]">
+                        Base: <strong className="text-[#0a0a0a] dark:text-[#fafaf9]">{formatShap(weekData.base_value ?? 0)}</strong>
+                      </span>
+                      <span className="text-[#52525b] dark:text-[#a1a1aa]">
+                        Seasonal: <strong className={hasSeasonal ? 'text-[#1e3fc8] dark:text-[#60a5fa]' : 'text-[#0a0a0a] dark:text-[#fafaf9]'}>
+                          {hasSeasonal ? `${weekData.seasonal_adjustment! >= 0 ? '+' : ''}${formatShap(weekData.seasonal_adjustment!)}` : '0.00'}
+                        </strong>
+                      </span>
+                    </div>
                   </div>
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] leading-relaxed">
+                    Week {weekData.week} matches the model’s expected baseline ({formatShap(weekData.base_value ?? 0)})
+                    {hasSeasonal ? ` with a ${weekData.seasonal_adjustment! >= 0 ? '+' : ''}${formatShap(weekData.seasonal_adjustment!)} seasonal adjustment` : ''}.
+                    Expand attribution below to inspect individual feature inputs.
+                  </p>
                 </div>
               )}
 

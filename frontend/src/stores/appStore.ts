@@ -22,6 +22,10 @@ interface AppState {
   sidebarCollapsed: boolean;
   toggleSidebar: () => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+
+  // Active modal/drawer overlays (used to clear floating assistant from drawer actions)
+  activeDrawerOpen: boolean;
+  setActiveDrawerOpen: (open: boolean) => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -56,6 +60,10 @@ export const useAppStore = create<AppState>()(
       sidebarCollapsed: false,
       toggleSidebar: () => set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed })),
       setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+
+      // Transient overlay state (not persisted)
+      activeDrawerOpen: false,
+      setActiveDrawerOpen: (open) => set({ activeDrawerOpen: open }),
     }),
     {
       name: 'titan-scai-storage',

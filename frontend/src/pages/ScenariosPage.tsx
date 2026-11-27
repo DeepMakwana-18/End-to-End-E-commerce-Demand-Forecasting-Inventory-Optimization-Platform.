@@ -264,6 +264,7 @@ export default function ScenariosPage() {
           scenarios={scenarios}
           activeId={activeScenario?.id ?? null}
           isLoading={isLoadingList}
+          isRunning={isRunning}
           onSelect={handleSelect}
           onRun={handleQuickRun}
           onDelete={handleDelete}

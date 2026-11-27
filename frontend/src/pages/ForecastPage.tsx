@@ -681,7 +681,11 @@ export default function ForecastPage() {
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip content={<CustomTooltip />} />
+                <Tooltip
+                  content={<CustomTooltip />}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ zIndex: 40, pointerEvents: 'none' }}
+                />
                 {historicalEndWeek && (
                   <ReferenceLine
                     x={historicalEndWeek}
@@ -756,6 +760,9 @@ export default function ForecastPage() {
               <span className="inline-flex items-center gap-2">
                 <span className="inline-block w-4 h-3 rounded-[3px] bg-[#1e3fc8]/20 border border-[#3b82f6]/50" aria-hidden="true" />
                 <span className="text-[#0a0a0a] dark:text-[#fafaf9]">95% Confidence Interval</span>
+              </span>
+              <span className="text-[11px] font-medium text-[#52525b] dark:text-[#a1a1aa]">
+                (H = Historical weeks · F = Forecast weeks)
               </span>
             </div>
           </ChartCard>
@@ -908,7 +915,11 @@ export default function ForecastPage() {
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip
+                  content={<CustomTooltip />}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ zIndex: 40, pointerEvents: 'none' }}
+                />
                   <Line
                     type="monotone"
                     dataKey="actual"
