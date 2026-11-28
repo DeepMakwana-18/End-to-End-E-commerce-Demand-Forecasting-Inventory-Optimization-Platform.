@@ -8,15 +8,9 @@ function StartupBrand({ orbit }: { orbit: boolean }) {
   return (
     <>
       <div className="titan-startup-mark" aria-hidden="true">
-        {orbit && (
-          <svg className="titan-startup-orbit" viewBox="0 0 120 120" focusable="false">
-            <circle cx="60" cy="60" r="55" />
-          </svg>
-        )}
-        <TitanMark size={96} decorative className="titan-startup-logo" />
+        <TitanMark size={72} mode={orbit ? 'orbit' : 'still'} decorative className="titan-startup-logo" />
       </div>
       <div className="titan-startup-name">TITAN AI</div>
-      <div className="titan-startup-subtitle">Supply Chain Intelligence</div>
     </>
   );
 }
@@ -26,7 +20,7 @@ export function StartupLoader() {
     <div className="titan-startup-screen" role="status" aria-live="polite" aria-label="Opening your TITAN AI workspace">
       <div className="titan-startup-content">
         <StartupBrand orbit />
-        <p className="titan-startup-status">Opening your workspace</p>
+        <p className="titan-startup-status">Opening your workspace.</p>
       </div>
     </div>
   );

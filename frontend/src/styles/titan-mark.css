@@ -41,24 +41,38 @@
   transform-origin: 24px 24px;
 }
 
-.titan.spin .orbit {
-  animation: titan-orbit-step 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+/* Full-refresh / initial boot: rotate only the orbit group around center; core stays still */
+.titan.orbit-motion .orbit {
+  animation: titan-orbit-rotate 1.4s linear infinite;
 }
 
-.titan.spin .core {
-  animation: titan-core-breathe 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+/* In-app loading & background processing: stationary orbits, core opacity pulse */
+.titan.pulse-motion .core {
+  animation: titan-core-pulse 1.2s ease-in-out infinite;
 }
 
-@keyframes titan-orbit-step {
+@keyframes titan-orbit-rotate {
+  from {
+    transform: rotate(0deg);
+  }
   to {
-    transform: rotate(120deg);
+    transform: rotate(360deg);
   }
 }
 
-@keyframes titan-core-breathe {
-  50% {
-    transform: scale(0.86);
+@keyframes titan-core-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
   }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Pause decorative loops when the document is hidden */
+html[data-page-hidden="true"] .titan * {
+  animation-play-state: paused !important;
 }
 
 @media (prefers-reduced-motion: reduce) {

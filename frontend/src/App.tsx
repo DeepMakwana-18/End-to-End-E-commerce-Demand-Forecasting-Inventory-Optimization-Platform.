@@ -7,7 +7,7 @@
 
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useCallback, useEffect, useState, lazy, Suspense, type ReactNode } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useState, lazy, Suspense, type ReactNode } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
 import { useAppStore } from '@/stores/appStore';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -19,6 +19,7 @@ import { AICopilotDrawer } from '@/components/ui/AICopilotDrawer';
 import { useRealtimeKPIs } from '@/hooks/useRealtimeKPIs';
 import { toast } from '@/hooks/useToast';
 import { StartupLoader, StartupErrorBoundary } from '@/components/ui/StartupLoader';
+import { TitanMark } from '@/components/ui/TitanMark';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -55,10 +56,10 @@ const SettingsPage    = lazy(() => import('@/pages/admin/SettingsPage'));
 /** Local fallback for lazy pages opened after application startup. */
 function PageLoader() {
   return (
-    <div className="flex items-center justify-center h-64">
-      <div className="flex flex-col items-center gap-3">
-        <div className="w-8 h-8 border-2 border-primary-500/30 border-t-primary-500 rounded-full animate-spin" />
-        <p className="text-xs text-surface-500">Loading...</p>
+    <div className="flex items-center justify-center h-64" role="status" aria-live="polite">
+      <div className="flex flex-col items-center gap-3 text-ds-blue">
+        <TitanMark size={30} mode="pulse" decorative />
+        <p className="text-xs font-medium text-ds-text-secondary">Loading view...</p>
       </div>
     </div>
   );
@@ -129,9 +130,21 @@ function AppContent() {
   }, [theme, setTheme]);
 
   useEffect(() => {
-    if (startupReady || !pathname.startsWith('/app')) {
-      document.getElementById('boot-loader')?.remove();
-    }
+    const syncVisibility = () => {
+      document.documentElement.dataset.pageHidden = document.hidden ? 'true' : 'false';
+    };
+    syncVisibility();
+    document.addEventListener('visibilitychange', syncVisibility);
+    return () => {
+      document.removeEventListener('visibilitychange', syncVisibility);
+      delete document.documentElement.dataset.pageHidden;
+    };
+  }, []);
+
+  // Remove HTML boot fallback once React paints AppContent (StartupLoader seamlessly continues if needed)
+  useLayoutEffect(() => {
+    document.getElementById('boot-loader')?.remove();
+    delete document.documentElement.dataset.appBoot;
   }, [pathname, startupReady]);
 
   return (

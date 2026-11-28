@@ -3,14 +3,14 @@ import '@/styles/titan-mark.css';
 
 export interface TitanMarkProps {
   size?: number;
-  mode?: 'still' | 'spin';
+  mode?: 'still' | 'orbit' | 'pulse' | 'spin';
   decorative?: boolean;
   className?: string;
 }
 
 /**
  * Reusable Titan AI orbit mark matching the landing page brand mark.
- * Uses `currentColor` so it adapts to light (#0a0a0a) and dark/button (#ffffff) contexts.
+ * Uses `currentColor` so it adapts to light (#181B22) and dark/button (#ffffff) contexts.
  */
 export function TitanMark({
   size = 28,
@@ -18,12 +18,19 @@ export function TitanMark({
   decorative = true,
   className,
 }: TitanMarkProps) {
+  const motionClass =
+    mode === 'orbit' || mode === 'spin'
+      ? 'orbit-motion'
+      : mode === 'pulse'
+        ? 'pulse-motion'
+        : '';
+
   return (
     <svg
       className={cn(
         'titan',
         size <= 24 && 'sm',
-        mode === 'spin' && 'spin',
+        motionClass,
         className
       )}
       viewBox="0 0 48 48"

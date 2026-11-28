@@ -34,6 +34,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { reportsApi, systemApi } from '@/services/api';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import type { Report } from '@/types';
 import '@/styles/titan-dashboard.css';
 
@@ -577,11 +578,8 @@ export default function ReportsPage() {
         </div>
 
         {isLoadingReports ? (
-          <div className="p-10 text-center">
-            <Loader2 className="w-6 h-6 animate-spin text-[#1e3fc8] mx-auto mb-2" aria-hidden="true" />
-            <p className="text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa]">
-              Loading report history...
-            </p>
+          <div className="p-4" aria-busy="true" aria-label="Loading report history">
+            <SkeletonTable rows={4} />
           </div>
         ) : recentReports.length === 0 ? (
           <div className="p-10 text-center flex flex-col items-center justify-center">

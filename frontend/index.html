@@ -19,22 +19,29 @@
       html[data-app-boot="true"] #boot-loader {
         position: fixed; inset: 0; z-index: 1001; display: grid; place-items: center;
         min-height: 100dvh; padding: 2rem; box-sizing: border-box;
-        background: #fafaf9; color: #0a0a0a; font-family: Inter, system-ui, sans-serif;
+        background: #F3F4F6; color: #181B22; font-family: Inter, system-ui, -apple-system, sans-serif;
       }
-      html.dark #boot-loader { background: #0a0a0a; color: #fafaf9; }
-      .boot-content { display: flex; flex-direction: column; align-items: center; text-align: center; animation: boot-appear 220ms ease-out 90ms both; }
-      .boot-mark { position: relative; display: grid; place-items: center; width: 120px; height: 120px; margin-bottom: 1.5rem; }
-      .boot-logo { display: block; width: 96px; height: 96px; background: currentColor; mask: url('/favicon.svg?v=titan') center / contain no-repeat; }
-      .boot-orbit { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: #1e3fc8; stroke-width: 1.5; stroke-linecap: round; stroke-dasharray: 48 298; animation: boot-rotate 2.4s linear infinite; }
-      html.dark .boot-orbit { stroke: #60a5fa; }
-      .boot-name { font-size: 1.25rem; font-weight: 800; letter-spacing: .14em; line-height: 1.2; }
-      .boot-subtitle { margin-top: .4rem; font-size: .75rem; font-weight: 500; letter-spacing: .025em; color: #52525b; }
-      .boot-status { margin: 2rem 0 0; font-size: .8125rem; line-height: 1.5; color: #52525b; }
-      html.dark .boot-subtitle, html.dark .boot-status { color: #d4d4d8; }
-      @keyframes boot-appear { from { opacity: 0; } to { opacity: 1; } }
-      @keyframes boot-rotate { to { transform: rotate(360deg); } }
-      @media (max-width: 600px) { .boot-mark { width: 104px; height: 104px; } .boot-logo { width: 80px; height: 80px; } }
-      @media (prefers-reduced-motion: reduce) { .boot-content, .boot-orbit { animation: none; } .boot-orbit { display: none; } }
+      html.dark[data-app-boot="true"] #boot-loader { background: #0a0a0a; color: #fafaf9; }
+      .boot-content { display: flex; flex-direction: column; align-items: center; text-align: center; }
+      .boot-mark { width: 72px; height: 72px; margin-bottom: 1.25rem; color: inherit; display: block; overflow: visible; }
+      .boot-mark .orbit { transform-origin: 24px 24px; animation: boot-orbit-rotate 1.4s linear infinite; }
+      .boot-mark .track { fill: none; stroke: currentColor; stroke-width: 1.2; opacity: 0.18; }
+      .boot-mark .sat { transform-origin: 24px 24px; }
+      .boot-mark .sat-1 { transform: rotate(-90deg) translateX(17px); }
+      .boot-mark .sat-2 { transform: rotate(30deg) translateX(17px); }
+      .boot-mark .sat-3 { transform: rotate(150deg) translateX(17px); }
+      .boot-mark .ring { fill: none; stroke: currentColor; stroke-width: 2.4; }
+      .boot-mark .core { fill: currentColor; }
+      #boot-loader[data-boot-error="true"] .boot-mark .orbit { animation: none; }
+      .boot-name { font-size: 1.125rem; font-weight: 800; letter-spacing: 0.14em; line-height: 1.2; }
+      .boot-status { margin: 0.75rem 0 0; font-size: 0.8125rem; line-height: 1.5; color: #525866; font-weight: 500; }
+      html.dark .boot-status { color: #a1a1aa; }
+      .boot-retry { display: none; margin-top: 1.25rem; padding: 0.5625rem 1.125rem; border-radius: 0.625rem; border: 0; background: #2454D6; color: #ffffff; font-size: 0.8125rem; font-weight: 600; cursor: pointer; }
+      #boot-loader[data-boot-error="true"] .boot-retry { display: inline-flex; align-items: center; }
+      @keyframes boot-orbit-rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+      @media (max-width: 600px) { .boot-mark { width: 64px; height: 64px; } }
+      html[data-page-hidden="true"] .boot-mark .orbit { animation-play-state: paused !important; }
+      @media (prefers-reduced-motion: reduce) { .boot-mark .orbit { animation: none !important; } }
     </style>
     <meta name="description" content="AI-Powered E-commerce Demand Forecasting & Inventory Optimization Platform - Enterprise-grade analytics for smarter inventory decisions." />
     <meta name="theme-color" content="#09090b" />
@@ -44,18 +51,31 @@
     <title>Titan AI — Supply Chain Intelligence</title>
   </head>
   <body>
-    <div id="boot-loader" role="status" aria-label="Opening your TITAN AI workspace">
+    <div id="boot-loader" role="status" aria-live="polite" aria-label="Opening your TITAN AI workspace">
       <div class="boot-content">
-        <div class="boot-mark" aria-hidden="true">
-          <svg class="boot-orbit" viewBox="0 0 120 120"><circle cx="60" cy="60" r="55" /></svg>
-          <span class="boot-logo"></span>
-        </div>
+        <svg class="boot-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g class="orbit">
+            <circle class="track" cx="24" cy="24" r="17" />
+            <g class="sat sat-1"><circle class="ring" cx="24" cy="24" r="4" /></g>
+            <g class="sat sat-2"><circle class="ring" cx="24" cy="24" r="4" /></g>
+            <g class="sat sat-3"><circle class="ring" cx="24" cy="24" r="4" /></g>
+          </g>
+          <circle class="core" cx="24" cy="24" r="7" />
+        </svg>
         <div class="boot-name">TITAN AI</div>
-        <div class="boot-subtitle">Supply Chain Intelligence</div>
-        <p class="boot-status">Opening your workspace</p>
+        <p id="boot-status-text" class="boot-status">Opening your workspace.</p>
+        <button id="boot-retry-btn" class="boot-retry" type="button" onclick="location.reload()">Reload</button>
       </div>
     </div>
     <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.__titanBootError = function () {
+        var el = document.getElementById('boot-loader');
+        var status = document.getElementById('boot-status-text');
+        if (el) el.setAttribute('data-boot-error', 'true');
+        if (status) status.textContent = 'We couldn\u2019t open your workspace.';
+      };
+    </script>
+    <script type="module" src="/src/main.tsx" onerror="window.__titanBootError && window.__titanBootError()"></script>
   </body>
 </html>

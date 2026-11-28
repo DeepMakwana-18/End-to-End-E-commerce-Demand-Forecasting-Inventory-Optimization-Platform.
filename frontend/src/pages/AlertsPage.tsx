@@ -40,6 +40,7 @@ import { alertsApi } from '@/services/api';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { toast } from '@/hooks/useToast';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import type { Alert } from '@/types';
 import '@/styles/titan-dashboard.css';
 
@@ -697,11 +698,8 @@ export default function AlertsPage() {
       {/* ── 4. Scannable Alert Registry List ─────────────────────────── */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-12 text-center">
-            <RefreshCw className="w-6 h-6 text-[#1e3fc8] animate-spin mx-auto mb-2" aria-hidden="true" />
-            <p className="text-sm font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">
-              Retrieving live alert records...
-            </p>
+          <div aria-busy="true" aria-label="Loading alert records">
+            <SkeletonTable rows={4} />
           </div>
         ) : filteredAlerts.length === 0 ? (
           <div className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-10 text-center">

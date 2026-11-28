@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   TrendingUp, Calendar, Layers, ArrowUpRight, ArrowDownRight,
-  Filter, Download, X, CheckCircle2, Loader2, Database, Cpu,
+  Filter, Download, X, CheckCircle2, Database, Cpu,
   Upload, Activity, ArrowRight, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import {
@@ -17,6 +17,7 @@ import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { ForecastExplainPanel } from '@/components/forecast/ForecastExplainPanel';
 import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonKPIRow, SkeletonChart } from '@/components/ui/Skeleton';
 import { cn, formatNumber } from '@/lib/utils';
 import { forecastApi, type ForecastExplainResponse } from '@/services/api';
 import '@/styles/titan-dashboard.css';
@@ -521,14 +522,9 @@ export default function ForecastPage() {
 
       {/* 2. Loading State */}
       {isLoading ? (
-        <div className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-12 sm:p-16 flex flex-col items-center justify-center text-center my-6">
-          <div className="w-11 h-11 rounded-[12px] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 text-[#1e3fc8] dark:text-[#60a5fa] flex items-center justify-center mb-4">
-            <Loader2 className="w-5 h-5 animate-spin" />
-          </div>
-          <h3 className="text-base font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Loading Forecast Telemetry</h3>
-          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1.5 max-w-sm">
-            Retrieving machine learning model predictions, confidence intervals, and SHAP drivers...
-          </p>
+        <div className="space-y-5" aria-busy="true" aria-label="Loading forecast telemetry">
+          <SkeletonKPIRow />
+          <SkeletonChart />
         </div>
       ) : isZeroData ? (
         /* 3. Empty-State Panel */
