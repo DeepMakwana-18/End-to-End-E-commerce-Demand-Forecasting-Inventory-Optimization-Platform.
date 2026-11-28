@@ -18,6 +18,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { cn, formatNumber, formatCurrency } from '@/lib/utils';
+import { PageHeader } from '@/components/ui/PageHeader';
 import '@/styles/titan-dashboard.css';
 
 const PRODUCT_PALETTE = ['#1e3fc8', '#059669', '#d97706'];
@@ -164,116 +165,100 @@ export default function ProductsPage() {
   const isLoading = kpisLoading || productsLoading;
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>PRODUCT INTELLIGENCE</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Product Analytics
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Gross revenue rankings, inventory risk exposure &amp; volume trend breakdown
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-end flex-shrink-0 relative z-20">
-          {/* Search Input */}
-          <div className="relative w-full sm:w-60">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
-            <input
-              id="product-search-input"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search products or SKU..."
-              aria-label="Search products or SKU"
-              className="w-full h-9 pl-8 pr-8 rounded-[10px] text-xs bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20 transition-colors"
-            />
-            {searchTerm && (
-              <button
-                type="button"
-                onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] cursor-pointer"
-                aria-label="Clear product search"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-
-          {/* Category Filter Popover */}
-          <div className="relative" ref={filterRef}>
-            <button
-              id="product-filter-toggle"
-              type="button"
-              aria-expanded={showFilters}
-              aria-haspopup="listbox"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
-                showFilters || selectedCategory !== 'All'
-                  ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#1e3fc8]/25 dark:text-[#fafaf9] dark:border-[#60a5fa]'
-                  : 'bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b]'
-              )}
-            >
-              <Filter className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{selectedCategory === 'All' ? 'Category' : selectedCategory}</span>
-              {selectedCategory !== 'All' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
-              )}
-            </button>
-
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
-                  transition={{ duration: 0.14 }}
-                  role="listbox"
-                  aria-label="Filter by product category"
-                  className="absolute right-0 top-full mt-2 w-56 rounded-[14px] p-2 z-50 space-y-1 shadow-lg bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]"
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Product Analytics"
+        description="Gross revenue rankings, inventory risk exposure & volume trend breakdown"
+        actions={
+          <>
+            {/* Search Input */}
+            <div className="relative w-full sm:w-60">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ds-text-secondary" aria-hidden="true" />
+              <input
+                id="product-search-input"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search products or SKU..."
+                aria-label="Search products or SKU"
+                className="w-full h-9 pl-8 pr-8 rounded-[10px] text-xs bg-ds-surface-sunken border border-ds-hairline text-ds-text-primary placeholder:text-ds-text-secondary focus:outline-none focus:bg-ds-surface focus:border-ds-blue focus:ring-2 focus:ring-ds-blue/20 transition-colors"
+              />
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setSearchTerm('')}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ds-text-secondary hover:text-ds-text-primary cursor-pointer"
+                  aria-label="Clear product search"
                 >
-                  <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-[#e4e4e7] dark:border-[#27272a]">
-                    <span className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Filter Category</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      aria-label="Close category filter"
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      type="button"
-                      role="option"
-                      aria-selected={selectedCategory === cat}
-                      onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
-                      className={cn(
-                        'w-full text-left px-3 py-2 rounded-[10px] text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer',
-                        selectedCategory === cat
-                          ? 'bg-[#1e3fc8] text-white'
-                          : 'text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9]'
-                      )}
-                    >
-                      <span className="truncate">{cat}</span>
-                    </button>
-                  ))}
-                </motion.div>
+                  <X className="w-3.5 h-3.5" />
+                </button>
               )}
-            </AnimatePresence>
-          </div>
-        </div>
-      </header>
+            </div>
+
+            {/* Category Filter Popover */}
+            <div className="relative" ref={filterRef}>
+              <button
+                id="product-filter-toggle"
+                type="button"
+                aria-expanded={showFilters}
+                aria-haspopup="listbox"
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2',
+                  showFilters || selectedCategory !== 'All'
+                    ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-sidebar-active-border'
+                    : 'bg-ds-surface text-ds-text-primary border-ds-hairline hover:bg-ds-surface-sunken'
+                )}
+              >
+                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{selectedCategory === 'All' ? 'Category' : selectedCategory}</span>
+              </button>
+
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
+                    transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+                    role="listbox"
+                    aria-label="Filter by product category"
+                    className="absolute right-0 top-full mt-2 w-56 rounded-[12px] p-2 z-50 space-y-1 shadow-ds-float-2 bg-ds-surface border border-ds-hairline"
+                  >
+                    <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-ds-hairline">
+                      <span className="text-xs font-semibold text-ds-text-primary">Filter Category</span>
+                      <button
+                        type="button"
+                        onClick={() => setShowFilters(false)}
+                        aria-label="Close category filter"
+                        className="w-6 h-6 rounded-md flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedCategory === cat}
+                        onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
+                        className={cn(
+                          'w-full text-left px-3 py-2 rounded-[8px] text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer',
+                          selectedCategory === cat
+                            ? 'bg-ds-blue text-white'
+                            : 'text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text-primary'
+                        )}
+                      >
+                        <span className="truncate">{cat}</span>
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          </>
+        }
+      />
 
       {/* ── 2. Standardized KPI Cards (Honest Comparison Basis) ──────── */}
       <section

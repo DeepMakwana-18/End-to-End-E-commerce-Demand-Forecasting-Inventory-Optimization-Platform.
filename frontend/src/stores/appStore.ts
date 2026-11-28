@@ -26,6 +26,11 @@ interface AppState {
   // Active modal/drawer overlays (used to clear floating assistant from drawer actions)
   activeDrawerOpen: boolean;
   setActiveDrawerOpen: (open: boolean) => void;
+
+  // AI Copilot drawer state (transient, not persisted)
+  copilotOpen: boolean;
+  setCopilotOpen: (open: boolean) => void;
+  toggleCopilot: () => void;
 }
 
 export const useAppStore = create<AppState>()(
@@ -64,6 +69,10 @@ export const useAppStore = create<AppState>()(
       // Transient overlay state (not persisted)
       activeDrawerOpen: false,
       setActiveDrawerOpen: (open) => set({ activeDrawerOpen: open }),
+
+      copilotOpen: false,
+      setCopilotOpen: (open) => set({ copilotOpen: open }),
+      toggleCopilot: () => set((state) => ({ copilotOpen: !state.copilotOpen })),
     }),
     {
       name: 'titan-scai-storage',

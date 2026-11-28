@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { formatCurrency, formatNumber, formatPercent, getSeverityBg } from '@/lib/utils';
 import '@/styles/titan-dashboard.css';
 
@@ -137,77 +138,53 @@ export default function DashboardPage() {
   const hasAlertsData = Boolean(alertsData?.alerts && alertsData.alerts.length > 0);
 
   return (
-    <div className="space-y-8 pb-8">
-      {/* 1. Compact Titan Product Page Header */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a]"
-      >
-        <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-          <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-          <span>OVERVIEW</span>
-        </div>
-        <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-          Executive Dashboard
-        </h1>
-        <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-          AI-powered demand forecasting &amp; inventory intelligence overview
-        </p>
-      </header>
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Executive Dashboard"
+        description="Demand forecasting and inventory intelligence overview"
+      />
 
       {/* 2. Business Overview KPIs */}
-      <section
-        aria-labelledby="kpi-overview-heading"
-        style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
-        className="titan-dash-reveal space-y-3"
-      >
+      <section aria-labelledby="kpi-overview-heading" className="space-y-2.5">
         <h2
           id="kpi-overview-heading"
-          className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#52525b] dark:text-[#a1a1aa]"
+          className="text-[13px] font-semibold text-ds-text-secondary"
         >
-          Business Overview
+          Business overview
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <KPICard
             title="Total Revenue"
             value={formatCurrency(kpis?.total_revenue || 0)}
-            change={(kpis?.total_revenue || 0) > 0 ? 12.5 : undefined}
             icon={DollarSign}
           />
           <KPICard
             title="Total Orders"
             value={formatNumber(kpis?.total_orders || 0)}
-            change={(kpis?.total_orders || 0) > 0 ? 8.3 : undefined}
             icon={ShoppingCart}
           />
           <KPICard
             title="Forecast Accuracy"
             value={realAccuracy > 0 ? formatPercent(realAccuracy) : '—'}
-            change={realAccuracy > 0 ? 2.1 : undefined}
             icon={Target}
           />
           <KPICard
             title="Inventory Health"
             value={kpis?.inventory_health ? formatPercent(kpis.inventory_health) : '—'}
-            change={(kpis?.inventory_health || 0) > 0 ? -1.8 : undefined}
             icon={HeartPulse}
           />
         </div>
       </section>
 
       {/* 3. Operational Attention KPIs */}
-      <section
-        aria-labelledby="kpi-operations-heading"
-        style={{ '--reveal-delay': '160ms' } as React.CSSProperties}
-        className="titan-dash-reveal space-y-3"
-      >
+      <section aria-labelledby="kpi-operations-heading" className="space-y-2.5">
         <h2
           id="kpi-operations-heading"
-          className="text-[12px] font-bold uppercase tracking-[0.1em] text-[#52525b] dark:text-[#a1a1aa]"
+          className="text-[13px] font-semibold text-ds-text-secondary"
         >
-          Operational Attention
+          Operational attention
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <KPICard
             title="Active Alerts"
             value={String(kpis?.active_alerts || 0)}
@@ -230,43 +207,34 @@ export default function DashboardPage() {
           <KPICard
             title="Average Weekly Demand"
             value={formatNumber(kpis?.avg_demand || 0)}
-            change={(kpis?.avg_demand || 0) > 0 ? 5.2 : undefined}
             icon={TrendingUp}
           />
         </div>
       </section>
 
       {/* 4. Demand Forecasts & Revenue Analytics */}
-      <section aria-labelledby="analytics-heading" className="space-y-4">
+      <section aria-labelledby="analytics-heading" className="space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2 h-2 rounded-full bg-[#f59e0b]" aria-hidden="true" />
-            <h2
-              id="analytics-heading"
-              className="text-xs font-bold uppercase tracking-[0.1em] text-[#0a0a0a] dark:text-[#fafaf9]"
-            >
-              Demand Forecasts &amp; Revenue Analytics
-            </h2>
-          </div>
-          <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium hidden sm:inline">
+          <h2
+            id="analytics-heading"
+            className="text-[13px] font-semibold text-ds-text-secondary"
+          >
+            Demand forecasts &amp; revenue analytics
+          </h2>
+          <span className="text-xs text-ds-text-secondary font-medium hidden sm:inline">
             Aggregated monthly telemetry
           </span>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
           <ChartCard
             title="Actual vs Predicted Demand"
             subtitle="Monthly demand comparison with ML forecasts"
             headerVariant="tinted"
-            actions={
-              <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-white text-[#0a0a0a] border border-[#e4e4e7] dark:bg-[#111113] dark:text-[#fafaf9] dark:border-[#27272a]">
-                ML Model v2.4
-              </span>
-            }
           >
             {hasDemandChartData ? (
-              <ResponsiveContainer width="100%" height={290}>
-                <AreaChart data={charts?.actual_vs_predicted || []} margin={{ top: 10, right: 12, left: -6, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={270}>
+                <AreaChart data={charts?.actual_vs_predicted || []} margin={{ top: 8, right: 10, left: -8, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-hairline)" vertical={false} />
                   <XAxis
                     dataKey="label"
@@ -281,8 +249,8 @@ export default function DashboardPage() {
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend
-                    wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingTop: '12px' }}
-                    formatter={(value) => <span className="text-[#0a0a0a] dark:text-[#fafaf9] font-semibold">{value}</span>}
+                    wrapperStyle={{ fontSize: '12px', fontWeight: 600, paddingTop: '8px' }}
+                    formatter={(value) => <span className="text-ds-text-primary font-semibold">{value}</span>}
                   />
                   <Area
                     type="monotone"
@@ -330,15 +298,10 @@ export default function DashboardPage() {
             title="Revenue Trend"
             subtitle="Monthly revenue performance & velocity"
             headerVariant="tinted"
-            actions={
-              <span className="text-xs font-mono font-semibold px-2.5 py-1 rounded-full bg-white text-[#0a0a0a] border border-[#e4e4e7] dark:bg-[#111113] dark:text-[#fafaf9] dark:border-[#27272a]">
-                Financial Gross
-              </span>
-            }
           >
             {hasRevenueChartData ? (
-              <ResponsiveContainer width="100%" height={290}>
-                <BarChart data={charts?.revenue_trend || []} margin={{ top: 10, right: 12, left: -2, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={270}>
+                <BarChart data={charts?.revenue_trend || []} margin={{ top: 8, right: 10, left: -4, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-hairline)" vertical={false} />
                   <XAxis
                     dataKey="label"
@@ -379,7 +342,7 @@ export default function DashboardPage() {
       </section>
 
       {/* 5. Lower Panels: Inventory Health + Top Products + Recent Alerts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-5 items-start">
         <ChartCard
           title="Inventory Health"
           subtitle="Stock distribution & stability breakdown"
@@ -387,14 +350,14 @@ export default function DashboardPage() {
         >
           {hasInventoryHealthData ? (
             <>
-              <ResponsiveContainer width="100%" height={230}>
+              <ResponsiveContainer width="100%" height={206}>
                 <PieChart>
                   <Pie
                     data={inventoryHealthData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={58}
-                    outerRadius={86}
+                    innerRadius={54}
+                    outerRadius={80}
                     paddingAngle={3}
                     dataKey="value"
                     strokeWidth={0}
@@ -407,28 +370,28 @@ export default function DashboardPage() {
                   <Tooltip content={<PieTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="flex flex-wrap justify-center gap-2 pt-3 border-t border-[#e4e4e7] dark:border-[#27272a]">
+              <div className="flex flex-wrap justify-center gap-1.5 pt-2.5 border-t border-ds-hairline">
                 {inventoryHealthData.map((entry) => (
                   <div
                     key={entry.name}
-                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#f6f6f7] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]"
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-ds-surface-sunken border border-ds-hairline"
                   >
                     <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: entry.color }} />
-                    <span className="text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">
+                    <span className="text-xs font-semibold text-ds-text-primary">
                       {entry.name}{' '}
-                      <span className="text-[#52525b] dark:text-[#a1a1aa] font-medium tabular-nums">({entry.value}%)</span>
+                      <span className="text-ds-text-secondary font-medium tabular-nums">({entry.value}%)</span>
                     </span>
                   </div>
                 ))}
               </div>
             </>
           ) : (
-            <div className="h-[250px] flex flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d4d4d8] dark:border-[#27272a] bg-[#f6f6f7] dark:bg-[#18181b] p-6 text-center">
-              <div className="w-10 h-10 rounded-[10px] bg-[#f1f1f3] dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] flex items-center justify-center mb-2">
+            <div className="h-[220px] flex flex-col items-center justify-center rounded-[12px] border border-dashed border-ds-border-strong bg-ds-surface-sunken p-6 text-center">
+              <div className="w-10 h-10 rounded-[10px] bg-ds-surface border border-ds-hairline text-ds-text-primary flex items-center justify-center mb-2">
                 <HeartPulse className="w-5 h-5" />
               </div>
-              <h4 className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">No Inventory Health Data</h4>
-              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1">
+              <h4 className="text-xs font-bold text-ds-text-primary">No Inventory Health Data</h4>
+              <p className="text-xs text-ds-text-secondary mt-1">
                 Stock balance telemetry will appear once warehouse items are recorded.
               </p>
             </div>
@@ -441,37 +404,37 @@ export default function DashboardPage() {
           headerVariant="tinted"
         >
           {hasTopProductsData ? (
-            <div className="space-y-3 pt-1">
+            <div className="space-y-2">
               {(charts?.top_products || []).slice(0, 5).map((product, i) => (
                 <div
                   key={product.label}
-                  className="flex items-center gap-3 p-2.5 rounded-[12px] hover:bg-[#f6f6f7] dark:hover:bg-[#18181b] transition-colors"
+                  className="flex items-center gap-3 p-2 rounded-[10px] hover:bg-ds-surface-sunken transition-colors"
                 >
-                  <span className="w-6 h-6 rounded-full bg-[#f1f1f3] dark:bg-[#18181b] flex items-center justify-center text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] tabular-nums flex-shrink-0">
+                  <span className="w-6 h-6 rounded-full bg-ds-surface-sunken flex items-center justify-center text-xs font-bold text-ds-text-primary border border-ds-hairline tabular-nums flex-shrink-0">
                     {i + 1}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] truncate">{product.label}</p>
-                    <div className="mt-1.5 h-1.5 w-full bg-[#f1f1f3] dark:bg-[#27272a] rounded-full overflow-hidden">
+                    <p className="text-xs font-semibold text-ds-text-primary truncate">{product.label}</p>
+                    <div className="mt-1.5 h-1.5 w-full bg-ds-surface-sunken rounded-full overflow-hidden">
                       <div
                         style={{ width: `${((product.value || 0) / ((charts?.top_products?.[0]?.value) || 1)) * 100}%` }}
-                        className="h-full rounded-full bg-[#1e3fc8] dark:bg-[#3b82f6]"
+                        className="h-full rounded-full bg-ds-blue"
                       />
                     </div>
                   </div>
-                  <span className="text-xs font-sans font-bold text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums flex-shrink-0">
+                  <span className="text-xs font-sans font-bold text-ds-text-primary tabular-nums flex-shrink-0">
                     {formatNumber(product.value || 0)}
                   </span>
                 </div>
               ))}
             </div>
           ) : (
-            <div className="h-[250px] flex flex-col items-center justify-center rounded-[12px] border border-dashed border-[#d4d4d8] dark:border-[#27272a] bg-[#f6f6f7] dark:bg-[#18181b] p-6 text-center">
-              <div className="w-10 h-10 rounded-[10px] bg-[#f1f1f3] dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] flex items-center justify-center mb-2">
+            <div className="h-[220px] flex flex-col items-center justify-center rounded-[12px] border border-dashed border-ds-border-strong bg-ds-surface-sunken p-6 text-center">
+              <div className="w-10 h-10 rounded-[10px] bg-ds-surface border border-ds-hairline text-ds-text-primary flex items-center justify-center mb-2">
                 <ShoppingCart className="w-5 h-5" />
               </div>
-              <h4 className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">No Product Sales Data</h4>
-              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1">
+              <h4 className="text-xs font-bold text-ds-text-primary">No Product Sales Data</h4>
+              <p className="text-xs text-ds-text-secondary mt-1">
                 Top performing SKUs will be listed once demand orders are logged.
               </p>
             </div>
@@ -485,14 +448,14 @@ export default function DashboardPage() {
           actions={
             <Link
               to="/app/alerts"
-              className="text-xs font-semibold text-[#1e3fc8] dark:text-[#60a5fa] hover:underline focus-visible:outline-2 focus-visible:outline-[#1e3fc8] focus-visible:outline-offset-2 rounded"
+              className="text-xs font-semibold text-ds-blue-text hover:underline focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2 rounded"
             >
               View all
             </Link>
           }
         >
           {hasAlertsData ? (
-            <div className="space-y-2.5 pt-1">
+            <div className="space-y-2">
               {(alertsData?.alerts || []).slice(0, 4).map((alert) => {
                 const cleanMessage = alert.message
                   .replace(new RegExp(`^\\[?${alert.severity}\\]?[:\\s-]*`, 'i'), '')
@@ -500,7 +463,7 @@ export default function DashboardPage() {
                 return (
                   <div
                     key={alert.id}
-                    className="flex flex-col gap-1.5 p-3 rounded-[12px] bg-[#f6f6f7] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]"
+                    className="flex flex-col gap-1.5 p-3 rounded-[10px] bg-ds-surface-sunken border border-ds-hairline"
                   >
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2 min-w-0">

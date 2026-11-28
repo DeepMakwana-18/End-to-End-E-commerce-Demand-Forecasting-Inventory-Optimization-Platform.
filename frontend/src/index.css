@@ -235,10 +235,10 @@
   .light .card-raised-1,
   .light .card-raised-2,
   .light .card-raised-3 {
-    background: #ffffff;
-    border: 1px solid #e4e4e7;
-    border-radius: 16px;
-    box-shadow: none;
+    background: var(--ds-surface);
+    border: 1px solid var(--ds-hairline);
+    border-radius: 12px;
+    box-shadow: 0 1px 2px rgba(24, 27, 34, 0.05);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
@@ -247,8 +247,8 @@
   .light .card-raised-1:hover,
   .light .card-raised-2:hover,
   .light .card-raised-3:hover {
-    border-color: #d4d4d8;
-    box-shadow: none;
+    border-color: var(--ds-border-strong);
+    box-shadow: 0 1px 2px rgba(24, 27, 34, 0.05);
     transform: none;
   }
 
@@ -259,8 +259,8 @@
   .light .kpi-surface-amber,
   .light .kpi-surface-rose,
   .light .kpi-surface-indigo {
-    background: #ffffff;
-    border-color: #e4e4e7;
+    background: var(--ds-surface);
+    border-color: var(--ds-hairline);
     box-shadow: none;
   }
 

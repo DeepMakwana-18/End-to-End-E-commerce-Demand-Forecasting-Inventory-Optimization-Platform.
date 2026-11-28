@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   LayoutDashboard, TrendingUp, Package, PieChart,
   FileText, Settings, ChevronLeft, ChevronRight, Bell,
@@ -37,31 +37,31 @@ interface TooltipState {
   left: number;
 }
 
-export function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar, setSidebarCollapsed, user, logout } = useAppStore();
+interface SidebarProps {
+  isMobile: boolean;
+  collapsed: boolean;
+  width: number;
+  onToggle: () => void;
+  onCloseMobile: () => void;
+}
+
+export function Sidebar({ isMobile, collapsed, width, onToggle, onCloseMobile }: SidebarProps) {
+  const { user, logout } = useAppStore();
   const location = useLocation();
   const navRef = useRef<HTMLElement>(null);
   const tooltipTimerRef = useRef<number | null>(null);
   const prefersReducedMotion = useReducedMotion();
-  const [isMobile, setIsMobile] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipState | null>(null);
-
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
-  }, []);
 
   // Lock background scroll on mobile while drawer is open and allow Escape to close
   useEffect(() => {
-    if (!isMobile || sidebarCollapsed) return;
+    if (!isMobile || collapsed) return;
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        setSidebarCollapsed(true);
+        onCloseMobile();
       }
     };
     document.addEventListener('keydown', handleKeyDown);
@@ -69,7 +69,7 @@ export function Sidebar() {
       document.body.style.overflow = prevOverflow;
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [isMobile, sidebarCollapsed, setSidebarCollapsed]);
+  }, [isMobile, collapsed, onCloseMobile]);
 
   // Keep active route visible inside the scroll container without unnecessary jumps
   useEffect(() => {
@@ -79,7 +79,7 @@ export function Sidebar() {
     if (activeEl) {
       activeEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-  }, [location.pathname, sidebarCollapsed]);
+  }, [location.pathname, collapsed]);
 
   useEffect(() => {
     return () => {
@@ -87,7 +87,23 @@ export function Sidebar() {
     };
   }, []);
 
-  const isCollapsedDesktop = !isMobile && sidebarCollapsed;
+  const isCollapsedDesktop = !isMobile && collapsed;
+  const [expandedReady, setExpandedReady] = useState(!isCollapsedDesktop);
+  const [prevCollapsed, setPrevCollapsed] = useState(isCollapsedDesktop);
+
+  if (prevCollapsed !== isCollapsedDesktop) {
+    setPrevCollapsed(isCollapsedDesktop);
+    setExpandedReady(isCollapsedDesktop ? false : Boolean(prefersReducedMotion));
+  }
+
+  // Reveal expanded labels only after width clears (~110ms)
+  useEffect(() => {
+    if (isCollapsedDesktop || prefersReducedMotion || expandedReady) return;
+    const timer = window.setTimeout(() => setExpandedReady(true), 110);
+    return () => window.clearTimeout(timer);
+  }, [isCollapsedDesktop, prefersReducedMotion, expandedReady]);
+
+  const showLabels = !isCollapsedDesktop && expandedReady;
 
   const showTooltip = (el: HTMLElement, label: string) => {
     if (!isCollapsedDesktop) return;
@@ -112,12 +128,11 @@ export function Sidebar() {
 
   const handleNavClick = () => {
     hideTooltip();
-    if (isMobile && !sidebarCollapsed) {
-      setSidebarCollapsed(true);
+    if (isMobile && !collapsed) {
+      onCloseMobile();
     }
   };
 
-  const width = isMobile ? (sidebarCollapsed ? 0 : 260) : (sidebarCollapsed ? 72 : 260);
   const canViewAdmin =
     user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst';
 
@@ -134,12 +149,12 @@ export function Sidebar() {
       aria-label={item.label}
       className={({ isActive }) =>
         cn(
-          'flex items-center min-h-[40px] py-2 rounded-[12px] text-[13px] transition-colors duration-150 motion-reduce:transition-none',
-          'group relative focus-visible:outline-2 focus-visible:outline-[#1e3fc8] dark:focus-visible:outline-[#60a5fa] focus-visible:outline-offset-[-2px]',
-          isCollapsedDesktop ? 'justify-center px-0' : 'gap-3 px-3.5',
+          'flex items-center min-h-[40px] py-2 rounded-[10px] text-[13px] transition-colors duration-120 motion-reduce:transition-none',
+          'group relative focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-[-2px]',
+          isCollapsedDesktop ? 'justify-center px-0' : 'gap-3 px-3',
           isActive
-            ? 'bg-[#0a0a0a] text-[#fafaf9] font-semibold dark:bg-[#18181b] dark:text-[#fafaf9] dark:border dark:border-[#27272a]'
-            : 'font-medium text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] hover:bg-[#f1f1f3] dark:hover:text-[#e4e4e7] dark:hover:bg-[#18181b]/55'
+            ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border border-ds-sidebar-active-border font-semibold'
+            : 'font-medium text-ds-text-secondary border border-transparent hover:text-ds-text-primary hover:bg-ds-surface-sunken'
         )
       }
     >
@@ -148,7 +163,7 @@ export function Sidebar() {
           {isActive && (
             <span
               aria-hidden="true"
-              className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full bg-[#f59e0b]"
+              className="absolute left-0 top-2 bottom-2 w-[2px] rounded-r-full bg-ds-sidebar-active-indicator"
             />
           )}
           <item.icon
@@ -156,23 +171,15 @@ export function Sidebar() {
             className={cn(
               'w-4 h-4 flex-shrink-0 transition-colors motion-reduce:transition-none',
               isActive
-                ? 'text-[#fafaf9]'
-                : 'text-[#52525b] dark:text-[#a1a1aa] group-hover:text-[#0a0a0a] dark:group-hover:text-[#e4e4e7]'
+                ? 'text-ds-sidebar-active-text'
+                : 'text-ds-text-secondary group-hover:text-ds-text-primary'
             )}
           />
-          <AnimatePresence>
-            {!isCollapsedDesktop && (
-              <motion.span
-                initial={prefersReducedMotion ? false : { opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-                transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
-                className="truncate"
-              >
-                {item.label}
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {showLabels && (
+            <span className="truncate whitespace-nowrap">
+              {item.label}
+            </span>
+          )}
         </>
       )}
     </NavLink>
@@ -180,10 +187,10 @@ export function Sidebar() {
 
   return (
     <>
-      {isMobile && !sidebarCollapsed && (
+      {isMobile && !collapsed && (
         <div
           aria-hidden="true"
-          onClick={toggleSidebar}
+          onClick={onCloseMobile}
           className="fixed inset-0 bg-ds-scrim z-30 md:hidden"
         />
       )}
@@ -193,7 +200,7 @@ export function Sidebar() {
         <div
           role="tooltip"
           style={{ top: tooltip.top, left: tooltip.left }}
-          className="fixed -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-[8px] bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#18181b] dark:text-[#fafaf9] text-xs font-medium shadow-md pointer-events-none whitespace-nowrap border border-[#27272a]"
+          className="fixed -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-[8px] bg-ds-ink text-ds-text-inverse dark:bg-[#18181b] dark:text-[#fafaf9] text-xs font-medium shadow-md pointer-events-none whitespace-nowrap border border-ds-hairline"
         >
           {tooltip.label}
         </div>
@@ -206,86 +213,89 @@ export function Sidebar() {
           duration: prefersReducedMotion ? 0 : 0.2,
           ease: [0.28, 0.11, 0.32, 1],
         }}
-        aria-hidden={isMobile && sidebarCollapsed ? true : undefined}
+        aria-hidden={isMobile && collapsed ? true : undefined}
         className={cn(
           'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
-          'border-r border-[#e4e4e7] dark:border-[#27272a]',
-          'bg-white dark:bg-[#111113]',
+          'border-r border-ds-hairline',
+          'bg-ds-sidebar-surface',
           'overflow-hidden'
         )}
       >
-        {/* Brand Header + Top Collapse Toggle (40x40px hit target) */}
+        {/* Brand Header */}
         <div
           className={cn(
-            'flex items-center justify-between h-16 border-b border-[#e4e4e7] dark:border-[#27272a] flex-shrink-0',
-            isCollapsedDesktop ? 'px-1 gap-0.5' : 'px-3.5 gap-2'
+            'flex items-center h-16 border-b border-ds-hairline flex-shrink-0',
+            isCollapsedDesktop ? 'justify-center px-2' : 'justify-between px-3.5 gap-2'
           )}
         >
-          <div className="flex items-center gap-2.5 overflow-hidden text-[#0a0a0a] dark:text-[#fafaf9] min-w-0">
-            <div
-              className={cn(
-                'flex items-center justify-center flex-shrink-0',
-                isCollapsedDesktop ? 'w-6 h-6' : 'w-9 h-9'
-              )}
-            >
-              <TitanMark size={isCollapsedDesktop ? 20 : 28} decorative />
+          <div className="flex items-center gap-2.5 overflow-hidden text-ds-text-primary min-w-0">
+            <div className="flex items-center justify-center flex-shrink-0 w-9 h-9">
+              <TitanMark size={28} decorative />
             </div>
-            <AnimatePresence>
-              {!isCollapsedDesktop && (
-                <motion.div
-                  initial={prefersReducedMotion ? false : { opacity: 0, x: -8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={prefersReducedMotion ? undefined : { opacity: 0, x: -8 }}
-                  transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
-                  className="whitespace-nowrap min-w-0"
-                >
-                  <div className="flex items-center gap-1.5">
-                    <h1 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-[#0a0a0a] dark:text-[#fafaf9]">
-                      TITAN AI
-                    </h1>
-                    <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-[#f1f1f3] text-[#52525b] border border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]">
-                      v2.4
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">
-                    Supply Chain Intelligence
-                  </p>
-                </motion.div>
-              )}
-            </AnimatePresence>
+            {showLabels && (
+              <div className="whitespace-nowrap min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-ds-text-primary">
+                    TITAN AI
+                  </h1>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-ds-surface-sunken text-ds-text-secondary border border-ds-hairline">
+                    v2.4
+                  </span>
+                </div>
+                <p className="text-[11px] text-ds-text-secondary font-medium">
+                  Supply Chain Intelligence
+                </p>
+              </div>
+            )}
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              hideTooltip();
-              toggleSidebar();
-            }}
-            onMouseEnter={(e) => showTooltip(e.currentTarget, 'Expand sidebar')}
-            onMouseLeave={hideTooltip}
-            onFocus={(e) => showTooltip(e.currentTarget, 'Expand sidebar')}
-            onBlur={hideTooltip}
-            aria-expanded={!sidebarCollapsed}
-            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b]/70 transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-[#1e3fc8] dark:focus-visible:outline-[#60a5fa] focus-visible:outline-offset-1"
-          >
-            {sidebarCollapsed ? (
-              <ChevronRight className="w-4 h-4" aria-hidden="true" />
-            ) : (
+          {!isCollapsedDesktop && (
+            <button
+              type="button"
+              onClick={() => {
+                hideTooltip();
+                onToggle();
+              }}
+              aria-expanded={!collapsed}
+              aria-label="Collapse sidebar"
+              className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1"
+            >
               <ChevronLeft className="w-4 h-4" aria-hidden="true" />
-            )}
-          </button>
+            </button>
+          )}
         </div>
 
-        {/* Scrollable Navigation (scrollbar visually hidden, wheel/trackpad/touch/keyboard active) */}
+        {/* Dedicated Expand Control in Collapsed Rail (prevents clipping & main-panel overlap) */}
+        {isCollapsedDesktop && (
+          <div className="py-1.5 flex items-center justify-center border-b border-ds-hairline flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                hideTooltip();
+                onToggle();
+              }}
+              onMouseEnter={(e) => showTooltip(e.currentTarget, 'Expand sidebar')}
+              onMouseLeave={hideTooltip}
+              onFocus={(e) => showTooltip(e.currentTarget, 'Expand sidebar')}
+              onBlur={hideTooltip}
+              aria-expanded={false}
+              aria-label="Expand sidebar"
+              className="w-10 h-10 rounded-[10px] flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1"
+            >
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        )}
+
+        {/* Scrollable Navigation (thin scrollbar appears only when content exceeds height) */}
         <nav
           ref={navRef}
           aria-label="Primary Navigation"
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain titan-sidebar-scroll-hidden py-3 px-2.5 scroll-pt-3 scroll-pb-3 space-y-3"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain titan-sidebar-scroll py-2.5 px-2.5 scroll-pt-2.5 scroll-pb-2.5 space-y-3"
         >
           <div className="space-y-0.5">
-            {!isCollapsedDesktop && (
-              <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#52525b] dark:text-[#a1a1aa]">
+            {showLabels && (
+              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-text-secondary whitespace-nowrap overflow-hidden">
                 Main Menu
               </p>
             )}
@@ -294,23 +304,23 @@ export function Sidebar() {
 
           {canViewAdmin && (
             <div className="space-y-0.5">
-              {!isCollapsedDesktop ? (
-                <p className="px-3 pb-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-[#52525b] dark:text-[#a1a1aa]">
+              {showLabels ? (
+                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-text-secondary whitespace-nowrap overflow-hidden">
                   Administration
                 </p>
-              ) : (
+              ) : isCollapsedDesktop ? (
                 <div
                   aria-hidden="true"
-                  className="mx-3 my-2 border-t border-[#e4e4e7] dark:border-[#27272a]"
+                  className="mx-3 my-1.5 border-t border-ds-hairline"
                 />
-              )}
+              ) : null}
               {adminItems.map(renderNavLink)}
             </div>
           )}
         </nav>
 
         {/* Fixed Bottom Sign Out */}
-        <div className="p-2.5 border-t border-[#e4e4e7] dark:border-[#27272a] flex-shrink-0">
+        <div className="p-2.5 border-t border-ds-hairline flex-shrink-0">
           <button
             type="button"
             onClick={logout}
@@ -319,20 +329,15 @@ export function Sidebar() {
             onFocus={(e) => showTooltip(e.currentTarget, 'Sign Out')}
             onBlur={hideTooltip}
             aria-label="Sign Out"
-            className="w-full min-h-[40px] flex items-center justify-center gap-2.5 px-3 py-2 rounded-[12px] text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa] hover:text-[#991b1b] hover:bg-[#fee2e2] dark:hover:text-[#fda4af] dark:hover:bg-[#7f1d1d]/30 transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-[#1e3fc8] dark:focus-visible:outline-[#60a5fa] focus-visible:outline-offset-[-2px]"
+            className={cn(
+              'w-full min-h-[40px] flex items-center rounded-[10px] text-xs font-semibold text-ds-text-secondary hover:text-ds-red-text hover:bg-ds-red-surface transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-[-2px]',
+              isCollapsedDesktop ? 'justify-center px-0' : 'justify-center gap-2.5 px-3 py-2'
+            )}
           >
             <LogOut className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-            <AnimatePresence>
-              {!isCollapsedDesktop && (
-                <motion.span
-                  initial={prefersReducedMotion ? false : { opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={prefersReducedMotion ? undefined : { opacity: 0 }}
-                >
-                  Sign Out
-                </motion.span>
-              )}
-            </AnimatePresence>
+            {showLabels && (
+              <span className="whitespace-nowrap">Sign Out</span>
+            )}
           </button>
         </div>
       </motion.aside>

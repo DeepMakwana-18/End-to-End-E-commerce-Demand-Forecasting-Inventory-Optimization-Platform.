@@ -24,20 +24,20 @@ export function ChartCard({
     return (
       <div
         className={cn(
-          'rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden flex flex-col',
+          'rounded-[12px] border border-ds-hairline bg-ds-surface overflow-hidden flex flex-col',
           className
         )}
       >
-        <div className="px-5 py-4 sm:px-6 border-b border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] flex items-center justify-between flex-wrap gap-2">
+        <div className="px-4 py-3.5 sm:px-5 border-b border-ds-hairline bg-ds-surface flex items-center justify-between flex-wrap gap-2">
           <div>
-            <h3 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">{title}</h3>
+            <h3 className="text-sm font-semibold text-ds-text-primary tracking-tight">{title}</h3>
             {subtitle && (
-              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">{subtitle}</p>
+              <p className="text-xs text-ds-text-secondary mt-0.5 font-medium">{subtitle}</p>
             )}
           </div>
           {actions && <div className="flex items-center gap-2">{actions}</div>}
         </div>
-        <div className="p-5 sm:p-6 flex-1 flex flex-col justify-center">
+        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-start">
           {children}
         </div>
       </div>
@@ -47,15 +47,15 @@ export function ChartCard({
   return (
     <div
       className={cn(
-        'rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-5 sm:p-6',
+        'rounded-[12px] border border-ds-hairline bg-ds-surface p-4 sm:p-5',
         className
       )}
     >
-      <div className="flex items-center justify-between mb-5 flex-wrap gap-2">
+      <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
         <div>
-          <h3 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">{title}</h3>
+          <h3 className="text-sm font-semibold text-ds-text-primary tracking-tight">{title}</h3>
           {subtitle && (
-            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">{subtitle}</p>
+            <p className="text-xs text-ds-text-secondary mt-0.5 font-medium">{subtitle}</p>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

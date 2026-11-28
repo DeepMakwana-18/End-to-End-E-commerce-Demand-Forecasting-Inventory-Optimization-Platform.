@@ -46,31 +46,31 @@ export function KPICard({
     <div className={cn('titan-kpi-wrap', emphasized && 'titan-kpi-wrap--emphasized')}>
       <div
         className={cn(
-          'titan-kpi-card rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-5 flex flex-col justify-between min-h-[138px]',
+          'titan-kpi-card rounded-[12px] border border-ds-hairline bg-ds-surface p-4 flex flex-col justify-start',
           className
         )}
       >
         <div className="flex items-start justify-between w-full gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-semibold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em] mb-2 truncate">
+            <p className="text-[12px] font-medium text-ds-text-secondary leading-snug mb-1.5">
               {title}
             </p>
             {loading ? (
-              <Skeleton className="h-8 w-24 my-0.5 rounded-lg" />
+              <Skeleton className="h-7 w-24 my-0.5 rounded-lg" />
             ) : (
-              <p className="text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-[-0.02em] text-[#0a0a0a] dark:text-[#fafaf9] leading-none">
+              <p className="text-[22px] sm:text-[26px] font-semibold font-sans tabular-nums tracking-[-0.02em] text-ds-text-primary leading-tight">
                 {displayValue}
               </p>
             )}
 
             {change !== undefined ? (
-              <div className="flex items-center gap-1.5 mt-3">
+              <div className="flex items-center gap-1.5 mt-2">
                 <span
                   className={cn(
                     'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums border',
-                    isFavorable && 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60',
-                    isUnfavorable && 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60',
-                    isNeutral && 'bg-[#f1f1f3] text-[#3f3f46] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
+                    isFavorable && 'bg-ds-green-surface text-ds-green-text border-ds-green/25',
+                    isUnfavorable && 'bg-ds-red-surface text-ds-red-text border-ds-red/25',
+                    isNeutral && 'bg-ds-surface-sunken text-ds-text-secondary border-ds-hairline'
                   )}
                 >
                   {isPositive && <TrendingUp className="w-3 h-3" aria-hidden="true" />}
@@ -79,29 +79,29 @@ export function KPICard({
                   {isPositive && '+'}
                   {change?.toFixed(1)}%
                 </span>
-                <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium truncate">{changeLabel}</span>
+                <span className="text-xs text-ds-text-secondary font-medium truncate">{changeLabel}</span>
               </div>
             ) : sub ? (
-              <div className="mt-3 flex items-center gap-1.5">
+              <div className="mt-2 flex items-center gap-1.5">
                 <span
                   className={cn(
                     'w-1.5 h-1.5 rounded-full flex-shrink-0',
-                    emphasized ? 'bg-[#f59e0b]' : 'bg-[#a1a1aa] dark:bg-[#52525b]'
+                    emphasized ? 'bg-ds-amber' : 'bg-ds-gray-400'
                   )}
                   aria-hidden="true"
                 />
-                <span className="text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] truncate">{sub}</span>
+                <span className="text-xs font-medium text-ds-text-secondary leading-snug">{sub}</span>
               </div>
-            ) : (
-              <div className="mt-3 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#a1a1aa] dark:bg-[#52525b] flex-shrink-0" aria-hidden="true" />
-                <span className="text-xs font-medium text-[#52525b] dark:text-[#a1a1aa]">Live telemetry</span>
-              </div>
-            )}
+            ) : null}
           </div>
 
           <div
-            className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[#f1f1f3] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9]"
+            className={cn(
+              'w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 border',
+              emphasized
+                ? 'bg-ds-orange-surface border-ds-amber/30 text-ds-orange-text'
+                : 'bg-ds-surface-sunken border-ds-hairline text-ds-text-primary'
+            )}
             aria-hidden="true"
           >
             <Icon className="w-4 h-4" />

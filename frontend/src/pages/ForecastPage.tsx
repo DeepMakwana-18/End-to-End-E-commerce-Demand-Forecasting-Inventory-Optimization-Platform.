@@ -16,6 +16,7 @@ import {
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { ForecastExplainPanel } from '@/components/forecast/ForecastExplainPanel';
+import { PageHeader } from '@/components/ui/PageHeader';
 import { cn, formatNumber } from '@/lib/utils';
 import { forecastApi, type ForecastExplainResponse } from '@/services/api';
 import '@/styles/titan-dashboard.css';
@@ -404,7 +405,7 @@ export default function ForecastPage() {
   }, [categoryMeta]);
 
   return (
-    <div className="space-y-8 pb-12">
+    <div className="space-y-5 sm:space-y-6 pb-4">
       {/* Toast notification */}
       <AnimatePresence>
         {toast && (
@@ -412,111 +413,94 @@ export default function ForecastPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
-            transition={{ duration: 0.16 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold flex items-center gap-2 shadow-lg"
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] bg-ds-surface border border-ds-hairline text-ds-text-primary text-xs font-semibold flex items-center gap-2 shadow-ds-float-2"
           >
-            <CheckCircle2 className="w-4 h-4 text-[#16a34a] flex-shrink-0" aria-hidden="true" />
+            <CheckCircle2 className="w-4 h-4 text-ds-green flex-shrink-0" aria-hidden="true" />
             <span>{toast}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 1. Compact Titan Editorial Page Header */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>DEMAND INTELLIGENCE</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Demand Forecasting
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            ML-powered demand predictions with confidence intervals &amp; SHAP explainability
-          </p>
-        </div>
+      <PageHeader
+        title="Demand Forecasting"
+        description="ML-powered demand predictions with confidence intervals & SHAP explainability"
+        actions={
+          !isZeroData && !isLoading ? (
+            <>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  aria-expanded={showFilters}
+                  aria-haspopup="listbox"
+                  className={cn(
+                    'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2',
+                    showFilters || selectedCategory !== 'all'
+                      ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-sidebar-active-border'
+                      : 'bg-ds-surface text-ds-text-primary border-ds-hairline hover:bg-ds-surface-sunken'
+                  )}
+                >
+                  <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>{selectedCategory === 'all' ? 'Filters' : selectedCategory}</span>
+                </button>
 
-        {/* Action Controls (Active when data exists) */}
-        {!isZeroData && !isLoading && (
-          <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-end relative z-20 flex-shrink-0">
-            <div className="relative">
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.div
+                      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
+                      transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+                      role="listbox"
+                      aria-label="Filter by category"
+                      className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 rounded-[12px] p-2 z-50 space-y-1 shadow-ds-float-2 bg-ds-surface border border-ds-hairline"
+                    >
+                      <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-ds-hairline">
+                        <span className="text-xs font-semibold text-ds-text-primary">Filter by Category</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFilters(false)}
+                          aria-label="Close filters"
+                          className="w-6 h-6 rounded-md flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {['all', ...categoryForecasts.map(c => c.category)].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedCategory === cat}
+                          onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
+                          className={cn(
+                            'w-full text-left px-3 py-2 rounded-[8px] text-xs font-semibold transition-colors cursor-pointer',
+                            selectedCategory === cat
+                              ? 'bg-ds-sidebar-active text-ds-sidebar-active-text'
+                              : 'text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text-primary'
+                          )}
+                        >
+                          {cat === 'all' ? 'All Categories' : cat}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               <button
                 type="button"
-                onClick={() => setShowFilters(!showFilters)}
-                aria-expanded={showFilters}
-                aria-haspopup="listbox"
-                className={cn(
-                  'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
-                  showFilters || selectedCategory !== 'all'
-                    ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#fafaf9] dark:text-[#0a0a0a] dark:border-[#fafaf9]'
-                    : 'bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b]'
-                )}
+                onClick={handleExport}
+                className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-blue hover:bg-ds-blue-strong text-white transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
               >
-                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
-                <span>{selectedCategory === 'all' ? 'Filters' : selectedCategory}</span>
-                {selectedCategory !== 'all' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
-                )}
+                <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Export</span>
               </button>
-
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.div
-                    initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
-                    transition={{ duration: 0.14 }}
-                    role="listbox"
-                    aria-label="Filter by category"
-                    className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 rounded-[14px] p-2 z-50 space-y-1 shadow-lg bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]"
-                  >
-                    <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-[#e4e4e7] dark:border-[#27272a]">
-                      <span className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Filter by Category</span>
-                      <button
-                        type="button"
-                        onClick={() => setShowFilters(false)}
-                        aria-label="Close filters"
-                        className="w-6 h-6 rounded-md flex items-center justify-center text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] transition-colors cursor-pointer"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    {['all', ...categoryForecasts.map(c => c.category)].map(cat => (
-                      <button
-                        key={cat}
-                        type="button"
-                        role="option"
-                        aria-selected={selectedCategory === cat}
-                        onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
-                        className={cn(
-                          'w-full text-left px-3 py-2 rounded-[10px] text-xs font-semibold transition-colors cursor-pointer',
-                          selectedCategory === cat
-                            ? 'bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#fafaf9] dark:text-[#0a0a0a]'
-                            : 'text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9]'
-                        )}
-                      >
-                        {cat === 'all' ? 'All Categories' : cat}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <button
-              type="button"
-              onClick={handleExport}
-              className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-[#1e3fc8] hover:bg-[#1935a8] text-white transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1e3fc8]"
-            >
-              <Download className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>Export</span>
-            </button>
-          </div>
-        )}
-      </header>
+            </>
+          ) : undefined
+        }
+      />
 
       {/* Network / API Fetch Error Banner */}
       {fetchError && !isLoading && (
@@ -620,15 +604,12 @@ export default function ForecastPage() {
             <KPICard
               title="Model Accuracy"
               value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : '—'}
-              change={modelMetrics?.accuracy ? 2.1 : undefined}
               icon={TrendingUp}
             />
             <KPICard
               title="RMSE Score"
               value={modelMetrics?.rmse ? String(modelMetrics.rmse) : '—'}
-              change={modelMetrics?.rmse ? -8.5 : undefined}
-              changeLabel="vs last period · lower is better"
-              invertChange={true}
+              sub="Lower is better"
               icon={Layers}
             />
             <KPICard
@@ -643,7 +624,6 @@ export default function ForecastPage() {
                 const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null && d.week.startsWith('F'));
                 return f && f.predicted !== undefined ? formatNumber(f.predicted) : '—';
               })()}
-              change={forecastData.length > 0 ? 12.3 : undefined}
               icon={ArrowUpRight}
             />
           </section>

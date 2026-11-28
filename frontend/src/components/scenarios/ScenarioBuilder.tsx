@@ -205,11 +205,11 @@ export function ScenarioBuilder({ onRun, isRunning, disabled, lastSimulatedSnaps
                 aria-pressed={isSelected}
                 onClick={() => setScenarioType(opt.value)}
                 className={cn(
-                  'flex items-center justify-between gap-2.5 p-3 rounded-[12px] text-left transition-colors duration-150 border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
+                  'flex items-center justify-between gap-2.5 p-3 rounded-[10px] text-left transition-colors duration-150 border cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1',
                   isCustom ? 'sm:col-span-2' : '',
                   isSelected
-                    ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#1e3fc8]/20 dark:text-[#fafaf9] dark:border-[#60a5fa] ring-1 ring-[#0a0a0a] dark:ring-[#60a5fa]'
-                    : 'bg-[#fafaf9] dark:bg-[#18181b] border-[#e4e4e7] dark:border-[#27272a] hover:border-[#0a0a0a]/40 dark:hover:border-[#fafaf9]/40'
+                    ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-blue/40 ring-1 ring-ds-blue/30'
+                    : 'bg-ds-surface-sunken border-ds-hairline hover:border-ds-border-strong'
                 )}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
@@ -217,23 +217,23 @@ export function ScenarioBuilder({ onRun, isRunning, disabled, lastSimulatedSnaps
                     className={cn(
                       'w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0',
                       isSelected
-                        ? 'border-[#f59e0b] bg-[#f59e0b]'
-                        : 'border-[#a1a1aa] dark:border-[#52525b] bg-white dark:bg-[#111113]'
+                        ? 'border-ds-blue bg-ds-blue'
+                        : 'border-ds-border-control bg-ds-surface'
                     )}
                     aria-hidden="true"
                   >
-                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-[#0a0a0a]" />}
+                    {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
                   <div className="min-w-0">
                     <p className={cn(
-                      'text-xs font-bold truncate',
-                      isSelected ? 'text-[#fafaf9]' : 'text-[#0a0a0a] dark:text-[#fafaf9]'
+                      'text-xs font-semibold truncate',
+                      isSelected ? 'text-ds-sidebar-active-text' : 'text-ds-text-primary'
                     )}>
                       {opt.label}
                     </p>
                     <p className={cn(
                       'text-[11px] truncate',
-                      isSelected ? 'text-[#a1a1aa] dark:text-[#cbd5e1]' : 'text-[#52525b] dark:text-[#a1a1aa]'
+                      isSelected ? 'text-ds-sidebar-active-text/80' : 'text-ds-text-secondary'
                     )}>
                       {opt.desc}
                     </p>

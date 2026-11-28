@@ -17,7 +17,7 @@ import { useState, useMemo, useRef, useEffect } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Package, ShieldCheck, RotateCcw, AlertTriangle, Search,
-  Filter, Download, ArrowUpDown, X, CheckCircle2,
+  Filter, Download, ArrowUpDown, ArrowUp, ArrowDown, X, CheckCircle2,
   Info, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { cn, formatNumber } from '@/lib/utils';
@@ -27,36 +27,38 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell,
 } from 'recharts';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { InventoryItem } from '@/types';
 import '@/styles/titan-dashboard.css';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; badge: string }> = {
   healthy: {
     label: 'HEALTHY',
-    color: 'text-emerald-700 dark:text-emerald-400',
-    badge: 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60',
+    color: 'text-ds-green-text',
+    badge: 'bg-ds-green-surface text-ds-green-text border-ds-green/25',
   },
   low: {
     label: 'LOW STOCK',
-    color: 'text-amber-700 dark:text-amber-400',
-    badge: 'bg-[#fffbeb] text-[#92400e] border-[#fde68a] dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50',
+    color: 'text-ds-orange-text',
+    badge: 'bg-ds-orange-surface text-ds-orange-text border-ds-amber/25',
   },
   critical: {
     label: 'CRITICAL',
-    color: 'text-rose-700 dark:text-rose-400',
-    badge: 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60',
+    color: 'text-ds-red-text',
+    badge: 'bg-ds-red-surface text-ds-red-text border-ds-red/25',
   },
   overstock: {
     label: 'OVERSTOCK',
-    color: 'text-[#1e3fc8] dark:text-[#60a5fa]',
-    badge: 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
+    color: 'text-ds-blue-on-surface',
+    badge: 'bg-ds-blue-surface text-ds-blue-on-surface border-ds-blue/25',
   },
 };
 
 const getHealthColor = (score: number) => {
-  if (score >= 80) return '#059669'; // Emerald
-  if (score >= 60) return '#d97706'; // Amber
-  return '#dc2626'; // Rose
+  if (score >= 80) return 'var(--ds-green)';
+  if (score >= 60) return 'var(--ds-amber)';
+  return 'var(--ds-red)';
 };
 
 type SortKey = 'name' | 'current_stock' | 'health_score' | 'status' | 'reorder_point' | 'recommended_qty';
@@ -92,7 +94,7 @@ export default function InventoryPage() {
     },
   });
 
-  const { data: inventoryData, isLoading } = useQuery({
+  const { data: inventoryData, isLoading, isError, refetch } = useQuery({
     queryKey: ['inventory'],
     queryFn: async () => {
       const res = await inventoryApi.getAll();
@@ -107,21 +109,34 @@ export default function InventoryPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [sortKey, setSortKey] = useState<SortKey>('health_score');
   const [sortAsc, setSortAsc] = useState(true); // Default ascending: lowest health / highest risk first
+  const [showHealthChart, setShowHealthChart] = useState(false);
   const [showAllChartItems, setShowAllChartItems] = useState(false);
+  const [showBaselineDetails, setShowBaselineDetails] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
 
-  // Close filter popover on outside click
+  // Close filter popover on outside click or Escape
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
         setShowFilters(false);
       }
     }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape' && showFilters) {
+        setShowFilters(false);
+        requestAnimationFrame(() => filterTriggerRef.current?.focus());
+      }
+    }
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showFilters]);
 
   // KPI Calculations
   const totalSKUs = inventoryItems.length;
@@ -199,10 +214,8 @@ export default function InventoryPage() {
     showToast('Inventory report exported as CSV');
   };
 
-  const sortIndicator = (key: SortKey) => (sortKey === key ? (sortAsc ? ' ↑' : ' ↓') : '');
-
   return (
-    <div className="space-y-6 pb-24">
+    <div className="space-y-5 sm:space-y-6 pb-4">
       {/* Toast notification */}
       <AnimatePresence>
         {toast && (
@@ -210,254 +223,323 @@ export default function InventoryPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
-            transition={{ duration: 0.16 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold flex items-center gap-2 shadow-lg"
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] bg-ds-surface border border-ds-hairline text-ds-text-primary text-xs font-semibold flex items-center gap-2 shadow-ds-float-2"
           >
-            <CheckCircle2 className="w-4 h-4 text-[#16a34a] flex-shrink-0" aria-hidden="true" />
+            <CheckCircle2 className="w-4 h-4 text-ds-green flex-shrink-0" aria-hidden="true" />
             <span>{toast}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>INVENTORY INTELLIGENCE</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Inventory Optimization
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Safety stock buffers, reorder thresholds &amp; dynamic replenishment telemetry
-          </p>
-        </div>
+      {/* ── 1. Compact Page Header ─────────────────────────────────── */}
+      <PageHeader
+        title="Inventory Optimization"
+        description="Safety stock buffers, reorder thresholds & dynamic replenishment telemetry"
+        actions={
+          <>
+            {/* Filter Popover */}
+            <div className="relative" ref={filterRef}>
+              <button
+                ref={filterTriggerRef}
+                id="inventory-filter-toggle"
+                type="button"
+                aria-expanded={showFilters}
+                aria-haspopup="dialog"
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2',
+                  showFilters || statusFilter !== 'all'
+                    ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-sidebar-active-border'
+                    : 'bg-ds-surface text-ds-text-primary border-ds-hairline hover:bg-ds-surface-sunken'
+                )}
+              >
+                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>{statusFilter === 'all' ? 'Filter' : STATUS_CONFIG[statusFilter]?.label || statusFilter}</span>
+              </button>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-end flex-shrink-0 relative z-20">
-          {/* Filter Popover */}
-          <div className="relative" ref={filterRef}>
+              <AnimatePresence>
+                {showFilters && (
+                  <motion.div
+                    role="dialog"
+                    aria-label="Filter by stock status"
+                    initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
+                    transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+                    className="absolute right-0 top-full mt-2 w-56 rounded-[12px] p-2 z-50 space-y-1 shadow-ds-float-2 bg-ds-surface border border-ds-hairline"
+                  >
+                    <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-ds-hairline">
+                      <span className="text-xs font-semibold text-ds-text-primary">Filter by Stock Status</span>
+                      <button
+                        type="button"
+                        aria-label="Close filter menu"
+                        onClick={() => {
+                          setShowFilters(false);
+                          requestAnimationFrame(() => filterTriggerRef.current?.focus());
+                        }}
+                        className="w-7 h-7 rounded-md flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors cursor-pointer"
+                      >
+                        <X className="w-3.5 h-3.5" aria-hidden="true" />
+                      </button>
+                    </div>
+                    {['all', 'healthy', 'low', 'critical', 'overstock'].map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => {
+                          setStatusFilter(s);
+                          setShowFilters(false);
+                          requestAnimationFrame(() => filterTriggerRef.current?.focus());
+                        }}
+                        className={cn(
+                          'w-full text-left px-3 py-2 rounded-[8px] text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer',
+                          statusFilter === s
+                            ? 'bg-ds-sidebar-active text-ds-sidebar-active-text'
+                            : 'text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text-primary'
+                        )}
+                      >
+                        <span>{s === 'all' ? 'All Statuses' : STATUS_CONFIG[s]?.label || s}</span>
+                        {statusFilter === s && <CheckCircle2 className="w-3.5 h-3.5 text-ds-blue" aria-hidden="true" />}
+                      </button>
+                    ))}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+
+            {/* Export CSV Button */}
             <button
-              id="inventory-filter-toggle"
+              id="inventory-export-btn"
               type="button"
-              aria-expanded={showFilters}
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
-                showFilters || statusFilter !== 'all'
-                  ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#fafaf9] dark:text-[#0a0a0a] dark:border-[#fafaf9]'
-                  : 'bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b]'
-              )}
+              onClick={handleExport}
+              className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-blue hover:bg-ds-blue-strong text-white transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
             >
-              <Filter className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>{statusFilter === 'all' ? 'Filter' : STATUS_CONFIG[statusFilter]?.label || statusFilter}</span>
-              {statusFilter !== 'all' && (
-                <span className="w-1.5 h-1.5 rounded-full bg-[#f59e0b]" aria-hidden="true" />
-              )}
+              <Download className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Export CSV</span>
             </button>
+          </>
+        }
+      />
 
-            <AnimatePresence>
-              {showFilters && (
-                <motion.div
-                  initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
-                  transition={{ duration: 0.14 }}
-                  className="absolute right-0 top-full mt-2 w-56 rounded-[14px] p-2 z-50 space-y-1 shadow-lg bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]"
-                >
-                  <div className="flex items-center justify-between px-2.5 py-1.5 mb-1 border-b border-[#e4e4e7] dark:border-[#27272a]">
-                    <span className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Filter by Stock Status</span>
-                    <button
-                      type="button"
-                      onClick={() => setShowFilters(false)}
-                      className="w-6 h-6 rounded-md flex items-center justify-center text-[#52525b] dark:text-[#a1a1aa] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] transition-colors cursor-pointer"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                  {['all', 'healthy', 'low', 'critical', 'overstock'].map((s) => (
-                    <button
-                      key={s}
-                      type="button"
-                      onClick={() => { setStatusFilter(s); setShowFilters(false); }}
-                      className={cn(
-                        'w-full text-left px-3 py-2 rounded-[10px] text-xs font-semibold transition-colors flex items-center justify-between cursor-pointer',
-                        statusFilter === s
-                          ? 'bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#fafaf9] dark:text-[#0a0a0a]'
-                          : 'text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#f1f1f3] dark:hover:bg-[#18181b] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9]'
-                      )}
-                    >
-                      <span>{s === 'all' ? 'All Statuses' : STATUS_CONFIG[s]?.label || s}</span>
-                      {statusFilter === s && <CheckCircle2 className="w-3 h-3 text-white dark:text-[#0a0a0a]" />}
-                    </button>
-                  ))}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Export CSV Button */}
-          <button
-            id="inventory-export-btn"
-            type="button"
-            onClick={handleExport}
-            className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-[#1e3fc8] hover:bg-[#1935a8] text-white transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1e3fc8]"
-          >
-            <Download className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </header>
-
-      {/* ── 2. Standardized KPI Cards ─────────────────────────────────── */}
+      {/* ── 2. Standardized Metric Cards ────────────────────────────── */}
       <section
         aria-label="Inventory Metrics"
-        style={{ '--reveal-delay': '40ms' } as React.CSSProperties}
-        className="titan-dash-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
         {/* Total SKUs */}
-        <div className="rounded-[16px] p-5 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-xs flex flex-col justify-between min-h-[136px]">
+        <div className="rounded-[12px] p-4 bg-ds-surface border border-ds-hairline flex flex-col justify-start">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] mb-1.5 truncate">
+              <p className="text-[12px] font-medium text-ds-text-secondary leading-snug mb-1.5">
                 Total SKUs
               </p>
-              <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-[#0a0a0a] dark:text-[#fafaf9]">
-                {isLoading ? '—' : formatNumber(totalSKUs)}
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-16 my-0.5 rounded-lg" />
+              ) : (
+                <p className="text-[22px] sm:text-[26px] font-semibold font-sans tabular-nums tracking-[-0.02em] leading-tight text-ds-text-primary">
+                  {formatNumber(totalSKUs)}
+                </p>
+              )}
             </div>
-            <div className="w-10 h-10 rounded-[12px] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 text-[#1e3fc8] dark:text-[#60a5fa] border border-[#bfdbfe] dark:border-[#1e3fc8]/40 flex items-center justify-center flex-shrink-0">
-              <Package className="w-5 h-5" aria-hidden="true" />
+            <div className="w-9 h-9 rounded-[10px] bg-ds-blue-surface text-ds-blue-on-surface border border-ds-blue/20 flex items-center justify-center flex-shrink-0">
+              <Package className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
-          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium mt-3">
+          <p className="text-xs text-ds-text-secondary font-medium mt-2">
             Monitored in catalog
           </p>
         </div>
 
         {/* Healthy Stock */}
-        <div className="rounded-[16px] p-5 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-xs flex flex-col justify-between min-h-[136px]">
+        <div className="rounded-[12px] p-4 bg-ds-surface border border-ds-hairline flex flex-col justify-start">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] mb-1.5 truncate">
+              <p className="text-[12px] font-medium text-ds-text-secondary leading-snug mb-1.5">
                 Healthy Stock
               </p>
-              <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-emerald-700 dark:text-emerald-400">
-                {isLoading ? '—' : `${healthyStockPercent}%`}
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-16 my-0.5 rounded-lg" />
+              ) : (
+                <p className="text-[22px] sm:text-[26px] font-semibold font-sans tabular-nums tracking-[-0.02em] leading-tight text-ds-green-text">
+                  {`${healthyStockPercent}%`}
+                </p>
+              )}
             </div>
-            <div className="w-10 h-10 rounded-[12px] bg-[#dcfce7] dark:bg-[#14532d]/40 text-[#166534] dark:text-[#4ade80] border border-[#bbf7d0] dark:border-[#166534]/60 flex items-center justify-center flex-shrink-0">
-              <ShieldCheck className="w-5 h-5" aria-hidden="true" />
+            <div className="w-9 h-9 rounded-[10px] bg-ds-green-surface text-ds-green-text border border-ds-green/25 flex items-center justify-center flex-shrink-0">
+              <ShieldCheck className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
-          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium mt-3">
-            {healthyStockCount} of {totalSKUs} SKUs with HEALTHY status
+          <p className="text-xs text-ds-text-secondary font-medium mt-2">
+            {healthyStockCount} of {totalSKUs} SKUs healthy
           </p>
         </div>
 
         {/* Reorder Needed */}
-        <div className="rounded-[16px] p-5 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-xs flex flex-col justify-between min-h-[136px]">
+        <div className="rounded-[12px] p-4 bg-ds-surface border border-ds-hairline flex flex-col justify-start">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] mb-1.5 truncate">
+              <p className="text-[12px] font-medium text-ds-text-secondary leading-snug mb-1.5">
                 Reorder Needed
               </p>
-              <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-amber-700 dark:text-amber-400">
-                {isLoading ? '—' : String(reorderNeededCount)}
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-16 my-0.5 rounded-lg" />
+              ) : (
+                <p className="text-[22px] sm:text-[26px] font-semibold font-sans tabular-nums tracking-[-0.02em] leading-tight text-ds-orange-text">
+                  {String(reorderNeededCount)}
+                </p>
+              )}
             </div>
-            <div className="w-10 h-10 rounded-[12px] bg-[#fffbeb] dark:bg-amber-950/40 text-[#92400e] dark:text-amber-300 border border-[#fde68a] dark:border-amber-800/50 flex items-center justify-center flex-shrink-0">
-              <RotateCcw className="w-5 h-5" aria-hidden="true" />
+            <div className="w-9 h-9 rounded-[10px] bg-ds-orange-surface text-ds-orange-text border border-ds-amber/25 flex items-center justify-center flex-shrink-0">
+              <RotateCcw className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
-          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium mt-3">
-            SKUs below reorder threshold (stock &lt; ROP)
+          <p className="text-xs text-ds-text-secondary font-medium mt-2">
+            SKUs below reorder threshold
           </p>
         </div>
 
         {/* Critical Items */}
-        <div className="rounded-[16px] p-5 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-xs flex flex-col justify-between min-h-[136px]">
+        <div className="rounded-[12px] p-4 bg-ds-surface border border-ds-hairline flex flex-col justify-start">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] mb-1.5 truncate">
+              <p className="text-[12px] font-medium text-ds-text-secondary leading-snug mb-1.5">
                 Critical Items
               </p>
-              <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-rose-700 dark:text-rose-400">
-                {isLoading ? '—' : String(criticalItemsCount)}
-              </p>
+              {isLoading ? (
+                <Skeleton className="h-7 w-16 my-0.5 rounded-lg" />
+              ) : (
+                <p className="text-[22px] sm:text-[26px] font-semibold font-sans tabular-nums tracking-[-0.02em] leading-tight text-ds-red-text">
+                  {String(criticalItemsCount)}
+                </p>
+              )}
             </div>
-            <div className="w-10 h-10 rounded-[12px] bg-[#fee2e2] dark:bg-[#7f1d1d]/40 text-[#991b1b] dark:text-[#fca5a5] border border-[#fecaca] dark:border-[#991b1b]/60 flex items-center justify-center flex-shrink-0">
-              <AlertTriangle className="w-5 h-5" aria-hidden="true" />
+            <div className="w-9 h-9 rounded-[10px] bg-ds-red-surface text-ds-red-text border border-ds-red/25 flex items-center justify-center flex-shrink-0">
+              <AlertTriangle className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
-          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium mt-3">
+          <p className="text-xs text-ds-text-secondary font-medium mt-2">
             Immediate risk (CRITICAL status)
           </p>
         </div>
       </section>
 
-      {/* ── 3. Data Integrity & Definition Notice ──────────────────────── */}
-      <div className="rounded-[12px] border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] p-3.5 sm:p-4 flex items-start gap-3">
-        <Info className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa] mt-0.5 flex-shrink-0" aria-hidden="true" />
-        <div className="text-xs leading-relaxed text-[#52525b] dark:text-[#a1a1aa]">
-          <p className="font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
-            Upstream Inventory Telemetry Notice
-          </p>
-          <p className="mt-0.5">
-            SKUs without warehouse count records carry initial catalog baseline values (<span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">Current Stock: 0</span>, <span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">Safety Stock: 50</span>, <span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">ROP: 100</span>, <span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">Status: HEALTHY</span>).
-            Threshold calculations compute dynamic replenishment (<span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">Rec. Qty: 150</span>) while preserving the returned status and health score definitions.
-          </p>
-        </div>
-      </div>
-
-      {/* ── 4. Risk-First Inventory Health Score Visual ────────────────── */}
-      <section
-        aria-label="Inventory Health Scores"
-        style={{ '--reveal-delay': '80ms' } as React.CSSProperties}
-        className="titan-dash-reveal rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden"
-      >
-        <div className="p-4 sm:p-5 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
-                Inventory Health Scores
-              </h2>
-              <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-[#fafaf9] text-[#52525b] border border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]">
-                Risk-sorted ({showAllChartItems ? healthChartData.length : `Top ${Math.min(10, healthChartData.length)} of ${filteredItems.length}`})
-              </span>
-            </div>
-            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
-              Lowest health scores presented first to highlight stockout and reorder vulnerabilities
+      {/* ── 3. Concise Table-Level Baseline Notice (Expandable) ────────── */}
+      <div className="rounded-[12px] border border-ds-hairline bg-ds-surface px-3.5 py-2.5 sm:px-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-2.5 text-xs text-ds-text-secondary min-w-0">
+            <Info className="w-4 h-4 text-ds-blue mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <p className="leading-relaxed">
+              Some items may use catalog defaults when warehouse counts are unavailable. Their health scores may not reflect measured stock.
             </p>
           </div>
+          <button
+            type="button"
+            aria-expanded={showBaselineDetails}
+            aria-label={showBaselineDetails ? 'Hide baseline telemetry details' : 'Show baseline telemetry details'}
+            onClick={() => setShowBaselineDetails((v) => !v)}
+            className="text-xs font-semibold text-ds-blue-text hover:underline whitespace-nowrap flex-shrink-0 cursor-pointer py-0.5 focus-visible:outline-2 focus-visible:outline-ds-blue rounded"
+          >
+            {showBaselineDetails ? 'Hide details' : 'Details'}
+          </button>
+        </div>
+        {showBaselineDetails && (
+          <p className="mt-2 pt-2 border-t border-ds-hairline text-xs text-ds-text-secondary leading-relaxed pl-6">
+            Baseline defaults when warehouse counts are absent: <span className="font-mono font-semibold text-ds-text-primary">Current Stock: 0</span>, <span className="font-mono font-semibold text-ds-text-primary">Safety Stock: 50</span>, <span className="font-mono font-semibold text-ds-text-primary">ROP: 100</span>, <span className="font-mono font-semibold text-ds-text-primary">Status: HEALTHY</span>, and <span className="font-mono font-semibold text-ds-text-primary">Rec. Qty: 150</span>.
+          </p>
+        )}
+      </div>
 
-          <div className="flex items-center gap-3 text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa] flex-wrap">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#059669]" aria-hidden="true" />
-              <span>Healthy (&ge;80)</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#d97706]" aria-hidden="true" />
-              <span>Warning (60–79)</span>
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-[#dc2626]" aria-hidden="true" />
-              <span>Critical (&lt;60)</span>
-            </span>
+      {isError && (
+        <div role="alert" className="rounded-[12px] border border-ds-red/30 bg-ds-red-surface p-4 flex items-center justify-between gap-4">
+          <div className="text-xs text-ds-red-text">
+            <p className="font-semibold">Unable to load inventory data</p>
+            <p className="mt-0.5">Check your connection and try refreshing.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => refetch()}
+            className="h-9 px-3.5 rounded-[10px] text-xs font-semibold bg-ds-surface text-ds-text-primary border border-ds-hairline hover:bg-ds-surface-sunken transition-colors cursor-pointer flex-shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* ── 4. Collapsible Risk-First Inventory Health Score Visual ────── */}
+      <section
+        aria-label="Inventory Health Scores"
+        className="rounded-[12px] border border-ds-hairline bg-ds-surface overflow-hidden"
+      >
+        <div className={cn(
+          'flex flex-wrap items-center justify-between gap-2.5',
+          showHealthChart ? 'p-4 sm:px-5 border-b border-ds-hairline' : 'px-4 py-3 sm:px-5'
+        )}>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm font-semibold text-ds-text-primary tracking-tight">
+                Inventory Health Scores
+              </h2>
+              <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-ds-surface-sunken text-ds-text-secondary border border-ds-hairline tabular-nums">
+                {showAllChartItems ? `${healthChartData.length} items` : `Top ${Math.min(10, healthChartData.length)} of ${filteredItems.length}`}
+              </span>
+            </div>
+            {showHealthChart && (
+              <p className="text-xs text-ds-text-secondary mt-0.5 font-medium">
+                Lowest health scores presented first to highlight stockout and reorder vulnerabilities
+              </p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-3 flex-wrap">
+            {showHealthChart && (
+              <div className="flex items-center gap-3 text-xs font-medium text-ds-text-secondary flex-wrap">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-ds-green" aria-hidden="true" />
+                  <span>Healthy (&ge;80)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-ds-amber" aria-hidden="true" />
+                  <span>Warning (60–79)</span>
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-ds-red" aria-hidden="true" />
+                  <span>Critical (&lt;60)</span>
+                </span>
+              </div>
+            )}
+            <button
+              type="button"
+              aria-expanded={showHealthChart}
+              aria-controls="inventory-health-chart-panel"
+              onClick={() => setShowHealthChart((v) => !v)}
+              className="h-8 px-3 rounded-[8px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-surface-sunken text-ds-text-primary border border-ds-hairline hover:border-ds-border-strong transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue"
+            >
+              <span>{showHealthChart ? 'Hide chart' : 'Show chart'}</span>
+              {showHealthChart ? (
+                <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
+              ) : (
+                <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+              )}
+            </button>
           </div>
         </div>
 
-        <div className="p-4 sm:p-6">
-          {healthChartData.length === 0 ? (
-            <div className="py-12 flex flex-col items-center justify-center text-center">
-              <div className="w-12 h-12 rounded-[14px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-center text-[#1e3fc8] dark:text-[#60a5fa] mb-3">
-                <Package className="w-6 h-6" />
+        {showHealthChart && (
+          <div id="inventory-health-chart-panel" className="p-4 sm:p-5">
+          {isLoading ? (
+            <div className="space-y-2.5">
+              {Array.from({ length: 6 }).map((_, idx) => (
+                <Skeleton key={idx} className="h-7 w-full rounded-md" />
+              ))}
+            </div>
+          ) : healthChartData.length === 0 ? (
+            <div className="py-10 flex flex-col items-center justify-center text-center">
+              <div className="w-11 h-11 rounded-[12px] bg-ds-surface-sunken border border-ds-hairline flex items-center justify-center text-ds-blue mb-3">
+                <Package className="w-5 h-5" aria-hidden="true" />
               </div>
-              <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">No Inventory Items Found</p>
-              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 max-w-sm">
+              <p className="text-sm font-semibold text-ds-text-primary">No Inventory Items Found</p>
+              <p className="text-xs text-ds-text-secondary mt-1 max-w-sm">
                 {searchTerm || statusFilter !== 'all'
                   ? 'No items match the active search or status criteria. Try clearing filters.'
                   : 'Connect a sales dataset to populate inventory health calculations.'}
@@ -549,7 +631,7 @@ export default function InventoryPage() {
                     name="Health Score"
                     radius={[0, 4, 4, 0]}
                     maxBarSize={18}
-                    isAnimationActive={!prefersReducedMotion}
+                    isAnimationActive={false}
                   >
                     {healthChartData.map((entry, i) => (
                       <Cell key={i} fill={getHealthColor(entry.score)} />
@@ -581,40 +663,52 @@ export default function InventoryPage() {
               )}
             </>
           )}
-        </div>
+          </div>
+        )}
       </section>
 
       {/* ── 5. Inventory Items Table Workspace ────────────────────────── */}
       <section
         aria-label="Inventory Table Workspace"
-        style={{ '--reveal-delay': '120ms' } as React.CSSProperties}
-        className="titan-dash-reveal rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden"
+        className="rounded-[12px] border border-ds-hairline bg-ds-surface overflow-hidden"
       >
         {/* Search & Header */}
-        <div className="p-4 sm:p-5 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#fafaf9] dark:bg-[#18181b]">
+        <div className="p-4 sm:p-5 border-b border-ds-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-ds-surface">
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+              <h2 className="text-sm font-semibold text-ds-text-primary">
                 Inventory Items
               </h2>
-              <span className="px-2 py-0.5 rounded-full text-xs font-bold font-mono bg-white dark:bg-[#111113] text-[#52525b] dark:text-[#a1a1aa] border border-[#e4e4e7] dark:border-[#27272a]">
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium font-mono bg-ds-surface-sunken text-ds-text-secondary border border-ds-hairline tabular-nums">
                 {filteredItems.length} {filteredItems.length === 1 ? 'item' : 'items'}
               </span>
             </div>
-            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
-              Live stock levels, safety stock buffers &amp; automated replenishment quantities
+            <p className="text-xs text-ds-text-secondary mt-0.5 font-medium">
+              Reported stock levels, safety stock buffers, and recommended replenishment quantities.
             </p>
           </div>
 
           <div className="relative w-full sm:w-72">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-ds-text-secondary pointer-events-none" aria-hidden="true" />
             <input
               id="inventory-search-input"
+              type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search product, SKU, category..."
-              className="w-full pl-8 pr-4 py-1.5 rounded-[10px] text-xs bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20 transition-colors"
+              aria-label="Search product, SKU, or category"
+              className="w-full h-9 pl-8 pr-8 rounded-[10px] text-xs bg-ds-surface-sunken border border-ds-hairline text-ds-text-primary placeholder:text-ds-text-secondary hover:border-ds-border-strong focus:outline-none focus:bg-ds-surface focus:border-ds-blue focus:ring-2 focus:ring-ds-blue/20 transition-colors"
             />
+            {searchTerm && (
+              <button
+                type="button"
+                onClick={() => setSearchTerm('')}
+                aria-label="Clear table search"
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 flex items-center justify-center rounded-md text-ds-text-secondary hover:text-ds-text-primary"
+              >
+                <X className="w-3.5 h-3.5" aria-hidden="true" />
+              </button>
+            )}
           </div>
         </div>
 
@@ -622,45 +716,71 @@ export default function InventoryPage() {
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b]">
-                {TABLE_COLUMNS.map((col, idx) => (
-                  <th
-                    key={col.label}
-                    className={cn(
-                      'px-4 py-3 text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em] whitespace-nowrap select-none',
-                      col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
-                      col.minWidth,
-                      // Sticky product column
-                      idx === 0 && 'sticky left-0 z-10 bg-[#fafaf9] dark:bg-[#18181b] border-r border-[#e4e4e7] dark:border-[#27272a]'
-                    )}
-                  >
-                    <div
+              <tr className="border-b border-ds-hairline bg-ds-surface-sunken">
+                {TABLE_COLUMNS.map((col, idx) => {
+                  const isSorted = Boolean(col.key) && sortKey === col.key;
+                  const ariaSort = col.key
+                    ? (isSorted ? (sortAsc ? 'ascending' : 'descending') : 'none')
+                    : undefined;
+                  return (
+                    <th
+                      key={col.label}
+                      scope="col"
+                      aria-sort={ariaSort}
                       className={cn(
-                        'flex items-center gap-1.5 select-none',
-                        col.align === 'right' ? 'justify-end' : col.align === 'center' ? 'justify-center' : 'justify-start',
-                        col.key && 'cursor-pointer hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] transition-colors'
+                        'px-4 py-2.5 text-[12px] font-semibold text-ds-text-secondary whitespace-nowrap select-none',
+                        col.align === 'right' ? 'text-right' : col.align === 'center' ? 'text-center' : 'text-left',
+                        col.minWidth,
+                        idx === 0 && 'sticky left-0 z-10 bg-ds-surface-sunken border-r border-ds-hairline'
                       )}
-                      onClick={() => col.key && handleSort(col.key as SortKey)}
                     >
-                      <span>{col.label}</span>
-                      {col.key && (
-                        <span className="text-[#52525b] dark:text-[#a1a1aa]">
-                          {sortIndicator(col.key as SortKey) || <ArrowUpDown className="w-3 h-3 opacity-50" />}
-                        </span>
+                      {col.key ? (
+                        <button
+                          type="button"
+                          onClick={() => handleSort(col.key as SortKey)}
+                          className={cn(
+                            'inline-flex items-center gap-1.5 font-semibold text-ds-text-secondary hover:text-ds-text-primary transition-colors cursor-pointer rounded px-1 -mx-1 py-0.5 focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1',
+                            col.align === 'right' && 'flex-row-reverse',
+                            isSorted && 'text-ds-text-primary'
+                          )}
+                        >
+                          <span>{col.label}</span>
+                          {isSorted ? (
+                            sortAsc ? (
+                              <ArrowUp className="w-3.5 h-3.5 text-ds-blue" aria-hidden="true" />
+                            ) : (
+                              <ArrowDown className="w-3.5 h-3.5 text-ds-blue" aria-hidden="true" />
+                            )
+                          ) : (
+                            <ArrowUpDown className="w-3 h-3 opacity-50" aria-hidden="true" />
+                          )}
+                        </button>
+                      ) : (
+                        <span>{col.label}</span>
                       )}
-                    </div>
-                  </th>
-                ))}
+                    </th>
+                  );
+                })}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
-              {filteredItems.length === 0 ? (
+            <tbody className="divide-y divide-ds-hairline">
+              {isLoading ? (
+                Array.from({ length: 5 }).map((_, idx) => (
+                  <tr key={idx}>
+                    {TABLE_COLUMNS.map((col, cIdx) => (
+                      <td key={col.label} className={cn('px-4 py-3', cIdx === 0 && 'sticky left-0 z-10 bg-ds-surface border-r border-ds-hairline')}>
+                        <Skeleton className="h-4 w-full rounded" />
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              ) : filteredItems.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="px-5 py-12 text-center">
-                    <p className="text-sm font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">
+                    <p className="text-sm font-semibold text-ds-text-primary">
                       No inventory items found
                     </p>
-                    <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1">
+                    <p className="text-xs text-ds-text-secondary mt-1">
                       {searchTerm && `No results matching "${searchTerm}". `}
                       {statusFilter !== 'all' && `Status filter "${STATUS_CONFIG[statusFilter]?.label || statusFilter}" active.`}
                     </p>
@@ -672,79 +792,79 @@ export default function InventoryPage() {
                   return (
                     <tr
                       key={item.id}
-                      className="hover:bg-[#fafaf9] dark:hover:bg-[#18181b]/70 transition-colors"
+                      className="group hover:bg-ds-surface-sunken transition-colors"
                     >
                       {/* Product Name & SKU (Sticky left column) */}
-                      <td className="px-4 py-3 sticky left-0 z-10 bg-white dark:bg-[#111113] group-hover:bg-[#fafaf9] dark:group-hover:bg-[#18181b] border-r border-[#e4e4e7] dark:border-[#27272a] min-w-[210px]">
-                        <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] truncate" title={item.name}>
+                      <td className="px-4 py-2.5 sticky left-0 z-10 bg-ds-surface group-hover:bg-ds-surface-sunken transition-colors border-r border-ds-hairline min-w-[210px] max-w-[280px]">
+                        <p className="text-xs font-semibold text-ds-text-primary leading-snug break-words" title={item.name}>
                           {item.name}
                         </p>
-                        <p className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] font-mono mt-0.5">
+                        <p className="text-[11px] text-ds-text-secondary font-mono mt-0.5">
                           {item.sku}
                         </p>
                       </td>
 
                       {/* Category */}
-                      <td className="px-4 py-3 text-xs text-[#52525b] dark:text-[#a1a1aa] min-w-[120px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-xs text-ds-text-secondary min-w-[120px] whitespace-nowrap">
                         {item.category}
                       </td>
 
                       {/* Current Stock */}
-                      <td className="px-4 py-3 text-xs font-mono tabular-nums text-right min-w-[110px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-xs font-mono tabular-nums text-right min-w-[110px] whitespace-nowrap">
                         {item.current_stock === 0 ? (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-bold text-rose-700 bg-rose-50 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200 dark:border-rose-800/40">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold text-ds-red-text bg-ds-red-surface border border-ds-red/25">
                             0 units
                           </span>
                         ) : (
-                          <span className="font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                          <span className="font-semibold text-ds-text-primary">
                             {formatNumber(item.current_stock)}
                           </span>
                         )}
                       </td>
 
                       {/* Safety Stock */}
-                      <td className="px-4 py-3 text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums text-right min-w-[105px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-xs text-ds-text-secondary font-mono tabular-nums text-right min-w-[105px] whitespace-nowrap">
                         {formatNumber(item.safety_stock)}
                       </td>
 
                       {/* Reorder Point */}
-                      <td className="px-4 py-3 text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums text-right min-w-[105px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-xs text-ds-text-secondary font-mono tabular-nums text-right min-w-[105px] whitespace-nowrap">
                         {formatNumber(item.reorder_point)}
                       </td>
 
                       {/* Rec. Order Qty */}
-                      <td className="px-4 py-3 text-xs font-mono tabular-nums text-right min-w-[120px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-xs font-mono tabular-nums text-right min-w-[120px] whitespace-nowrap">
                         {item.recommended_qty > 0 ? (
-                          <span className="text-amber-700 dark:text-amber-300 font-bold bg-[#fffbeb] dark:bg-amber-950/40 px-2 py-0.5 rounded-md border border-[#fde68a] dark:border-amber-800/50">
+                          <span className="text-ds-orange-text font-semibold bg-ds-orange-surface px-2 py-0.5 rounded-md border border-ds-amber/25">
                             +{formatNumber(item.recommended_qty)}
                           </span>
                         ) : (
-                          <span className="text-[#52525b] dark:text-[#a1a1aa]">—</span>
+                          <span className="text-ds-text-secondary">—</span>
                         )}
                       </td>
 
                       {/* Lead Time */}
-                      <td className="px-4 py-3 text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums text-right min-w-[95px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-xs text-ds-text-secondary font-mono tabular-nums text-right min-w-[95px] whitespace-nowrap">
                         {item.lead_time}w
                       </td>
 
                       {/* Stock Status */}
-                      <td className="px-4 py-3 text-center min-w-[120px] whitespace-nowrap">
+                      <td className="px-4 py-2.5 text-center min-w-[120px] whitespace-nowrap">
                         <span className={cn('inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border', sc.badge)}>
                           {sc.label}
                         </span>
                       </td>
 
                       {/* Health Score */}
-                      <td className="px-4 py-3 min-w-[125px] whitespace-nowrap text-right">
+                      <td className="px-4 py-2.5 min-w-[125px] whitespace-nowrap text-right">
                         <div className="flex items-center justify-end gap-2">
-                          <div className="w-14 h-2 bg-[#f1f1f3] dark:bg-[#18181b] rounded-full overflow-hidden border border-[#e4e4e7] dark:border-[#27272a]">
+                          <div className="w-14 h-2 bg-ds-surface-sunken rounded-full overflow-hidden border border-ds-hairline">
                             <div
-                              className="h-full rounded-full transition-all duration-300"
+                              className="h-full rounded-full"
                               style={{ width: `${item.health_score}%`, backgroundColor: getHealthColor(item.health_score) }}
                             />
                           </div>
-                          <span className="text-xs font-bold font-mono tabular-nums w-7 text-right" style={{ color: getHealthColor(item.health_score) }}>
+                          <span className="text-xs font-semibold font-mono tabular-nums w-7 text-right" style={{ color: getHealthColor(item.health_score) }}>
                             {item.health_score}
                           </span>
                         </div>
@@ -758,11 +878,19 @@ export default function InventoryPage() {
         </div>
 
         {/* Tablet & Mobile Stacked Record View (< md) — zero horizontal scroll */}
-        <div className="md:hidden divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
-          {filteredItems.length === 0 ? (
+        <div className="md:hidden divide-y divide-ds-hairline">
+          {isLoading ? (
+            Array.from({ length: 4 }).map((_, idx) => (
+              <div key={idx} className="p-4 space-y-2">
+                <Skeleton className="h-4 w-48 rounded" />
+                <Skeleton className="h-3 w-32 rounded" />
+                <Skeleton className="h-8 w-full rounded" />
+              </div>
+            ))
+          ) : filteredItems.length === 0 ? (
             <div className="px-4 py-10 text-center">
-              <p className="text-sm font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">No inventory items found</p>
-              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1">Try clearing your search or status filter.</p>
+              <p className="text-sm font-semibold text-ds-text-primary">No inventory items found</p>
+              <p className="text-xs text-ds-text-secondary mt-1">Try clearing your search or status filter.</p>
             </div>
           ) : (
             filteredItems.map((item) => {
@@ -771,10 +899,10 @@ export default function InventoryPage() {
                 <div key={item.id} className="p-4 space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] truncate">
+                      <p className="text-xs font-semibold text-ds-text-primary leading-snug">
                         {item.name}
                       </p>
-                      <p className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] font-mono mt-0.5">
+                      <p className="text-[11px] text-ds-text-secondary font-mono mt-0.5">
                         {item.sku} · {item.category}
                       </p>
                     </div>
@@ -785,28 +913,28 @@ export default function InventoryPage() {
 
                   <div className="grid grid-cols-3 gap-2 text-xs pt-1">
                     <div>
-                      <p className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                      <p className="text-[11px] font-medium text-ds-text-secondary">
                         Stock / ROP
                       </p>
-                      <p className="font-mono tabular-nums font-semibold mt-0.5 text-[#0a0a0a] dark:text-[#fafaf9]">
+                      <p className="font-mono tabular-nums font-semibold mt-0.5 text-ds-text-primary">
                         {formatNumber(item.current_stock)} / {formatNumber(item.reorder_point)}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                      <p className="text-[11px] font-medium text-ds-text-secondary">
                         Rec. Order
                       </p>
-                      <p className="font-mono tabular-nums font-bold mt-0.5 text-amber-700 dark:text-amber-400">
+                      <p className="font-mono tabular-nums font-semibold mt-0.5 text-ds-orange-text">
                         {item.recommended_qty > 0 ? `+${formatNumber(item.recommended_qty)}` : '—'}
                       </p>
                     </div>
 
                     <div>
-                      <p className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                      <p className="text-[11px] font-medium text-ds-text-secondary">
                         Health Score
                       </p>
-                      <p className="font-mono tabular-nums font-bold mt-0.5" style={{ color: getHealthColor(item.health_score) }}>
+                      <p className="font-mono tabular-nums font-semibold mt-0.5" style={{ color: getHealthColor(item.health_score) }}>
                         {item.health_score} / 100
                       </p>
                     </div>

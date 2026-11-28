@@ -34,6 +34,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
 import { useTaskProgress } from '@/hooks/useTaskProgress';
+import { PageHeader } from '@/components/ui/PageHeader';
 import api from '@/services/api';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/useToast';
@@ -453,35 +454,20 @@ export default function UploadPage() {
   const historyUploads = historyData?.uploads ?? [];
 
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>DATA INGESTION · ETL PIPELINE</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Upload Sales Data
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Inspect CSV headers, map required columns, and trigger ETL ingestion and model retraining
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-end flex-shrink-0">
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Upload Sales Data"
+        description="Inspect CSV headers, map required columns, and trigger ETL ingestion and model retraining"
+        actions={
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9]"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-ds-surface border border-ds-hairline text-xs font-semibold text-ds-text-primary"
             title="Ingestion service endpoint is available; current workflow state is shown below"
           >
-            <span className="w-2 h-2 rounded-full bg-[#1e3fc8] dark:bg-[#60a5fa]" aria-hidden="true" />
+            <span className="w-2 h-2 rounded-full bg-ds-blue" aria-hidden="true" />
             <span>Ingestion Service Ready</span>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* ── 2. Enterprise ETL Pipeline Stepper ───────────────────────── */}
       <section

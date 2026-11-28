@@ -29,6 +29,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAppStore } from '@/stores/appStore';
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { ThemeMode } from '@/types';
 
 interface FormToggles {
@@ -445,7 +446,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
+    <div className="space-y-5 sm:space-y-6 pb-4">
       {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
@@ -455,44 +456,34 @@ export default function SettingsPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
-            transition={{ duration: 0.16 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
             className={cn(
-              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-lg border max-w-sm',
+              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-ds-float-2 border max-w-sm',
               toast.isError
-                ? 'bg-[#fef2f2] text-[#991b1b] border-[#fecaca] dark:bg-[#450a0a] dark:text-[#fecaca] dark:border-[#991b1b]'
-                : 'bg-white text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#111113] dark:text-[#fafaf9] dark:border-[#27272a]'
+                ? 'bg-ds-red-surface text-ds-red-text border-ds-red/30'
+                : 'bg-ds-surface text-ds-text-primary border-ds-hairline'
             )}
           >
             {toast.isError ? (
-              <AlertCircle className="w-4 h-4 text-[#dc2626] dark:text-[#f87171] flex-shrink-0" aria-hidden="true" />
+              <AlertCircle className="w-4 h-4 text-ds-red flex-shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-[#16a34a] dark:text-[#4ade80] flex-shrink-0" aria-hidden="true" />
+              <CheckCircle2 className="w-4 h-4 text-ds-green flex-shrink-0" aria-hidden="true" />
             )}
             <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header className="pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>ADMINISTRATION · PREFERENCES</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Settings &amp; Preferences
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium max-w-2xl">
-            Browser display preferences and local configuration flags for this TITAN AI workspace
-          </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-end flex-shrink-0">
-          {renderStatusBadge()}
-          {renderSaveButton('header')}
-        </div>
-      </header>
+      <PageHeader
+        title="Settings & Preferences"
+        description="Browser display preferences and local configuration flags for this TITAN AI workspace"
+        actions={
+          <>
+            {renderStatusBadge()}
+            {renderSaveButton('header')}
+          </>
+        }
+      />
 
       {/* ── Save Failure Banner ──────────────────────────────────────── */}
       {saveError && (

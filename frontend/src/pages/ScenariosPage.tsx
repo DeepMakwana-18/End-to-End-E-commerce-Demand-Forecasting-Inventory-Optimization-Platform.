@@ -8,6 +8,7 @@ import { ScenarioBuilder, type BuilderSnapshot } from '@/components/scenarios/Sc
 import { ScenarioResultPanel } from '@/components/scenarios/ScenarioResultPanel';
 import { ScenarioHistory } from '@/components/scenarios/ScenarioHistory';
 import { ScenarioExplainPanel } from '@/components/scenarios/ScenarioExplainPanel';
+import { PageHeader } from '@/components/ui/PageHeader';
 import scenarioApi from '@/services/scenarioApi';
 import { toast } from '@/hooks/useToast';
 import type { Scenario, ScenarioResultDetail, ScenarioParameters, ScenarioType } from '@/types/scenario';
@@ -188,43 +189,30 @@ export default function ScenariosPage() {
   }, [activeScenario, loadScenarios]);
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-12">
-      {/* 1. Compact Titan Editorial Page Header */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>WHAT-IF SIMULATION</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Scenario Engine
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Non-destructive demand, inventory &amp; risk simulations powered by the active ML model
-          </p>
-        </div>
+    <div className="flex flex-col gap-5 sm:gap-6 w-full pb-4">
+      <PageHeader
+        title="Scenario Engine"
+        description="Non-destructive demand, inventory & risk simulations powered by the active ML model"
+        actions={
+          <>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ds-blue-surface text-ds-blue-on-surface border border-ds-blue/20 text-xs font-semibold">
+              <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+              <span>Non-destructive — model is never retrained</span>
+            </div>
 
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-end flex-shrink-0">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40 text-xs font-semibold">
-            <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
-            <span>Non-destructive — model is never retrained</span>
-          </div>
-
-          <button
-            id="refresh-scenarios"
-            type="button"
-            onClick={loadScenarios}
-            disabled={isLoadingList}
-            className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-[#1e3fc8]' : ''}`} aria-hidden="true" />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </header>
+            <button
+              id="refresh-scenarios"
+              type="button"
+              onClick={loadScenarios}
+              disabled={isLoadingList}
+              className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-surface text-ds-text-primary border border-ds-hairline hover:bg-ds-surface-sunken transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-ds-blue' : ''}`} aria-hidden="true" />
+              <span>Refresh</span>
+            </button>
+          </>
+        }
+      />
 
       {/* 2. Main Workspace: Two Columns (Builder first on mobile, side-by-side on desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">

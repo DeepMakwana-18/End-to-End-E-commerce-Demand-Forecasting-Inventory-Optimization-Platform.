@@ -19,6 +19,7 @@ import { cn, formatNumber, formatCurrency } from '@/lib/utils';
 import { useQuery } from '@tanstack/react-query';
 import { productsApi, systemApi } from '@/services/api';
 import { useAppStore } from '@/stores/appStore';
+import { PageHeader } from '@/components/ui/PageHeader';
 import '@/styles/titan-dashboard.css';
 
 // Unified, high-contrast Titan-compatible category palette
@@ -140,42 +141,28 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="space-y-6 pb-24">
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>CATEGORY INTELLIGENCE</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Category Analytics
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Demand share, leader comparison &amp; seasonal distribution across catalog segments
-          </p>
-        </div>
-
-        {selectedCategory && (
-          <button
-            type="button"
-            onClick={() => setSelectedCategory(null)}
-            className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#1e3fc8]/25 dark:text-[#fafaf9] border border-[#0a0a0a] dark:border-[#60a5fa] transition-colors self-start sm:self-end cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
-          >
-            <span>Focused: {selectedCategory}</span>
-            <X className="w-3.5 h-3.5" aria-hidden="true" />
-          </button>
-        )}
-      </header>
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Category Analytics"
+        description="Demand share, leader comparison & seasonal distribution across catalog segments"
+        actions={
+          selectedCategory ? (
+            <button
+              type="button"
+              onClick={() => setSelectedCategory(null)}
+              className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-sidebar-active text-ds-sidebar-active-text border border-ds-sidebar-active-border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
+            >
+              <span>Focused: {selectedCategory}</span>
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* ── 2. Overall Demand & Leading Category KPIs ────────────────── */}
       <section
         aria-label="Category Key Metrics"
-        style={{ '--reveal-delay': '40ms' } as React.CSSProperties}
-        className="titan-dash-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4"
       >
         {/* Total Demand */}
         <div className="rounded-[16px] p-5 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-xs flex flex-col justify-between min-h-[136px]">
@@ -204,12 +191,12 @@ export default function CategoriesPage() {
               <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] mb-1.5 truncate">
                 Top Category
               </p>
-              <p className="text-xl sm:text-2xl font-extrabold font-sans tracking-tight leading-tight text-emerald-700 dark:text-emerald-400 truncate" title={topCategory?.name}>
+              <p className="text-xl sm:text-2xl font-semibold font-sans tracking-tight leading-tight text-ds-text-primary truncate" title={topCategory?.name}>
                 {isLoading ? '—' : topCategory ? topCategory.name : '—'}
               </p>
             </div>
-            <div className="w-10 h-10 rounded-[12px] bg-[#dcfce7] dark:bg-[#14532d]/40 text-[#166534] dark:text-[#4ade80] border border-[#bbf7d0] dark:border-[#166534]/60 flex items-center justify-center flex-shrink-0">
-              <PieIcon className="w-5 h-5" aria-hidden="true" />
+            <div className="w-9 h-9 rounded-[10px] bg-ds-blue-surface text-ds-blue-on-surface border border-ds-blue/20 flex items-center justify-center flex-shrink-0">
+              <PieIcon className="w-4 h-4" aria-hidden="true" />
             </div>
           </div>
           <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium mt-3">

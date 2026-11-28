@@ -33,6 +33,7 @@ import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { reportsApi, systemApi } from '@/services/api';
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Report } from '@/types';
 import '@/styles/titan-dashboard.css';
 
@@ -268,7 +269,7 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
+    <div className="space-y-5 sm:space-y-6 pb-4">
       {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
@@ -278,52 +279,37 @@ export default function ReportsPage() {
             initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
             exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
-            transition={{ duration: 0.16 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
             className={cn(
-              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-lg border max-w-sm',
+              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-ds-float-2 border max-w-sm',
               toast.isError
-                ? 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950 dark:text-rose-200 dark:border-rose-800'
-                : 'bg-white text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#111113] dark:text-[#fafaf9] dark:border-[#27272a]'
+                ? 'bg-ds-red-surface text-ds-red-text border-ds-red/30'
+                : 'bg-ds-surface text-ds-text-primary border-ds-hairline'
             )}
           >
             {toast.isError ? (
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" aria-hidden="true" />
+              <AlertCircle className="w-4 h-4 text-ds-red flex-shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" aria-hidden="true" />
+              <CheckCircle2 className="w-4 h-4 text-ds-green flex-shrink-0" aria-hidden="true" />
             )}
             <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>REPORTING &amp; EXPORTS</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Reports &amp; Exports
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Compile analytics report requests in CSV, Excel, or PDF formats and review generation history
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2 self-start sm:self-end flex-shrink-0">
+      <PageHeader
+        title="Reports & Exports"
+        description="Compile analytics report requests in CSV, Excel, or PDF formats and review generation history"
+        actions={
           <div
-            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9]"
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-ds-surface border border-ds-hairline text-xs font-semibold text-ds-text-primary"
             title="Report metadata API is ready; physical file storage is deferred"
           >
-            <span className="w-2 h-2 rounded-full bg-emerald-600 dark:bg-emerald-400" aria-hidden="true" />
+            <span className="w-2 h-2 rounded-full bg-ds-green" aria-hidden="true" />
             <span>Export Engine Ready</span>
           </div>
-        </div>
-      </header>
+        }
+      />
 
       {/* ── 2. Data Availability Banner ──────────────────────────────── */}
       {isEmptyOrg && (

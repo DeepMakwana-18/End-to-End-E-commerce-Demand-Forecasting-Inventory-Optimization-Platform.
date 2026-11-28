@@ -21,6 +21,7 @@ import { AnomalyFilterBar } from '@/components/anomalies/AnomalyFilterBar';
 import { AnomalyTable } from '@/components/anomalies/AnomalyTable';
 import { AnomalyTimeline } from '@/components/anomalies/AnomalyTimeline';
 import { AnomalyInvestigationDrawer } from '@/components/anomalies/AnomalyInvestigationDrawer';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 import anomalyApi from '@/services/anomalyApi';
 import { toast } from '@/hooks/useToast';
@@ -231,36 +232,23 @@ export default function AnomaliesPage() {
   }, []);
 
   return (
-    <div className="flex flex-col gap-6 pb-12">
-      {/* 1. Compact Titan Editorial Page Header */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>ANOMALY INTELLIGENCE</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            Anomaly Intelligence
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Rolling z-score detection across demand, inventory &amp; forecast data
-          </p>
-        </div>
-
-        <button
-          id="refresh-all-btn"
-          type="button"
-          onClick={handleRefresh}
-          disabled={isLoadingList}
-          className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] transition-colors self-start sm:self-end cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 text-[#1e3fc8] dark:text-[#60a5fa] ${isLoadingList ? 'animate-spin' : ''}`} aria-hidden="true" />
-          <span>Refresh</span>
-        </button>
-      </header>
+    <div className="flex flex-col gap-5 sm:gap-6 pb-4">
+      <PageHeader
+        title="Anomaly Intelligence"
+        description="Rolling z-score detection across demand, inventory & forecast data"
+        actions={
+          <button
+            id="refresh-all-btn"
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoadingList}
+            className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-surface text-ds-text-primary border border-ds-hairline hover:bg-ds-surface-sunken transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-ds-blue ${isLoadingList ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <span>Refresh</span>
+          </button>
+        }
+      />
 
       {/* 2. Executive Intelligence Header */}
       <AnomalyExecutiveHeader

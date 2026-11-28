@@ -39,6 +39,7 @@ import { cn } from '@/lib/utils';
 import { alertsApi } from '@/services/api';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { toast } from '@/hooks/useToast';
+import { PageHeader } from '@/components/ui/PageHeader';
 import type { Alert } from '@/types';
 import '@/styles/titan-dashboard.css';
 
@@ -429,67 +430,51 @@ export default function AlertsPage() {
   };
 
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4 relative z-20"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>ALERT INTELLIGENCE</span>
-          </div>
-          <div className="mt-2 flex items-center gap-3 flex-wrap">
-            <h1 className="text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-              Alert Center
-            </h1>
-            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/60 tabular-nums">
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Alert Center"
+        description="Operational incident registry, stockout threshold breaches, and automated rule signals"
+        actions={
+          <>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-ds-red-surface text-ds-red-text border border-ds-red/25 tabular-nums">
               {activeCount} Active {activeCount === 1 ? 'Alert' : 'Alerts'}
               {uniqueAffectedProductsCount > 0 && ` · ${uniqueAffectedProductsCount} SKUs`}
             </span>
-          </div>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Operational incident registry, stockout threshold breaches, and automated rule signals
-          </p>
-        </div>
 
-        {/* Action Controls (Scan Inventory + Filter) */}
-        <div className="flex flex-wrap items-center gap-2.5 self-start sm:self-end flex-shrink-0">
-          <button
-            id="btn-scan-inventory"
-            type="button"
-            onClick={() => scanMutation.mutate()}
-            disabled={scanMutation.isPending}
-            aria-busy={scanMutation.isPending}
-            className="min-h-[44px] sm:min-h-[36px] px-3.5 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors bg-[#1e3fc8] hover:bg-[#1935a8] text-white border-[#1e3fc8] disabled:opacity-60 disabled:cursor-wait cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
-          >
-            <RefreshCw
-              className={cn('w-3.5 h-3.5', scanMutation.isPending && 'animate-spin')}
-              aria-hidden="true"
-            />
-            <span>{scanMutation.isPending ? 'Scanning Inventory...' : 'Scan Inventory'}</span>
-          </button>
-
-          {/* Filter Toggle */}
-          <div className="relative" ref={filterRef}>
             <button
-              id="btn-filter-alerts"
+              id="btn-scan-inventory"
               type="button"
-              aria-expanded={showFilters}
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'min-h-[44px] sm:min-h-[36px] px-3.5 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
-                showFilters || activeFiltersCount > 0
-                  ? 'bg-[#0a0a0a] text-[#fafaf9] border-[#0a0a0a] dark:bg-[#fafaf9] dark:text-[#0a0a0a] dark:border-[#fafaf9]'
-                  : 'bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b]'
-              )}
+              onClick={() => scanMutation.mutate()}
+              disabled={scanMutation.isPending}
+              aria-busy={scanMutation.isPending}
+              className="min-h-[40px] sm:min-h-[36px] px-3.5 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors bg-ds-blue hover:bg-ds-blue-strong text-white border-ds-blue disabled:opacity-60 disabled:cursor-wait cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
             >
-              <Filter className="w-3.5 h-3.5" aria-hidden="true" />
-              <span>
-                {activeFiltersCount === 0 ? 'Filter' : `Filter (${activeFiltersCount})`}
-              </span>
+              <RefreshCw
+                className={cn('w-3.5 h-3.5', scanMutation.isPending && 'animate-spin')}
+                aria-hidden="true"
+              />
+              <span>{scanMutation.isPending ? 'Scanning Inventory...' : 'Scan Inventory'}</span>
             </button>
+
+            {/* Filter Toggle */}
+            <div className="relative" ref={filterRef}>
+              <button
+                id="btn-filter-alerts"
+                type="button"
+                aria-expanded={showFilters}
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'min-h-[40px] sm:min-h-[36px] px-3.5 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2',
+                  showFilters || activeFiltersCount > 0
+                    ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-sidebar-active-border'
+                    : 'bg-ds-surface text-ds-text-primary border-ds-hairline hover:bg-ds-surface-sunken'
+                )}
+              >
+                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>
+                  {activeFiltersCount === 0 ? 'Filter' : `Filter (${activeFiltersCount})`}
+                </span>
+              </button>
 
             <AnimatePresence>
               {showFilters && (
@@ -598,9 +583,10 @@ export default function AlertsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </div>
-      </header>
+            </div>
+          </>
+        }
+      />
 
       {/* Manual Scan Feedback Banner (distinct from global Live socket status) */}
       {lastScanResult && (
@@ -781,13 +767,13 @@ export default function AlertsPage() {
                 key={alert.id}
                 id={`alert-card-${alert.id}`}
                 className={cn(
-                  'rounded-[16px] p-4 sm:p-5 transition-colors duration-150 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]',
+                  'rounded-[12px] p-3.5 sm:p-4 transition-colors duration-150 bg-ds-surface border border-ds-hairline',
                   accentBorder,
-                  isAck && 'bg-amber-50/20 dark:bg-amber-950/10'
+                  isAck && 'bg-ds-orange-surface/30'
                 )}
               >
                 {/* ── COMPACT PRIMARY ROW: Product Identity, Severity, Type, Key Fact, Time ── */}
-                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
                   <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Icon
@@ -978,7 +964,7 @@ export default function AlertsPage() {
                 )}
 
                 {/* ── ACTION BAR: Acknowledge, Resolve, and Explicit Dismiss ── */}
-                <div className="mt-3 pt-3 border-t border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div className="mt-2.5 pt-2.5 border-t border-ds-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                   <div className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">
                     {alert.acknowledged_at ? (
                       <span className="text-amber-700 dark:text-amber-400 inline-flex items-center gap-1">
@@ -1017,7 +1003,7 @@ export default function AlertsPage() {
                       disabled={isAnyPending}
                       aria-busy={isPendingRes}
                       title="Resolve alert and mark incident as closed"
-                      className="min-h-[44px] sm:min-h-[34px] px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 text-white bg-emerald-600 hover:bg-emerald-700 transition-colors disabled:opacity-50 disabled:cursor-wait cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
+                      className="min-h-[40px] sm:min-h-[34px] px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 text-white bg-ds-green-strong hover:bg-[#166534] transition-colors disabled:opacity-50 disabled:cursor-wait cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
                     >
                       {isPendingRes ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />

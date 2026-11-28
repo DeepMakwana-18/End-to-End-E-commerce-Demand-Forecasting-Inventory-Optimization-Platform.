@@ -38,6 +38,7 @@ import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { usersApi } from '@/services/api';
 import { useAppStore } from '@/stores/appStore';
+import { PageHeader } from '@/components/ui/PageHeader';
 import '@/styles/titan-dashboard.css';
 
 interface UserModel {
@@ -382,7 +383,7 @@ export default function AdminUsersPage() {
     updateRoleMutation.isPending;
 
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
+    <div className="space-y-5 sm:space-y-6 pb-4">
       {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
@@ -569,38 +570,25 @@ export default function AdminUsersPage() {
         )}
       </AnimatePresence>
 
-      {/* ── 1. Compact Titan Editorial Page Header ───────────────────── */}
-      <header
-        style={{ '--reveal-delay': '0ms' } as React.CSSProperties}
-        className="titan-dash-reveal pb-6 border-b border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-end justify-between gap-4"
-      >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2.5 text-[12px] font-bold uppercase tracking-[0.13em] text-[#52525b] dark:text-[#a1a1aa]">
-            <span className="inline-block w-6 h-[1.5px] bg-[#f59e0b]" aria-hidden="true" />
-            <span>ADMINISTRATION · ACCESS CONTROL</span>
-          </div>
-          <h1 className="mt-2 text-2xl sm:text-[32px] font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-[-0.02em] leading-[1.15]">
-            User Management
-          </h1>
-          <p className="text-sm text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium">
-            Manage organization accounts, role-based access control, and sign-in enablement
-          </p>
-        </div>
-
-        {canManageUsers && (
-          <button
-            type="button"
-            onClick={() => {
-              setFormError(null);
-              setShowAddModal(true);
-            }}
-            className="min-h-[44px] sm:min-h-[38px] px-4 rounded-[10px] text-xs font-semibold inline-flex items-center gap-2 text-white bg-[#1e3fc8] hover:bg-[#1935a8] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] cursor-pointer self-start sm:self-end flex-shrink-0"
-          >
-            <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
-            <span>Add User</span>
-          </button>
-        )}
-      </header>
+      <PageHeader
+        title="User Management"
+        description="Manage organization accounts, role-based access control, and sign-in enablement"
+        actions={
+          canManageUsers ? (
+            <button
+              type="button"
+              onClick={() => {
+                setFormError(null);
+                setShowAddModal(true);
+              }}
+              className="min-h-[40px] sm:min-h-[38px] px-4 rounded-[10px] text-xs font-semibold inline-flex items-center gap-2 text-white bg-ds-blue hover:bg-ds-blue-strong transition-colors focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2 cursor-pointer"
+            >
+              <UserPlus className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Add User</span>
+            </button>
+          ) : undefined
+        }
+      />
 
       {/* ── 2. Honest KPI Summary Strip ──────────────────────────────── */}
       <section aria-label="User Account Metrics" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
