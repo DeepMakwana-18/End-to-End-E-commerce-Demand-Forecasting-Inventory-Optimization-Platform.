@@ -1,0 +1,59 @@
+/* Titan AI Executive Dashboard — Static Metric Card & Chart Tooltip
+ * Non-clickable metric cards sit still without hover lift or offset shadows.
+ */
+
+/* One-time subtle entrance for header and two KPI groups (<500ms total) */
+@keyframes titan-dash-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-dash-reveal {
+  animation: titan-dash-enter 260ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: var(--reveal-delay, 0ms);
+}
+
+.titan-kpi-wrap {
+  position: relative;
+  height: 100%;
+}
+
+.titan-kpi-card {
+  position: relative;
+  height: 100%;
+  box-shadow: 0 1px 2px rgba(24, 27, 34, 0.05);
+}
+
+/* Single semantic emphasis card ("Active Alerts" when active count > 0) */
+.titan-kpi-wrap--emphasized .titan-kpi-card {
+  border-color: var(--ds-amber);
+}
+
+/* Chart tooltip fade */
+.titan-chart-tooltip {
+  animation: titan-tooltip-fade 140ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes titan-tooltip-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titan-dash-reveal,
+  .titan-chart-tooltip {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}

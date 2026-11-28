@@ -1,0 +1,82 @@
+/* Titan AI Orbit Mark — shared across landing, auth, and product shell */
+.titan {
+  color: inherit;
+  overflow: visible;
+  display: block;
+  flex-shrink: 0;
+}
+
+.titan .orbit {
+  transform-origin: 24px 24px;
+}
+
+.titan .track {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  opacity: 0.18;
+}
+
+.titan.sm .track {
+  display: none;
+}
+
+.titan .sat {
+  transform-origin: 24px 24px;
+  transform: rotate(var(--a)) translateX(17px);
+}
+
+.titan .ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.titan.sm .ring {
+  stroke-width: 3.6;
+}
+
+.titan .core {
+  fill: currentColor;
+  transform-origin: 24px 24px;
+}
+
+/* Full-refresh / initial boot: rotate only the orbit group around center; core stays still */
+.titan.orbit-motion .orbit {
+  animation: titan-orbit-rotate 1.4s linear infinite;
+}
+
+/* In-app loading & background processing: stationary orbits, core opacity pulse */
+.titan.pulse-motion .core {
+  animation: titan-core-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes titan-orbit-rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes titan-core-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Pause decorative loops when the document is hidden */
+html[data-page-hidden="true"] .titan * {
+  animation-play-state: paused !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titan * {
+    animation: none !important;
+  }
+}

@@ -1,33 +1,31 @@
 /**
- * Scenario Engine Page — Phase 3D
- *
- * Three-column layout:
- *   Left  (320px) — Scenario history list
- *   Mid   (360px) — Scenario builder panel (sliders + run)
- *   Right (flex)  — Result panel (charts + KPIs + recommendations)
+ * Scenario Engine Page — Titan AI What-If Simulation Workspace
  */
 
 import { useState, useCallback, useEffect } from 'react';
-import { motion } from 'framer-motion';
-import { FlaskConical, Lightbulb, RefreshCw } from 'lucide-react';
-import { ScenarioBuilder } from '@/components/scenarios/ScenarioBuilder';
+import { Lightbulb, RefreshCw } from 'lucide-react';
+import { ScenarioBuilder, type BuilderSnapshot } from '@/components/scenarios/ScenarioBuilder';
 import { ScenarioResultPanel } from '@/components/scenarios/ScenarioResultPanel';
 import { ScenarioHistory } from '@/components/scenarios/ScenarioHistory';
 import { ScenarioExplainPanel } from '@/components/scenarios/ScenarioExplainPanel';
+import { PageHeader } from '@/components/ui/PageHeader';
 import scenarioApi from '@/services/scenarioApi';
 import { toast } from '@/hooks/useToast';
 import type { Scenario, ScenarioResultDetail, ScenarioParameters, ScenarioType } from '@/types/scenario';
+import '@/styles/titan-dashboard.css';
 
 export default function ScenariosPage() {
-  const [scenarios, setScenarios]               = useState<Scenario[]>([]);
-  const [activeScenario, setActiveScenario]     = useState<Scenario | null>(null);
-  const [activeResult, setActiveResult]         = useState<ScenarioResultDetail | null>(null);
-  const [isLoadingList, setIsLoadingList]       = useState(true);
-  const [isRunning, setIsRunning]               = useState(false);
-  const [lastRunName, setLastRunName]           = useState<string>('');
-  // Track the completed scenario whose explain panel should be shown
+  const [scenarios, setScenarios] = useState<Scenario[]>([]);
+  const [activeScenario, setActiveScenario] = useState<Scenario | null>(null);
+  const [activeResult, setActiveResult] = useState<ScenarioResultDetail | null>(null);
+  const [failedError, setFailedError] = useState<string | null>(null);
+  const [isLoadingList, setIsLoadingList] = useState(true);
+  const [isRunning, setIsRunning] = useState(false);
+  const [lastRunName, setLastRunName] = useState<string>('');
   const [completedScenarioId, setCompletedScenarioId] = useState<number | null>(null);
   const [explainHorizonWeeks, setExplainHorizonWeeks] = useState<number>(12);
+  const [lastSimulatedSnapshot, setLastSimulatedSnapshot] = useState<BuilderSnapshot | null>(null);
+  const [hasUnsimulatedChanges, setHasUnsimulatedChanges] = useState(false);
 
   // ── Load list ────────────────────────────────────────────────────────
   const loadScenarios = useCallback(async () => {
@@ -61,16 +59,34 @@ export default function ScenariosPage() {
   const handleSelect = useCallback(async (s: Scenario) => {
     setActiveScenario(s);
     setActiveResult(null);
+    setFailedError(null);
     setCompletedScenarioId(null);
+    setLastRunName(s.name);
+
+    if (s.status === 'failed') {
+      setFailedError('This scenario run failed during execution. Click Retry in Scenario History to run it again.');
+      return;
+    }
+
     if (s.status === 'completed' && s.latest_result) {
       try {
         const { data } = await scenarioApi.getResultByVersion(s.id, s.latest_result.version);
         setActiveResult(data);
-        setLastRunName(s.name);
         setCompletedScenarioId(s.id);
         setExplainHorizonWeeks(s.horizon_weeks ?? 12);
+        const applied = data.detail?.params_applied;
+        setLastSimulatedSnapshot({
+          params: {
+            marketing_spend_pct: applied?.marketing_spend_pct ?? s.parameters?.marketing_spend_pct ?? 0,
+            price_change_pct: applied?.price_change_pct ?? s.parameters?.price_change_pct ?? 0,
+            lead_time_days: applied?.lead_time_days ?? s.parameters?.lead_time_days ?? 14,
+            safety_stock_multiplier: applied?.safety_stock_multiplier ?? s.parameters?.safety_stock_multiplier ?? 1.0,
+            avg_unit_value: applied?.avg_unit_value ?? s.parameters?.avg_unit_value ?? 50,
+          },
+          horizonWeeks: s.horizon_weeks ?? 12,
+        });
       } catch {
-        // Result details unavailable — show summary only
+        setFailedError('Result details could not be loaded for this scenario.');
       }
     }
   }, []);
@@ -82,12 +98,13 @@ export default function ScenariosPage() {
     params: ScenarioParameters,
     horizonWeeks: number,
   ) => {
+    if (isRunning) return;
     setIsRunning(true);
     setActiveResult(null);
+    setFailedError(null);
     setCompletedScenarioId(null);
     setLastRunName(name);
     try {
-      // 1. Create scenario
       const { data: created } = await scenarioApi.create({
         name,
         scenario_type: type,
@@ -95,30 +112,33 @@ export default function ScenariosPage() {
         parameters: params,
       });
 
-      // 2. Run simulation
       const { data: result } = await scenarioApi.run(created.id);
+      setActiveScenario(created);
       setActiveResult(result);
       setCompletedScenarioId(created.id);
       setExplainHorizonWeeks(horizonWeeks);
+      setLastSimulatedSnapshot({ params: { ...params }, horizonWeeks });
 
-      // 3. Refresh history
       await loadScenarios();
-
       toast.success('Simulation complete', `${name} finished in ${result.computation_seconds?.toFixed(2)}s`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Simulation failed';
-      toast.error('Simulation error', typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const errText = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      setFailedError(errText);
+      toast.error('Simulation error', errText);
     } finally {
       setIsRunning(false);
     }
-  }, [loadScenarios]);
+  }, [isRunning, loadScenarios]);
 
   // ── Quick-run an existing scenario ───────────────────────────────────
   const handleQuickRun = useCallback(async (id: number) => {
+    if (isRunning) return;
     const s = scenarios.find((x) => x.id === id);
     if (!s) return;
     setIsRunning(true);
     setActiveResult(null);
+    setFailedError(null);
     setCompletedScenarioId(null);
     setLastRunName(s.name);
     setActiveScenario(s);
@@ -127,15 +147,28 @@ export default function ScenariosPage() {
       setActiveResult(result);
       setCompletedScenarioId(id);
       setExplainHorizonWeeks(s.horizon_weeks ?? 12);
+      const applied = result.detail?.params_applied;
+      setLastSimulatedSnapshot({
+        params: {
+          marketing_spend_pct: applied?.marketing_spend_pct ?? s.parameters?.marketing_spend_pct ?? 0,
+          price_change_pct: applied?.price_change_pct ?? s.parameters?.price_change_pct ?? 0,
+          lead_time_days: applied?.lead_time_days ?? s.parameters?.lead_time_days ?? 14,
+          safety_stock_multiplier: applied?.safety_stock_multiplier ?? s.parameters?.safety_stock_multiplier ?? 1.0,
+          avg_unit_value: applied?.avg_unit_value ?? s.parameters?.avg_unit_value ?? 50,
+        },
+        horizonWeeks: s.horizon_weeks ?? 12,
+      });
       await loadScenarios();
       toast.success('Simulation complete', `${s.name} finished`);
     } catch (err: unknown) {
       const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? 'Simulation failed';
-      toast.error('Simulation error', typeof msg === 'string' ? msg : JSON.stringify(msg));
+      const errText = typeof msg === 'string' ? msg : JSON.stringify(msg);
+      setFailedError(errText);
+      toast.error('Simulation error', errText);
     } finally {
       setIsRunning(false);
     }
-  }, [scenarios, loadScenarios]);
+  }, [isRunning, scenarios, loadScenarios]);
 
   // ── Archive (delete) ─────────────────────────────────────────────────
   const handleDelete = useCallback(async (id: number) => {
@@ -145,6 +178,9 @@ export default function ScenariosPage() {
       if (activeScenario?.id === id) {
         setActiveScenario(null);
         setActiveResult(null);
+        setFailedError(null);
+        setCompletedScenarioId(null);
+        setLastSimulatedSnapshot(null);
       }
       toast.success('Archived', 'Scenario archived successfully');
     } catch {
@@ -153,106 +189,75 @@ export default function ScenariosPage() {
   }, [activeScenario, loadScenarios]);
 
   return (
-    <div className="flex flex-col gap-6 w-full pb-16">
-      {/* 1. Page Header */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
-      >
-        {/* Subtle indigo-to-blue decorative glow */}
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
-
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <FlaskConical className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 inline-block" />
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
-                Scenario Engine
-              </h1>
+    <div className="flex flex-col gap-5 sm:gap-6 w-full pb-4">
+      <PageHeader
+        title="Scenario Engine"
+        description="Non-destructive demand, inventory & risk simulations powered by the active ML model"
+        actions={
+          <>
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-ds-blue-surface text-ds-blue-on-surface border border-ds-blue/20 text-xs font-semibold">
+              <Lightbulb className="w-3.5 h-3.5 flex-shrink-0" aria-hidden="true" />
+              <span>Non-destructive — model is never retrained</span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              What-If simulations powered by the active ML model
-            </p>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2.5 relative z-10 self-start sm:self-auto">
-          {/* Informational non-destructive badge */}
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200/80 dark:bg-ds-blue-surface dark:text-ds-blue-text dark:border-ds-blue/20 text-xs font-semibold shadow-2xs">
-            <Lightbulb className="w-3.5 h-3.5 text-blue-600 dark:text-ds-blue flex-shrink-0" />
-            <span>Non-destructive simulation — model is never retrained</span>
-          </div>
+            <button
+              id="refresh-scenarios"
+              type="button"
+              onClick={loadScenarios}
+              disabled={isLoadingList}
+              className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-surface text-ds-text-primary border border-ds-hairline hover:bg-ds-surface-sunken transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-ds-blue' : ''}`} aria-hidden="true" />
+              <span>Refresh</span>
+            </button>
+          </>
+        }
+      />
 
-          <button
-            id="refresh-scenarios"
-            onClick={loadScenarios}
-            disabled={isLoadingList}
-            className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-slate-200 dark:border-ds-border hover:bg-slate-50 dark:hover:bg-ds-surface-sunken"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-blue-600' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        </div>
-      </motion.div>
-
-      {/* 2. Main Workspace: Two Columns (Left ~42% Builder, Right ~58% Results) */}
+      {/* 2. Main Workspace: Two Columns (Builder first on mobile, side-by-side on desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* ── Left Column: Builder (lg:col-span-5 ~41.7%) ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.05 }}
-          className="lg:col-span-5 flex flex-col"
-        >
+        {/* Left Column: Builder */}
+        <div className="lg:col-span-5 flex flex-col">
           <ScenarioBuilder
             onRun={handleRun}
             isRunning={isRunning}
+            lastSimulatedSnapshot={lastSimulatedSnapshot}
+            onUnsimulatedChange={setHasUnsimulatedChanges}
           />
-        </motion.div>
+        </div>
 
-        {/* ── Right Column: Results (lg:col-span-7 ~58.3%) ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="lg:col-span-7 flex flex-col gap-6"
-        >
+        {/* Right Column: Results & Explainability */}
+        <div className="lg:col-span-7 flex flex-col gap-5">
           <ScenarioResultPanel
             result={activeResult}
             isRunning={isRunning}
             scenarioName={lastRunName || activeScenario?.name}
+            hasUnsimulatedChanges={hasUnsimulatedChanges}
+            failedError={failedError}
           />
 
-          {/* SHAP Explain Panel — lazy, only when scenario is completed */}
           {completedScenarioId !== null && activeResult && !isRunning && (
             <ScenarioExplainPanel
+              key={completedScenarioId}
               scenarioId={completedScenarioId}
               horizonWeeks={explainHorizonWeeks}
             />
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* 3. Full-Width Bottom Section: Scenario History */}
-      <motion.div
-        initial={{ opacity: 0, y: 14 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.15 }}
-        className="w-full"
-      >
+      <div className="w-full">
         <ScenarioHistory
           scenarios={scenarios}
           activeId={activeScenario?.id ?? null}
           isLoading={isLoadingList}
+          isRunning={isRunning}
           onSelect={handleSelect}
           onRun={handleQuickRun}
           onDelete={handleDelete}
         />
-      </motion.div>
+      </div>
     </div>
   );
 }

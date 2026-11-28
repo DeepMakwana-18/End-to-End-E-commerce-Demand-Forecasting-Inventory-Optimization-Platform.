@@ -1,30 +1,34 @@
-/** Forecasting Page - Product-wise & category demand forecasts with charts. */
+/** Forecasting Page — Titan AI Demand Forecasting & Explainability. */
 
 import { useState, useMemo, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   TrendingUp, Calendar, Layers, ArrowUpRight, ArrowDownRight,
-  Filter, Download, X, CheckCircle2, Loader2, Database, Cpu,
-  Upload, Activity, ArrowRight, Sparkles, AlertTriangle, RefreshCw
+  Filter, Download, X, CheckCircle2, Database, Cpu,
+  Upload, Activity, ArrowRight, AlertTriangle, RefreshCw,
 } from 'lucide-react';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
-  ResponsiveContainer, Area, AreaChart, Legend,
+  ResponsiveContainer, Area, AreaChart,
   ReferenceLine, ReferenceArea,
 } from 'recharts';
 import { KPICard } from '@/components/dashboard/KPICard';
 import { ChartCard } from '@/components/dashboard/ChartCard';
 import { ForecastExplainPanel } from '@/components/forecast/ForecastExplainPanel';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonKPIRow, SkeletonChart } from '@/components/ui/Skeleton';
 import { cn, formatNumber } from '@/lib/utils';
 import { forecastApi, type ForecastExplainResponse } from '@/services/api';
+import '@/styles/titan-dashboard.css';
 
 interface TooltipEntry {
   name: string;
-  value: number;
+  value: number | [number, number];
   color?: string;
   stroke?: string;
-  payload?: ForecastChartPoint & { date?: string };
+  dataKey?: string;
+  payload?: ForecastChartPoint;
 }
 
 interface CustomTooltipProps {
@@ -33,45 +37,86 @@ interface CustomTooltipProps {
   label?: string;
 }
 
+const formatFullDate = (dateStr?: string) => {
+  if (!dateStr) return undefined;
+  const dt = new Date(dateStr);
+  if (Number.isNaN(dt.getTime())) return undefined;
+  return dt.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
+const formatShortDate = (dateStr?: string | null) => {
+  if (!dateStr) return null;
+  const dt = new Date(dateStr);
+  if (Number.isNaN(dt.getTime())) return null;
+  return dt.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+};
+
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (!active || !payload?.length) return null;
-  const point = payload[0]?.payload as (ForecastChartPoint & { date?: string }) | undefined;
-  const dateFormatted = point?.date
-    ? new Date(point.date).toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric',
-        year: 'numeric',
-      })
-    : label;
+  const point = payload[0]?.payload;
+  const dateFormatted = formatFullDate(point?.date);
+  const isJunctionPoint =
+    point?.actual !== undefined &&
+    point?.predicted !== undefined &&
+    point.actual === point.predicted &&
+    point.week.startsWith('H');
+
+  const visibleEntries = payload.filter((entry) => {
+    if (entry.value === undefined || entry.dataKey === 'ciBand') return false;
+    // On the H14 -> F1 connector point, show Actual Demand once instead of duplicating the same number
+    if (isJunctionPoint && entry.dataKey === 'predicted') return false;
+    return typeof entry.value === 'number';
+  });
 
   return (
-    <div className="rounded-xl p-3.5 bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border shadow-md dark:shadow-ds-float-2 text-xs z-50 min-w-[200px]">
-      <div className="mb-2 pb-1.5 border-b border-slate-100 dark:border-ds-hairline">
-        <p className="font-bold text-slate-900 dark:text-ds-text-primary text-xs">{label}</p>
-        {point?.date && (
-          <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">{dateFormatted}</p>
+    <div className="titan-chart-tooltip rounded-[12px] p-3.5 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] shadow-lg text-xs z-50 min-w-[205px]">
+      <div className="mb-2 pb-1.5 border-b border-[#e4e4e7] dark:border-[#27272a]">
+        <div className="flex items-center justify-between gap-2">
+          <p className="font-bold text-[#0a0a0a] dark:text-[#fafaf9] text-xs">
+            {point?.week || label}
+          </p>
+          {isJunctionPoint && (
+            <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-[#f1f1f3] dark:bg-[#18181b] text-[#52525b] dark:text-[#a1a1aa]">
+              Forecast boundary
+            </span>
+          )}
+        </div>
+        {dateFormatted && (
+          <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium mt-0.5">
+            {dateFormatted}
+          </p>
         )}
       </div>
+
       <div className="space-y-1.5">
-        {payload
-          .filter((entry: any) => entry.value !== undefined && entry.name !== 'Upper CI' && entry.name !== 'Lower CI')
-          .map((entry, i) => (
-            <div key={i} className="flex items-center justify-between gap-3 font-medium">
-              <span className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300">
-                <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: entry.color || entry.stroke }} />
-                <span className="truncate">{entry.name}:</span>
-              </span>
-              <span className="font-bold text-slate-900 dark:text-ds-text-primary font-sans tabular-nums">
-                {formatNumber(entry.value)}
-              </span>
-            </div>
-          ))}
+        {visibleEntries.map((entry, i) => (
+          <div key={i} className="flex items-center justify-between gap-3 font-medium">
+            <span className="flex items-center gap-1.5 text-[#52525b] dark:text-[#a1a1aa]">
+              <span
+                className="w-2 h-2 rounded-full flex-shrink-0"
+                style={{ backgroundColor: entry.color || entry.stroke }}
+              />
+              <span className="truncate">{entry.name}:</span>
+            </span>
+            <span className="font-bold text-[#0a0a0a] dark:text-[#fafaf9] font-sans tabular-nums">
+              {formatNumber(entry.value as number)}
+            </span>
+          </div>
+        ))}
 
         {point?.lower !== undefined && point?.upper !== undefined && (
-          <div className="pt-2 mt-1.5 border-t border-slate-100 dark:border-ds-hairline flex items-center justify-between text-[11px]">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">95% CI Range:</span>
-            <span className="font-mono text-slate-700 dark:text-slate-200 font-semibold tabular-nums">
+          <div className="pt-2 mt-1.5 border-t border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-between gap-3 text-[11px]">
+            <span className="text-[#52525b] dark:text-[#a1a1aa] font-medium">95% CI Range:</span>
+            <span className="font-mono text-[#0a0a0a] dark:text-[#fafaf9] font-semibold tabular-nums">
               [{formatNumber(point.lower)} – {formatNumber(point.upper)}]
             </span>
           </div>
@@ -113,6 +158,13 @@ interface CategoryPoint {
   change_pct: number;
 }
 
+interface CategoriesApiResponse {
+  categories?: CategoryPoint[];
+  data_date?: string | null;
+  forecast_date?: string | null;
+  product_linked?: boolean;
+}
+
 interface CategoryForecast {
   category: string;
   current: number;
@@ -127,6 +179,7 @@ interface ForecastChartPoint {
   predicted?: number;
   lower?: number;
   upper?: number;
+  ciBand?: [number, number];
   label: string;
 }
 
@@ -134,9 +187,16 @@ export default function ForecastPage() {
   const [showFilters, setShowFilters] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [toast, setToast] = useState<string | null>(null);
-  
+  const prefersReducedMotion = useReducedMotion();
+
   const [forecastData, setForecastData] = useState<ForecastChartPoint[]>([]);
   const [categoryForecasts, setCategoryForecasts] = useState<CategoryForecast[]>([]);
+  const [categoryMeta, setCategoryMeta] = useState<{
+    dataDate: string | null;
+    forecastDate: string | null;
+    productLinked: boolean;
+  }>({ dataDate: null, forecastDate: null, productLinked: false });
+
   const [isLoading, setIsLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [modelMetrics, setModelMetrics] = useState<{
@@ -168,9 +228,10 @@ export default function ForecastPage() {
       predicted: undefined,
       lower: undefined,
       upper: undefined,
+      ciBand: undefined,
       label: formatDateLabel(h.date),
     }));
-    
+
     const forecasts: ForecastChartPoint[] = (data.forecasts || []).map((d) => ({
       week: `F${d.week}`,
       date: d.date,
@@ -178,14 +239,15 @@ export default function ForecastPage() {
       predicted: d.predicted_demand,
       lower: d.confidence_lower,
       upper: d.confidence_upper,
+      ciBand: [d.confidence_lower, d.confidence_upper],
       label: formatDateLabel(d.date),
     }));
-    
+
     // Connect the two lines at the junction point
     if (historical.length > 0 && forecasts.length > 0) {
       historical[historical.length - 1].predicted = historical[historical.length - 1].actual;
     }
-    
+
     setForecastData([...historical, ...forecasts]);
     setModelMetrics({
       accuracy: data.accuracy,
@@ -195,6 +257,21 @@ export default function ForecastPage() {
       trainingId: data.training_id,
       trainingSamples: data.training_samples,
       hasModel: data.has_model,
+    });
+  };
+
+  const applyCategoriesResponse = (catData: CategoriesApiResponse) => {
+    const categories = catData?.categories || [];
+    setCategoryForecasts(categories.map((c) => ({
+      category: c.category,
+      current: c.current_demand,
+      predicted: c.predicted_demand,
+      change: c.change_pct,
+    })));
+    setCategoryMeta({
+      dataDate: catData?.data_date ?? null,
+      forecastDate: catData?.forecast_date ?? null,
+      productLinked: Boolean(catData?.product_linked),
     });
   };
 
@@ -212,18 +289,12 @@ export default function ForecastPage() {
       const res = await forecastApi.get(12);
       formatResponse(res.data as ForecastApiResponse);
       const catRes = await forecastApi.getCategories();
-      const categories = (catRes.data as { categories?: CategoryPoint[] })?.categories || [];
-      setCategoryForecasts(categories.map((c) => ({
-        category: c.category,
-        current: c.current_demand,
-        predicted: c.predicted_demand,
-        change: c.change_pct
-      })));
+      applyCategoriesResponse(catRes.data as CategoriesApiResponse);
     } catch (err: unknown) {
       console.error(err);
       const errorMsg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to load ML forecasts from backend';
       setFetchError(errorMsg);
-      showToast(`❌ ${errorMsg}`);
+      showToast(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -239,19 +310,13 @@ export default function ForecastPage() {
         formatResponse(res.data as ForecastApiResponse);
         const catRes = await forecastApi.getCategories();
         if (!isMounted) return;
-        const categories = (catRes.data as { categories?: CategoryPoint[] })?.categories || [];
-        setCategoryForecasts(categories.map((c) => ({
-          category: c.category,
-          current: c.current_demand,
-          predicted: c.predicted_demand,
-          change: c.change_pct
-        })));
+        applyCategoriesResponse(catRes.data as CategoriesApiResponse);
       } catch (err: unknown) {
         if (!isMounted) return;
         console.error(err);
         const errorMsg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail || 'Failed to load ML forecasts from backend';
         setFetchError(errorMsg);
-        showToast(`❌ ${errorMsg}`);
+        showToast(errorMsg);
       } finally {
         if (isMounted) setIsLoading(false);
       }
@@ -300,7 +365,7 @@ export default function ForecastPage() {
     a.download = `forecast_report_${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('✅ Forecast report exported as CSV');
+    showToast('Forecast report exported as CSV');
   };
 
   const isZeroData = !isLoading && (
@@ -324,122 +389,131 @@ export default function ForecastPage() {
     return lastF?.week;
   }, [forecastData]);
 
+  const currentWindowCaption = useMemo(() => {
+    if (categoryMeta.productLinked) {
+      const formatted = formatShortDate(categoryMeta.dataDate);
+      return formatted ? `Observed (${formatted})` : 'Latest observed period';
+    }
+    return 'Last 4 observed weeks';
+  }, [categoryMeta]);
+
+  const predictedWindowCaption = useMemo(() => {
+    if (categoryMeta.productLinked) {
+      const formatted = formatShortDate(categoryMeta.forecastDate);
+      return formatted ? `Projected (${formatted})` : 'Next projected period';
+    }
+    return 'Next 4 projected weeks';
+  }, [categoryMeta]);
+
   return (
-    <div className="space-y-6 sm:space-y-8 pb-12 sm:pb-16">
+    <div className="space-y-5 sm:space-y-6 pb-4">
       {/* Toast notification */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-xl bg-ds-surface border border-ds-border text-ds-text-primary text-xs font-semibold flex items-center gap-2 shadow-ds-float-2 backdrop-blur-xl"
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+            className="fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] bg-ds-surface border border-ds-hairline text-ds-text-primary text-xs font-semibold flex items-center gap-2 shadow-ds-float-2"
           >
-            <CheckCircle2 className="w-4 h-4 text-ds-emerald-success" />
+            <CheckCircle2 className="w-4 h-4 text-ds-green flex-shrink-0" aria-hidden="true" />
             <span>{toast}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* 1. Header with elevated container matching Inventory direction */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
-      >
-        {/* Subtle blue-to-indigo decorative glow without impairing text readability */}
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
+      <PageHeader
+        title="Demand Forecasting"
+        description="ML-powered demand predictions with confidence intervals & SHAP explainability"
+        actions={
+          !isZeroData && !isLoading ? (
+            <>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowFilters(!showFilters)}
+                  aria-expanded={showFilters}
+                  aria-haspopup="listbox"
+                  className={cn(
+                    'h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 border transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2',
+                    showFilters || selectedCategory !== 'all'
+                      ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-sidebar-active-border'
+                      : 'bg-ds-surface text-ds-text-primary border-ds-hairline hover:bg-ds-surface-sunken'
+                  )}
+                >
+                  <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                  <span>{selectedCategory === 'all' ? 'Filters' : selectedCategory}</span>
+                </button>
 
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <TrendingUp className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-600 to-indigo-600 inline-block" />
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text-heading tracking-tight">
-                Demand Forecasting
-              </h1>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              ML-powered demand predictions with SHAP explainability
-            </p>
-          </div>
-        </div>
+                <AnimatePresence>
+                  {showFilters && (
+                    <motion.div
+                      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={prefersReducedMotion ? undefined : { opacity: 0, y: 4 }}
+                      transition={{ duration: prefersReducedMotion ? 0 : 0.14 }}
+                      role="listbox"
+                      aria-label="Filter by category"
+                      className="absolute left-0 sm:left-auto sm:right-0 top-full mt-2 w-56 rounded-[12px] p-2 z-50 space-y-1 shadow-ds-float-2 bg-ds-surface border border-ds-hairline"
+                    >
+                      <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-ds-hairline">
+                        <span className="text-xs font-semibold text-ds-text-primary">Filter by Category</span>
+                        <button
+                          type="button"
+                          onClick={() => setShowFilters(false)}
+                          aria-label="Close filters"
+                          className="w-6 h-6 rounded-md flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors cursor-pointer"
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      {['all', ...categoryForecasts.map(c => c.category)].map(cat => (
+                        <button
+                          key={cat}
+                          type="button"
+                          role="option"
+                          aria-selected={selectedCategory === cat}
+                          onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
+                          className={cn(
+                            'w-full text-left px-3 py-2 rounded-[8px] text-xs font-semibold transition-colors cursor-pointer',
+                            selectedCategory === cat
+                              ? 'bg-ds-sidebar-active text-ds-sidebar-active-text'
+                              : 'text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text-primary'
+                          )}
+                        >
+                          {cat === 'all' ? 'All Categories' : cat}
+                        </button>
+                      ))}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
-        {/* Action Controls (Active when data exists) */}
-        {!isZeroData && !isLoading && (
-          <div className="flex items-center gap-2.5 self-start sm:self-auto relative z-10">
-            <div className="relative">
               <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={cn(
-                  'btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-ds-border',
-                  showFilters && 'bg-ds-blue-surface text-ds-blue-text border-ds-blue/30'
-                )}
+                type="button"
+                onClick={handleExport}
+                className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-blue hover:bg-ds-blue-strong text-white transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
               >
-                <Filter className="w-3.5 h-3.5" />
-                <span>Filters</span>
-                {selectedCategory !== 'all' && (
-                  <span className="w-1.5 h-1.5 rounded-full bg-ds-blue" />
-                )}
+                <Download className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>Export</span>
               </button>
-              <AnimatePresence>
-                {showFilters && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 5, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 5, scale: 0.96 }}
-                    className="absolute right-0 top-full mt-2 w-56 card-apple p-2 z-50 space-y-1 shadow-ds-float-2 bg-ds-surface/98 backdrop-blur-xl border border-ds-border"
-                  >
-                    <div className="flex items-center justify-between px-2 py-1.5 mb-1 border-b border-ds-hairline">
-                      <span className="text-xs font-bold text-ds-text-primary">Filter by Category</span>
-                      <button
-                        onClick={() => setShowFilters(false)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors"
-                      >
-                        <X className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                    {['all', ...categoryForecasts.map(c => c.category)].map(cat => (
-                      <button
-                        key={cat}
-                        onClick={() => { setSelectedCategory(cat); setShowFilters(false); }}
-                        className={cn(
-                          'w-full text-left px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150',
-                          selectedCategory === cat
-                            ? 'bg-ds-blue text-white shadow-xs'
-                            : 'text-ds-text-secondary hover:bg-ds-surface-sunken hover:text-ds-text-primary'
-                        )}
-                      >
-                        {cat === 'all' ? 'All Categories' : cat}
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            <button
-              onClick={handleExport}
-              className="btn-apple btn-apple-primary text-xs h-9 px-3.5 shadow-sm inline-flex items-center gap-1.5"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Export</span>
-            </button>
-          </div>
-        )}
-      </motion.div>
+            </>
+          ) : undefined
+        }
+      />
 
       {/* Network / API Fetch Error Banner */}
       {fetchError && !isLoading && (
-        <div className="p-4 rounded-2xl bg-ds-red-surface border border-ds-red/20 text-ds-red-text flex items-center justify-between gap-3 text-xs font-medium shadow-2xs">
+        <div className="p-4 rounded-[16px] bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-900/50 text-red-800 dark:text-red-300 flex items-center justify-between gap-3 text-xs font-medium">
           <div className="flex items-center gap-2.5">
-            <AlertTriangle className="w-4 h-4 flex-shrink-0 text-ds-red" />
+            <AlertTriangle className="w-4 h-4 flex-shrink-0 text-red-600 dark:text-red-400" aria-hidden="true" />
             <span>{fetchError}</span>
           </div>
           <button
+            type="button"
             onClick={handleRetry}
-            className="px-3 py-1 rounded-lg bg-white dark:bg-ds-surface text-ds-red-text border border-ds-red/25 hover:bg-ds-surface-sunken flex items-center gap-1.5 font-semibold text-xs shadow-2xs transition-colors"
+            className="px-3 py-1.5 rounded-[8px] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] flex items-center gap-1.5 font-semibold text-xs transition-colors cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Retry
           </button>
@@ -448,173 +522,125 @@ export default function ForecastPage() {
 
       {/* 2. Loading State */}
       {isLoading ? (
-        <div className="card-apple p-12 sm:p-16 flex flex-col items-center justify-center text-center my-6">
-          <div className="w-12 h-12 rounded-2xl bg-ds-blue-surface text-ds-blue flex items-center justify-center mb-4 shadow-xs">
-            <Loader2 className="w-6 h-6 animate-spin" />
-          </div>
-          <h3 className="text-base font-bold text-ds-text-primary">Loading Forecast Telemetry</h3>
-          <p className="text-xs text-ds-text-muted mt-1.5 max-w-sm">
-            Retrieving machine learning model predictions, confidence intervals, and SHAP drivers...
-          </p>
+        <div className="space-y-5" aria-busy="true" aria-label="Loading forecast telemetry">
+          <SkeletonKPIRow />
+          <SkeletonChart />
         </div>
       ) : isZeroData ? (
-        /* 3. Polished Empty-State Panel */
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.35, ease: [0.28, 0.11, 0.32, 1] }}
-          className="max-w-2xl mx-auto my-6 sm:my-8 p-7 sm:p-10 rounded-3xl bg-gradient-to-b from-[#F0F5FF]/90 via-[#F8FAFF]/90 to-white dark:bg-none dark:bg-ds-surface border border-blue-200/70 dark:border-ds-border shadow-[0_16px_40px_rgba(37,99,235,0.07)] flex flex-col items-center text-center relative overflow-hidden"
-        >
-          {/* Subtle ambient gradient highlights */}
-          <div className="absolute -top-16 -right-16 w-48 h-48 bg-gradient-to-br from-blue-400/15 to-indigo-400/15 rounded-full blur-3xl pointer-events-none" />
-          <div className="absolute -bottom-16 -left-16 w-48 h-48 bg-gradient-to-tr from-indigo-400/15 to-teal-400/15 rounded-full blur-3xl pointer-events-none" />
-
-          {/* Large layered illustration-style icon */}
-          <div className="relative mb-5 flex items-center justify-center">
-            <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-gradient-to-br from-blue-500/15 via-indigo-500/15 to-teal-500/15 border border-blue-300/30 flex items-center justify-center shadow-inner relative">
-              <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/25">
-                <Layers className="w-7 h-7 sm:w-8 sm:h-8" />
-              </div>
-              {/* Floating accent badge */}
-              <div className="absolute -top-2 -right-2 w-7 h-7 rounded-full bg-white dark:bg-surface-800 text-blue-600 dark:text-blue-400 shadow-md border border-blue-100 dark:border-blue-900/40 flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
-              </div>
-            </div>
+        /* 3. Empty-State Panel */
+        <div className="max-w-2xl mx-auto my-6 sm:my-8 p-7 sm:p-10 rounded-[20px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] flex flex-col items-center text-center">
+          <div className="w-14 h-14 rounded-[14px] bg-[#0a0a0a] dark:bg-[#fafaf9] text-[#fafaf9] dark:text-[#0a0a0a] flex items-center justify-center mb-5">
+            <Layers className="w-7 h-7" aria-hidden="true" />
           </div>
 
-          {/* Existing "No Forecast Data" Heading */}
-          <h2 className="text-xl sm:text-2xl font-extrabold text-ds-text-heading tracking-tight mb-2">
+          <h2 className="text-xl sm:text-2xl font-extrabold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight mb-2">
             No Forecast Data
           </h2>
-
-          {/* Concise guidance */}
-          <p className="text-xs sm:text-sm text-ds-text-secondary max-w-md leading-relaxed">
-            Demand forecasting requires an uploaded transaction dataset and a successfully trained ML model. Follow the workflow below to generate predictive insights.
+          <p className="text-xs sm:text-sm text-[#52525b] dark:text-[#a1a1aa] max-w-md leading-relaxed">
+            Demand forecasting requires an uploaded transaction dataset and a trained ML model. Follow the workflow below to generate predictions.
           </p>
 
-          {/* Informational Workflow Visual: Dataset → Training → Forecast */}
-          <div className="my-6 w-full max-w-lg p-3.5 sm:p-4 rounded-2xl bg-white/95 dark:bg-surface-800/60 border border-blue-100 dark:border-ds-border shadow-2xs">
-            <p className="text-[10px] font-bold uppercase tracking-wider text-ds-text-muted mb-3 text-left">
+          <div className="my-6 w-full max-w-lg p-4 rounded-[14px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-[#52525b] dark:text-[#a1a1aa] mb-3 text-left">
               Forecasting Workflow
             </p>
-            <div className="flex items-center justify-between gap-1 sm:gap-2">
-              {/* Step 1: Dataset */}
+            <div className="flex items-center justify-between gap-2">
               <div className="flex flex-col items-center flex-1 text-center">
-                <div className="w-9 h-9 rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200/60 dark:border-blue-900/40 flex items-center justify-center shadow-2xs mb-1.5">
+                <div className="w-9 h-9 rounded-[10px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#1e3fc8] dark:text-[#60a5fa] flex items-center justify-center mb-1.5">
                   <Database className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-bold text-ds-text-primary">1. Dataset</span>
-                <span className="text-[10px] text-ds-text-muted hidden sm:inline">Upload sales logs</span>
+                <span className="text-[11px] font-bold text-[#0a0a0a] dark:text-[#fafaf9]">1. Dataset</span>
+                <span className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] hidden sm:inline">Upload sales logs</span>
               </div>
-
-              {/* Arrow */}
-              <div className="text-blue-300 dark:text-ds-text-muted pb-3">
-                <ArrowRight className="w-4 h-4" />
-              </div>
-
-              {/* Step 2: Training */}
+              <ArrowRight className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] mb-3" />
               <div className="flex flex-col items-center flex-1 text-center">
-                <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-900/40 flex items-center justify-center shadow-2xs mb-1.5">
+                <div className="w-9 h-9 rounded-[10px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] flex items-center justify-center mb-1.5">
                   <Cpu className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-bold text-ds-text-primary">2. Training</span>
-                <span className="text-[10px] text-ds-text-muted hidden sm:inline">Train ML model</span>
+                <span className="text-[11px] font-bold text-[#0a0a0a] dark:text-[#fafaf9]">2. Training</span>
+                <span className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] hidden sm:inline">Train ML model</span>
               </div>
-
-              {/* Arrow */}
-              <div className="text-indigo-300 dark:text-ds-text-muted pb-3">
-                <ArrowRight className="w-4 h-4" />
-              </div>
-
-              {/* Step 3: Forecast */}
+              <ArrowRight className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] mb-3" />
               <div className="flex flex-col items-center flex-1 text-center">
-                <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-900/40 flex items-center justify-center shadow-2xs mb-1.5">
+                <div className="w-9 h-9 rounded-[10px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#16a34a] flex items-center justify-center mb-1.5">
                   <TrendingUp className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-bold text-ds-text-primary">3. Forecast</span>
-                <span className="text-[10px] text-ds-text-muted hidden sm:inline">Predictive trends</span>
+                <span className="text-[11px] font-bold text-[#0a0a0a] dark:text-[#fafaf9]">3. Forecast</span>
+                <span className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] hidden sm:inline">Predictive trends</span>
               </div>
             </div>
           </div>
 
-          {/* Action buttons with verified routes */}
           <div className="flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
             <Link
               to="/app/admin/upload"
-              className="btn-apple btn-apple-primary w-full sm:w-auto text-xs h-10 px-5 shadow-sm inline-flex items-center justify-center gap-2"
+              className="w-full sm:w-auto h-10 px-5 rounded-[10px] text-xs font-semibold inline-flex items-center justify-center gap-2 bg-[#1e3fc8] hover:bg-[#1935a8] text-white transition-colors"
             >
               <Upload className="w-4 h-4" />
               <span>Upload Dataset</span>
             </Link>
             <Link
               to="/app/admin/pipeline"
-              className="btn-apple btn-apple-soft w-full sm:w-auto text-xs h-10 px-4 inline-flex items-center justify-center gap-2 bg-white dark:bg-ds-surface border border-ds-border hover:bg-ds-surface-sunken"
+              className="w-full sm:w-auto h-10 px-4 rounded-[10px] text-xs font-semibold inline-flex items-center justify-center gap-2 bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] transition-colors"
             >
               <Activity className="w-4 h-4" />
               <span>Go to ML Pipeline</span>
             </Link>
           </div>
-        </motion.div>
+        </div>
       ) : (
         /* 4. Populated Forecasting Analytics */
         <>
           {/* Forecast KPIs */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <section
+            aria-label="Forecast Key Metrics"
+            style={{ '--reveal-delay': '60ms' } as React.CSSProperties}
+            className="titan-dash-reveal grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5"
+          >
             <KPICard
               title="Model Accuracy"
-              value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : "—"}
-              change={modelMetrics?.accuracy ? 2.1 : undefined}
+              value={modelMetrics?.accuracy ? `${modelMetrics.accuracy}%` : '—'}
               icon={TrendingUp}
-              variant="teal"
-              delay={0}
             />
             <KPICard
               title="RMSE Score"
-              value={modelMetrics?.rmse ? String(modelMetrics.rmse) : "—"}
-              change={modelMetrics?.rmse ? -8.5 : undefined}
-              invertChange={true}
+              value={modelMetrics?.rmse ? String(modelMetrics.rmse) : '—'}
+              sub="Lower is better"
               icon={Layers}
-              variant="indigo"
-              delay={0.05}
             />
             <KPICard
               title="Forecast Horizon"
               value="12 Weeks"
+              sub="12-week output horizon"
               icon={Calendar}
-              variant="amber"
-              delay={0.1}
             />
             <KPICard
               title="Next Week Demand"
               value={(() => {
-                const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null);
-                return f && f.predicted !== undefined ? formatNumber(f.predicted) : "—";
+                const f = forecastData.find(d => d.predicted !== undefined && d.predicted !== null && d.week.startsWith('F'));
+                return f && f.predicted !== undefined ? formatNumber(f.predicted) : '—';
               })()}
-              change={forecastData.length > 0 ? 12.3 : undefined}
               icon={ArrowUpRight}
-              variant="blue"
-              delay={0.15}
             />
-          </div>
+          </section>
 
           {/* Main Forecast Chart with Confidence Intervals */}
           <ChartCard
             title="Demand Forecast with Confidence Intervals"
-            subtitle={`Trained on: ${modelMetrics?.dataSource || 'synthetic'} (${modelMetrics?.trainingSamples || '?'} samples) | ${modelMetrics?.version || 'ML'} predictions`}
-            delay={0.2}
+            subtitle={`Trained on: ${modelMetrics?.dataSource || 'synthetic'} (${modelMetrics?.trainingSamples || '?'} samples) · ${modelMetrics?.version || 'ML'} predictions`}
             headerVariant="tinted"
             actions={
-              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-ds-blue-surface text-ds-blue-on-surface border border-ds-blue/20">
+              <span className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40">
                 95% Confidence Interval
               </span>
             }
           >
-            <ResponsiveContainer width="100%" height={340}>
-              <AreaChart data={forecastData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <ResponsiveContainer width="100%" height={330}>
+              <AreaChart data={forecastData} margin={{ top: 22, right: 12, left: -10, bottom: 4 }}>
                 <defs>
-                  <linearGradient id="ciGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.24} />
-                    <stop offset="95%" stopColor="#3B82F6" stopOpacity={0.04} />
+                  <linearGradient id="titanCiBand" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#1e3fc8" stopOpacity={0.22} />
+                    <stop offset="100%" stopColor="#1e3fc8" stopOpacity={0.10} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-hairline)" vertical={false} />
@@ -623,27 +649,29 @@ export default function ForecastPage() {
                   tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
                   axisLine={{ stroke: 'var(--ds-hairline)' }}
                   tickLine={false}
+                  interval="preserveStartEnd"
+                  minTickGap={16}
                 />
                 <YAxis
                   tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend
-                  wrapperStyle={{ fontSize: '12px', fontWeight: 500, paddingTop: '12px' }}
-                  formatter={(val) => <span className="text-slate-700 dark:text-slate-200 font-semibold">{val}</span>}
+                <Tooltip
+                  content={<CustomTooltip />}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ zIndex: 40, pointerEvents: 'none' }}
                 />
                 {historicalEndWeek && (
                   <ReferenceLine
                     x={historicalEndWeek}
-                    stroke="#2563EB"
+                    stroke="#1e3fc8"
                     strokeDasharray="3 3"
                     strokeWidth={1.5}
                     label={{
-                      value: 'Forecast Horizon',
+                      value: 'Forecast start',
                       position: 'top',
-                      fill: '#2563EB',
+                      fill: '#1e3fc8',
                       fontSize: 10,
                       fontWeight: 700,
                     }}
@@ -653,34 +681,66 @@ export default function ForecastPage() {
                   <ReferenceArea
                     x1={forecastStartWeek}
                     x2={forecastEndWeek}
-                    fill="#2563EB"
+                    fill="#1e3fc8"
                     fillOpacity={0.035}
                   />
                 )}
-                <Area type="monotone" dataKey="upper" name="Upper CI" stroke="transparent" fill="url(#ciGrad)" />
-                <Area type="monotone" dataKey="lower" name="Lower CI" stroke="transparent" fill="transparent" />
+                <Area
+                  type="monotone"
+                  dataKey="ciBand"
+                  name="95% Confidence Interval"
+                  stroke="#3b82f6"
+                  strokeOpacity={0.35}
+                  strokeWidth={1}
+                  fill="url(#titanCiBand)"
+                  isAnimationActive={false}
+                />
                 <Line
                   type="monotone"
                   dataKey="actual"
                   name="Actual Demand"
-                  stroke="#2563EB"
+                  stroke="var(--ds-text-primary, #0a0a0a)"
                   strokeWidth={2.5}
-                  dot={{ fill: '#2563EB', r: 3.5, strokeWidth: 0 }}
-                  activeDot={{ r: 5.5, stroke: '#2563EB', strokeWidth: 2, fill: '#FFFFFF' }}
+                  dot={{ fill: 'var(--ds-text-primary, #0a0a0a)', r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5, stroke: 'var(--ds-text-primary, #0a0a0a)', strokeWidth: 2, fill: '#FFFFFF' }}
                   connectNulls={false}
+                  isAnimationActive={false}
                 />
                 <Line
                   type="monotone"
                   dataKey="predicted"
                   name="Predicted Demand"
-                  stroke="#6366F1"
+                  stroke="#1e3fc8"
                   strokeWidth={2.5}
-                  strokeDasharray="5 5"
-                  dot={{ fill: '#6366F1', r: 3.5, strokeWidth: 0 }}
-                  activeDot={{ r: 5.5, stroke: '#6366F1', strokeWidth: 2, fill: '#FFFFFF' }}
+                  strokeDasharray="5 4"
+                  dot={{ fill: '#1e3fc8', r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5, stroke: '#1e3fc8', strokeWidth: 2, fill: '#FFFFFF' }}
+                  isAnimationActive={false}
                 />
               </AreaChart>
             </ResponsiveContainer>
+
+            {/* Clear custom legend with recognizable visual samples */}
+            <div
+              aria-label="Chart legend"
+              className="mt-3 pt-3 border-t border-[#e4e4e7] dark:border-[#27272a] flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa]"
+            >
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block w-5 h-[2.5px] bg-[#0a0a0a] dark:bg-[#fafaf9] rounded-full" aria-hidden="true" />
+                <span className="text-[#0a0a0a] dark:text-[#fafaf9]">Actual Demand (H1–H14)</span>
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block w-5 border-t-[2.5px] border-dashed border-[#1e3fc8] dark:border-[#60a5fa]" aria-hidden="true" />
+                <span className="text-[#0a0a0a] dark:text-[#fafaf9]">Predicted Demand (F1–F12)</span>
+              </span>
+              <span className="inline-flex items-center gap-2">
+                <span className="inline-block w-4 h-3 rounded-[3px] bg-[#1e3fc8]/20 border border-[#3b82f6]/50" aria-hidden="true" />
+                <span className="text-[#0a0a0a] dark:text-[#fafaf9]">95% Confidence Interval</span>
+              </span>
+              <span className="text-[11px] font-medium text-[#52525b] dark:text-[#a1a1aa]">
+                (H = Historical weeks · F = Forecast weeks)
+              </span>
+            </div>
           </ChartCard>
 
           {/* ── SHAP Forecast Explainability Panel ──────────────────────── */}
@@ -698,103 +758,112 @@ export default function ForecastPage() {
             {/* Category Forecasts */}
             <ChartCard
               title="Category Forecast Summary"
-              subtitle={selectedCategory === 'all' ? 'Predicted demand changes by category' : `Showing: ${selectedCategory}`}
-              delay={0.25}
+              subtitle={selectedCategory === 'all' ? 'Observed vs projected demand comparison' : `Showing: ${selectedCategory}`}
               headerVariant="tinted"
             >
               {filteredCategories.length === 1 ? (
-                /* Compact, well-proportioned single-category presentation */
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                        Active Category
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <div className="min-w-0">
+                      <span className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                        Active Scope
                       </span>
-                      <p className="text-base font-bold text-slate-900 dark:text-ds-text-primary mt-0.5">
+                      <p className="text-base font-bold text-[#0a0a0a] dark:text-[#fafaf9] mt-0.5 truncate">
                         {filteredCategories[0].category}
                       </p>
                     </div>
                     <div
                       className={cn(
-                        'px-2.5 py-1 rounded-md text-xs font-bold tabular-nums border flex items-center gap-1 shadow-2xs',
+                        'px-2.5 py-1 rounded-[8px] text-xs font-bold tabular-nums border flex items-center gap-1',
                         filteredCategories[0].change > 0
-                          ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/30'
-                          : 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30'
+                          ? 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60'
+                          : filteredCategories[0].change < 0
+                            ? 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60'
+                            : 'bg-[#f1f1f3] text-[#3f3f46] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
                       )}
                     >
                       {filteredCategories[0].change > 0 ? (
-                        <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      ) : (
-                        <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                      )}
-                      <span>{Math.abs(filteredCategories[0].change)}% shift</span>
+                        <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+                      ) : filteredCategories[0].change < 0 ? (
+                        <ArrowDownRight className="w-3.5 h-3.5" aria-hidden="true" />
+                      ) : null}
+                      <span>
+                        {filteredCategories[0].change > 0 ? '+' : ''}
+                        {filteredCategories[0].change}%{' '}
+                        {filteredCategories[0].change > 0 ? 'increase' : filteredCategories[0].change < 0 ? 'decrease' : 'change'}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-hairline shadow-2xs">
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Current Volume</p>
-                      <p className="text-xl font-bold font-sans tabular-nums text-slate-900 dark:text-white mt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="p-3.5 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                      <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">Current Volume</p>
+                      <p className="text-xl font-bold font-sans tabular-nums text-[#0a0a0a] dark:text-[#fafaf9] mt-1">
                         {formatNumber(filteredCategories[0].current)}
                       </p>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">Observed demand baseline</span>
+                      <span className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium block mt-0.5">
+                        {currentWindowCaption}
+                      </span>
                     </div>
-                    <div className="p-3.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-hairline shadow-2xs">
-                      <p className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Predicted Volume</p>
-                      <p className="text-xl font-bold font-sans tabular-nums text-blue-600 dark:text-blue-400 mt-1">
+                    <div className="p-3.5 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                      <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">Predicted Volume</p>
+                      <p className="text-xl font-bold font-sans tabular-nums text-[#1e3fc8] dark:text-[#60a5fa] mt-1">
                         {formatNumber(filteredCategories[0].predicted)}
                       </p>
-                      <span className="text-[10px] text-slate-500 dark:text-slate-400 font-medium">12-week projected horizon</span>
+                      <span className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium block mt-0.5">
+                        {predictedWindowCaption}
+                      </span>
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-xl bg-slate-50/70 dark:bg-ds-surface-sunken/60 border border-slate-200/70 dark:border-ds-hairline flex items-center justify-between text-xs">
-                    <span className="text-slate-600 dark:text-slate-300 font-medium">Net Variance:</span>
-                    <span className="font-bold tabular-nums text-slate-900 dark:text-ds-text-primary">
+                  <div className="p-3 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-between text-xs">
+                    <span className="text-[#52525b] dark:text-[#a1a1aa] font-medium">Net Variance:</span>
+                    <span className="font-bold tabular-nums text-[#0a0a0a] dark:text-[#fafaf9]">
                       {filteredCategories[0].predicted - filteredCategories[0].current > 0 ? '+' : ''}
                       {formatNumber(filteredCategories[0].predicted - filteredCategories[0].current)} units
                     </span>
                   </div>
                 </div>
               ) : (
-                /* Multi-category list when detailed breakdown exists */
                 <div className="space-y-3">
-                  {filteredCategories.map((cat, i) => (
-                    <motion.div
+                  {filteredCategories.map((cat) => (
+                    <div
                       key={cat.category}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + i * 0.04 }}
-                      className="flex items-center gap-4 p-3.5 rounded-xl bg-slate-50 hover:bg-white dark:bg-ds-surface-sunken dark:hover:bg-ds-surface transition-all duration-150 border border-slate-200/80 dark:border-ds-hairline shadow-2xs"
+                      className="flex items-center justify-between gap-4 p-3.5 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-xs sm:text-sm font-bold text-slate-900 dark:text-ds-text-primary truncate">{cat.category}</p>
-                        <div className="flex items-center gap-3 mt-1 text-xs">
-                          <span className="text-slate-500 dark:text-slate-400 font-sans tabular-nums font-medium">
-                            Current: {formatNumber(cat.current)}
+                        <p className="text-xs sm:text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] truncate">{cat.category}</p>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1 text-xs">
+                          <span className="text-[#52525b] dark:text-[#a1a1aa] font-sans tabular-nums font-medium">
+                            {currentWindowCaption}: {formatNumber(cat.current)}
                           </span>
-                          <span className="text-slate-400 dark:text-slate-500">→</span>
-                          <span className="font-bold text-slate-900 dark:text-ds-text-primary font-sans tabular-nums">
-                            Predicted: {formatNumber(cat.predicted)}
+                          <span className="text-[#52525b] dark:text-[#a1a1aa]">→</span>
+                          <span className="font-bold text-[#0a0a0a] dark:text-[#fafaf9] font-sans tabular-nums">
+                            {predictedWindowCaption}: {formatNumber(cat.predicted)}
                           </span>
                         </div>
                       </div>
                       <div
                         className={cn(
-                          'px-2.5 py-1 rounded-md text-xs font-semibold tabular-nums border flex items-center gap-1 flex-shrink-0 shadow-2xs',
+                          'px-2.5 py-1 rounded-[8px] text-xs font-semibold tabular-nums border flex items-center gap-1 flex-shrink-0',
                           cat.change > 0
-                            ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0] dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-500/30'
-                            : 'bg-[#FFF1F2] text-[#9F1239] border-[#FECDD3] dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-500/30'
+                            ? 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60'
+                            : cat.change < 0
+                              ? 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60'
+                              : 'bg-[#f1f1f3] text-[#3f3f46] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
                         )}
                       >
                         {cat.change > 0 ? (
-                          <ArrowUpRight className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        ) : (
-                          <ArrowDownRight className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                        )}
-                        <span>{Math.abs(cat.change)}%</span>
+                          <ArrowUpRight className="w-3.5 h-3.5" aria-hidden="true" />
+                        ) : cat.change < 0 ? (
+                          <ArrowDownRight className="w-3.5 h-3.5" aria-hidden="true" />
+                        ) : null}
+                        <span>
+                          {cat.change > 0 ? '+' : ''}
+                          {cat.change}% {cat.change > 0 ? 'increase' : cat.change < 0 ? 'decrease' : ''}
+                        </span>
                       </div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -803,12 +872,11 @@ export default function ForecastPage() {
             {/* Seasonal Pattern */}
             <ChartCard
               title="Seasonal Demand Pattern"
-              subtitle="Weekly demand seasonality with disambiguated timeline"
-              delay={0.3}
+              subtitle="Calendar-date demand trajectory across observed and projected periods"
               headerVariant="tinted"
             >
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={forecastData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+              <ResponsiveContainer width="100%" height={260}>
+                <LineChart data={forecastData} margin={{ top: 10, right: 12, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--ds-hairline)" vertical={false} />
                   <XAxis
                     dataKey="label"
@@ -816,33 +884,53 @@ export default function ForecastPage() {
                     axisLine={{ stroke: 'var(--ds-hairline)' }}
                     tickLine={false}
                     interval="preserveStartEnd"
+                    minTickGap={26}
                   />
                   <YAxis
                     tick={{ fill: 'var(--ds-text-muted)', fontSize: 11, fontWeight: 500 }}
                     axisLine={false}
                     tickLine={false}
                   />
-                  <Tooltip content={<CustomTooltip />} />
+                  <Tooltip
+                  content={<CustomTooltip />}
+                  allowEscapeViewBox={{ x: false, y: false }}
+                  wrapperStyle={{ zIndex: 40, pointerEvents: 'none' }}
+                />
                   <Line
                     type="monotone"
                     dataKey="actual"
                     name="Actual Demand"
-                    stroke="#2563EB"
+                    stroke="var(--ds-text-primary, #0a0a0a)"
                     strokeWidth={2.5}
-                    dot={{ fill: '#2563EB', r: 3.5, strokeWidth: 0 }}
-                    activeDot={{ r: 5.5, stroke: '#2563EB', strokeWidth: 2, fill: '#FFFFFF' }}
+                    dot={{ fill: 'var(--ds-text-primary, #0a0a0a)', r: 3, strokeWidth: 0 }}
+                    activeDot={{ r: 5, stroke: 'var(--ds-text-primary, #0a0a0a)', strokeWidth: 2, fill: '#FFFFFF' }}
+                    connectNulls={false}
+                    isAnimationActive={false}
                   />
                   <Line
                     type="monotone"
                     dataKey="predicted"
                     name="Predicted Demand"
-                    stroke="#6366F1"
+                    stroke="#1e3fc8"
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     dot={false}
+                    activeDot={{ r: 4.5, stroke: '#1e3fc8', strokeWidth: 2, fill: '#FFFFFF' }}
+                    isAnimationActive={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
+
+              <div className="mt-3 pt-3 border-t border-[#e4e4e7] dark:border-[#27272a] flex flex-wrap items-center justify-center gap-x-6 gap-y-1.5 text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa]">
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block w-4 h-[2.5px] bg-[#0a0a0a] dark:bg-[#fafaf9] rounded-full" aria-hidden="true" />
+                  <span className="text-[#0a0a0a] dark:text-[#fafaf9]">Actual</span>
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-block w-4 border-t-[2px] border-dashed border-[#1e3fc8] dark:border-[#60a5fa]" aria-hidden="true" />
+                  <span className="text-[#0a0a0a] dark:text-[#fafaf9]">Projected</span>
+                </span>
+              </div>
             </ChartCard>
           </div>
         </>

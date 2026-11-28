@@ -12,44 +12,44 @@
    ========================================================================== */
 :root,
 :root.dark {
-  /* Neutrals & Surfaces - Section 4.2 */
-  --ds-canvas:           #0F1117;   /* Application background */
-  --ds-sidebar-surface:  #151922;   /* Sidebar background */
-  --ds-surface:          #1B202A;   /* Primary card */
-  --ds-surface-alt:      #242A36;   /* Secondary card */
-  --ds-surface-elevated: #2A3240;   /* Elevated surface */
-  --ds-surface-sunken:   #151922;   /* Sunken / background panel */
-  --ds-ink:              #F1F5F9;
-  --ds-hairline:         #353D4D;   /* Border */
-  --ds-border:           #353D4D;   /* Border */
-  --ds-border-subtle:    #242A36;
-  --ds-border-strong:    #475369;
-  --ds-border-control:   #64748B;
-  --ds-gray-400:         #94A3B8;
-  --ds-gray-500:         #A9B7CC;
+  /* Neutrals & Surfaces - Titan AI Design System (Dark) */
+  --ds-canvas:           #0a0a0a;   /* Application background */
+  --ds-sidebar-surface:  #111113;   /* Sidebar background */
+  --ds-surface:          #111113;   /* Primary card */
+  --ds-surface-alt:      #18181b;   /* Secondary card */
+  --ds-surface-elevated: #18181b;   /* Elevated surface */
+  --ds-surface-sunken:   #18181b;   /* Sunken / background panel */
+  --ds-ink:              #fafaf9;
+  --ds-hairline:         #27272a;   /* Border */
+  --ds-border:           #27272a;   /* Border */
+  --ds-border-subtle:    #18181b;
+  --ds-border-strong:    rgba(255, 255, 255, 0.14);
+  --ds-border-control:   rgba(255, 255, 255, 0.18);
+  --ds-gray-400:         #a1a1aa;
+  --ds-gray-500:         #a1a1aa;
 
-  /* Sidebar Active Navigation Tokens */
-  --ds-sidebar-active:          #1E3553;
-  --ds-sidebar-active-text:     #FFFFFF;
-  --ds-sidebar-active-border:   rgba(96, 165, 250, 0.40);
-  --ds-sidebar-active-indicator:#3B82F6;
+  /* Sidebar Active Navigation Tokens (Dark) */
+  --ds-sidebar-active:          rgba(59, 130, 246, 0.14);
+  --ds-sidebar-active-text:     #93c5fd;
+  --ds-sidebar-active-border:   rgba(59, 130, 246, 0.28);
+  --ds-sidebar-active-indicator:#3b82f6;
 
-  /* Text - Section 4.2 */
-  --ds-text-primary:     #F1F5F9;   /* Primary text */
-  --ds-text-secondary:   #CBD5E1;   /* Brighter secondary text in dark mode */
-  --ds-text-muted:       #94A3B8;   /* Muted text */
-  --ds-text-disabled:    #64748B;
-  --ds-text-inverse:     #0F1117;
-  --ds-btn-primary-bg:   #60A5FA;
-  --ds-btn-primary-text: #0F1117;
+  /* Text - Titan AI Design System (Dark) */
+  --ds-text-primary:     #fafaf9;   /* Primary text */
+  --ds-text-secondary:   #d4d4d8;   /* Secondary text */
+  --ds-text-muted:       #a1a1aa;   /* Muted text */
+  --ds-text-disabled:    #71717a;
+  --ds-text-inverse:     #0a0a0a;
+  --ds-btn-primary-bg:   #2454D6;
+  --ds-btn-primary-text: #ffffff;
 
-  /* Primary Blue - Section 4.2 */
-  --ds-blue:             #60A5FA;
-  --ds-blue-action:      #3B82F6;
-  --ds-blue-strong:      #60A5FA;
-  --ds-blue-text:        #60A5FA;
-  --ds-blue-surface:     rgba(96, 165, 250, 0.15);
-  --ds-blue-on-surface:  #93C5FD;
+  /* Primary Blue */
+  --ds-blue:             #3b82f6;
+  --ds-blue-action:      #2454D6;
+  --ds-blue-strong:      #1E46B8;
+  --ds-blue-text:        #60a5fa;
+  --ds-blue-surface:     rgba(36, 84, 214, 0.20);
+  --ds-blue-on-surface:  #93c5fd;
 
   /* Indigo - Section 4.2 */
   --ds-indigo:           #818CF8;
@@ -217,47 +217,47 @@
    2. LIGHT THEME (:root.light) — Titan AI Enterprise SaaS Light Mode
    ========================================================================== */
 :root.light {
-  /* Backgrounds & Surfaces - Section 4.1 */
-  --ds-canvas:           #F3F6FC;   /* Application background */
-  --ds-sidebar-surface:  #EDF2FA;   /* Sidebar background */
-  --ds-surface:          #FFFFFF;   /* Primary card */
-  --ds-surface-alt:      #F8FAFF;   /* Secondary surface */
+  /* Backgrounds & Surfaces - Approved Light Theme */
+  --ds-canvas:           #F3F4F6;   /* Neutral app canvas */
+  --ds-sidebar-surface:  #FFFFFF;   /* Sidebar surface */
+  --ds-surface:          #FFFFFF;   /* Main surface */
+  --ds-surface-alt:      #F3F4F6;   /* Secondary surface */
   --ds-surface-elevated: #FFFFFF;
-  --ds-surface-sunken:   #EAF0F9;   /* Subtle section background */
-  --ds-ink:              #17233B;
-  --ds-hairline:         #DCE5F2;   /* Border */
-  --ds-border:           #DCE5F2;   /* Border */
-  --ds-border-subtle:    #EEF3FA;
-  --ds-border-strong:    #CBD5E1;
-  --ds-border-control:   #94A3B8;
-  --ds-gray-400:         #94A3B8;
-  --ds-gray-500:         #64748B;
+  --ds-surface-sunken:   #F3F4F6;   /* Input / sunken well */
+  --ds-ink:              #181B22;
+  --ds-hairline:         rgba(24, 27, 34, 0.10);
+  --ds-border:           rgba(24, 27, 34, 0.10);
+  --ds-border-subtle:    rgba(24, 27, 34, 0.06);
+  --ds-border-strong:    rgba(24, 27, 34, 0.18);
+  --ds-border-control:   rgba(24, 27, 34, 0.18);
+  --ds-gray-400:         #8C93A3;
+  --ds-gray-500:         #525866;
 
   /* Sidebar Active Navigation Tokens */
-  --ds-sidebar-active:          #EFF6FF;
-  --ds-sidebar-active-text:     #1D4ED8;
-  --ds-sidebar-active-border:   #BFDBFE;
-  --ds-sidebar-active-indicator:#2563EB;
+  --ds-sidebar-active:          #EAF0FF;
+  --ds-sidebar-active-text:     #17398A;
+  --ds-sidebar-active-border:   rgba(36, 84, 214, 0.18);
+  --ds-sidebar-active-indicator:#2454D6;
 
-  /* Typography - Section 4.1 */
-  --ds-text:             #17233B;   /* Main text */
-  --ds-text-heading:     #17233B;
-  --ds-text-primary:     #17233B;
-  --ds-text-body:        #475569;   /* Darker secondary text for contrast in light mode */
-  --ds-text-secondary:   #475569;
-  --ds-text-muted:       #475569;   /* Darker muted text for high readability */
-  --ds-text-disabled:    #94A3B8;
+  /* Typography - Approved Light Theme */
+  --ds-text:             #181B22;   /* Primary text */
+  --ds-text-heading:     #181B22;
+  --ds-text-primary:     #181B22;
+  --ds-text-body:        #525866;   /* Supporting text */
+  --ds-text-secondary:   #525866;
+  --ds-text-muted:       #525866;
+  --ds-text-disabled:    #8C93A3;
   --ds-text-inverse:     #FFFFFF;
-  --ds-btn-primary-bg:   #2563EB;
+  --ds-btn-primary-bg:   #2454D6;
   --ds-btn-primary-text: #FFFFFF;
 
-  /* Primary Palette - Section 4.1 */
-  --ds-blue:             #2563EB;
-  --ds-blue-action:      #2563EB;
-  --ds-blue-strong:      #1D4ED8;
-  --ds-blue-text:        #1D4ED8;
-  --ds-blue-surface:     #EFF6FF;
-  --ds-blue-on-surface:  #1E40AF;
+  /* Primary Palette */
+  --ds-blue:             #2454D6;
+  --ds-blue-action:      #2454D6;
+  --ds-blue-strong:      #1E46B8;
+  --ds-blue-text:        #2454D6;
+  --ds-blue-surface:     #EAF0FF;
+  --ds-blue-on-surface:  #17398A;
 
   --ds-indigo:           #6366F1;
   --ds-indigo-surface:   #EEF2FF;
@@ -267,23 +267,23 @@
   --ds-teal-surface:     #F0FDFA;
   --ds-teal-text:        #0F766E;
 
-  --ds-emerald:          #059669;
-  --ds-green:            #059669;
-  --ds-green-strong:     #047857;
-  --ds-green-surface:    #ECFDF5;
-  --ds-green-text:       #065F46;
-  --ds-emerald-success:  #059669;
+  --ds-emerald:          #16A34A;
+  --ds-green:            #16A34A;
+  --ds-green-strong:     #15803D;
+  --ds-green-surface:    #DCFCE7;
+  --ds-green-text:       #166534;
+  --ds-emerald-success:  #16A34A;
 
   --ds-amber:            #D97706;
   --ds-orange:           #D97706;
   --ds-orange-strong:    #B45309;
-  --ds-orange-surface:   #FFFBEB;
+  --ds-orange-surface:   #FEF3C7;
   --ds-orange-text:      #92400E;
   --ds-amber-warning:    #D97706;
 
   --ds-red:              #DC2626;
   --ds-red-strong:       #B91C1C;
-  --ds-red-surface:      #FEF2F2;
+  --ds-red-surface:      #FEE2E2;
   --ds-red-text:         #991B1B;
   --ds-red-danger:       #DC2626;
 
@@ -311,7 +311,7 @@
   --ds-float-1:          0 4px 14px rgba(15, 23, 42, 0.06);
   --ds-float-2:          0 12px 32px rgba(15, 23, 42, 0.10);
   --ds-float-3:          0 24px 54px rgba(15, 23, 42, 0.14);
-  --ds-focus-ring:       0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB;
+  --ds-focus-ring:       0 0 0 2px #FFFFFF, 0 0 0 4px #2454D6;
 
   /* Card Radius (18–22px) */
   --ds-r-xs:             8px;

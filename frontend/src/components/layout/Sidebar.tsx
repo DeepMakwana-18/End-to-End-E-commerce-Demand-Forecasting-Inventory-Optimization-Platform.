@@ -1,15 +1,16 @@
-/** Premium enterprise sidebar with glassmorphism effects. */
+/** TITAN AI Sidebar Navigation */
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
-  LayoutDashboard, TrendingUp, Package, BarChart3, PieChart,
+  LayoutDashboard, TrendingUp, Package, PieChart,
   FileText, Settings, ChevronLeft, ChevronRight, Bell,
   Upload, Users, Activity, Boxes, LogOut, FlaskConical, ShieldAlert,
 } from 'lucide-react';
 import { useAppStore } from '@/stores/appStore';
 import { cn } from '@/lib/utils';
+import { TitanMark } from '@/components/ui/TitanMark';
 
 const navItems = [
   { label: 'Dashboard', icon: LayoutDashboard, path: '/app' },
@@ -30,215 +31,316 @@ const adminItems = [
   { label: 'Settings', icon: Settings, path: '/app/admin/settings' },
 ];
 
-export function Sidebar() {
-  const { sidebarCollapsed, toggleSidebar, user, logout } = useAppStore();
+interface TooltipState {
+  label: string;
+  top: number;
+  left: number;
+}
+
+interface SidebarProps {
+  isMobile: boolean;
+  collapsed: boolean;
+  width: number;
+  onToggle: () => void;
+  onCloseMobile: () => void;
+}
+
+export function Sidebar({ isMobile, collapsed, width, onToggle, onCloseMobile }: SidebarProps) {
+  const { user, logout } = useAppStore();
   const location = useLocation();
-  const [isMobile, setIsMobile] = useState(false);
+  const navRef = useRef<HTMLElement>(null);
+  const tooltipTimerRef = useRef<number | null>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const [tooltip, setTooltip] = useState<TooltipState | null>(null);
+
+  // Lock background scroll on mobile while drawer is open and allow Escape to close
+  useEffect(() => {
+    if (!isMobile || collapsed) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onCloseMobile();
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMobile, collapsed, onCloseMobile]);
+
+  // Keep active route visible inside the scroll container without unnecessary jumps
+  useEffect(() => {
+    const navEl = navRef.current;
+    if (!navEl) return;
+    const activeEl = navEl.querySelector<HTMLElement>('[aria-current="page"]');
+    if (activeEl) {
+      activeEl.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  }, [location.pathname, collapsed]);
 
   useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 768);
-    check();
-    window.addEventListener('resize', check);
-    return () => window.removeEventListener('resize', check);
+    return () => {
+      if (tooltipTimerRef.current !== null) window.clearTimeout(tooltipTimerRef.current);
+    };
   }, []);
 
-  const width = isMobile ? (sidebarCollapsed ? 0 : 260) : (sidebarCollapsed ? 72 : 260);
+  const isCollapsedDesktop = !isMobile && collapsed;
+  const [expandedReady, setExpandedReady] = useState(!isCollapsedDesktop);
+  const [prevCollapsed, setPrevCollapsed] = useState(isCollapsedDesktop);
+
+  if (prevCollapsed !== isCollapsedDesktop) {
+    setPrevCollapsed(isCollapsedDesktop);
+    setExpandedReady(isCollapsedDesktop ? false : Boolean(prefersReducedMotion));
+  }
+
+  // Reveal expanded labels only after width clears (~110ms)
+  useEffect(() => {
+    if (isCollapsedDesktop || prefersReducedMotion || expandedReady) return;
+    const timer = window.setTimeout(() => setExpandedReady(true), 110);
+    return () => window.clearTimeout(timer);
+  }, [isCollapsedDesktop, prefersReducedMotion, expandedReady]);
+
+  const showLabels = !isCollapsedDesktop && expandedReady;
+
+  const showTooltip = (el: HTMLElement, label: string) => {
+    if (!isCollapsedDesktop) return;
+    if (tooltipTimerRef.current !== null) window.clearTimeout(tooltipTimerRef.current);
+    const rect = el.getBoundingClientRect();
+    tooltipTimerRef.current = window.setTimeout(() => {
+      setTooltip({
+        label,
+        top: rect.top + rect.height / 2,
+        left: rect.right + 10,
+      });
+    }, 120);
+  };
+
+  const hideTooltip = () => {
+    if (tooltipTimerRef.current !== null) {
+      window.clearTimeout(tooltipTimerRef.current);
+      tooltipTimerRef.current = null;
+    }
+    setTooltip(null);
+  };
+
+  const handleNavClick = () => {
+    hideTooltip();
+    if (isMobile && !collapsed) {
+      onCloseMobile();
+    }
+  };
+
+  const canViewAdmin =
+    user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst';
+
+  const renderNavLink = (item: { label: string; icon: React.ElementType; path: string }) => (
+    <NavLink
+      key={item.path}
+      to={item.path}
+      end={item.path === '/app'}
+      onClick={handleNavClick}
+      onMouseEnter={(e) => showTooltip(e.currentTarget, item.label)}
+      onMouseLeave={hideTooltip}
+      onFocus={(e) => showTooltip(e.currentTarget, item.label)}
+      onBlur={hideTooltip}
+      aria-label={item.label}
+      className={({ isActive }) =>
+        cn(
+          'flex items-center min-h-[40px] py-2 rounded-[10px] text-[13px] transition-colors duration-120 motion-reduce:transition-none',
+          'group relative focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-[-2px]',
+          isCollapsedDesktop ? 'justify-center px-0' : 'gap-3 px-3',
+          isActive
+            ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border border-ds-sidebar-active-border font-semibold'
+            : 'font-medium text-ds-text-secondary border border-transparent hover:text-ds-text-primary hover:bg-ds-surface-sunken'
+        )
+      }
+    >
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span
+              aria-hidden="true"
+              className="absolute left-0 top-2 bottom-2 w-[2px] rounded-r-full bg-ds-sidebar-active-indicator"
+            />
+          )}
+          <item.icon
+            aria-hidden="true"
+            className={cn(
+              'w-4 h-4 flex-shrink-0 transition-colors motion-reduce:transition-none',
+              isActive
+                ? 'text-ds-sidebar-active-text'
+                : 'text-ds-text-secondary group-hover:text-ds-text-primary'
+            )}
+          />
+          {showLabels && (
+            <span className="truncate whitespace-nowrap">
+              {item.label}
+            </span>
+          )}
+        </>
+      )}
+    </NavLink>
+  );
 
   return (
     <>
-      {isMobile && !sidebarCollapsed && (
+      {isMobile && !collapsed && (
         <div
-          onClick={toggleSidebar}
+          aria-hidden="true"
+          onClick={onCloseMobile}
           className="fixed inset-0 bg-ds-scrim z-30 md:hidden"
         />
       )}
+
+      {/* Fixed Collapsed-Rail Tooltip (never clipped by sidebar or scroll container) */}
+      {tooltip && isCollapsedDesktop && (
+        <div
+          role="tooltip"
+          style={{ top: tooltip.top, left: tooltip.left }}
+          className="fixed -translate-y-1/2 z-50 px-2.5 py-1.5 rounded-[8px] bg-ds-ink text-ds-text-inverse dark:bg-[#18181b] dark:text-[#fafaf9] text-xs font-medium shadow-md pointer-events-none whitespace-nowrap border border-ds-hairline"
+        >
+          {tooltip.label}
+        </div>
+      )}
+
       <motion.aside
         initial={false}
         animate={{ width }}
-        transition={{ duration: 0.3, ease: [0.28, 0.11, 0.32, 1] }}
+        transition={{
+          duration: prefersReducedMotion ? 0 : 0.2,
+          ease: [0.28, 0.11, 0.32, 1],
+        }}
+        aria-hidden={isMobile && collapsed ? true : undefined}
         className={cn(
           'fixed left-0 top-0 bottom-0 z-40 flex flex-col',
-          'border-r border-slate-200/90 dark:border-ds-hairline',
-          'bg-white dark:bg-ds-sidebar-surface',
-          'overflow-hidden shadow-[1px_0_12px_rgba(15,23,42,0.03)]'
+          'border-r border-ds-hairline',
+          'bg-ds-sidebar-surface',
+          'overflow-hidden'
         )}
       >
-      {/* Logo */}
-      <div className="flex items-center h-16 px-4 border-b border-slate-200/80 dark:border-ds-hairline flex-shrink-0 bg-slate-50/40 dark:bg-transparent">
-        <div className="flex items-center gap-3 overflow-hidden">
-          <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-md shadow-blue-500/20">
-            <BarChart3 className="w-5 h-5 text-white" />
-          </div>
-          <AnimatePresence>
-            {!sidebarCollapsed && (
-              <motion.div
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -10 }}
-                transition={{ duration: 0.2 }}
-                className="whitespace-nowrap"
-              >
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm font-extrabold text-slate-900 dark:text-ds-text-primary tracking-tight">Titan AI</h1>
-                  <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300">v2.4</span>
-                </div>
-                <p className="text-[10px] text-slate-500 dark:text-ds-text-muted font-medium">Supply Chain Intelligence</p>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-      </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-4 px-2.5 space-y-1">
-        <div className="mb-4">
-          {!sidebarCollapsed && (
-            <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-              Main Menu
-            </p>
+        {/* Brand Header */}
+        <div
+          className={cn(
+            'flex items-center h-16 border-b border-ds-hairline flex-shrink-0',
+            isCollapsedDesktop ? 'justify-center px-2' : 'justify-between px-3.5 gap-2'
           )}
-          {navItems.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              end={item.path === '/app'}
-              title={sidebarCollapsed ? item.label : undefined}
-              aria-label={item.label}
-              className={({ isActive }) =>
-                cn(
-                  'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                  'group relative',
-                  isActive
-                    ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
-                    : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
-                )
-              }
+        >
+          <div className="flex items-center gap-2.5 overflow-hidden text-ds-text-primary min-w-0">
+            <div className="flex items-center justify-center flex-shrink-0 w-9 h-9">
+              <TitanMark size={28} decorative />
+            </div>
+            {showLabels && (
+              <div className="whitespace-nowrap min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <h1 className="text-[13px] font-extrabold uppercase tracking-[0.08em] text-ds-text-primary">
+                    TITAN AI
+                  </h1>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-semibold bg-ds-surface-sunken text-ds-text-secondary border border-ds-hairline">
+                    v2.4
+                  </span>
+                </div>
+                <p className="text-[11px] text-ds-text-secondary font-medium">
+                  Supply Chain Intelligence
+                </p>
+              </div>
+            )}
+          </div>
+
+          {!isCollapsedDesktop && (
+            <button
+              type="button"
+              onClick={() => {
+                hideTooltip();
+                onToggle();
+              }}
+              aria-expanded={!collapsed}
+              aria-label="Collapse sidebar"
+              className="w-10 h-10 rounded-[10px] flex items-center justify-center flex-shrink-0 text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1"
             >
-              {({ isActive }) => (
-                <>
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeNav"
-                      className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
-                      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                    />
-                  )}
-                  <item.icon className={cn(
-                    'w-4.5 h-4.5 flex-shrink-0 transition-colors',
-                    isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
-                  )} />
-                  <AnimatePresence>
-                    {!sidebarCollapsed && (
-                      <motion.span
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.15 }}
-                      >
-                        {item.label}
-                      </motion.span>
-                    )}
-                  </AnimatePresence>
-                </>
-              )}
-            </NavLink>
-          ))}
+              <ChevronLeft className="w-4 h-4" aria-hidden="true" />
+            </button>
+          )}
         </div>
 
-        {/* Admin section */}
-        {(user?.role === 'super_admin' || user?.role === 'org_admin' || user?.role === 'analyst') && (
-          <div>
-            {!sidebarCollapsed && (
-              <p className="px-3 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-600 dark:text-slate-300">
-                Administration
-              </p>
-            )}
-            {adminItems.map((item) => (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                title={sidebarCollapsed ? item.label : undefined}
-                aria-label={item.label}
-                className={({ isActive }) =>
-                  cn(
-                    'flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-[13px] font-medium transition-all duration-200',
-                    'group relative',
-                    isActive
-                      ? 'bg-[#E2ECFF] text-[#1D4ED8] border border-[#BFDBFE] font-semibold shadow-2xs dark:bg-[#1E3553] dark:text-[#EFF6FF] dark:border-blue-500/40 dark:shadow-[0_2px_10px_rgba(30,53,83,0.5)]'
-                      : 'text-slate-800 dark:text-slate-200 hover:text-slate-950 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-ds-surface-alt/80'
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive && (
-                      <motion.div
-                        layoutId="activeNav"
-                        className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-5 rounded-full bg-[#1D4ED8] dark:bg-blue-400 dark:shadow-[0_0_8px_rgba(96,165,250,0.8)]"
-                        transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-                      />
-                    )}
-                    <item.icon className={cn(
-                      'w-4.5 h-4.5 flex-shrink-0 transition-colors',
-                      isActive ? 'text-[#1D4ED8] dark:text-blue-400' : 'text-slate-600 dark:text-slate-300 group-hover:text-slate-900 dark:group-hover:text-white'
-                    )} />
-                    <AnimatePresence>
-                      {!sidebarCollapsed && (
-                        <motion.span
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.15 }}
-                        >
-                          {item.label}
-                        </motion.span>
-                      )}
-                    </AnimatePresence>
-                  </>
-                )}
-              </NavLink>
-            ))}
+        {/* Dedicated Expand Control in Collapsed Rail (prevents clipping & main-panel overlap) */}
+        {isCollapsedDesktop && (
+          <div className="py-1.5 flex items-center justify-center border-b border-ds-hairline flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                hideTooltip();
+                onToggle();
+              }}
+              onMouseEnter={(e) => showTooltip(e.currentTarget, 'Expand sidebar')}
+              onMouseLeave={hideTooltip}
+              onFocus={(e) => showTooltip(e.currentTarget, 'Expand sidebar')}
+              onBlur={hideTooltip}
+              aria-expanded={false}
+              aria-label="Expand sidebar"
+              className="w-10 h-10 rounded-[10px] flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1"
+            >
+              <ChevronRight className="w-4 h-4" aria-hidden="true" />
+            </button>
           </div>
         )}
-      </nav>
 
-      {/* Bottom section */}
-      <div className="p-2.5 border-t border-slate-200/80 dark:border-ds-hairline space-y-1 bg-slate-50/30 dark:bg-transparent">
-        {/* Collapse toggle */}
-        <button
-          onClick={toggleSidebar}
-          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100/80 dark:hover:bg-ds-surface-alt/60 transition-all border border-transparent hover:border-slate-200/60"
+        {/* Scrollable Navigation (thin scrollbar appears only when content exceeds height) */}
+        <nav
+          ref={navRef}
+          aria-label="Primary Navigation"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain titan-sidebar-scroll py-2.5 px-2.5 scroll-pt-2.5 scroll-pb-2.5 space-y-3"
         >
-          {sidebarCollapsed ? (
-            <ChevronRight className="w-4 h-4" />
-          ) : (
-            <>
-              <ChevronLeft className="w-4 h-4" />
-              <span>Collapse Sidebar</span>
-            </>
-          )}
-        </button>
-
-        {/* User / Logout */}
-        <button
-          onClick={logout}
-          className="w-full flex items-center justify-center gap-2.5 px-3 py-2 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 hover:text-rose-600 hover:bg-rose-50 dark:hover:text-ds-red dark:hover:bg-ds-red-surface transition-all border border-transparent hover:border-rose-100 dark:hover:border-transparent"
-        >
-          <LogOut className="w-4 h-4 flex-shrink-0" />
-          <AnimatePresence>
-            {!sidebarCollapsed && (
-              <motion.span
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-              >
-                Sign Out
-              </motion.span>
+          <div className="space-y-0.5">
+            {showLabels && (
+              <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-text-secondary whitespace-nowrap overflow-hidden">
+                Main Menu
+              </p>
             )}
-          </AnimatePresence>
-        </button>
-      </div>
-    </motion.aside>
+            {navItems.map(renderNavLink)}
+          </div>
+
+          {canViewAdmin && (
+            <div className="space-y-0.5">
+              {showLabels ? (
+                <p className="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-ds-text-secondary whitespace-nowrap overflow-hidden">
+                  Administration
+                </p>
+              ) : isCollapsedDesktop ? (
+                <div
+                  aria-hidden="true"
+                  className="mx-3 my-1.5 border-t border-ds-hairline"
+                />
+              ) : null}
+              {adminItems.map(renderNavLink)}
+            </div>
+          )}
+        </nav>
+
+        {/* Fixed Bottom Sign Out */}
+        <div className="p-2.5 border-t border-ds-hairline flex-shrink-0">
+          <button
+            type="button"
+            onClick={logout}
+            onMouseEnter={(e) => showTooltip(e.currentTarget, 'Sign Out')}
+            onMouseLeave={hideTooltip}
+            onFocus={(e) => showTooltip(e.currentTarget, 'Sign Out')}
+            onBlur={hideTooltip}
+            aria-label="Sign Out"
+            className={cn(
+              'w-full min-h-[40px] flex items-center rounded-[10px] text-xs font-semibold text-ds-text-secondary hover:text-ds-red-text hover:bg-ds-red-surface transition-colors duration-150 motion-reduce:transition-none cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-[-2px]',
+              isCollapsedDesktop ? 'justify-center px-0' : 'justify-center gap-2.5 px-3 py-2'
+            )}
+          >
+            <LogOut className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+            {showLabels && (
+              <span className="whitespace-nowrap">Sign Out</span>
+            )}
+          </button>
+        </div>
+      </motion.aside>
     </>
   );
 }

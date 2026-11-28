@@ -15,8 +15,9 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { copilotApi, type CopilotMessage, type StarterPrompt } from '@/services/copilotApi';
+import { copilotApi, type StarterPrompt } from '@/services/copilotApi';
 import { useAppStore } from '@/stores/appStore';
+import { TitanMark } from '@/components/ui/TitanMark';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -227,8 +228,7 @@ function PromptCard({ prompt, onClick }: { prompt: StarterPrompt; onClick: () =>
 // ── Main Drawer ─────────────────────────────────────────────────────
 
 export function AICopilotDrawer() {
-  const { isAuthenticated } = useAppStore();
-  const [isOpen, setIsOpen] = useState(false);
+  const { isAuthenticated, copilotOpen: isOpen, setCopilotOpen: setIsOpen } = useAppStore();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -237,17 +237,45 @@ export function AICopilotDrawer() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
+
+  const restoreFocus = useCallback(() => {
+    requestAnimationFrame(() => {
+      const opener = openerRef.current;
+      if (opener && opener.isConnected && opener.offsetParent !== null) {
+        opener.focus();
+        return;
+      }
+      const headerTrigger = document.getElementById('header-copilot-trigger');
+      if (headerTrigger && headerTrigger.offsetParent !== null) {
+        headerTrigger.focus();
+      }
+    });
+  }, []);
+
+  const closeDrawer = useCallback(() => {
+    setIsOpen(false);
+    restoreFocus();
+  }, [setIsOpen, restoreFocus]);
 
   // Load starter prompts when drawer opens
   useEffect(() => {
-    if (isOpen && starterPrompts.length === 0 && !promptsLoading) {
+    if (!isOpen || starterPrompts.length > 0 || promptsLoading) return;
+    let cancelled = false;
+    Promise.resolve().then(() => {
+      if (cancelled) return;
       setPromptsLoading(true);
-      copilotApi
-        .getPrompts()
-        .then((res) => setStarterPrompts(res.prompts))
-        .catch(() => {/* silent fail */})
-        .finally(() => setPromptsLoading(false));
-    }
+      return copilotApi.getPrompts();
+    })
+      .then((res) => {
+        if (!cancelled && res) setStarterPrompts(res.prompts);
+      })
+      .catch(() => {/* silent fail */})
+      .finally(() => {
+        if (!cancelled) setPromptsLoading(false);
+      });
+    return () => { cancelled = true; };
   }, [isOpen, starterPrompts.length, promptsLoading]);
 
   // Auto-scroll to bottom on new messages
@@ -255,12 +283,41 @@ export function AICopilotDrawer() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Focus input when drawer opens
+  // Record opener, focus input when drawer opens, trap Tab focus, and handle Escape
   useEffect(() => {
-    if (isOpen) {
-      setTimeout(() => inputRef.current?.focus(), 300);
+    if (!isOpen) return;
+    if (!drawerRef.current?.contains(document.activeElement)) {
+      openerRef.current = document.activeElement as HTMLElement | null;
     }
-  }, [isOpen]);
+    const timer = setTimeout(() => inputRef.current?.focus(), 200);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeDrawer();
+      } else if (e.key === 'Tab' && drawerRef.current) {
+        const focusables = Array.from(
+          drawerRef.current.querySelectorAll<HTMLElement>(
+            'button:not([disabled]), textarea:not([disabled]), input:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+          )
+        ).filter((el) => el.offsetParent !== null);
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen, closeDrawer]);
 
   const sendMessage = useCallback(async (text: string) => {
     const trimmed = text.trim();
@@ -296,7 +353,7 @@ export function AICopilotDrawer() {
       };
       // Replace loading message
       setMessages((prev) => [...prev.slice(0, -1), assistantMsg]);
-    } catch (err) {
+    } catch {
       const errorMsg: ChatMessage = {
         id: `error-${Date.now()}`,
         role: 'assistant',
@@ -324,27 +381,6 @@ export function AICopilotDrawer() {
 
   return (
     <>
-      {/* ── Floating trigger button ── */}
-      <motion.button
-        id="ai-copilot-trigger"
-        onClick={() => setIsOpen(true)}
-        className={`
-          fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full
-          bg-ds-blue-action text-white
-          shadow-ds-float-2 border border-ds-hairline
-          flex items-center justify-center
-          hover:bg-ds-blue-strong
-          transition-all duration-200
-          ${isOpen ? 'hidden' : 'flex'}
-        `}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        title="AI Supply Chain Analyst"
-        aria-label="Open AI Copilot"
-      >
-        <span className="text-2xl" role="img" aria-label="AI">🧠</span>
-      </motion.button>
-
       {/* ── Backdrop ── */}
       <AnimatePresence>
         {isOpen && (
@@ -353,7 +389,7 @@ export function AICopilotDrawer() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={() => setIsOpen(false)}
+            onClick={closeDrawer}
             className="fixed inset-0 z-40 bg-ds-canvas/40 backdrop-blur-sm"
           />
         )}
@@ -363,6 +399,10 @@ export function AICopilotDrawer() {
       <AnimatePresence>
         {isOpen && (
           <motion.div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="AI Supply Chain Analyst"
             key="drawer"
             initial={{ x: '100%', opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
@@ -380,8 +420,8 @@ export function AICopilotDrawer() {
             {/* Header */}
             <div className="flex items-center justify-between px-4 py-4 border-b border-ds-hairline flex-shrink-0">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-ds-blue-surface border border-ds-hairline flex items-center justify-center shadow-sm">
-                  <span className="text-lg">🧠</span>
+                <div className="w-9 h-9 rounded-full bg-ds-blue-surface border border-ds-hairline text-ds-blue-on-surface flex items-center justify-center shadow-sm">
+                  <TitanMark size={20} decorative />
                 </div>
                 <div>
                   <h2 className="text-sm font-bold text-ds-text-primary">AI Supply Chain Analyst</h2>
@@ -399,7 +439,8 @@ export function AICopilotDrawer() {
                   </button>
                 )}
                 <button
-                  onClick={() => setIsOpen(false)}
+                  type="button"
+                  onClick={closeDrawer}
                   className="w-8 h-8 flex items-center justify-center rounded-full text-ds-text-muted hover:text-ds-text-primary hover:bg-ds-surface transition-all"
                   aria-label="Close AI Copilot"
                 >

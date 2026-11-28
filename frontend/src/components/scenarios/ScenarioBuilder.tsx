@@ -1,10 +1,10 @@
-/** ScenarioBuilder — central panel: controls + scenario types + sliders + run button. */
+/** ScenarioBuilder — left-column assumption builder with dirty & unsimulated state tracking. */
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Play, RotateCcw, ChevronDown, ChevronUp,
-  Megaphone, DollarSign, Truck, ShieldCheck, Layers
+  Megaphone, DollarSign, Truck, ShieldCheck, Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ScenarioSlider, type SliderConfig } from './ScenarioSlider';
@@ -65,7 +65,7 @@ const SLIDER_CONFIGS = [
   },
 ] as const;
 
-const DEFAULT_PARAMS: ScenarioParameters = {
+const DEFAULT_SCENARIO_PARAMS: ScenarioParameters = {
   marketing_spend_pct: 0,
   price_change_pct: 0,
   lead_time_days: 14,
@@ -73,31 +73,40 @@ const DEFAULT_PARAMS: ScenarioParameters = {
   avg_unit_value: 50,
 };
 
+export interface BuilderSnapshot {
+  params: ScenarioParameters;
+  horizonWeeks: number;
+}
+
 interface Props {
   onRun: (name: string, type: ScenarioType, params: ScenarioParameters, weeks: number) => Promise<void>;
   isRunning: boolean;
   disabled?: boolean;
+  lastSimulatedSnapshot?: BuilderSnapshot | null;
+  onUnsimulatedChange?: (hasChanges: boolean) => void;
 }
 
-export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
+export function ScenarioBuilder({ onRun, isRunning, disabled, lastSimulatedSnapshot, onUnsimulatedChange }: Props) {
   const [name, setName] = useState('New What-If Scenario');
   const [scenarioType, setScenarioType] = useState<ScenarioType>('custom');
-  const [params, setParams] = useState<ScenarioParameters>({ ...DEFAULT_PARAMS });
+  const [params, setParams] = useState<ScenarioParameters>({ ...DEFAULT_SCENARIO_PARAMS });
   const [horizonWeeks, setHorizonWeeks] = useState(12);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [avgUnitValue, setAvgUnitValue] = useState(50);
+  const prefersReducedMotion = useReducedMotion();
 
   const handleSlider = (key: keyof ScenarioParameters, value: number) => {
     setParams((prev) => ({ ...prev, [key]: value }));
   };
 
   const handleReset = () => {
-    setParams({ ...DEFAULT_PARAMS });
+    setParams({ ...DEFAULT_SCENARIO_PARAMS });
     setAvgUnitValue(50);
     setHorizonWeeks(12);
   };
 
   const handleRun = async () => {
+    if (isRunning) return;
     await onRun(name, scenarioType, { ...params, avg_unit_value: avgUnitValue }, horizonWeeks);
   };
 
@@ -106,32 +115,57 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
     params.marketing_spend_pct !== 0 ||
     params.price_change_pct !== 0 ||
     params.lead_time_days !== 14 ||
-    params.safety_stock_multiplier !== 1.0;
+    params.safety_stock_multiplier !== 1.0 ||
+    avgUnitValue !== 50 ||
+    horizonWeeks !== 12;
+
+  // Check if current builder inputs differ from the last displayed simulation
+  const hasUnsimulatedChanges = Boolean(
+    lastSimulatedSnapshot && (
+      Math.abs((lastSimulatedSnapshot.params.marketing_spend_pct ?? 0) - params.marketing_spend_pct) > 0.001 ||
+      Math.abs((lastSimulatedSnapshot.params.price_change_pct ?? 0) - params.price_change_pct) > 0.001 ||
+      Math.abs((lastSimulatedSnapshot.params.lead_time_days ?? 14) - params.lead_time_days) > 0.001 ||
+      Math.abs((lastSimulatedSnapshot.params.safety_stock_multiplier ?? 1.0) - params.safety_stock_multiplier) > 0.001 ||
+      Math.abs((lastSimulatedSnapshot.params.avg_unit_value ?? 50) - avgUnitValue) > 0.001 ||
+      lastSimulatedSnapshot.horizonWeeks !== horizonWeeks
+    )
+  );
+
+  useEffect(() => {
+    onUnsimulatedChange?.(hasUnsimulatedChanges);
+  }, [hasUnsimulatedChanges, onUnsimulatedChange]);
 
   return (
-    <div className="card-apple flex flex-col h-full bg-white dark:bg-surface-900 border border-slate-200/90 dark:border-ds-border rounded-2xl shadow-2xs overflow-hidden">
+    <div className="flex flex-col h-full bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] rounded-[16px] overflow-hidden">
       {/* Header */}
-      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-ds-hairline bg-slate-50/40 dark:bg-ds-surface-sunken/30">
-        <div className="flex items-center gap-2.5 mb-3.5">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <Layers className="w-4 h-4 text-white" />
+      <div className="p-4 sm:p-5 border-b border-[#e4e4e7] dark:border-[#27272a]">
+        <div className="flex items-center justify-between gap-2.5 mb-3.5">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-[10px] bg-[#0a0a0a] dark:bg-[#fafaf9] text-[#fafaf9] dark:text-[#0a0a0a] flex items-center justify-center flex-shrink-0" aria-hidden="true">
+              <Layers className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Scenario Builder</h2>
+              <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] truncate">
+                Editable assumptions for next simulation
+              </p>
+            </div>
           </div>
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-ds-text-heading">Scenario Builder</h2>
-            <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary">
-              Configure assumptions and evaluate their impact
-            </p>
-          </div>
-          {isDirty && (
-            <span className="ml-auto text-[10px] px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 dark:bg-ds-amber-surface dark:text-ds-amber-text dark:border-ds-amber/25 font-bold uppercase tracking-wider">
+
+          {hasUnsimulatedChanges ? (
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#fffbeb] text-[#92400e] border border-[#fde68a] dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50 font-bold uppercase tracking-wider flex-shrink-0">
+              Changes not simulated
+            </span>
+          ) : isDirty ? (
+            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40 font-bold uppercase tracking-wider flex-shrink-0">
               Modified
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* Name input */}
         <div className="space-y-1.5">
-          <label htmlFor="scenario-name" className="text-xs font-bold text-slate-700 dark:text-ds-text-heading block">
+          <label htmlFor="scenario-name" className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] block">
             Scenario Name
           </label>
           <input
@@ -139,10 +173,9 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             className={cn(
-              'w-full bg-white dark:bg-surface-800 border border-slate-300 dark:border-ds-border rounded-xl px-3.5 py-2.5',
-              'text-sm text-slate-900 dark:text-ds-text-primary placeholder:text-slate-400 dark:placeholder:text-ds-text-muted font-semibold',
-              'focus:outline-none focus:border-blue-600 dark:focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
-              'shadow-2xs transition-all duration-150'
+              'w-full bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[10px] px-3.5 py-2',
+              'text-sm text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] font-semibold',
+              'focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20 transition-colors duration-150'
             )}
             placeholder="e.g. Q3 Demand Shock Simulation..."
             maxLength={80}
@@ -150,17 +183,17 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
         </div>
       </div>
 
-      {/* Scenario Archetype Selection (Responsive 2-column grid) */}
-      <div className="p-4 sm:p-5 border-b border-slate-200/80 dark:border-ds-hairline bg-slate-50/20 dark:bg-ds-surface-sunken/10">
+      {/* Scenario Archetype Selection */}
+      <div className="p-4 sm:p-5 border-b border-[#e4e4e7] dark:border-[#27272a]">
         <div className="mb-2.5">
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-ds-text-heading">
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa]">
             Scenario Archetype
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary mt-0.5">
-            Select a predefined archetype or use custom parameters
+          <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5">
+            Select a predefined archetype or custom parameter set
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           {SCENARIO_TYPE_OPTIONS.map((opt) => {
             const isSelected = scenarioType === opt.value;
             const isCustom = opt.value === 'custom';
@@ -169,29 +202,41 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
                 key={opt.value}
                 type="button"
                 id={`scenario-type-${opt.value}`}
+                aria-pressed={isSelected}
                 onClick={() => setScenarioType(opt.value)}
                 className={cn(
-                  'flex items-center justify-between gap-2.5 p-3 rounded-xl text-left transition-all duration-150 border',
+                  'flex items-center justify-between gap-2.5 p-3 rounded-[10px] text-left transition-colors duration-150 border cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-1',
                   isCustom ? 'sm:col-span-2' : '',
                   isSelected
-                    ? 'bg-gradient-to-r from-blue-50/90 via-indigo-50/70 to-white dark:from-blue-950/40 dark:via-indigo-950/30 dark:to-surface-800 border-blue-500 dark:border-blue-500/60 shadow-xs ring-1 ring-blue-500/20'
-                    : 'bg-white dark:bg-surface-800/60 border-slate-200 dark:border-ds-hairline hover:bg-slate-50 dark:hover:bg-ds-surface-sunken hover:border-slate-300 dark:hover:border-ds-border'
+                    ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-blue/40 ring-1 ring-ds-blue/30'
+                    : 'bg-ds-surface-sunken border-ds-hairline hover:border-ds-border-strong'
                 )}
               >
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <div
                     className={cn(
-                      'w-4 h-4 rounded-full border flex items-center justify-center flex-shrink-0 transition-colors',
-                      isSelected ? 'border-blue-600 bg-blue-600' : 'border-slate-300 dark:border-ds-border-strong bg-white dark:bg-surface-700'
+                      'w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0',
+                      isSelected
+                        ? 'border-ds-blue bg-ds-blue'
+                        : 'border-ds-border-control bg-ds-surface'
                     )}
+                    aria-hidden="true"
                   >
                     {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                   </div>
                   <div className="min-w-0">
-                    <p className={cn('text-xs font-bold truncate', isSelected ? 'text-blue-700 dark:text-ds-blue-text' : 'text-slate-800 dark:text-ds-text-primary')}>
+                    <p className={cn(
+                      'text-xs font-semibold truncate',
+                      isSelected ? 'text-ds-sidebar-active-text' : 'text-ds-text-primary'
+                    )}>
                       {opt.label}
                     </p>
-                    <p className="text-[11px] text-slate-500 dark:text-ds-text-muted truncate">{opt.desc}</p>
+                    <p className={cn(
+                      'text-[11px] truncate',
+                      isSelected ? 'text-ds-sidebar-active-text/80' : 'text-ds-text-secondary'
+                    )}>
+                      {opt.desc}
+                    </p>
                   </div>
                 </div>
               </button>
@@ -203,10 +248,10 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
       {/* Sliders Area */}
       <div className="p-4 sm:p-5 flex flex-col gap-4 flex-1">
         <div>
-          <p className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-ds-text-heading">
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa]">
             Scenario Variables
           </p>
-          <p className="text-[11px] text-slate-500 dark:text-ds-text-secondary mt-0.5">
+          <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5">
             Adjust levers to simulate operational or market shifts
           </p>
         </div>
@@ -224,34 +269,34 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
         </div>
 
         {/* Advanced Options Drawer */}
-        <div className="pt-3 border-t border-slate-200/80 dark:border-ds-hairline">
+        <div className="pt-3 border-t border-[#e4e4e7] dark:border-[#27272a]">
           <button
             id="advanced-toggle"
             type="button"
+            aria-expanded={advancedOpen}
             onClick={() => setAdvancedOpen((v) => !v)}
-            className="flex items-center gap-1.5 text-xs font-bold text-slate-700 dark:text-ds-text-secondary hover:text-blue-600 dark:hover:text-ds-blue transition-colors py-1"
+            className="flex items-center gap-1.5 text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] hover:text-[#1e3fc8] dark:hover:text-[#60a5fa] transition-colors py-1 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] rounded-md"
           >
-            {advancedOpen ? <ChevronUp className="w-4 h-4 text-blue-600 dark:text-ds-blue" /> : <ChevronDown className="w-4 h-4 text-blue-600 dark:text-ds-blue" />}
+            {advancedOpen
+              ? <ChevronUp className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" />
+              : <ChevronDown className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" />}
             <span>Advanced Configuration</span>
           </button>
           <AnimatePresence>
             {advancedOpen && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
+                initial={prefersReducedMotion ? false : { height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
+                exit={prefersReducedMotion ? undefined : { height: 0, opacity: 0 }}
+                transition={{ duration: prefersReducedMotion ? 0 : 0.18 }}
                 className="overflow-hidden"
               >
-                <div className="mt-3 flex flex-col gap-3.5 p-3.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken/60 border border-slate-200 dark:border-ds-hairline">
+                <div className="mt-3 flex flex-col gap-3.5 p-3.5 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
                   <div>
-                    <label className="text-xs font-bold text-slate-800 dark:text-ds-text-primary mb-1 block">
-                      Forecast Horizon (weeks)
-                    </label>
                     <ScenarioSlider
                       config={{
                         id: 'horizon_weeks',
-                        label: 'Horizon Duration',
+                        label: 'Forecast Horizon (weeks)',
                         description: 'Simulation forecast range',
                         min: 4,
                         max: 52,
@@ -267,7 +312,7 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
                     />
                   </div>
                   <div>
-                    <label htmlFor="avg-unit-value" className="text-xs font-bold text-slate-800 dark:text-ds-text-primary mb-1 block">
+                    <label htmlFor="avg-unit-value" className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1 block">
                       Average Unit Revenue ($)
                     </label>
                     <input
@@ -279,9 +324,9 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
                       value={avgUnitValue}
                       onChange={(e) => setAvgUnitValue(parseFloat(e.target.value) || 0)}
                       className={cn(
-                        'w-full bg-white dark:bg-surface-800 border border-slate-300 dark:border-ds-border rounded-xl px-3 py-2',
-                        'text-xs font-bold text-slate-900 dark:text-ds-text-primary focus:outline-none focus:border-blue-600 dark:focus:border-blue-500',
-                        'focus:ring-2 focus:ring-blue-500/20 shadow-2xs transition-all duration-150'
+                        'w-full bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] rounded-[10px] px-3 py-2',
+                        'text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] focus:outline-none focus:border-[#1e3fc8]',
+                        'focus:ring-2 focus:ring-[#1e3fc8]/20 transition-colors duration-150'
                       )}
                     />
                   </div>
@@ -293,18 +338,17 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
       </div>
 
       {/* Action Footer */}
-      <div className="p-4 sm:p-5 border-t border-slate-200/80 dark:border-ds-hairline bg-slate-50/60 dark:bg-ds-surface-sunken/40 flex items-center gap-3">
+      <div className="p-4 sm:p-5 border-t border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] flex items-center gap-3">
         <button
           id="reset-scenario"
           type="button"
           onClick={handleReset}
           disabled={!isDirty || isRunning}
           className={cn(
-            'flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all duration-150',
-            'border shadow-2xs',
+            'flex items-center gap-1.5 px-3.5 py-2.5 rounded-[10px] text-xs font-bold transition-colors duration-150 border cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
             isDirty && !isRunning
-              ? 'border-slate-300 dark:border-ds-border bg-white dark:bg-surface-800 hover:bg-slate-50 dark:hover:bg-ds-surface-sunken text-slate-700 dark:text-ds-text-primary'
-              : 'border-slate-200 dark:border-ds-hairline bg-slate-100 dark:bg-ds-surface-sunken text-slate-400 dark:text-ds-text-muted opacity-50 cursor-not-allowed'
+              ? 'border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] hover:bg-[#f1f1f3] dark:hover:bg-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9]'
+              : 'border-[#e4e4e7] dark:border-[#27272a] bg-[#f1f1f3] dark:bg-[#111113] text-[#52525b] dark:text-[#a1a1aa] opacity-50 cursor-not-allowed'
           )}
         >
           <RotateCcw className="w-3.5 h-3.5" />
@@ -316,11 +360,11 @@ export function ScenarioBuilder({ onRun, isRunning, disabled }: Props) {
           onClick={handleRun}
           disabled={isRunning || disabled || !name.trim()}
           className={cn(
-            'flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl',
-            'text-sm font-bold transition-all duration-150 shadow-sm',
-            isRunning || disabled
-              ? 'bg-slate-200 dark:bg-ds-surface-sunken text-slate-400 dark:text-ds-text-muted border border-slate-200 dark:border-ds-hairline cursor-not-allowed'
-              : 'btn-apple btn-apple-primary shadow-blue-500/25'
+            'flex-1 flex items-center justify-center gap-2 px-5 py-2.5 rounded-[10px]',
+            'text-sm font-semibold transition-colors duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-[#1e3fc8]',
+            isRunning || disabled || !name.trim()
+              ? 'bg-[#e4e4e7] dark:bg-[#27272a] text-[#52525b] dark:text-[#a1a1aa] cursor-not-allowed'
+              : 'bg-[#1e3fc8] hover:bg-[#1935a8] text-white'
           )}
         >
           {isRunning ? (

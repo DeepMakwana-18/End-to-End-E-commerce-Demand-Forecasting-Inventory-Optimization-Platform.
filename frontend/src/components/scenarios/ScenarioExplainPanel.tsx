@@ -1,30 +1,26 @@
 /**
- * ScenarioExplainPanel — Phase 5C
+ * ScenarioExplainPanel — Delta-SHAP explainability panel for What-If scenario results.
  *
- * Delta-SHAP explainability panel for What-If scenario results.
- *
- * Layout:
- *   1. Aggregate Driver Summary  — horizontal bar chart of mean delta per feature (all weeks)
- *   2. Per-Week Drill-Down       — week tabs (W1–W12 by default; "Show All" toggle)
- *                                  + delta-SHAP bar chart + top drivers/suppressors cards
- *
- * All aggregates are pre-computed by the backend (driver_summary).
- * The frontend does zero math.
+ * • Light and dark Titan AI surfaces & high-contrast typography
+ * • Honest compact neutral state when all SHAP deltas are 0.00 (never labels 0.0 as a positive driver)
+ * • Progressive disclosure for per-week breakdown when unchanged
+ * • Keyboard-accessible W1–W12 tabs (role="tablist" / arrow keys) + reduced-motion support
  */
 
-import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertCircle, Loader2 } from 'lucide-react';
+import { useState, useEffect, useRef, type KeyboardEvent } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { Sparkles, ChevronDown, ChevronUp, TrendingUp, TrendingDown, AlertCircle, Loader2, Info } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import scenarioApi, { type ScenarioExplainResponse, type ScenarioWeekExplanation, type ScenarioDriverSummaryItem } from '@/services/scenarioApi';
 
 // ── Feature display helpers ──────────────────────────────────────────────────
 
 const FEATURE_LABELS: Record<string, string> = {
-  lag_1:  'Lag 1 (prior week demand)',
-  lag_4:  'Lag 4 (4-week-ago demand)',
-  week:   'Week of year',
-  month:  'Month',
-  year:   'Year trend',
+  lag_1:  'Last Week Demand',
+  lag_4:  '4-Week Demand',
+  week:   'Week of Year',
+  month:  'Month of Year',
+  year:   'Year Trend',
 };
 
 function featureLabel(name: string): string {
@@ -32,51 +28,56 @@ function featureLabel(name: string): string {
 }
 
 function fmtDelta(v: number): string {
+  if (Math.abs(v) < 0.005) return '0.00';
   const abs = Math.abs(v);
   if (abs >= 1000) return `${v >= 0 ? '+' : ''}${(v / 1000).toFixed(1)}k`;
-  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}`;
+  return `${v >= 0 ? '+' : ''}${v.toFixed(2)}`;
 }
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-/** Single horizontal bar for the aggregate driver summary. */
 function DriverBar({ item, maxAbs }: { item: ScenarioDriverSummaryItem; maxAbs: number }) {
+  const isNeutral = Math.abs(item.mean_delta) < 0.005;
   const pct = maxAbs > 0 ? Math.abs(item.mean_delta) / maxAbs : 0;
-  const isPos = item.direction === 'positive';
-  const barWidth = `${Math.max(pct * 100, 2)}%`;
+  const isPos = item.mean_delta > 0;
+  const barWidth = isNeutral ? '0%' : `${Math.max(pct * 100, 2)}%`;
 
   return (
     <div className="flex items-center gap-3 py-1.5">
-      <span className="text-xs text-surface-400 w-36 flex-shrink-0 truncate" title={featureLabel(item.feature)}>
+      <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium w-36 flex-shrink-0 truncate" title={featureLabel(item.feature)}>
         {featureLabel(item.feature)}
       </span>
       <div className="flex-1 flex items-center gap-2 min-w-0">
-        <div className="flex-1 h-5 bg-surface-800/60 rounded-md overflow-hidden relative">
-          <motion.div
-            initial={{ width: 0 }}
-            animate={{ width: barWidth }}
-            transition={{ duration: 0.6, ease: 'easeOut' }}
-            className={`h-full rounded-md ${
-              isPos
-                ? 'bg-gradient-to-r from-emerald-600/80 to-emerald-400/90'
-                : 'bg-gradient-to-r from-rose-600/80 to-rose-400/90'
-            }`}
-          />
+        <div className="flex-1 h-4 bg-[#f1f1f3] dark:bg-[#18181b] rounded-md overflow-hidden relative border border-[#e4e4e7] dark:border-[#27272a]">
+          {!isNeutral && (
+            <div
+              className={cn(
+                'h-full rounded-md transition-all duration-200',
+                isPos ? 'bg-[#059669] dark:bg-emerald-500' : 'bg-[#DC2626] dark:bg-rose-500'
+              )}
+              style={{ width: barWidth }}
+            />
+          )}
         </div>
-        <span className={`text-xs font-sans tabular-nums font-semibold w-16 text-right flex-shrink-0 ${
-          isPos ? 'text-emerald-400' : 'text-rose-400'
-        }`}>
+        <span className={cn(
+          'text-xs font-mono tabular-nums font-bold w-16 text-right flex-shrink-0',
+          isNeutral
+            ? 'text-[#52525b] dark:text-[#a1a1aa]'
+            : isPos
+              ? 'text-emerald-700 dark:text-emerald-400'
+              : 'text-rose-700 dark:text-rose-400'
+        )}>
           {fmtDelta(item.mean_delta)}
         </span>
       </div>
       <div className="flex gap-1 flex-shrink-0">
         {item.weeks_positive > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-900/40 text-emerald-400 border border-emerald-800/40">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800/50 font-semibold">
             ↑{item.weeks_positive}w
           </span>
         )}
         {item.weeks_negative > 0 && (
-          <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-900/40 text-rose-400 border border-rose-800/40">
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#fee2e2] text-[#991b1b] border border-[#fecaca] dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800/50 font-semibold">
             ↓{item.weeks_negative}w
           </span>
         )}
@@ -85,137 +86,137 @@ function DriverBar({ item, maxAbs }: { item: ScenarioDriverSummaryItem; maxAbs: 
   );
 }
 
-/** Per-week delta SHAP bar (used inside the drill-down tab). */
 function WeekDeltaBar({ feature, delta, maxAbs }: { feature: string; delta: number; maxAbs: number }) {
+  const isNeutral = Math.abs(delta) < 0.005;
   const pct = maxAbs > 0 ? Math.abs(delta) / maxAbs : 0;
-  const isPos = delta >= 0;
-  const barWidth = `${Math.max(pct * 100, 1.5)}%`;
+  const isPos = delta > 0;
+  const barWidth = isNeutral ? '0%' : `${Math.max(pct * 100, 2)}%`;
 
   return (
     <div className="flex items-center gap-2.5 py-1">
-      <span className="text-xs text-surface-400 w-32 flex-shrink-0 truncate" title={featureLabel(feature)}>
+      <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium w-32 flex-shrink-0 truncate" title={featureLabel(feature)}>
         {featureLabel(feature)}
       </span>
-      <div className="flex-1 h-4 bg-surface-800/60 rounded overflow-hidden relative">
-        <motion.div
-          key={`${feature}-${delta}`}
-          initial={{ width: 0 }}
-          animate={{ width: barWidth }}
-          transition={{ duration: 0.45, ease: 'easeOut' }}
-          className={`h-full rounded ${
-            isPos
-              ? 'bg-gradient-to-r from-emerald-600/70 to-emerald-400/80'
-              : 'bg-gradient-to-r from-rose-600/70 to-rose-400/80'
-          }`}
-        />
+      <div className="flex-1 h-3.5 bg-[#f1f1f3] dark:bg-[#18181b] rounded overflow-hidden relative border border-[#e4e4e7] dark:border-[#27272a]">
+        {!isNeutral && (
+          <div
+            className={cn(
+              'h-full rounded transition-all duration-200',
+              isPos ? 'bg-[#059669] dark:bg-emerald-500' : 'bg-[#DC2626] dark:bg-rose-500'
+            )}
+            style={{ width: barWidth }}
+          />
+        )}
       </div>
-      <span className={`text-xs font-sans tabular-nums w-14 text-right flex-shrink-0 ${isPos ? 'text-emerald-400' : 'text-rose-400'}`}>
+      <span className={cn(
+        'text-xs font-mono tabular-nums font-bold w-14 text-right flex-shrink-0',
+        isNeutral
+          ? 'text-[#52525b] dark:text-[#a1a1aa]'
+          : isPos
+            ? 'text-emerald-700 dark:text-emerald-400'
+            : 'text-rose-700 dark:text-rose-400'
+      )}>
         {fmtDelta(delta)}
       </span>
     </div>
   );
 }
 
-/** Week drill-down panel for a single selected week. */
 function WeekDrilldown({ week }: { week: ScenarioWeekExplanation }) {
   const deltas = Object.values(week.delta_shap);
-  const maxAbs = deltas.length > 0 ? Math.max(...deltas.map(Math.abs)) : 1;
+  const maxAbs = deltas.length > 0 ? Math.max(...deltas.map(Math.abs), 0.01) : 1;
+  const hasWeekDelta = deltas.some((d) => Math.abs(d) >= 0.005);
 
-  const drivers    = week.week_drivers.filter(d => d.direction === 'positive').slice(0, 3);
-  const suppressors = week.week_drivers.filter(d => d.direction === 'negative').slice(0, 3);
+  const drivers = week.week_drivers.filter(d => d.delta >= 0.005).slice(0, 3);
+  const suppressors = week.week_drivers.filter(d => d.delta <= -0.005).slice(0, 3);
 
   const modelDelta = week.simulated_prediction - week.baseline_prediction;
 
   return (
     <div className="space-y-4">
       {/* Model output line */}
-      <div className="flex items-center gap-4 px-3 py-2 rounded-xl bg-surface-800/40 border border-surface-700/30">
+      <div className="grid grid-cols-3 gap-2 px-3 py-2.5 rounded-[10px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a]">
         <div className="text-center">
-          <p className="text-[10px] text-surface-500 uppercase tracking-wide">Baseline output</p>
-          <p className="text-sm font-bold text-surface-200">{week.baseline_prediction.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+          <p className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-wide">Baseline Output</p>
+          <p className="text-sm font-bold font-mono text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums">
+            {week.baseline_prediction.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+          </p>
         </div>
-        <div className={`flex-1 text-center text-sm font-bold ${modelDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-          {fmtDelta(modelDelta)} units
+        <div className={cn(
+          'text-center flex flex-col justify-center text-sm font-bold font-mono tabular-nums',
+          Math.abs(modelDelta) < 0.05
+            ? 'text-[#52525b] dark:text-[#a1a1aa]'
+            : modelDelta > 0
+              ? 'text-emerald-700 dark:text-emerald-400'
+              : 'text-rose-700 dark:text-rose-400'
+        )}>
+          <span>{fmtDelta(modelDelta)} units</span>
         </div>
         <div className="text-center">
-          <p className="text-[10px] text-surface-500 uppercase tracking-wide">Simulated output</p>
-          <p className="text-sm font-bold text-surface-200">{week.simulated_prediction.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
+          <p className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-wide">Simulated Output</p>
+          <p className="text-sm font-bold font-mono text-[#1e3fc8] dark:text-[#60a5fa] tabular-nums">
+            {week.simulated_prediction.toLocaleString(undefined, { maximumFractionDigits: 1 })}
+          </p>
         </div>
       </div>
 
-      {/* Delta SHAP bars */}
-      <div>
-        <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-2">
-          Feature Δ (Simulated − Baseline SHAP)
+      {hasWeekDelta ? (
+        <>
+          <div>
+            <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em] mb-2">
+              Feature Δ (Simulated − Baseline SHAP)
+            </p>
+            <div className="space-y-0.5">
+              {Object.entries(week.delta_shap)
+                .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
+                .map(([feat, delta]) => (
+                  <WeekDeltaBar key={feat} feature={feat} delta={delta} maxAbs={maxAbs} />
+                ))}
+            </div>
+          </div>
+
+          {(drivers.length > 0 || suppressors.length > 0) && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {drivers.length > 0 && (
+                <div className="p-3 rounded-[10px] bg-[#ECFDF5] dark:bg-emerald-950/40 border border-[#A7F3D0] dark:border-emerald-800/50">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
+                    <span className="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 uppercase tracking-wide">Top Drivers ↑</span>
+                  </div>
+                  {drivers.map(d => (
+                    <div key={d.feature} className="flex items-center justify-between py-0.5">
+                      <span className="text-xs font-medium text-[#0a0a0a] dark:text-[#fafaf9]">{featureLabel(d.feature)}</span>
+                      <span className="text-xs font-mono font-bold tabular-nums text-emerald-700 dark:text-emerald-400">{fmtDelta(d.delta)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              {suppressors.length > 0 && (
+                <div className="p-3 rounded-[10px] bg-[#FFF1F2] dark:bg-rose-950/40 border border-[#FECDD3] dark:border-rose-800/50">
+                  <div className="flex items-center gap-1.5 mb-2">
+                    <TrendingDown className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" aria-hidden="true" />
+                    <span className="text-[11px] font-bold text-rose-800 dark:text-rose-300 uppercase tracking-wide">Suppressors ↓</span>
+                  </div>
+                  {suppressors.map(d => (
+                    <div key={d.feature} className="flex items-center justify-between py-0.5">
+                      <span className="text-xs font-medium text-[#0a0a0a] dark:text-[#fafaf9]">{featureLabel(d.feature)}</span>
+                      <span className="text-xs font-mono font-bold tabular-nums text-rose-700 dark:text-rose-400">{fmtDelta(d.delta)}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </>
+      ) : (
+        <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium">
+          All feature SHAP deltas are <span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">0.00</span> for Week {week.week}.
         </p>
-        <div className="space-y-0.5">
-          {Object.entries(week.delta_shap)
-            .sort((a, b) => Math.abs(b[1]) - Math.abs(a[1]))
-            .map(([feat, delta]) => (
-              <WeekDeltaBar key={feat} feature={feat} delta={delta} maxAbs={maxAbs} />
-            ))}
-        </div>
-      </div>
-
-      {/* Drivers / Suppressors */}
-      {(drivers.length > 0 || suppressors.length > 0) && (
-        <div className="grid grid-cols-2 gap-3">
-          {drivers.length > 0 && (
-            <div className="p-3 rounded-xl bg-emerald-900/20 border border-emerald-800/30">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-[10px] font-semibold text-emerald-400 uppercase tracking-wide">Top Drivers ↑</span>
-              </div>
-              {drivers.map(d => (
-                <div key={d.feature} className="flex items-center justify-between py-0.5">
-                  <span className="text-xs text-surface-300">{featureLabel(d.feature)}</span>
-                  <span className="text-xs font-sans tabular-nums text-emerald-400">{fmtDelta(d.delta)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-          {suppressors.length > 0 && (
-            <div className="p-3 rounded-xl bg-rose-900/20 border border-rose-800/30">
-              <div className="flex items-center gap-1.5 mb-2">
-                <TrendingDown className="w-3.5 h-3.5 text-rose-400" />
-                <span className="text-[10px] font-semibold text-rose-400 uppercase tracking-wide">Suppressors ↓</span>
-              </div>
-              {suppressors.map(d => (
-                <div key={d.feature} className="flex items-center justify-between py-0.5">
-                  <span className="text-xs text-surface-300">{featureLabel(d.feature)}</span>
-                  <span className="text-xs font-sans tabular-nums text-rose-400">{fmtDelta(d.delta)}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
       )}
 
-      {/* SHAP math annotation */}
-      <p className="text-[10px] text-surface-600 italic">
-        SHAP base value: {week.base_value?.toFixed(2)} — each feature's delta shows its marginal contribution to the demand shift.
+      <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa]">
+        SHAP base value: <span className="font-mono font-semibold">{week.base_value?.toFixed(2)}</span>
       </p>
-    </div>
-  );
-}
-
-// ── Loading Skeleton ─────────────────────────────────────────────────────────
-
-function ExplainSkeleton() {
-  return (
-    <div className="animate-pulse space-y-3 p-4">
-      <div className="h-4 bg-surface-800 rounded w-1/3" />
-      {[1, 2, 3, 4, 5].map(i => (
-        <div key={i} className="flex items-center gap-3">
-          <div className="h-3 bg-surface-800 rounded w-28" />
-          <div className={`h-5 bg-surface-800 rounded`} style={{ width: `${20 + i * 12}%` }} />
-          <div className="h-3 bg-surface-800 rounded w-10" />
-        </div>
-      ))}
-      <div className="h-px bg-surface-800/60 my-2" />
-      <div className="flex gap-2">
-        {[1,2,3,4,5,6].map(i => <div key={i} className="h-7 w-10 bg-surface-800 rounded-lg" />)}
-      </div>
     </div>
   );
 }
@@ -229,58 +230,77 @@ interface Props {
 
 const DEFAULT_WEEK_DISPLAY = 12;
 
-export function ScenarioExplainPanel({ scenarioId, horizonWeeks }: Props) {
-  const [data, setData]       = useState<ScenarioExplainResponse | null>(null);
+export function ScenarioExplainPanel({ scenarioId }: Props) {
+  const [data, setData] = useState<ScenarioExplainResponse | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [showAll, setShowAll] = useState(false);
-
-  const fetchExplain = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const { data: res } = await scenarioApi.getExplain(scenarioId);
-      setData(res);
-      setSelectedWeek(1);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
-        ?? 'Failed to load explainability data';
-      setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
-    } finally {
-      setLoading(false);
-    }
-  }, [scenarioId]);
+  const [showZeroDrilldown, setShowZeroDrilldown] = useState(false);
+  const tabRefs = useRef<Record<number, HTMLButtonElement | null>>({});
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
-    fetchExplain();
-  }, [fetchExplain]);
+    let isMounted = true;
+    scenarioApi.getExplain(scenarioId)
+      .then(({ data: res }) => {
+        if (!isMounted) return;
+        setData(res);
+        setError(null);
+        setSelectedWeek(1);
+        setShowZeroDrilldown(false);
+      })
+      .catch((err: unknown) => {
+        if (!isMounted) return;
+        const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail
+          ?? 'Failed to load explainability data';
+        setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
+      })
+      .finally(() => {
+        if (isMounted) setLoading(false);
+      });
+    return () => { isMounted = false; };
+  }, [scenarioId]);
 
-  // ── Render states ──────────────────────────────────────────────────────────
+  const handleTabKeyDown = (e: KeyboardEvent<HTMLButtonElement>, index: number, weeksList: ScenarioWeekExplanation[]) => {
+    if (!weeksList.length) return;
+    let nextIndex: number | null = null;
+    if (e.key === 'ArrowRight') nextIndex = (index + 1) % weeksList.length;
+    else if (e.key === 'ArrowLeft') nextIndex = (index - 1 + weeksList.length) % weeksList.length;
+    else if (e.key === 'Home') nextIndex = 0;
+    else if (e.key === 'End') nextIndex = weeksList.length - 1;
+
+    if (nextIndex !== null) {
+      e.preventDefault();
+      const targetWeek = weeksList[nextIndex].week;
+      setSelectedWeek(targetWeek);
+      tabRefs.current[targetWeek]?.focus();
+    }
+  };
 
   if (loading) {
     return (
-      <div className="rounded-2xl bg-surface-900/60 backdrop-blur-sm border border-surface-800/50 overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-3 border-b border-surface-800/40">
-          <Sparkles className="w-4 h-4 text-violet-400" />
-          <span className="text-sm font-semibold text-surface-200">Scenario Explainability</span>
-          <Loader2 className="w-3.5 h-3.5 text-surface-500 animate-spin ml-auto" />
+      <div className="rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] p-5">
+        <div className="flex items-center gap-2 mb-3">
+          <Sparkles className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+          <span className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Scenario Explainability (SHAP)</span>
+          <Loader2 className="w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa] animate-spin ml-auto" />
         </div>
-        <ExplainSkeleton />
+        <p className="text-xs text-[#52525b] dark:text-[#a1a1aa]">Computing baseline vs simulated SHAP attributions...</p>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="rounded-2xl bg-surface-900/60 backdrop-blur-sm border border-surface-800/50 p-4">
+      <div className="rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] p-5">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-4 h-4 text-violet-400" />
-          <span className="text-sm font-semibold text-surface-200">Scenario Explainability</span>
+          <Sparkles className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+          <span className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Scenario Explainability (SHAP)</span>
         </div>
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-surface-800/40 border border-surface-700/30">
-          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
-          <p className="text-xs text-surface-400">{error ?? 'Explainability data unavailable'}</p>
+        <div className="flex items-start gap-2 p-3 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+          <AlertCircle className="w-4 h-4 text-[#d97706] flex-shrink-0 mt-0.5" aria-hidden="true" />
+          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa]">{error ?? 'Explainability data unavailable'}</p>
         </div>
       </div>
     );
@@ -288,16 +308,16 @@ export function ScenarioExplainPanel({ scenarioId, horizonWeeks }: Props) {
 
   if (!data.explainer_ready) {
     return (
-      <div className="rounded-2xl bg-surface-900/60 backdrop-blur-sm border border-surface-800/50 p-4">
+      <div className="rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] p-5">
         <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="w-4 h-4 text-violet-400" />
-          <span className="text-sm font-semibold text-surface-200">Scenario Explainability</span>
+          <Sparkles className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+          <span className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Scenario Explainability (SHAP)</span>
         </div>
-        <div className="flex items-start gap-2 p-3 rounded-xl bg-amber-900/20 border border-amber-800/30">
-          <AlertCircle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+        <div className="flex items-start gap-2 p-3 rounded-[12px] bg-[#fffbeb] dark:bg-amber-950/30 border border-[#fde68a] dark:border-amber-800/50">
+          <AlertCircle className="w-4 h-4 text-[#d97706] flex-shrink-0 mt-0.5" aria-hidden="true" />
           <div>
-            <p className="text-xs font-medium text-amber-300">SHAP explanation unavailable</p>
-            <p className="text-xs text-surface-400 mt-0.5">{data.reason ?? 'The model explainer could not be built for this scenario.'}</p>
+            <p className="text-xs font-bold text-[#92400e] dark:text-amber-300">SHAP explanation unavailable</p>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5">{data.reason ?? 'The model explainer could not be built for this scenario.'}</p>
           </div>
         </div>
       </div>
@@ -305,122 +325,157 @@ export function ScenarioExplainPanel({ scenarioId, horizonWeeks }: Props) {
   }
 
   const { weeks = [], driver_summary = [] } = data;
-  const maxAbsDelta = driver_summary.length > 0 ? Math.max(...driver_summary.map(d => d.mean_abs_delta)) : 1;
+  const maxAbsDelta = driver_summary.length > 0 ? Math.max(...driver_summary.map(d => d.mean_abs_delta), 0.01) : 1;
+  const hasNonZeroExplain =
+    driver_summary.some((d) => Math.abs(d.mean_abs_delta) >= 0.005 || Math.abs(d.mean_delta) >= 0.005) ||
+    weeks.some((w) => Object.values(w.delta_shap ?? {}).some((v) => Math.abs(v) >= 0.005));
 
-  // Week tabs: default W1–W12, "Show All" reveals the rest
   const displayWeeks = showAll ? weeks : weeks.slice(0, DEFAULT_WEEK_DISPLAY);
   const hasMore = weeks.length > DEFAULT_WEEK_DISPLAY;
   const selectedWeekData = weeks.find(w => w.week === selectedWeek) ?? weeks[0];
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
-      className="rounded-2xl bg-surface-900/60 backdrop-blur-sm border border-surface-800/50 overflow-hidden"
+    <section
+      aria-label="Scenario Explainability"
+      className="rounded-[16px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] overflow-hidden"
     >
       {/* Header */}
-      <div className="flex items-center gap-2.5 px-5 py-3.5 border-b border-surface-800/40">
-        <div className="w-7 h-7 rounded-lg bg-violet-500/15 border border-violet-500/25 flex items-center justify-center">
-          <Sparkles className="w-3.5 h-3.5 text-violet-400" />
-        </div>
+      <div className="flex items-center justify-between gap-2.5 px-5 py-4 border-b border-[#e4e4e7] dark:border-[#27272a] flex-wrap">
         <div>
-          <p className="text-sm font-semibold text-surface-100">Scenario Explainability</p>
-          <p className="text-[10px] text-surface-500">Why did this scenario change demand?</p>
+          <h3 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">Scenario Explainability (SHAP)</h3>
+          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5">
+            Feature contribution shift relative to baseline forecast
+          </p>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-900/40 text-violet-300 border border-violet-800/40 font-medium">
-            SHAP · {weeks.length}w
-          </span>
-        </div>
+        <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40 font-semibold">
+          SHAP · {weeks.length}w
+        </span>
       </div>
 
-      <div className="p-5 space-y-6">
+      <div className="p-5 space-y-5">
+        {!hasNonZeroExplain ? (
+          /* Honest compact neutral state when all SHAP deltas are 0.00 */
+          <div className="space-y-3">
+            <div className="flex items-start gap-3 p-4 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+              <Info className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <div className="text-xs">
+                <p className="font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                  No measurable feature contribution change from baseline
+                </p>
+                <p className="text-[#52525b] dark:text-[#a1a1aa] mt-1 leading-relaxed">
+                  All feature SHAP deltas across the {weeks.length}-week horizon are <span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">0.00</span> because the simulated inputs did not shift tree-based demand predictions away from baseline.
+                </p>
+              </div>
+            </div>
 
-        {/* ── Section 1: Aggregate Driver Summary ── */}
-        <div>
-          <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-3">
-            Aggregate Impact (Mean Δ across all {weeks.length} weeks)
-          </p>
-          <div className="space-y-0.5">
-            {driver_summary.map(item => (
-              <DriverBar key={item.feature} item={item} maxAbs={maxAbsDelta} />
-            ))}
-          </div>
-          <p className="text-[10px] text-surface-600 mt-2 italic">
-            ↑ positive = simulation raised this feature's contribution vs baseline.
-            Weeks positive/negative shown in badges.
-          </p>
-        </div>
-
-        <div className="h-px bg-surface-800/50" />
-
-        {/* ── Section 2: Per-Week Drill-Down ── */}
-        <div>
-          <p className="text-[10px] font-semibold text-surface-500 uppercase tracking-wider mb-3">
-            Per-Week Drill-Down
-          </p>
-
-          {/* Week tab pills */}
-          <div className="flex flex-wrap gap-1.5 mb-4">
-            {displayWeeks.map(w => (
-              <button
-                key={w.week}
-                id={`scenario-explain-week-${w.week}`}
-                onClick={() => setSelectedWeek(w.week)}
-                className={`px-2.5 py-1 text-xs font-medium rounded-lg transition-all duration-150 ${
-                  selectedWeek === w.week
-                    ? 'bg-violet-500/25 text-violet-300 border border-violet-500/40 shadow-sm shadow-violet-500/10'
-                    : 'bg-surface-800/50 text-surface-400 border border-surface-700/40 hover:bg-surface-700/50 hover:text-surface-200'
-                }`}
-              >
-                W{w.week}
-              </button>
-            ))}
-
-            {/* Show All toggle */}
-            {hasMore && (
-              <button
-                id="scenario-explain-show-all"
-                onClick={() => setShowAll(prev => !prev)}
-                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-lg
-                           bg-surface-800/30 text-surface-500 border border-surface-700/30
-                           hover:bg-surface-700/40 hover:text-surface-300 transition-all duration-150"
-              >
-                {showAll ? (
-                  <><ChevronUp className="w-3 h-3" /> Show less</>
-                ) : (
-                  <><ChevronDown className="w-3 h-3" /> +{weeks.length - DEFAULT_WEEK_DISPLAY} more</>
-                )}
-              </button>
+            {weeks.length > 0 && (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => setShowZeroDrilldown((prev) => !prev)}
+                  aria-expanded={showZeroDrilldown}
+                  className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e3fc8] dark:text-[#60a5fa] hover:underline cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] rounded"
+                >
+                  {showZeroDrilldown ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+                  <span>{showZeroDrilldown ? 'Hide per-week details' : `Inspect per-week details (${weeks.length} weeks)`}</span>
+                </button>
+              </div>
             )}
           </div>
+        ) : (
+          /* Aggregate Driver Summary for nonzero scenarios */
+          <div>
+            <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em] mb-3">
+              Aggregate Impact (Mean Δ across {weeks.length} weeks)
+            </p>
+            <div className="space-y-0.5">
+              {driver_summary.map(item => (
+                <DriverBar key={item.feature} item={item} maxAbs={maxAbsDelta} />
+              ))}
+            </div>
+            <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-2">
+              Positive values indicate features that raised simulated demand relative to baseline.
+            </p>
+          </div>
+        )}
 
-          {/* Selected week detail */}
-          <AnimatePresence mode="wait">
-            {selectedWeekData && (
-              <motion.div
-                key={selectedWeek}
-                initial={{ opacity: 0, y: 4 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
-                transition={{ duration: 0.2 }}
-                className="p-4 rounded-xl bg-surface-800/30 border border-surface-700/30"
-              >
-                <div className="flex items-center justify-between mb-3">
-                  <p className="text-xs font-semibold text-surface-200">
-                    Week {selectedWeekData.week}
-                    <span className="ml-2 text-surface-500 font-normal">{selectedWeekData.date}</span>
-                  </p>
-                </div>
-                <WeekDrilldown week={selectedWeekData} />
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
+        {/* Per-Week Drill-Down (always shown when nonzero, progressive disclosure when all-zero) */}
+        {(hasNonZeroExplain || showZeroDrilldown) && weeks.length > 0 && (
+          <div className="pt-4 border-t border-[#e4e4e7] dark:border-[#27272a]">
+            <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em] mb-3">
+              Per-Week Drill-Down
+            </p>
 
+            <div
+              role="tablist"
+              aria-label="Scenario explainability weeks"
+              className="flex flex-wrap gap-1.5 mb-4"
+            >
+              {displayWeeks.map((w, idx) => {
+                const selected = selectedWeek === w.week;
+                return (
+                  <button
+                    key={w.week}
+                    ref={(el) => { tabRefs.current[w.week] = el; }}
+                    id={`scenario-explain-week-${w.week}`}
+                    role="tab"
+                    aria-selected={selected}
+                    tabIndex={selected ? 0 : -1}
+                    onClick={() => setSelectedWeek(w.week)}
+                    onKeyDown={(e) => handleTabKeyDown(e, idx, displayWeeks)}
+                    className={cn(
+                      'px-2.5 py-1 text-xs font-semibold rounded-[8px] transition-colors duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
+                      selected
+                        ? 'bg-[#0a0a0a] text-[#fafaf9] dark:bg-[#fafaf9] dark:text-[#0a0a0a] border border-[#0a0a0a] dark:border-[#fafaf9]'
+                        : 'bg-[#fafaf9] dark:bg-[#18181b] text-[#52525b] dark:text-[#a1a1aa] border border-[#e4e4e7] dark:border-[#27272a] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9]'
+                    )}
+                  >
+                    W{w.week}
+                  </button>
+                );
+              })}
+
+              {hasMore && (
+                <button
+                  id="scenario-explain-show-all"
+                  type="button"
+                  onClick={() => setShowAll(prev => !prev)}
+                  className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] text-[#52525b] dark:text-[#a1a1aa] border border-[#e4e4e7] dark:border-[#27272a] hover:text-[#0a0a0a] dark:hover:text-[#fafaf9] cursor-pointer"
+                >
+                  {showAll ? (
+                    <><ChevronUp className="w-3 h-3" /> Show less</>
+                  ) : (
+                    <><ChevronDown className="w-3 h-3" /> +{weeks.length - DEFAULT_WEEK_DISPLAY} more</>
+                  )}
+                </button>
+              )}
+            </div>
+
+            <AnimatePresence mode="wait">
+              {selectedWeekData && (
+                <motion.div
+                  key={selectedWeek}
+                  role="tabpanel"
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 3 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
+                  className="p-4 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                      Week {selectedWeekData.week}
+                      <span className="ml-2 text-[#52525b] dark:text-[#a1a1aa] font-medium">{selectedWeekData.date}</span>
+                    </p>
+                  </div>
+                  <WeekDrilldown week={selectedWeekData} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
       </div>
-    </motion.div>
+    </section>
   );
 }
 

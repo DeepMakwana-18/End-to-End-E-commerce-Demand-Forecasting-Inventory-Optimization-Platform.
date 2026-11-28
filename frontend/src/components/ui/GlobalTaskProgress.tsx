@@ -8,10 +8,11 @@
  * Only one active task is tracked at a time (last-writer-wins).
  */
 
-import { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Loader2, CheckCircle2, XCircle } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
+import { CheckCircle2, XCircle } from 'lucide-react';
 import { useWebSocket } from '@/hooks/useWebSocket';
+import { TitanMark } from '@/components/ui/TitanMark';
 
 interface ActiveTask {
   taskId: string;
@@ -32,10 +33,19 @@ const AUTO_DISMISS_MS = 3_500;
 
 export function GlobalTaskProgress() {
   const { subscribe } = useWebSocket();
+  const prefersReducedMotion = useReducedMotion();
   const [task, setTask] = useState<ActiveTask | null>(null);
+  const dismissTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     const unsubs: Array<() => void> = [];
+
+    const clearDismissTimer = () => {
+      if (dismissTimerRef.current !== null) {
+        window.clearTimeout(dismissTimerRef.current);
+        dismissTimerRef.current = null;
+      }
+    };
 
     const getTaskName = (payload: Record<string, unknown>) =>
       TASK_NAME_MAP[(payload?.task_name as string) ?? ''] ??
@@ -47,6 +57,7 @@ export function GlobalTaskProgress() {
       subscribe('task.started', (msg) => {
         const p = msg.data?.payload as Record<string, unknown> | undefined;
         if (!p?.task_id) return;
+        clearDismissTimer();
         setTask({
           taskId: p.task_id as string,
           taskName: getTaskName(p),
@@ -80,6 +91,7 @@ export function GlobalTaskProgress() {
       subscribe('task.completed', (msg) => {
         const p = msg.data?.payload as Record<string, unknown> | undefined;
         if (!p?.task_id) return;
+        clearDismissTimer();
         setTask((prev) => {
           if (prev && prev.taskId !== p.task_id) return prev;
           return {
@@ -90,7 +102,7 @@ export function GlobalTaskProgress() {
             message: (p.message as string) || 'Completed',
           };
         });
-        setTimeout(() => setTask(null), AUTO_DISMISS_MS);
+        dismissTimerRef.current = window.setTimeout(() => setTask(null), AUTO_DISMISS_MS);
       }),
     );
 
@@ -99,6 +111,7 @@ export function GlobalTaskProgress() {
       subscribe('task.failed', (msg) => {
         const p = msg.data?.payload as Record<string, unknown> | undefined;
         if (!p?.task_id) return;
+        clearDismissTimer();
         setTask((prev) => {
           if (prev && prev.taskId !== p.task_id) return prev;
           return {
@@ -109,81 +122,98 @@ export function GlobalTaskProgress() {
             message: (p.error as string) || 'Task failed',
           };
         });
-        setTimeout(() => setTask(null), AUTO_DISMISS_MS + 2_000);
+        dismissTimerRef.current = window.setTimeout(() => setTask(null), AUTO_DISMISS_MS + 2_000);
       }),
     );
 
-    return () => unsubs.forEach((fn) => fn());
+    return () => {
+      clearDismissTimer();
+      unsubs.forEach((fn) => fn());
+    };
   }, [subscribe]);
 
-  return (
-    <AnimatePresence>
-      {task && (
-        <motion.div
-          key={task.taskId}
-          initial={{ opacity: 0, y: -48, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -48, scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-          className="fixed top-3 left-1/2 -translate-x-1/2 z-[9998]
-                     flex items-center gap-3 px-5 py-2.5 rounded-full
-                     bg-ds-surface border border-ds-hairline
-                     backdrop-blur-xl shadow-ds-float-2 min-w-[300px] max-w-[440px]"
-        >
-          {/* Status icon */}
-          <div className="flex-shrink-0">
-            {task.state === 'completed' ? (
-              <CheckCircle2 className="w-4 h-4 text-ds-green" />
-            ) : task.state === 'failed' ? (
-              <XCircle className="w-4 h-4 text-ds-red" />
-            ) : (
-              <Loader2 className="w-4 h-4 text-ds-blue animate-spin" />
-            )}
-          </div>
+  const statusAnnouncement = task
+    ? task.state === 'completed'
+      ? `${task.taskName} completed`
+      : task.state === 'failed'
+        ? `${task.taskName} failed`
+        : `${task.taskName} in progress`
+    : '';
 
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2 mb-1">
-              <p className="text-xs font-semibold text-ds-text-primary truncate">
-                {task.taskName}
-              </p>
-              {task.state !== 'failed' && (
-                <span className="text-[10px] font-mono text-ds-text-muted flex-shrink-0">
-                  {task.progress}%
-                </span>
+  return (
+    <>
+      <span className="sr-only" role="status" aria-live="polite">
+        {statusAnnouncement}
+      </span>
+      <AnimatePresence>
+        {task && (
+          <motion.div
+            key={task.taskId}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -24 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+            className="fixed top-3 left-1/2 -translate-x-1/2 z-[9998]
+                       flex items-center gap-3 px-4 py-2.5 rounded-[12px]
+                       bg-ds-surface border border-ds-hairline
+                       shadow-ds-float-2 min-w-[300px] max-w-[440px]"
+          >
+            {/* Status icon */}
+            <div className="flex-shrink-0">
+              {task.state === 'completed' ? (
+                <CheckCircle2 className="w-4 h-4 text-ds-green" aria-hidden="true" />
+              ) : task.state === 'failed' ? (
+                <XCircle className="w-4 h-4 text-ds-red" aria-hidden="true" />
+              ) : (
+                <TitanMark size={18} mode="pulse" decorative className="text-ds-blue" />
               )}
             </div>
 
-            {/* Progress bar */}
-            <div className="h-1 rounded-full bg-ds-surface-sunken overflow-hidden">
-              <motion.div
-                className={`h-full rounded-full ${
-                  task.state === 'completed'
-                    ? 'bg-ds-green'
-                    : task.state === 'failed'
-                    ? 'bg-ds-red'
-                    : 'bg-ds-blue'
-                }`}
-                animate={{ width: `${task.state === 'failed' ? 100 : task.progress}%` }}
-                transition={{ duration: 0.4, ease: 'easeOut' }}
-              />
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <p className="text-xs font-semibold text-ds-text-primary truncate">
+                  {task.taskName}
+                </p>
+                {task.state !== 'failed' && (
+                  <span aria-live="off" className="text-[11px] font-mono text-ds-text-secondary tabular-nums flex-shrink-0">
+                    {task.progress}%
+                  </span>
+                )}
+              </div>
+
+              {/* Progress bar */}
+              <div className="h-1 rounded-full bg-ds-surface-sunken overflow-hidden">
+                <motion.div
+                  className={`h-full rounded-full ${
+                    task.state === 'completed'
+                      ? 'bg-ds-green'
+                      : task.state === 'failed'
+                      ? 'bg-ds-red'
+                      : 'bg-ds-blue'
+                  }`}
+                  animate={{ width: `${task.state === 'failed' ? 100 : task.progress}%` }}
+                  transition={{ duration: prefersReducedMotion ? 0 : 0.35, ease: 'easeOut' }}
+                />
+              </div>
+
+              <p aria-live="off" className="text-[11px] text-ds-text-secondary mt-1 truncate">
+                {task.message}
+              </p>
             </div>
 
-            <p className="text-[10px] text-ds-text-muted mt-1 truncate">
-              {task.message}
-            </p>
-          </div>
-
-          {/* Dismiss */}
-          <button
-            onClick={() => setTask(null)}
-            className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-ds-text-muted hover:text-ds-text-primary transition"
-            aria-label="Dismiss"
-          >
-            ×
-          </button>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            {/* Dismiss */}
+            <button
+              type="button"
+              onClick={() => setTask(null)}
+              className="flex-shrink-0 w-6 h-6 rounded-md flex items-center justify-center text-ds-text-secondary hover:text-ds-text-primary hover:bg-ds-surface-sunken transition-colors cursor-pointer"
+              aria-label="Dismiss task progress"
+            >
+              ×
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }

@@ -2,21 +2,12 @@
  * AnomalyExplainPanel — Phase 5D
  *
  * SHAP root-cause explanation panel for individual anomalies.
- * Placed inside AnomalyInvestigationDrawer between BaselineViz and BusinessImpact.
- *
- * Features:
- *  - Backend-fetched driver / suppressor SHAP contributions
- *  - Animated horizontal bar chart (amber = driver, rose = suppressor)
- *  - Backend narrative summary paragraph
- *  - SHAP-enhanced vs z-score confidence comparison
- *  - reconstruction_quality badge + used_fallbacks list
- *  - anomaly_type_note caveat for INVENTORY_SHOCK / FORECAST_MISS
- *  - SHAP math validation display (base + Σshap ≈ predicted)
- *  - Loading skeleton / explainer_ready=false fallback states
+ * Supports light and dark Titan AI surfaces with accessible contrast,
+ * reduced-motion support, and honest attribution reconciliation notes.
  */
 
 import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Sparkles, AlertTriangle, Info, TrendingUp, TrendingDown,
   Loader2, CheckCircle2, HelpCircle, ShieldCheck,
@@ -27,31 +18,51 @@ import anomalyApi, { type AnomalyDriverItem, type AnomalyExplainResponse } from 
 // ── Quality Badge ─────────────────────────────────────────────────────
 
 function QualityBadge({ quality, fallbacks }: { quality: string; fallbacks: string[] }) {
-  const cfg: Record<string, { label: string; color: string; bg: string; icon: typeof CheckCircle2 }> = {
-    full:    { label: 'Full', color: 'text-accent-400',   bg: 'bg-accent-500/10 border-accent-500/25',   icon: CheckCircle2 },
-    partial: { label: 'Partial', color: 'text-warning-400', bg: 'bg-warning-500/10 border-warning-500/25', icon: AlertTriangle },
-    minimal: { label: 'Minimal', color: 'text-danger-400',  bg: 'bg-danger-500/10 border-danger-500/25',  icon: AlertTriangle },
-    unknown: { label: 'Unknown', color: 'text-surface-500', bg: 'bg-surface-800/40 border-surface-700/30', icon: HelpCircle },
+  const cfg: Record<string, { label: string; badge: string; icon: typeof CheckCircle2 }> = {
+    full: {
+      label: 'Full',
+      badge: 'bg-[#dcfce7] text-[#166534] border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60',
+      icon: CheckCircle2,
+    },
+    partial: {
+      label: 'Partial',
+      badge: 'bg-[#fffbeb] text-[#92400e] border-[#fde68a] dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50',
+      icon: AlertTriangle,
+    },
+    minimal: {
+      label: 'Minimal',
+      badge: 'bg-[#fee2e2] text-[#991b1b] border-[#fecaca] dark:bg-[#7f1d1d]/40 dark:text-[#fca5a5] dark:border-[#991b1b]/60',
+      icon: AlertTriangle,
+    },
+    unknown: {
+      label: 'Unknown',
+      badge: 'bg-[#f1f1f3] text-[#3f3f46] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]',
+      icon: HelpCircle,
+    },
   };
   const c = cfg[quality] ?? cfg.unknown;
   const Icon = c.icon;
   const LABEL_MAP: Record<string, string> = {
-    lag_1: 'last-week lag', lag_4: '4-week lag',
-    week: 'week', month: 'month', year: 'year',
+    lag_1: 'last-week lag',
+    lag_4: '4-week lag',
+    week: 'week',
+    month: 'month',
+    year: 'year',
   };
+
   return (
     <span
       title={
         fallbacks.length
           ? `Fallback features: ${fallbacks.map(f => LABEL_MAP[f] ?? f).join(', ')} — estimated from rolling baseline`
-          : 'All features reconstructed from Forecast table'
+          : 'All features reconstructed from Forecast records'
       }
       className={cn(
-        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md border text-[9px] font-semibold cursor-help',
-        c.bg, c.color,
+        'inline-flex items-center gap-1 px-2 py-0.5 rounded-md border text-[10px] font-semibold cursor-help',
+        c.badge,
       )}
     >
-      <Icon className="w-2.5 h-2.5" />
+      <Icon className="w-3 h-3" aria-hidden="true" />
       {c.label} reconstruction
     </span>
   );
@@ -60,42 +71,42 @@ function QualityBadge({ quality, fallbacks }: { quality: string; fallbacks: stri
 // ── Driver Bar ────────────────────────────────────────────────────────
 
 function DriverBar({
-  item, maxAbs, isDriver,
+  item, maxAbs, isDriver, prefersReducedMotion,
 }: {
   item: AnomalyDriverItem;
   maxAbs: number;
   isDriver: boolean;
+  prefersReducedMotion: boolean | null;
 }) {
   const pct = maxAbs > 0 ? (item.abs_shap / maxAbs) * 100 : 0;
   const barColor = isDriver
-    ? 'bg-gradient-to-r from-amber-500/80 to-amber-400/60'
-    : 'bg-gradient-to-r from-rose-500/80 to-rose-400/60';
-  const valueColor = isDriver ? 'text-amber-400' : 'text-rose-400';
+    ? 'bg-emerald-600 dark:bg-emerald-500'
+    : 'bg-rose-600 dark:bg-rose-500';
+  const valueColor = isDriver
+    ? 'text-emerald-700 dark:text-emerald-400'
+    : 'text-rose-700 dark:text-rose-400';
 
   return (
     <div className="flex items-center gap-2.5 py-1">
-      {/* Feature label */}
       <div className="w-32 flex-shrink-0">
-        <p className="text-[10px] font-medium text-surface-300 truncate" title={item.label}>
+        <p className="text-[11px] font-semibold text-[#0a0a0a] dark:text-[#fafaf9] truncate" title={item.label}>
           {item.label}
         </p>
-        <p className="text-[8px] text-surface-600 font-mono">
+        <p className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums">
           val={formatNumber(item.feature_value)}
         </p>
       </div>
 
-      {/* Animated bar */}
-      <div className="flex-1 bg-surface-800/40 rounded-full h-2 overflow-hidden">
+      <div className="flex-1 bg-[#e4e4e7]/70 dark:bg-[#27272a] rounded-full h-2 overflow-hidden">
         <motion.div
           className={cn('h-full rounded-full', barColor)}
-          initial={{ width: 0 }}
+          initial={prefersReducedMotion ? false : { width: 0 }}
           animate={{ width: `${pct}%` }}
-          transition={{ duration: 0.6, ease: 'easeOut' }}
+          transition={{ duration: prefersReducedMotion ? 0 : 0.35, ease: 'easeOut' }}
         />
       </div>
 
-      {/* SHAP value */}
-      <div className={cn('w-16 text-right font-mono text-[10px] font-bold', valueColor)}>
+      <div className={cn('w-16 text-right font-mono text-[11px] font-bold tabular-nums', valueColor)}>
         {item.shap_value >= 0 ? '+' : ''}{item.shap_value.toFixed(1)}
       </div>
     </div>
@@ -104,7 +115,15 @@ function DriverBar({
 
 // ── Driver Section ────────────────────────────────────────────────────
 
-function DriversSection({ drivers, suppressors }: { drivers: AnomalyDriverItem[]; suppressors: AnomalyDriverItem[] }) {
+function DriversSection({
+  drivers,
+  suppressors,
+  prefersReducedMotion,
+}: {
+  drivers: AnomalyDriverItem[];
+  suppressors: AnomalyDriverItem[];
+  prefersReducedMotion: boolean | null;
+}) {
   const allItems = [...drivers, ...suppressors];
   const maxAbs = Math.max(...allItems.map(d => d.abs_shap), 0.001);
 
@@ -113,14 +132,20 @@ function DriversSection({ drivers, suppressors }: { drivers: AnomalyDriverItem[]
       {drivers.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <TrendingUp className="w-3 h-3 text-amber-400" />
-            <p className="text-[9px] font-bold uppercase tracking-widest text-amber-400/80">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" aria-hidden="true" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-emerald-700 dark:text-emerald-400">
               Drivers — raised predicted demand
             </p>
           </div>
           <div className="space-y-0.5">
             {drivers.map(item => (
-              <DriverBar key={item.feature} item={item} maxAbs={maxAbs} isDriver />
+              <DriverBar
+                key={item.feature}
+                item={item}
+                maxAbs={maxAbs}
+                isDriver
+                prefersReducedMotion={prefersReducedMotion}
+              />
             ))}
           </div>
         </div>
@@ -129,22 +154,28 @@ function DriversSection({ drivers, suppressors }: { drivers: AnomalyDriverItem[]
       {suppressors.length > 0 && (
         <div>
           <div className="flex items-center gap-1.5 mb-1.5">
-            <TrendingDown className="w-3 h-3 text-rose-400" />
-            <p className="text-[9px] font-bold uppercase tracking-widest text-rose-400/80">
+            <TrendingDown className="w-3.5 h-3.5 text-rose-700 dark:text-rose-400" aria-hidden="true" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-rose-700 dark:text-rose-400">
               Suppressors — reduced predicted demand
             </p>
           </div>
           <div className="space-y-0.5">
             {suppressors.map(item => (
-              <DriverBar key={item.feature} item={item} maxAbs={maxAbs} isDriver={false} />
+              <DriverBar
+                key={item.feature}
+                item={item}
+                maxAbs={maxAbs}
+                isDriver={false}
+                prefersReducedMotion={prefersReducedMotion}
+              />
             ))}
           </div>
         </div>
       )}
 
       {drivers.length === 0 && suppressors.length === 0 && (
-        <p className="text-[10px] text-surface-500 text-center py-2">
-          No significant SHAP contributions (model output is near the SHAP baseline).
+        <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] text-center py-2">
+          No significant SHAP contributions (model output matches the SHAP baseline).
         </p>
       )}
     </div>
@@ -171,41 +202,41 @@ function ConfidenceRow({
   ) : null;
 
   return (
-    <div className="bg-surface-900/60 border border-surface-800/40 rounded-xl p-3 space-y-2">
-      <p className="text-[9px] font-bold uppercase tracking-widest text-surface-500">
+    <div className="bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] rounded-[12px] p-3 space-y-1.5">
+      <p className="text-[10px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa]">
         Detection Confidence
       </p>
-      <div className="flex items-center gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2 mb-1">
-            <ShieldCheck className={cn('w-3.5 h-3.5', isEnhanced ? 'text-accent-400' : 'text-primary-400')} />
-            <span className={cn('text-sm font-bold font-mono', isEnhanced ? 'text-accent-400' : 'text-primary-400')}>
-              {confidenceShap.toFixed(1)}%
-            </span>
-            {isEnhanced && (
-              <span className="text-[8px] px-1.5 py-0.5 rounded bg-accent-500/15 text-accent-400 border border-accent-500/25 font-semibold">
-                SHAP-enhanced
-              </span>
-            )}
-          </div>
-          {zBased != null && isEnhanced && (
-            <p className="text-[9px] text-surface-500">
-              ↑ from z-score baseline of {zBased}%
-              · boosted by driver agreement
-            </p>
-          )}
-          {!isEnhanced && (
-            <p className="text-[9px] text-surface-500">
-              Based on z-score (SHAP provides no additional boost)
-            </p>
-          )}
-        </div>
+      <div className="flex items-center gap-2 flex-wrap">
+        <ShieldCheck
+          className={cn('w-4 h-4', isEnhanced ? 'text-emerald-600 dark:text-emerald-400' : 'text-[#1e3fc8] dark:text-[#60a5fa]')}
+          aria-hidden="true"
+        />
+        <span className={cn(
+          'text-sm font-bold font-mono tabular-nums',
+          isEnhanced ? 'text-emerald-700 dark:text-emerald-400' : 'text-[#1e3fc8] dark:text-[#60a5fa]'
+        )}>
+          {confidenceShap.toFixed(1)}%
+        </span>
+        {isEnhanced && (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#dcfce7] text-[#166534] border border-[#bbf7d0] dark:bg-[#14532d]/40 dark:text-[#4ade80] dark:border-[#166534]/60 font-semibold">
+            SHAP-enhanced
+          </span>
+        )}
       </div>
+      {zBased != null && isEnhanced ? (
+        <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa]">
+          Up from z-score baseline of {zBased}% based on feature driver agreement.
+        </p>
+      ) : (
+        <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa]">
+          Derived from z-score magnitude (SHAP provides no additional boost).
+        </p>
+      )}
     </div>
   );
 }
 
-// ── SHAP Math Note ────────────────────────────────────────────────────
+// ── Attribution Reconciliation Notice ─────────────────────────────────
 
 function ShapMathNote({
   baseValue, allShap, predicted,
@@ -219,29 +250,45 @@ function ShapMathNote({
   const shapSum = Object.values(allShap).reduce((a, b) => a + b, 0);
   const computed = baseValue + shapSum;
   const diff = Math.abs(computed - predicted);
-  const isValid = diff < 1.0;
+  const isReconciled = diff < 1.0;
 
   return (
     <div
       className={cn(
-        'rounded-lg border px-3 py-2 flex items-start gap-2',
-        isValid
-          ? 'bg-accent-500/5 border-accent-500/20'
-          : 'bg-warning-500/5 border-warning-500/20',
+        'rounded-[10px] border px-3 py-2.5 flex items-start gap-2',
+        isReconciled
+          ? 'bg-[#dcfce7]/50 border-[#bbf7d0] dark:bg-[#14532d]/25 dark:border-[#166534]/50'
+          : 'bg-[#fffbeb] border-[#fde68a] dark:bg-amber-950/30 dark:border-amber-800/50',
       )}
-      title={`base(${baseValue.toFixed(1)}) + Σshap(${shapSum.toFixed(1)}) = ${computed.toFixed(1)} ≈ predicted(${predicted.toFixed(1)}), diff=${diff.toFixed(3)}`}
     >
-      <Info className={cn('w-3 h-3 mt-0.5 flex-shrink-0', isValid ? 'text-accent-400/70' : 'text-warning-400/70')} />
-      <p className="text-[9px] text-surface-500">
-        <span className="font-mono text-surface-400">
-          base({baseValue.toFixed(0)}) + Σshap({shapSum.toFixed(0)}) ≈ {computed.toFixed(0)}
-        </span>
-        {' '}·{' '}
-        {isValid
-          ? <span className="text-accent-400">SHAP math valid (diff = {diff.toFixed(2)})</span>
-          : <span className="text-warning-400">diff = {diff.toFixed(2)} — may reflect seasonal post-processing</span>
-        }
-      </p>
+      <Info
+        className={cn(
+          'w-3.5 h-3.5 mt-0.5 flex-shrink-0',
+          isReconciled ? 'text-[#166534] dark:text-[#4ade80]' : 'text-[#92400e] dark:text-amber-300',
+        )}
+        aria-hidden="true"
+      />
+      <div className="text-[11px] leading-relaxed">
+        {isReconciled ? (
+          <p className="text-[#166534] dark:text-[#4ade80] font-medium">
+            SHAP attribution reconciles with model output:{' '}
+            <span className="font-mono font-semibold tabular-nums">
+              base ({baseValue.toFixed(1)}) + ΣSHAP ({shapSum >= 0 ? '+' : ''}{shapSum.toFixed(1)}) = {computed.toFixed(1)}
+            </span>
+          </p>
+        ) : (
+          <div className="space-y-0.5">
+            <p className="font-semibold text-[#92400e] dark:text-amber-300">
+              Attribution not directly reconcilable with anomaly scale
+            </p>
+            <p className="text-[#52525b] dark:text-[#a1a1aa]">
+              Model SHAP sum (<span className="font-mono font-semibold text-[#0a0a0a] dark:text-[#fafaf9] tabular-nums">
+                {baseValue.toFixed(1)} + {shapSum >= 0 ? '+' : ''}{shapSum.toFixed(1)} = {computed.toFixed(1)}
+              </span>) differs from the recorded model value ({predicted.toFixed(1)}) because anomaly detection uses rolling-baseline or product-level scales.
+            </p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -257,17 +304,21 @@ export function AnomalyExplainPanel({ anomalyId, zScore }: Props) {
   const [data, setData] = useState<AnomalyExplainResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
     if (!anomalyId) return;
     let cancelled = false;
-    setLoading(true);
-    setData(null);
-    setError(null);
 
-    anomalyApi.getExplain(anomalyId)
-      .then(({ data: resp }) => {
-        if (!cancelled) setData(resp);
+    Promise.resolve().then(() => {
+      if (cancelled) return;
+      setLoading(true);
+      setData(null);
+      setError(null);
+      return anomalyApi.getExplain(anomalyId);
+    })
+      .then((res) => {
+        if (!cancelled && res) setData(res.data);
       })
       .catch(() => {
         if (!cancelled) setError('Could not load SHAP explanation.');
@@ -279,23 +330,22 @@ export function AnomalyExplainPanel({ anomalyId, zScore }: Props) {
     return () => { cancelled = true; };
   }, [anomalyId]);
 
-  // ── Loading ──────────────────────────────────────────────────────
   if (loading) {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-primary-400" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-            Root-Cause Analysis
+          <Sparkles className="w-3.5 h-3.5 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa]">
+            Confidence &amp; Attribution Analysis
           </p>
-          <Loader2 className="w-3 h-3 text-surface-500 animate-spin" />
+          <Loader2 className="w-3 h-3 text-[#52525b] dark:text-[#a1a1aa] animate-spin" />
         </div>
-        <div className="bg-surface-900/60 border border-surface-800/40 rounded-xl p-4 space-y-2">
+        <div className="bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[12px] p-4 space-y-2">
           {[70, 50, 85, 40].map((w, i) => (
             <div key={i} className="flex items-center gap-2">
-              <div className="h-2.5 skeleton rounded" style={{ width: 120 }} />
-              <div className="flex-1 h-2 skeleton rounded-full" style={{ maxWidth: `${w}%` }} />
-              <div className="h-2.5 skeleton rounded w-10" />
+              <div className="h-2.5 skeleton rounded bg-[#e4e4e7] dark:bg-[#27272a]" style={{ width: 120 }} />
+              <div className="flex-1 h-2 skeleton rounded-full bg-[#e4e4e7] dark:bg-[#27272a]" style={{ maxWidth: `${w}%` }} />
+              <div className="h-2.5 skeleton rounded w-10 bg-[#e4e4e7] dark:bg-[#27272a]" />
             </div>
           ))}
         </div>
@@ -303,34 +353,32 @@ export function AnomalyExplainPanel({ anomalyId, zScore }: Props) {
     );
   }
 
-  // ── Network error ────────────────────────────────────────────────
   if (error) {
     return (
-      <div className="bg-danger-500/5 border border-danger-500/20 rounded-xl p-3 flex items-start gap-2">
-        <AlertTriangle className="w-3.5 h-3.5 text-danger-400 mt-0.5 flex-shrink-0" />
+      <div className="bg-[#fee2e2]/60 dark:bg-[#7f1d1d]/30 border border-[#fecaca] dark:border-[#991b1b]/60 rounded-[12px] p-3 flex items-start gap-2">
+        <AlertTriangle className="w-4 h-4 text-[#991b1b] dark:text-[#fca5a5] mt-0.5 flex-shrink-0" aria-hidden="true" />
         <div>
-          <p className="text-[10px] font-semibold text-danger-400">Explanation unavailable</p>
-          <p className="text-[9px] text-surface-500 mt-0.5">{error}</p>
+          <p className="text-xs font-bold text-[#991b1b] dark:text-[#fca5a5]">Explanation unavailable</p>
+          <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5">{error}</p>
         </div>
       </div>
     );
   }
 
-  // ── Explainer not ready ──────────────────────────────────────────
   if (data && !data.explainer_ready) {
     return (
       <div className="space-y-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-surface-500" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-            Root-Cause Analysis
+          <Sparkles className="w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa]">
+            Confidence &amp; Attribution Analysis
           </p>
         </div>
-        <div className="bg-surface-900/60 border border-surface-800/40 rounded-xl p-4 flex items-start gap-3">
-          <HelpCircle className="w-4 h-4 text-surface-500 mt-0.5 flex-shrink-0" />
+        <div className="bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[12px] p-4 flex items-start gap-3">
+          <HelpCircle className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] mt-0.5 flex-shrink-0" aria-hidden="true" />
           <div>
-            <p className="text-xs font-medium text-surface-400">SHAP explanation unavailable</p>
-            <p className="text-[10px] text-surface-500 mt-1">
+            <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">SHAP attribution unavailable</p>
+            <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-1">
               {data.reason ?? 'The model explainer could not be initialized for this anomaly.'}
             </p>
           </div>
@@ -343,73 +391,63 @@ export function AnomalyExplainPanel({ anomalyId, zScore }: Props) {
 
   return (
     <motion.div
-      className="space-y-3"
-      initial={{ opacity: 0, y: 6 }}
+      className="space-y-2.5"
+      initial={prefersReducedMotion ? false : { opacity: 0, y: 4 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35 }}
+      transition={{ duration: prefersReducedMotion ? 0 : 0.2 }}
     >
-      {/* Section header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
-          <Sparkles className="w-3.5 h-3.5 text-primary-400" />
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-500">
-            Root-Cause Analysis
+          <Sparkles className="w-3.5 h-3.5 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+          <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa]">
+            Confidence &amp; Attribution Analysis
           </p>
-          <span className="text-[9px] text-surface-600">· SHAP · {data.model_version_tag}</span>
-          {data.cached && (
-            <span className="text-[8px] px-1 py-0.5 rounded bg-surface-800/60 text-surface-500 border border-surface-700/30">
-              cached
-            </span>
-          )}
+          <span className="text-[10px] font-mono text-[#52525b] dark:text-[#a1a1aa]">· {data.model_version_tag}</span>
         </div>
         <QualityBadge quality={data.reconstruction_quality} fallbacks={data.used_fallbacks} />
       </div>
 
-      {/* Main panel */}
-      <div className="bg-surface-900/60 border border-surface-800/40 rounded-xl p-3.5 space-y-4">
-
-        {/* Narrative summary */}
-        {data.narrative_summary && (
-          <div className="bg-surface-800/30 border border-surface-700/30 rounded-lg p-3">
-            <p className="text-[10px] font-semibold text-surface-400 uppercase tracking-wider mb-1.5">
-              AI Summary
-            </p>
-            <p className="text-xs text-surface-300 leading-relaxed">
-              {data.narrative_summary}
-            </p>
-          </div>
-        )}
-
-        {/* Drivers + Suppressors */}
-        <DriversSection drivers={data.drivers} suppressors={data.suppressors} />
-
-        {/* Confidence row */}
+      <div className="bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[12px] p-3.5 space-y-3.5">
         <ConfidenceRow
           confidenceShap={data.confidence_shap ?? null}
           confidenceSource={data.confidence_source}
           baseZ={zScore ?? null}
         />
 
-        {/* SHAP math note */}
+        {data.narrative_summary && (
+          <div className="bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] rounded-[10px] p-3">
+            <p className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em] mb-1">
+              Attribution Summary
+            </p>
+            <p className="text-xs text-[#0a0a0a] dark:text-[#fafaf9] leading-relaxed">
+              {data.narrative_summary}
+            </p>
+          </div>
+        )}
+
+        <DriversSection
+          drivers={data.drivers}
+          suppressors={data.suppressors}
+          prefersReducedMotion={prefersReducedMotion}
+        />
+
         <ShapMathNote
           baseValue={data.base_value ?? null}
           allShap={data.all_shap ?? null}
           predicted={data.predicted_at_anomaly ?? null}
         />
 
-        {/* Anomaly type caveat */}
         {data.anomaly_type_note && (
-          <div className="bg-warning-500/5 border border-warning-500/20 rounded-lg px-3 py-2 flex items-start gap-2">
-            <Info className="w-3 h-3 text-warning-400 mt-0.5 flex-shrink-0" />
-            <p className="text-[9px] text-surface-400 leading-relaxed">{data.anomaly_type_note}</p>
+          <div className="bg-[#fffbeb] dark:bg-amber-950/30 border border-[#fde68a] dark:border-amber-800/50 rounded-[10px] px-3 py-2 flex items-start gap-2">
+            <Info className="w-3.5 h-3.5 text-[#92400e] dark:text-amber-300 mt-0.5 flex-shrink-0" aria-hidden="true" />
+            <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] leading-relaxed">{data.anomaly_type_note}</p>
           </div>
         )}
 
-        {/* Fallback note */}
         {data.used_fallbacks.length > 0 && (
-          <p className="text-[8px] text-surface-600 italic">
-            * {data.used_fallbacks.map(f => ({ lag_1: 'Last-week demand', lag_4: '4-week-ago demand' }[f] ?? f)).join(', ')}{' '}
-            estimated from rolling baseline (no Forecast row found for that date).
+          <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa]">
+            Note: {data.used_fallbacks.map(f => ({ lag_1: 'Last-week demand', lag_4: '4-week-ago demand' }[f] ?? f)).join(', ')}{' '}
+            estimated from rolling baseline where no exact Forecast row existed.
           </p>
         )}
       </div>

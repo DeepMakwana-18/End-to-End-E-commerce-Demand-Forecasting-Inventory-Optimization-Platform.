@@ -1,18 +1,18 @@
 /**
- * Anomaly Intelligence & Investigation Center — Phase 4B.5
+ * Anomaly Intelligence & Investigation Center — Titan AI
  *
- * Enterprise Layout:
- *   Header  — Page title + refresh
- *   Sec 1   — Executive Intelligence Header (8 KPI cards)
- *   Sec 2   — Detection Control Center (expanded scanner)
- *   Sec 3   — Anomaly Breakdown Dashboard (4 charts)
- *   Split   — Left: Filter + Table | Right: Timeline
- *   Drawer  — Investigation Drawer (Sections 4-7) opens on row click
+ * Full-width investigation workspace:
+ *   Header   — Titan editorial title + Refresh
+ *   Sec 1    — Executive Intelligence Header (8 KPI cards with accurate units)
+ *   Sec 2    — Detection Control Center
+ *   Sec 3    — Anomaly Breakdown Dashboard (4 charts)
+ *   Sec 4    — Full-width Filter Bar + Anomaly Table (newest event first)
+ *   Sec 5    — Compact Event Timeline synchronized with selected anomaly
+ *   Drawer   — Investigation Drawer opens on row or timeline selection
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { motion } from 'framer-motion';
-import { Activity, RefreshCw, Brain } from 'lucide-react';
+import { RefreshCw } from 'lucide-react';
 
 import { AnomalyExecutiveHeader } from '@/components/anomalies/AnomalyExecutiveHeader';
 import { AnomalyDetectPanel } from '@/components/anomalies/AnomalyDetectPanel';
@@ -21,6 +21,7 @@ import { AnomalyFilterBar } from '@/components/anomalies/AnomalyFilterBar';
 import { AnomalyTable } from '@/components/anomalies/AnomalyTable';
 import { AnomalyTimeline } from '@/components/anomalies/AnomalyTimeline';
 import { AnomalyInvestigationDrawer } from '@/components/anomalies/AnomalyInvestigationDrawer';
+import { PageHeader } from '@/components/ui/PageHeader';
 
 import anomalyApi from '@/services/anomalyApi';
 import { toast } from '@/hooks/useToast';
@@ -28,6 +29,7 @@ import type {
   Anomaly, AnomalySummary,
   AnomalyFilters, AnomalyDetectRequest, AnomalyDetectResponse,
 } from '@/types/anomaly';
+import '@/styles/titan-dashboard.css';
 
 const PER_PAGE = 50;
 
@@ -39,24 +41,21 @@ const DEFAULT_FILTERS: AnomalyFilters = {
 };
 
 export default function AnomaliesPage() {
-  // ── Data state ────────────────────────────────────────────────────
   const [anomalies, setAnomalies] = useState<Anomaly[]>([]);
-  const [allAnomalies, setAllAnomalies] = useState<Anomaly[]>([]); // for timeline/charts (no pagination)
+  const [allAnomalies, setAllAnomalies] = useState<Anomaly[]>([]);
   const [summary, setSummary] = useState<AnomalySummary | null>(null);
   const [total, setTotal] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
 
-  // ── UI state ──────────────────────────────────────────────────────
   const [page, setPage] = useState(1);
   const [filters, setFilters] = useState<AnomalyFilters>(DEFAULT_FILTERS);
   const [isLoadingList, setIsLoadingList] = useState(true);
   const [isLoadingSummary, setIsLoadingSummary] = useState(true);
-  const [isLoadingAll, setIsLoadingAll] = useState(true);  // gates trend chart
+  const [isLoadingAll, setIsLoadingAll] = useState(true);
   const [isDetecting, setIsDetecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [drawerAnomaly, setDrawerAnomaly] = useState<Anomaly | null>(null);
 
-  // ── Load paginated list ───────────────────────────────────────────
   const loadList = useCallback(async (p = page, f = filters) => {
     setIsLoadingList(true);
     setSelectedIds(new Set());
@@ -80,24 +79,18 @@ export default function AnomaliesPage() {
     }
   }, [page, filters]);
 
-  // ── Load all anomalies for charts & timeline ──────────────────────
-  // per_page=500 is now valid (backend le=1000). Previously this silently
-  // failed with a 422 because the old limit was le=200.
   const loadAllForCharts = useCallback(async () => {
     setIsLoadingAll(true);
     try {
       const { data } = await anomalyApi.list({ page: 1, per_page: 500, include_resolved: true });
       setAllAnomalies(data.anomalies);
     } catch (err: unknown) {
-      const status = (err as { response?: { status?: number; data?: unknown } })?.response?.status;
-      const data = (err as { response?: { status?: number; data?: unknown } })?.response?.data;
-      console.error('[loadAllForCharts] failed:', status, data);
+      console.error('[loadAllForCharts] failed:', err);
     } finally {
       setIsLoadingAll(false);
     }
   }, []);
 
-  // ── Load summary ──────────────────────────────────────────────────
   const loadSummary = useCallback(async () => {
     setIsLoadingSummary(true);
     try {
@@ -110,43 +103,64 @@ export default function AnomaliesPage() {
     }
   }, []);
 
-  // ── Init ──────────────────────────────────────────────────────────
   useEffect(() => {
-    const init = async () => {
-      await Promise.allSettled([loadList(1, DEFAULT_FILTERS), loadSummary(), loadAllForCharts()]);
-    };
-    init();
-  }, [loadList, loadSummary, loadAllForCharts]);
+    let isMounted = true;
+    Promise.allSettled([
+      anomalyApi.list({ page: 1, per_page: PER_PAGE, include_resolved: DEFAULT_FILTERS.include_resolved })
+        .then(({ data }) => {
+          if (!isMounted) return;
+          setAnomalies(data.anomalies);
+          setTotal(data.total);
+          setTotalPages(data.total_pages);
+        })
+        .catch(() => {
+          if (isMounted) toast.error('Load failed', 'Could not fetch anomalies');
+        })
+        .finally(() => {
+          if (isMounted) setIsLoadingList(false);
+        }),
+      anomalyApi.summary()
+        .then(({ data }) => {
+          if (isMounted) setSummary(data);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setIsLoadingSummary(false);
+        }),
+      anomalyApi.list({ page: 1, per_page: 500, include_resolved: true })
+        .then(({ data }) => {
+          if (isMounted) setAllAnomalies(data.anomalies);
+        })
+        .catch(() => {})
+        .finally(() => {
+          if (isMounted) setIsLoadingAll(false);
+        }),
+    ]);
+    return () => { isMounted = false; };
+  }, []);
 
-  // ── Filter change ─────────────────────────────────────────────────
   const handleFilterChange = useCallback((f: AnomalyFilters) => {
     setFilters(f);
     setPage(1);
     loadList(1, f);
   }, [loadList]);
 
-  // ── Page change ───────────────────────────────────────────────────
   const handlePageChange = useCallback((p: number) => {
     setPage(p);
     loadList(p, filters);
   }, [filters, loadList]);
 
-  // ── Refresh all ───────────────────────────────────────────────────
   const handleRefresh = useCallback(() => {
     loadList(page, filters);
     loadSummary();
     loadAllForCharts();
   }, [page, filters, loadList, loadSummary, loadAllForCharts]);
 
-  // ── Selection ─────────────────────────────────────────────────────
   const handleSelectToggle = useCallback((id: number) => {
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
-      } else {
-        next.add(id);
-      }
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }, []);
@@ -159,7 +173,6 @@ export default function AnomaliesPage() {
     }
   }, [anomalies, selectedIds]);
 
-  // ── Resolve ───────────────────────────────────────────────────────
   const handleResolve = useCallback(async (ids: number[]) => {
     try {
       const { data } = await anomalyApi.resolve({ anomaly_ids: ids });
@@ -171,7 +184,6 @@ export default function AnomaliesPage() {
     }
   }, [page, filters, loadList, loadSummary, loadAllForCharts]);
 
-  // ── Detect ────────────────────────────────────────────────────────
   const handleDetect = useCallback(async (
     req: AnomalyDetectRequest
   ): Promise<AnomalyDetectResponse | null> => {
@@ -181,7 +193,7 @@ export default function AnomaliesPage() {
       const mode = req.comprehensive_sweep ? 'Comprehensive Sweep' : 'Scan';
       toast.success(
         `${mode} complete`,
-        `${data.detected} anomaly${data.detected !== 1 ? 'ies' : ''} found in ${data.computation_seconds.toFixed(2)}s`
+        `${data.detected} anomal${data.detected !== 1 ? 'ies' : 'y'} found in ${data.computation_seconds.toFixed(2)}s`
       );
       await Promise.all([loadList(1, filters), loadSummary(), loadAllForCharts()]);
       return data;
@@ -196,136 +208,103 @@ export default function AnomaliesPage() {
     }
   }, [filters, loadList, loadSummary, loadAllForCharts]);
 
-  // ── Client-side search filter ─────────────────────────────────────
+  // Client-side search + consistent newest-event-first sort matching AnomalyTimeline
   const filteredAnomalies = useMemo(() => {
-    if (!filters.search.trim()) return anomalies;
-    const q = filters.search.toLowerCase();
-    return anomalies.filter(
-      (a) =>
-        a.explanation?.toLowerCase().includes(q) ||
-        a.anomaly_type.includes(q) ||
-        a.event_date?.includes(q)
-    );
+    const q = filters.search.trim().toLowerCase();
+    const list = q
+      ? anomalies.filter(
+          (a) =>
+            a.explanation?.toLowerCase().includes(q) ||
+            a.anomaly_type.includes(q) ||
+            a.event_date?.includes(q)
+        )
+      : anomalies;
+
+    return [...list].sort((a, b) => {
+      const da = new Date(a.event_date ?? a.detected_at).getTime();
+      const db = new Date(b.event_date ?? b.detected_at).getTime();
+      return db - da;
+    });
   }, [anomalies, filters.search]);
 
-  // ── Row click: open investigation drawer ──────────────────────────
   const handleRowClick = useCallback((a: Anomaly) => {
     setDrawerAnomaly(a);
   }, []);
 
   return (
-    <div className="flex flex-col h-full min-h-0">
-      {/* ── Page Header with Elevated Container ───────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden mb-5"
-      >
-        {/* Subtle indigo decorative accent glow */}
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
+    <div className="flex flex-col gap-5 sm:gap-6 pb-4">
+      <PageHeader
+        title="Anomaly Intelligence"
+        description="Rolling z-score detection across demand, inventory & forecast data"
+        actions={
+          <button
+            id="refresh-all-btn"
+            type="button"
+            onClick={handleRefresh}
+            disabled={isLoadingList}
+            className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-ds-surface text-ds-text-primary border border-ds-hairline hover:bg-ds-surface-sunken transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 text-ds-blue ${isLoadingList ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <span>Refresh</span>
+          </button>
+        }
+      />
 
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <Activity className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-600 to-blue-600 inline-block" />
-              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-ds-text flex items-center gap-2 tracking-tight">
-                Anomaly Intelligence
-                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs">
-                  <Brain className="w-3 h-3 text-indigo-600" />
-                  Investigation Center
-                </span>
-              </h1>
-            </div>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-ds-text-muted mt-0.5 ml-3.5 font-medium">
-              Rolling z-score detection across demand, inventory &amp; forecast data
-            </p>
-          </div>
-        </div>
+      {/* 2. Executive Intelligence Header */}
+      <AnomalyExecutiveHeader
+        summary={summary}
+        anomalies={allAnomalies}
+        isLoading={isLoadingSummary}
+        isLoadingAnomalies={isLoadingAll}
+      />
 
-        <button
-          id="refresh-all-btn"
-          onClick={handleRefresh}
-          disabled={isLoadingList}
-          className="btn-apple btn-apple-soft text-xs h-9 px-3.5 shadow-2xs border border-slate-200 dark:border-ds-border hover:bg-slate-50 dark:hover:bg-ds-surface-sunken self-start sm:self-auto relative z-10"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${isLoadingList ? 'animate-spin text-blue-600' : ''}`} />
-          Refresh
-        </button>
-      </motion.div>
+      {/* 3. Detection Control Center */}
+      <AnomalyDetectPanel onDetect={handleDetect} isRunning={isDetecting} />
 
-      {/* ── Scrollable content ────────────────────────────────────────── */}
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 flex flex-col gap-5">
+      {/* 4. Anomaly Breakdown Dashboard */}
+      <AnomalyDashboardCharts
+        summary={summary}
+        anomalies={allAnomalies}
+        isLoading={isLoadingSummary}
+        isLoadingAnomalies={isLoadingAll}
+      />
 
-        {/* Section 1: Executive Intelligence Header */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.04 }}>
-          <AnomalyExecutiveHeader
-            summary={summary}
-            anomalies={allAnomalies}
-            isLoading={isLoadingSummary}
-            isLoadingAnomalies={isLoadingAll}
-          />
-        </motion.div>
-
-        {/* Section 2: Detection Control Center */}
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.08 }}>
-          <AnomalyDetectPanel onDetect={handleDetect} isRunning={isDetecting} />
-        </motion.div>
-
-        {/* Section 3: Anomaly Breakdown Dashboard (2x2 Grid) */}
-        <AnomalyDashboardCharts
-          summary={summary}
-          anomalies={allAnomalies}
-          isLoading={isLoadingSummary}
-          isLoadingAnomalies={isLoadingAll}
+      {/* 5. Full-width Investigation Workspace: Filter Bar + Anomaly Table */}
+      <section aria-label="Anomaly Records" className="flex flex-col gap-4">
+        <AnomalyFilterBar
+          filters={filters}
+          onChange={handleFilterChange}
+          isLoading={isLoadingList}
+          onRefresh={handleRefresh}
+          total={filters.search ? filteredAnomalies.length : total}
         />
 
-        {/* Filter + Table | Timeline split layout */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-          {/* Left: Filter + Table (2/3 width on xl) */}
-          <div className="xl:col-span-2 flex flex-col gap-4">
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
-              <AnomalyFilterBar
-                filters={filters}
-                onChange={handleFilterChange}
-                isLoading={isLoadingList}
-                onRefresh={handleRefresh}
-                total={filters.search ? filteredAnomalies.length : total}
-              />
-            </motion.div>
+        <AnomalyTable
+          anomalies={filteredAnomalies}
+          isLoading={isLoadingList}
+          selectedIds={selectedIds}
+          activeId={drawerAnomaly?.id ?? null}
+          onSelectToggle={handleSelectToggle}
+          onSelectAll={handleSelectAll}
+          onResolve={handleResolve}
+          page={page}
+          totalPages={totalPages}
+          total={total}
+          perPage={PER_PAGE}
+          onPageChange={handlePageChange}
+          onRowClick={handleRowClick}
+        />
+      </section>
 
-            <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.26 }}>
-              <AnomalyTable
-                anomalies={filteredAnomalies}
-                isLoading={isLoadingList}
-                selectedIds={selectedIds}
-                onSelectToggle={handleSelectToggle}
-                onSelectAll={handleSelectAll}
-                onResolve={handleResolve}
-                page={page}
-                totalPages={totalPages}
-                total={total}
-                perPage={PER_PAGE}
-                onPageChange={handlePageChange}
-                onRowClick={handleRowClick}
-              />
-            </motion.div>
-          </div>
+      {/* 6. Compact Synchronized Event Timeline */}
+      <AnomalyTimeline
+        anomalies={allAnomalies}
+        isLoading={isLoadingSummary || isLoadingAll}
+        activeId={drawerAnomaly?.id ?? null}
+        onSelect={setDrawerAnomaly}
+      />
 
-          {/* Right: Timeline (1/3 width on xl) */}
-          <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.28 }}>
-            <AnomalyTimeline
-              anomalies={allAnomalies}
-              isLoading={isLoadingSummary || isLoadingAll}
-              onSelect={setDrawerAnomaly}
-            />
-          </motion.div>
-        </div>
-      </div>
-
-      {/* Investigation Drawer (Sections 4-7) */}
+      {/* Investigation Drawer */}
       <AnomalyInvestigationDrawer
         anomaly={drawerAnomaly}
         onClose={() => setDrawerAnomaly(null)}

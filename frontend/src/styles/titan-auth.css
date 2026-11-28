@@ -1,0 +1,759 @@
+/* Titan AI Auth Page, Showcase Sequence & Orbit Mark Styles
+ * Aligned with Titan AI Design.md: flat editorial base, transform/opacity motion,
+ * ease-out cubic-bezier(.22, 1, .36, 1), hover gated to fine pointers,
+ * safe-area insets, and prefers-reduced-motion support.
+ */
+
+.titan {
+  color: inherit;
+  overflow: visible;
+  display: block;
+  flex-shrink: 0;
+}
+
+.titan .orbit {
+  transform-origin: 24px 24px;
+}
+
+.titan .track {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.2;
+  opacity: 0.18;
+}
+
+.titan.sm .track {
+  display: none;
+}
+
+.titan .sat {
+  transform-origin: 24px 24px;
+  transform: rotate(var(--a)) translateX(17px);
+}
+
+.titan .ring {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+}
+
+.titan.sm .ring {
+  stroke-width: 3.6;
+}
+
+.titan .core {
+  fill: currentColor;
+  transform-origin: 24px 24px;
+}
+
+.titan.spin .orbit {
+  animation: titan-orbit-step 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+.titan.spin .core {
+  animation: titan-core-breathe 700ms cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes titan-orbit-step {
+  to {
+    transform: rotate(120deg);
+  }
+}
+
+@keyframes titan-core-breathe {
+  50% {
+    transform: scale(0.86);
+  }
+}
+
+/* ==========================================================================
+   Left Showcase: Layout, Glow, Underline, Scene & Motion (~2.2s sequence)
+   ========================================================================== */
+
+.titan-auth-left {
+  padding: clamp(20px, 4.5svh, 56px) clamp(32px, 5vw, 72px);
+}
+
+.titan-auth-headline {
+  margin-top: clamp(10px, 2svh, 16px);
+  font-size: clamp(32px, min(3.4vw, 5.6svh), 52px);
+}
+
+.titan-auth-subtitle {
+  margin-top: clamp(12px, 2.4svh, 20px);
+  font-size: clamp(15px, 2.1svh, 18px);
+  line-height: 1.5;
+}
+
+.titan-scene-card {
+  margin-top: clamp(20px, 4svh, 40px);
+  padding: 28px;
+}
+
+.titan-scene-grid {
+  display: grid;
+  grid-template-columns: 168px 64px minmax(280px, 1fr);
+  align-items: center;
+  gap: 12px;
+}
+
+.titan-signals-col {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.titan-signal-item {
+  height: 52px;
+  border-radius: 12px;
+  background: #18181b;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 7px 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  animation: titan-signal-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(350ms + var(--signal-index, 0) * 70ms);
+}
+
+.titan-signal-head {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.titan-signal-label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.15;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.titan-signal-value {
+  font-size: 12px;
+  line-height: 1.15;
+  color: #a1a1aa;
+  white-space: nowrap;
+  padding-left: 23px;
+}
+
+.titan-flow-col {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.titan-merge-node {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #111113;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transform: translate(-50%, -50%);
+  animation: titan-merge-pop 300ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms both;
+}
+
+/* Stack scene below 1280px (1024-1279px) */
+@media (max-width: 1279px) {
+  .titan-scene-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+
+  .titan-signals-col {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .titan-signal-item {
+    height: auto;
+    min-height: 44px;
+    padding: 8px 10px;
+  }
+
+  .titan-signal-value {
+    padding-left: 0;
+  }
+}
+
+/* Compact viewport height (<= 760px) */
+@media (max-height: 760px) {
+  .titan-scene-card {
+    padding: 20px;
+    margin-top: clamp(14px, 3svh, 24px);
+  }
+
+  .titan-signal-item {
+    height: 40px;
+    padding: 4px 12px;
+    gap: 1px;
+  }
+
+  .titan-trust-row {
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 14px !important;
+    padding-top: 12px !important;
+  }
+
+  .titan-trust-row li {
+    white-space: nowrap;
+    font-size: 12.5px;
+  }
+}
+
+.titan-auth-arc-glow {
+  position: absolute;
+  left: -20%;
+  bottom: -48px;
+  width: 140%;
+  height: 168px;
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background: radial-gradient(
+    ellipse 60% 100% at 50% 100%,
+    rgba(236, 72, 153, 0.14) 0%,
+    rgba(139, 92, 246, 0.14) 48%,
+    rgba(59, 130, 246, 0.14) 76%,
+    rgba(59, 130, 246, 0) 100%
+  );
+  -webkit-mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0) 120px);
+  mask-image: linear-gradient(to top, #000 0%, rgba(0, 0, 0, 0) 120px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.titan-orange-underline {
+  text-decoration-line: underline;
+  text-decoration-color: #f59e0b;
+  text-decoration-thickness: 3px;
+  text-underline-offset: 6px;
+  text-decoration-skip-ink: none;
+}
+
+/* Header logo idle spin beat: 120deg step (700ms) every 8s */
+.titan-auth-brand-mark .orbit {
+  animation: titan-auth-idle-beat 8s linear infinite;
+}
+
+@keyframes titan-auth-idle-beat {
+  0% {
+    transform: rotate(0deg);
+    animation-timing-function: cubic-bezier(0.65, 0, 0.35, 1);
+  }
+  8.75%,
+  100% {
+    transform: rotate(120deg);
+  }
+}
+
+/* Mode-aware copy crossfade (200ms with 8px translateY) */
+@keyframes titan-auth-copy-swap {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-auth-copy-swap {
+  animation: titan-auth-copy-swap 200ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 0ms: Headline lines slide up out of mask (600ms, line 2 +90ms) */
+.titan-headline-line {
+  display: block;
+  overflow: hidden;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.titan-headline-line > span {
+  display: block;
+  animation: titan-headline-reveal 600ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.titan-headline-line--2 > span {
+  animation-delay: 90ms;
+}
+
+@keyframes titan-headline-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(105%);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 200ms: Scene card rises 12px & fades in (400ms) */
+.titan-scene-card {
+  animation: titan-scene-rise 400ms cubic-bezier(0.22, 1, 0.36, 1) 200ms both;
+}
+
+@keyframes titan-scene-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 350ms: Three signal rows stagger by 70ms */
+.titan-signal-item {
+  animation: titan-signal-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(350ms + var(--signal-index, 0) * 70ms);
+}
+
+@keyframes titan-signal-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 600ms: Flow lines draw (stroke-dashoffset, 500ms) */
+.titan-flow-branch {
+  stroke-dasharray: var(--dash-len, 96);
+  stroke-dashoffset: var(--dash-len, 96);
+  animation: titan-stroke-reveal 500ms cubic-bezier(0.22, 1, 0.36, 1) 600ms forwards;
+}
+
+.titan-flow-trunk {
+  stroke-dasharray: var(--dash-len, 40);
+  stroke-dashoffset: var(--dash-len, 40);
+  animation: titan-stroke-reveal 320ms cubic-bezier(0.22, 1, 0.36, 1) 820ms forwards;
+}
+
+.titan-flow-arrow {
+  opacity: 0;
+  animation: titan-fade-in 180ms cubic-bezier(0.22, 1, 0.36, 1) 1000ms forwards;
+}
+
+@keyframes titan-stroke-reveal {
+  from {
+    stroke-dashoffset: var(--dash-len, 96);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+/* 600ms: Dots travel along each line in sequence */
+.titan-flow-dot {
+  opacity: 0;
+}
+
+.titan-flow-dot--1 {
+  animation: titan-dot-branch-top 500ms cubic-bezier(0.22, 1, 0.36, 1) 600ms both;
+}
+
+.titan-flow-dot--2 {
+  animation: titan-dot-branch-mid 420ms cubic-bezier(0.22, 1, 0.36, 1) 700ms both;
+}
+
+.titan-flow-dot--3 {
+  animation: titan-dot-branch-bot 500ms cubic-bezier(0.22, 1, 0.36, 1) 800ms both;
+}
+
+.titan-flow-dot--idle {
+  animation: titan-dot-idle 6s cubic-bezier(0.22, 1, 0.36, 1) 2400ms infinite;
+}
+
+@keyframes titan-dot-branch-top {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(11px, 0);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(22px, var(--dy, 62px));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(22px, var(--dy, 62px));
+  }
+}
+
+@keyframes titan-dot-branch-mid {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  20% {
+    opacity: 1;
+  }
+  85% {
+    opacity: 1;
+    transform: translate(22px, var(--dy, 0px));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(22px, var(--dy, 0px));
+  }
+}
+
+@keyframes titan-dot-branch-bot {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  15% {
+    opacity: 1;
+  }
+  55% {
+    transform: translate(11px, 0);
+  }
+  90% {
+    opacity: 1;
+    transform: translate(22px, var(--dy, -62px));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(22px, var(--dy, -62px));
+  }
+}
+
+@keyframes titan-dot-idle {
+  0% {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  4% {
+    opacity: 1;
+  }
+  16% {
+    opacity: 1;
+    transform: translate(20px, 0);
+  }
+  20%,
+  100% {
+    opacity: 0;
+    transform: translate(20px, 0);
+  }
+}
+
+/* 1100ms: Merge node pops (scale 0.6->1, 300ms) + inner orbit mark 120deg spin beat (700ms) */
+.titan-merge-node {
+  animation: titan-merge-pop 300ms cubic-bezier(0.22, 1, 0.36, 1) 1100ms both;
+}
+
+.titan-merge-mark .orbit {
+  animation: titan-orbit-step 700ms cubic-bezier(0.65, 0, 0.35, 1) 1100ms 1 both;
+}
+
+@keyframes titan-merge-pop {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+/* 1500ms: Next-move card rises 12px + fades in (400ms), orange shadow settles via ::after */
+.titan-next-move-wrap {
+  position: relative;
+}
+
+.titan-next-move-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 16px;
+  background: #f59e0b;
+  z-index: 0;
+  animation: titan-shadow-settle 400ms cubic-bezier(0.22, 1, 0.36, 1) 1500ms both;
+}
+
+.titan-next-move-card {
+  position: relative;
+  z-index: 1;
+  animation: titan-scene-rise 400ms cubic-bezier(0.22, 1, 0.36, 1) 1500ms both;
+}
+
+@keyframes titan-shadow-settle {
+  from {
+    opacity: 0;
+    transform: translate(0, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate(6px, 6px);
+  }
+}
+
+/* 1800ms: Trust row fades in (400ms) */
+.titan-trust-row {
+  animation: titan-fade-in 400ms cubic-bezier(0.22, 1, 0.36, 1) 1800ms both;
+}
+
+@keyframes titan-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Pause idle loops when tab is hidden */
+html[data-page-hidden="true"] .titan-auth-brand-mark .orbit,
+html[data-page-hidden="true"] .titan-flow-dot--idle {
+  animation-play-state: paused !important;
+}
+
+/* Settle immediately when page becomes hidden */
+.titan-showcase-settled .titan-headline-line > span,
+.titan-showcase-settled .titan-scene-card,
+.titan-showcase-settled .titan-signal-item,
+.titan-showcase-settled .titan-flow-branch,
+.titan-showcase-settled .titan-flow-trunk,
+.titan-showcase-settled .titan-flow-arrow,
+.titan-showcase-settled .titan-merge-node,
+.titan-showcase-settled .titan-merge-mark .orbit,
+.titan-showcase-settled .titan-next-move-card,
+.titan-showcase-settled .titan-next-move-wrap::after,
+.titan-showcase-settled .titan-trust-row {
+  animation: none !important;
+  opacity: 1 !important;
+  transform: none !important;
+  stroke-dashoffset: 0 !important;
+}
+
+.titan-showcase-settled .titan-next-move-wrap::after {
+  transform: translate(6px, 6px) !important;
+}
+
+.titan-showcase-settled .titan-merge-node {
+  transform: translate(-50%, -50%) scale(1) !important;
+}
+
+.titan-showcase-settled .titan-flow-dot--1,
+.titan-showcase-settled .titan-flow-dot--2,
+.titan-showcase-settled .titan-flow-dot--3 {
+  display: none;
+}
+
+/* ==========================================================================
+   Right Auth Area, Route Switcher & Form Micro-interactions
+   ========================================================================== */
+
+.titan-auth-right {
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+}
+
+@media (min-width: 1024px) {
+  .titan-auth-right {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .titan-auth-right-inner {
+    padding-top: clamp(16px, 4svh, 48px);
+    padding-bottom: clamp(16px, 3svh, 28px);
+  }
+
+  .titan-auth-right-inner footer {
+    margin-top: auto;
+    padding-top: 16px;
+  }
+}
+
+.titan-auth-card {
+  background-color: #ffffff;
+  border: 1px solid #0a0a0a;
+  border-radius: 16px;
+  box-shadow: 4px 4px 0 #f59e0b;
+}
+
+/* Segmented route switcher with sliding indicator */
+.titan-auth-switcher {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 4px;
+  border-radius: 12px;
+  background-color: #f6f6f7;
+  border: 1px solid #e4e4e7;
+}
+
+.titan-auth-switch-thumb {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc(50% - 4px);
+  border-radius: 9px;
+  background-color: #0a0a0a;
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.titan-auth-switch-thumb[data-mode="register"] {
+  transform: translateX(100%);
+}
+
+.titan-auth-switch-link {
+  position: relative;
+  z-index: 1;
+  min-height: 44px;
+  border-radius: 9px;
+  transition: color 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .titan-auth-switch-link:not([aria-current="page"]):hover {
+    color: #1e3fc8;
+  }
+}
+
+.titan-auth-switch-link:active {
+  transform: scale(0.99);
+}
+
+.titan-auth-switch-link:focus-visible {
+  outline: 2px solid #1e3fc8;
+  outline-offset: 2px;
+}
+
+/* Incoming route form panel entrance */
+@keyframes titan-form-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-auth-form-panel {
+  animation: titan-form-enter 240ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Error entrance */
+@keyframes titan-error-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.titan-auth-error {
+  animation: titan-error-enter 180ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Primary action button */
+.titan-auth-btn {
+  background-color: #1e3fc8;
+  color: #ffffff;
+  border-radius: 999px;
+  min-height: 46px;
+  transition: background-color 150ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 80ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .titan-auth-btn:hover:not(:disabled) {
+    background-color: #1632a0;
+  }
+}
+
+.titan-auth-btn:active:not(:disabled) {
+  transform: translateY(1.5px);
+}
+
+.titan-auth-btn:focus-visible {
+  outline: 2px solid #1e3fc8;
+  outline-offset: 2px;
+}
+
+.titan-auth-btn:disabled {
+  opacity: 0.78;
+  cursor: not-allowed;
+}
+
+/* Reduced motion: final static showcase, opacity-only or instant transitions */
+@media (prefers-reduced-motion: reduce) {
+  .titan *,
+  .titan-auth-brand-mark .orbit,
+  .titan-auth-copy-swap,
+  .titan-headline-line > span,
+  .titan-scene-card,
+  .titan-signal-item,
+  .titan-flow-branch,
+  .titan-flow-trunk,
+  .titan-flow-arrow,
+  .titan-flow-dot,
+  .titan-merge-node,
+  .titan-merge-mark .orbit,
+  .titan-next-move-card,
+  .titan-next-move-wrap::after,
+  .titan-trust-row,
+  .titan-auth-error {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+
+  .titan-next-move-wrap::after {
+    transform: translate(6px, 6px) !important;
+  }
+
+  .titan-merge-node {
+    transform: translate(-50%, -50%) scale(1) !important;
+  }
+
+  .titan-flow-dot {
+    display: none !important;
+  }
+
+  .titan-auth-form-panel {
+    animation: titan-fade-in 140ms ease both;
+  }
+
+  .titan-auth-switch-thumb,
+  .titan-auth-switch-link,
+  .titan-auth-btn {
+    transition-duration: 0.01ms !important;
+  }
+}

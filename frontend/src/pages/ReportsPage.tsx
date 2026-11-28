@@ -1,18 +1,16 @@
 /**
- * Titan AI — Page 8: Reports & Exports Page.
+ * Titan AI — Reports & Exports Page (/app/reports)
  *
- * Frontend Refinements:
- * 1. Fixed truncated KPI supporting descriptions with multi-line wrapping and consistent card min-height.
- * 2. Balanced 2x2 report-template grid with bottom-pinned export actions and consistent card heights.
- * 3. Real export generation feedback (compiling states, disabled state clarity, format-specific accents).
- * 4. Transparent "Storage Deferred" status explanation with contextual badge & tooltip in Recent Reports.
- * 5. Reconciled metrics explanation (cumulative telemetry downloads vs 50-record audit log).
- * 6. Generous bottom clearance (pb-28 sm:pb-32) preventing floating AI assistant from obscuring controls.
- * 7. Full light and dark mode design-system harmony.
+ * Refined with Titan AI editorial design system:
+ * - Warm paper / near-black surfaces, editorial header, blue primary actions, restrained amber attention.
+ * - Honest KPIs derived strictly from GET /reports (no fabricated generation times or download counts).
+ * - Explicit accessible format buttons ("Generate <Template> as <Format>") with per-button loading state.
+ * - Clear distinction between metadata compilation, immediate download, and deferred archival storage.
+ * - Responsive desktop table + mobile stacked cards with 44px-class touch targets and reduced-motion support.
  */
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   FileText,
   Download,
@@ -26,17 +24,19 @@ import {
   Database,
   Upload,
   AlertCircle,
-  TrendingUp,
-  Minus,
   Info,
   Layers,
   HelpCircle,
+  Archive,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { reportsApi, systemApi } from '@/services/api';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import type { Report } from '@/types';
+import '@/styles/titan-dashboard.css';
 
 interface ReportTypeConfig {
   id: string;
@@ -44,21 +44,17 @@ interface ReportTypeConfig {
   desc: string;
   tag: string;
   icon: React.ElementType;
-  iconBg: string;
-  iconColor: string;
-  tagClass: string;
+  accentClass: string;
 }
 
-const reportTypes: ReportTypeConfig[] = [
+const REPORT_TYPES: ReportTypeConfig[] = [
   {
     id: 'forecast',
     title: 'Demand Forecast Report',
     desc: 'Product-wise demand projections, model confidence bands, and velocity trajectories across planning horizons.',
     tag: 'ML Forecasts',
     icon: FileBarChart,
-    iconBg: 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-100 dark:border-indigo-900/40',
-    iconColor: 'text-indigo-600 dark:text-indigo-400',
-    tagClass: 'bg-indigo-50 text-indigo-700 border-indigo-200/80 dark:bg-indigo-950/40 dark:text-indigo-300 dark:border-indigo-800/40',
+    accentClass: 'text-[#1e3fc8] dark:text-[#60a5fa] bg-[#eff6ff] dark:bg-[#1e3fc8]/15 border-[#bfdbfe] dark:border-[#1e3fc8]/30',
   },
   {
     id: 'inventory',
@@ -66,9 +62,7 @@ const reportTypes: ReportTypeConfig[] = [
     desc: 'Safety stock buffers, reorder thresholds, stockout exposures, and replenishment priorities for multi-echelon stock.',
     tag: 'Stock Health',
     icon: FileSpreadsheet,
-    iconBg: 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-100 dark:border-emerald-900/40',
-    iconColor: 'text-emerald-600 dark:text-emerald-400',
-    tagClass: 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40',
+    accentClass: 'text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 border-emerald-200 dark:border-emerald-800/50',
   },
   {
     id: 'sales',
@@ -76,9 +70,7 @@ const reportTypes: ReportTypeConfig[] = [
     desc: 'Historical revenue distributions, top-performing SKUs, momentum metrics, and channel-specific velocity.',
     tag: 'Revenue & Sales',
     icon: FileText,
-    iconBg: 'bg-amber-50 dark:bg-amber-950/50 border-amber-100 dark:border-amber-900/40',
-    iconColor: 'text-amber-600 dark:text-amber-400',
-    tagClass: 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40',
+    accentClass: 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 border-amber-200 dark:border-amber-800/50',
   },
   {
     id: 'category',
@@ -86,126 +78,119 @@ const reportTypes: ReportTypeConfig[] = [
     desc: 'Segment-level demand distributions, quarterly seasonal dynamics, and catalog mix contribution margins.',
     tag: 'Segmentation',
     icon: FileDown,
-    iconBg: 'bg-cyan-50 dark:bg-cyan-950/50 border-cyan-100 dark:border-cyan-900/40',
-    iconColor: 'text-cyan-600 dark:text-cyan-400',
-    tagClass: 'bg-cyan-50 text-cyan-700 border-cyan-200/80 dark:bg-cyan-950/40 dark:text-cyan-300 dark:border-cyan-800/40',
+    accentClass: 'text-sky-700 dark:text-sky-400 bg-sky-50 dark:bg-sky-950/40 border-sky-200 dark:border-sky-800/50',
   },
 ];
+
+const EXPORT_FORMATS = [
+  {
+    key: 'CSV',
+    label: 'CSV',
+    icon: FileText,
+    description: 'Structured comma-separated table',
+    hoverClass: 'hover:border-[#1e3fc8] hover:text-[#1e3fc8] dark:hover:border-[#60a5fa] dark:hover:text-[#60a5fa]',
+    iconColor: 'text-[#1e3fc8] dark:text-[#60a5fa]',
+  },
+  {
+    key: 'Excel',
+    label: 'Excel',
+    icon: FileSpreadsheet,
+    description: 'Workbook (.xlsx) format',
+    hoverClass: 'hover:border-emerald-600 hover:text-emerald-700 dark:hover:border-emerald-400 dark:hover:text-emerald-300',
+    iconColor: 'text-emerald-600 dark:text-emerald-400',
+  },
+  {
+    key: 'PDF',
+    label: 'PDF',
+    icon: FileDown,
+    description: 'Executive summary document',
+    hoverClass: 'hover:border-rose-600 hover:text-rose-700 dark:hover:border-rose-400 dark:hover:text-rose-300',
+    iconColor: 'text-rose-600 dark:text-rose-400',
+  },
+] as const;
 
 interface ReportKPICardProps {
   title: string;
   value: React.ReactNode;
-  change?: number;
-  changeLabel?: string;
-  sub?: string;
+  sub: string;
   icon: React.ElementType;
-  iconBg: string;
   iconColor: string;
-  cardBg: string;
-  borderColor: string;
-  valueColor: string;
-  tooltipText?: string;
-  delay?: number;
+  tooltipText: string;
+  emphasized?: boolean;
+  delayMs?: number;
 }
 
 function ReportKPICard({
   title,
   value,
-  change,
-  changeLabel = 'vs prior period',
   sub,
   icon: Icon,
-  iconBg,
   iconColor,
-  cardBg,
-  borderColor,
-  valueColor,
   tooltipText,
-  delay = 0,
+  emphasized = false,
+  delayMs = 0,
 }: ReportKPICardProps) {
-  const isPositive = change !== undefined && change > 0;
-  const isNeutral = change !== undefined && change === 0;
-
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    <div
+      style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
       className={cn(
-        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[156px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
-        cardBg,
-        borderColor
+        'titan-dash-reveal titan-kpi-wrap',
+        emphasized && 'titan-kpi-wrap--emphasized'
       )}
     >
-      <div className="flex items-start justify-between relative z-10 w-full gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider truncate">
-              {title}
-            </p>
-            {tooltipText && (
+      <div className="titan-kpi-card rounded-[16px] p-5 border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] flex flex-col justify-between min-h-[144px]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-2">
+              <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.08em] truncate">
+                {title}
+              </p>
               <span
-                className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-help"
+                className="text-[#52525b]/70 hover:text-[#0a0a0a] dark:text-[#a1a1aa]/70 dark:hover:text-[#fafaf9] cursor-help flex-shrink-0"
                 title={tooltipText}
+                aria-label={tooltipText}
               >
-                <HelpCircle className="w-3 h-3" />
+                <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
               </span>
-            )}
+            </div>
+            <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-[#0a0a0a] dark:text-[#fafaf9]">
+              {value}
+            </p>
           </div>
-          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
-            {value}
-          </p>
-
-          {change !== undefined ? (
-            <div className="flex flex-wrap items-center gap-1.5 mt-3">
-              <span
-                className={cn(
-                  'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold tabular-nums border shadow-2xs flex-shrink-0',
-                  isPositive && 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-ds-green-surface dark:text-ds-green-text dark:border-ds-green/20',
-                  isNeutral && 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-ds-surface-sunken dark:text-ds-text-muted dark:border-ds-border'
-                )}
-              >
-                {isPositive && <TrendingUp className="w-3 h-3 text-emerald-600" />}
-                {isNeutral && <Minus className="w-3 h-3 text-slate-500" />}
-                {isPositive && '+'}
-                {change.toFixed(1)}%
-              </span>
-              <span className="text-xs text-slate-500 dark:text-ds-text-muted font-medium leading-tight">
-                {changeLabel}
-              </span>
-            </div>
-          ) : sub ? (
-            <div className="mt-3 flex items-start gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control mt-1.5 flex-shrink-0" />
-              <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted leading-snug">
-                {sub}
-              </span>
-            </div>
-          ) : null}
+          <div className="w-10 h-10 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-center flex-shrink-0">
+            <Icon className={cn('w-4.5 h-4.5', iconColor)} aria-hidden="true" />
+          </div>
         </div>
-
-        <div
-          className={cn(
-            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border',
-            iconBg
-          )}
-        >
-          <Icon className={cn('w-5 h-5', iconColor)} />
-        </div>
+        <p className="mt-3 text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] leading-snug">
+          {sub}
+        </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 export default function ReportsPage() {
-  const [generating, setGenerating] = useState<string | null>(null);
-  const [generatingFmt, setGeneratingFmt] = useState<string | null>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const [pendingRequest, setPendingRequest] = useState<{ id: string; format: string } | null>(null);
+  const [lastOutcome, setLastOutcome] = useState<{
+    templateId: string;
+    templateTitle: string;
+    format: string;
+    status: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const queryClient = useQueryClient();
   const [toast, setToast] = useState<{ message: string; isError?: boolean } | null>(null);
+  const toastTimerRef = useRef<number | null>(null);
 
-  const { data: reportsData } = useQuery({
+  useEffect(() => {
+    return () => {
+      if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    };
+  }, []);
+
+  const { data: reportsData, isLoading: isLoadingReports } = useQuery({
     queryKey: ['reports'],
     queryFn: () => reportsApi.getAll().then((res) => res.data),
   });
@@ -222,7 +207,8 @@ export default function ReportsPage() {
 
   const showToast = (message: string, isError = false) => {
     setToast({ message, isError });
-    setTimeout(() => setToast(null), 3500);
+    if (toastTimerRef.current) window.clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 4000);
   };
 
   const generateMutation = useMutation({
@@ -230,554 +216,547 @@ export default function ReportsPage() {
       reportsApi.generate(id, format.toLowerCase(), name),
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['reports'] });
-      setGenerating(null);
-      setGeneratingFmt(null);
-      showToast(`${variables.format} report metadata compiled successfully`);
+      const rt = REPORT_TYPES.find((r) => r.id === variables.id);
+      const title = rt?.title || 'Report';
+      setPendingRequest(null);
+      setLastOutcome({
+        templateId: variables.id,
+        templateTitle: title,
+        format: variables.format,
+        status: 'success',
+        message: `${title} (${variables.format}) logged in generation history. File download is unavailable because physical artifact storage is deferred.`,
+      });
+      showToast(`${title} (${variables.format}) logged in history`);
     },
-    onError: (err: unknown) => {
-      setGenerating(null);
-      setGeneratingFmt(null);
-      const message = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      showToast(message || 'Failed to generate report', true);
+    onError: (err: unknown, variables) => {
+      setPendingRequest(null);
+      const rt = REPORT_TYPES.find((r) => r.id === variables.id);
+      const title = rt?.title || 'Report';
+      const detail = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      const errMsg = detail || `Failed to compile ${title} (${variables.format})`;
+      setLastOutcome({
+        templateId: variables.id,
+        templateTitle: title,
+        format: variables.format,
+        status: 'error',
+        message: errMsg,
+      });
+      showToast(errMsg, true);
     },
   });
 
   const recentReports: Report[] = reportsData?.reports || [];
+  const currentMonthPrefix = new Date().toISOString().substring(0, 7);
   const reportsThisMonth = recentReports.filter(
-    (r) => r.date && r.date.startsWith(new Date().toISOString().substring(0, 7))
+    (r) => r.date && r.date.startsWith(currentMonthPrefix)
+  ).length;
+  const downloadableCount = recentReports.filter(
+    (r) => r.size && r.size !== 'N/A' && r.status === 'completed'
+  ).length;
+  const deferredCount = recentReports.filter(
+    (r) => !r.size || r.size === 'N/A'
   ).length;
 
   const handleGenerate = (id: string, format: string) => {
+    if (pendingRequest !== null) return;
     if (isEmptyOrg) {
-      showToast('Dataset required before compiling reports', true);
+      showToast('Upload a dataset before compiling reports', true);
       return;
     }
-    setGenerating(id);
-    setGeneratingFmt(format);
-    const reportType = reportTypes.find((r) => r.id === id);
+    setPendingRequest({ id, format });
+    const reportType = REPORT_TYPES.find((r) => r.id === id);
     const name = `${reportType?.title || 'Report'} - ${new Date().toLocaleDateString()}`;
     generateMutation.mutate({ id, format, name });
   };
 
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
-      {/* ── Toast notification ───────────────────────────────────────── */}
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      {/* ── Toast Notification ───────────────────────────────────────── */}
       <AnimatePresence>
         {toast && (
           <motion.div
-            initial={{ opacity: 0, y: -20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            role="status"
+            aria-live="polite"
+            initial={prefersReducedMotion ? false : { opacity: 0, y: -12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={prefersReducedMotion ? undefined : { opacity: 0, y: -12 }}
+            transition={{ duration: prefersReducedMotion ? 0 : 0.16 }}
             className={cn(
-              'fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl text-xs font-semibold flex items-center gap-2.5 shadow-xl border backdrop-blur-md',
+              'fixed top-4 right-4 z-50 px-4 py-3 rounded-[12px] text-xs font-semibold flex items-center gap-2.5 shadow-ds-float-2 border max-w-sm',
               toast.isError
-                ? 'bg-rose-50/95 text-rose-800 border-rose-200/90 dark:bg-rose-950/90 dark:text-rose-200 dark:border-rose-800/60'
-                : 'bg-emerald-50/95 text-emerald-800 border-emerald-200/90 dark:bg-emerald-950/90 dark:text-emerald-200 dark:border-emerald-800/60'
+                ? 'bg-ds-red-surface text-ds-red-text border-ds-red/30'
+                : 'bg-ds-surface text-ds-text-primary border-ds-hairline'
             )}
           >
             {toast.isError ? (
-              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+              <AlertCircle className="w-4 h-4 text-ds-red flex-shrink-0" aria-hidden="true" />
             ) : (
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+              <CheckCircle2 className="w-4 h-4 text-ds-green flex-shrink-0" aria-hidden="true" />
             )}
             <span>{toast.message}</span>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ── 1. PAGE HEADER ───────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
-      >
-        {/* Subtle decorative indigo-blue accent glow */}
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-indigo-500/10 via-blue-500/5 to-transparent pointer-events-none" />
-
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center text-white shadow-xs">
-            <FileSpreadsheet className="w-5 h-5 text-white" />
+      <PageHeader
+        title="Reports & Exports"
+        description="Compile analytics report requests in CSV, Excel, or PDF formats and review generation history"
+        actions={
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-ds-surface border border-ds-hairline text-xs font-semibold text-ds-text-primary"
+            title="Report metadata API is ready; physical file storage is deferred"
+          >
+            <span className="w-2 h-2 rounded-full bg-ds-green" aria-hidden="true" />
+            <span>Export Engine Ready</span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-blue-600 inline-block" />
-              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
-                Reports &amp; Exports
-              </h1>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              Generate, schedule, and compile analytics reports in CSV, Excel, or PDF formats
-            </p>
-          </div>
-        </div>
+        }
+      />
 
-        <div className="relative flex items-center gap-2.5">
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/80 dark:border-ds-border text-xs font-semibold text-slate-700 dark:text-slate-300">
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-            Export Engine Ready
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ── 2. DATA AVAILABILITY BANNER (Soft Blue/Amber Surface) ───── */}
+      {/* ── 2. Data Availability Banner ──────────────────────────────── */}
       {isEmptyOrg && (
-        <motion.div
-          initial={{ opacity: 0, y: -8 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative p-5 sm:p-5.5 rounded-2xl border border-amber-200/90 dark:border-amber-900/40 bg-gradient-to-r from-amber-50/90 via-amber-50/40 to-blue-50/30 dark:from-amber-950/25 dark:via-ds-surface dark:to-blue-950/15 shadow-2xs overflow-hidden"
+        <div
+          role="alert"
+          className="p-4 sm:p-5 rounded-[16px] border border-amber-300/80 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
         >
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-start gap-3.5">
-              <div className="w-11 h-11 rounded-2xl bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center flex-shrink-0 text-amber-700 dark:text-amber-400 shadow-2xs">
-                <Database className="w-5 h-5" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
-                    Dataset Required for Report Generation
-                  </h3>
-                  <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-200/60 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 border border-amber-300/60 dark:border-amber-800/40">
-                    Prerequisite
-                  </span>
-                </div>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium leading-relaxed max-w-2xl">
-                  Your workspace does not currently have an active telemetry or sales dataset. System metrics, historical distributions, and inventory predictions cannot be compiled until data is ingested.
-                </p>
-              </div>
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-[12px] bg-amber-100 dark:bg-amber-900/40 border border-amber-200 dark:border-amber-800/60 flex items-center justify-center flex-shrink-0 text-amber-700 dark:text-amber-400">
+              <Database className="w-5 h-5" aria-hidden="true" />
             </div>
-            <Link
-              to="/upload"
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs transition-colors self-start sm:self-center flex-shrink-0"
-            >
-              <Upload className="w-3.5 h-3.5" />
-              Go to Data Upload
-            </Link>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                  Dataset Required for Report Compilation
+                </h2>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/70 text-amber-900 dark:bg-amber-900/60 dark:text-amber-200">
+                  Prerequisite
+                </span>
+              </div>
+              <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 font-medium leading-relaxed max-w-2xl">
+                This workspace does not have an active sales or inventory dataset. Upload data before compiling report records.
+              </p>
+            </div>
           </div>
-        </motion.div>
+          <Link
+            to="/upload"
+            className="inline-flex items-center justify-center gap-1.5 min-h-[44px] sm:min-h-[36px] px-4 py-2 rounded-[10px] bg-[#1e3fc8] hover:bg-[#1935a8] text-white text-xs font-semibold transition-colors self-start sm:self-center flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
+          >
+            <Upload className="w-3.5 h-3.5" aria-hidden="true" />
+            Go to Data Upload
+          </Link>
+        </div>
       )}
 
-      {/* ── 3. KPI CARDS (Indigo, Emerald, Amber, Cyan) ──────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Reports Generated - Indigo */}
+      {/* ── 3. Honest KPI Summary Strip ──────────────────────────────── */}
+      <section aria-label="Report Telemetry Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <ReportKPICard
-          title="Reports Generated"
-          value={String(recentReports.length)}
-          sub={recentReports.length > 0 ? 'Active records in generation log' : 'No compilation records'}
+          title="Reports Logged"
+          value={isLoadingReports ? '—' : String(recentReports.length)}
+          sub={
+            recentReports.length > 0
+              ? `Records returned from generation log (max 50)`
+              : 'No compilation records logged'
+          }
           icon={FileText}
-          cardBg="bg-gradient-to-b from-indigo-50/70 via-indigo-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-indigo-200/80 dark:border-ds-border"
-          iconBg="bg-indigo-100 text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-400"
-          iconColor="text-indigo-600 dark:text-indigo-400"
-          valueColor="text-indigo-950 dark:text-ds-text-primary"
-          tooltipText="Total report compilation tasks logged in the organization database (limit 50 recent records)"
-          delay={0}
+          iconColor="text-[#1e3fc8] dark:text-[#60a5fa]"
+          tooltipText="Count of report records returned by GET /reports (capped at 50 most recent rows)"
+          emphasized={true}
+          delayMs={30}
         />
 
-        {/* This Month - Emerald */}
         <ReportKPICard
           title="This Month"
-          value={String(reportsThisMonth)}
-          change={reportsThisMonth > 0 ? 15.0 : undefined}
-          changeLabel="vs prior monthly cycle"
-          sub={reportsThisMonth === 0 ? 'Current monthly cycle' : undefined}
+          value={isLoadingReports ? '—' : String(reportsThisMonth)}
+          sub={`Compiled in ${new Date().toLocaleString('en-US', { month: 'long', year: 'numeric' })}`}
           icon={Calendar}
-          cardBg="bg-gradient-to-b from-emerald-50/70 via-emerald-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-emerald-200/80 dark:border-ds-border"
-          iconBg="bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400"
           iconColor="text-emerald-600 dark:text-emerald-400"
-          valueColor="text-emerald-950 dark:text-ds-text-primary"
-          tooltipText="Report compilations generated during the current calendar month"
-          delay={0.05}
+          tooltipText="Report records whose created date falls in the current calendar month"
+          delayMs={60}
         />
 
-        {/* Avg Gen Time - Amber */}
         <ReportKPICard
-          title="Avg Gen Time"
-          value={recentReports.length > 0 ? '2.8s' : '—'}
-          sub="Server-side rendering latency across formats"
-          icon={Clock}
-          cardBg="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-amber-200/80 dark:border-ds-border"
-          iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
+          title="Archived Files"
+          value={isLoadingReports ? '—' : String(downloadableCount)}
+          sub={
+            deferredCount > 0
+              ? `${deferredCount} ${deferredCount === 1 ? 'record' : 'records'} storage-deferred`
+              : 'Persistent file storage pending'
+          }
+          icon={Archive}
           iconColor="text-amber-600 dark:text-amber-400"
-          valueColor="text-amber-950 dark:text-ds-text-primary"
-          tooltipText="Average database query and compilation processing time per report"
-          delay={0.1}
+          tooltipText="Number of logged reports with a stored file size ready for archive download"
+          delayMs={90}
         />
 
-        {/* Total Downloads - Cyan */}
         <ReportKPICard
-          title="Total Downloads"
-          value={recentReports.length > 0 ? String(recentReports.length * 3 + 42) : '0'}
-          change={recentReports.length > 0 ? 12.4 : undefined}
-          changeLabel="retrieval velocity"
-          sub={recentReports.length === 0 ? '0 cumulative client pulls' : undefined}
-          icon={Download}
-          cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-blue-200/80 dark:border-ds-border"
-          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
-          iconColor="text-blue-600 dark:text-blue-400"
-          valueColor="text-blue-950 dark:text-ds-text-primary"
-          tooltipText="Cumulative platform downloads recorded across cached and API telemetry endpoints"
-          delay={0.15}
+          title="Templates & Formats"
+          value={`${REPORT_TYPES.length} × ${EXPORT_FORMATS.length}`}
+          sub="4 analytics templates · CSV, Excel, PDF"
+          icon={Layers}
+          iconColor="text-sky-600 dark:text-sky-400"
+          tooltipText="Supported report templates and export formats"
+          delayMs={120}
         />
-      </div>
+      </section>
 
-      {/* ── 4. REPORT TYPE CARDS (Generate New Report) ────────────────── */}
-      <div className="space-y-3.5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-indigo-500 to-purple-600 inline-block" />
-            <h2 className="text-base font-bold text-slate-900 dark:text-ds-text tracking-tight">
+      {/* ── 4. Generate New Report (Templates + Formats) ─────────────── */}
+      <section aria-label="Generate New Report" className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-2">
+          <div>
+            <h2 className="text-base font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
               Generate New Report
             </h2>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+              Step 1: Choose an analytics template. Step 2: Select a format to log a compilation request.
+            </p>
           </div>
-          <span className="text-xs text-slate-500 dark:text-ds-text-secondary font-medium">
-            Select an analytics template and format to initiate compilation
+          <span className="text-[11px] font-medium text-[#52525b] dark:text-[#a1a1aa]">
+            Requests log metadata immediately; binary file archival is deferred
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {reportTypes.map((rt, i) => (
+        {/* Inline Request Outcome Banner */}
+        <AnimatePresence>
+          {lastOutcome && (
             <motion.div
-              key={rt.id}
-              initial={{ opacity: 0, y: 16 }}
+              role="status"
+              aria-live="polite"
+              initial={prefersReducedMotion ? false : { opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 + i * 0.05 }}
-              className="p-5 rounded-2xl bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border shadow-2xs hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 flex flex-col justify-between min-h-[196px]"
+              exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+              transition={{ duration: 0.18 }}
+              className={cn(
+                'p-3.5 rounded-[12px] border text-xs flex items-start justify-between gap-3',
+                lastOutcome.status === 'error'
+                  ? 'bg-rose-50/80 dark:bg-rose-950/30 border-rose-200 dark:border-rose-800/60 text-rose-800 dark:text-rose-200'
+                  : 'bg-[#eff6ff]/70 dark:bg-[#1e3fc8]/10 border-[#bfdbfe] dark:border-[#1e3fc8]/30 text-[#0a0a0a] dark:text-[#fafaf9]'
+              )}
             >
-              <div>
-                <div className="flex items-start justify-between gap-3 mb-2.5">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className={cn(
-                        'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border',
-                        rt.iconBg
-                      )}
-                    >
-                      <rt.icon className={cn('w-5 h-5', rt.iconColor)} />
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text">
-                        {rt.title}
-                      </h3>
-                      <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
-                        Analytics Template
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={cn(
-                      'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold border shadow-2xs flex-shrink-0',
-                      rt.tagClass
-                    )}
-                  >
-                    {rt.tag}
-                  </span>
-                </div>
-
-                <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed pl-0.5">
-                  {rt.desc}
-                </p>
+              <div className="flex items-start gap-2.5">
+                {lastOutcome.status === 'error' ? (
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0 mt-0.5" aria-hidden="true" />
+                ) : (
+                  <Info className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa] flex-shrink-0 mt-0.5" aria-hidden="true" />
+                )}
+                <p className="font-medium leading-relaxed">{lastOutcome.message}</p>
               </div>
-
-              {/* Format Export Buttons (CSV, Excel, PDF) */}
-              <div className="pt-3.5 mt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-center justify-between flex-wrap gap-2.5">
-                <span className="text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                  Export As:
-                </span>
-                <div className="flex items-center flex-wrap gap-2">
-                  {/* CSV Export */}
-                  <button
-                    onClick={() => handleGenerate(rt.id, 'CSV')}
-                    disabled={isEmptyOrg || (generating !== null)}
-                    title={
-                      isEmptyOrg
-                        ? 'Upload dataset to generate reports'
-                        : generating === rt.id && generatingFmt === 'CSV'
-                        ? 'Compiling CSV export...'
-                        : 'Compile structured CSV data'
-                    }
-                    className={cn(
-                      'h-8 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer',
-                      'focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:ring-offset-1',
-                      'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700',
-                      'hover:bg-blue-50 hover:text-blue-700 hover:border-blue-200/80 dark:hover:bg-blue-950/40 dark:hover:text-blue-300 dark:hover:border-blue-800/40',
-                      'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-50 disabled:hover:text-slate-700 disabled:hover:border-slate-200'
-                    )}
-                  >
-                    {generating === rt.id && generatingFmt === 'CSV' ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-blue-600" />
-                        <span>Compiling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                        <span>CSV</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* Excel Export */}
-                  <button
-                    onClick={() => handleGenerate(rt.id, 'Excel')}
-                    disabled={isEmptyOrg || (generating !== null)}
-                    title={
-                      isEmptyOrg
-                        ? 'Upload dataset to generate reports'
-                        : generating === rt.id && generatingFmt === 'Excel'
-                        ? 'Compiling Excel spreadsheet...'
-                        : 'Compile formatted Excel (.xlsx) workbook'
-                    }
-                    className={cn(
-                      'h-8 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer',
-                      'focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:ring-offset-1',
-                      'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700',
-                      'hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200/80 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-300 dark:hover:border-emerald-800/40',
-                      'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-50 disabled:hover:text-slate-700 disabled:hover:border-slate-200'
-                    )}
-                  >
-                    {generating === rt.id && generatingFmt === 'Excel' ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
-                        <span>Compiling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                        <span>Excel</span>
-                      </>
-                    )}
-                  </button>
-
-                  {/* PDF Export */}
-                  <button
-                    onClick={() => handleGenerate(rt.id, 'PDF')}
-                    disabled={isEmptyOrg || (generating !== null)}
-                    title={
-                      isEmptyOrg
-                        ? 'Upload dataset to generate reports'
-                        : generating === rt.id && generatingFmt === 'PDF'
-                        ? 'Compiling PDF document...'
-                        : 'Compile executive PDF presentation document'
-                    }
-                    className={cn(
-                      'h-8 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer',
-                      'focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:ring-offset-1',
-                      'bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700',
-                      'hover:bg-rose-50 hover:text-rose-700 hover:border-rose-200/80 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 dark:hover:border-rose-800/40',
-                      'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-slate-50 disabled:hover:text-slate-700 disabled:hover:border-slate-200'
-                    )}
-                  >
-                    {generating === rt.id && generatingFmt === 'PDF' ? (
-                      <>
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-rose-600" />
-                        <span>Compiling...</span>
-                      </>
-                    ) : (
-                      <>
-                        <FileDown className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                        <span>PDF</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+              <button
+                type="button"
+                onClick={() => setLastOutcome(null)}
+                className="text-[11px] font-semibold text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] cursor-pointer flex-shrink-0"
+              >
+                Dismiss
+              </button>
             </motion.div>
-          ))}
-        </div>
-      </div>
+          )}
+        </AnimatePresence>
 
-      {/* ── 5. RECENT REPORTS TABLE ──────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
-        className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {REPORT_TYPES.map((rt) => {
+            const isCardPending = pendingRequest?.id === rt.id;
+
+            return (
+              <div
+                key={rt.id}
+                className={cn(
+                  'p-5 rounded-[16px] bg-white dark:bg-[#111113] border transition-all duration-150 flex flex-col justify-between min-h-[196px]',
+                  isCardPending
+                    ? 'border-[#1e3fc8] dark:border-[#60a5fa] ring-1 ring-[#1e3fc8]/20'
+                    : 'border-[#e4e4e7] dark:border-[#27272a] hover:border-[#0a0a0a]/40 dark:hover:border-[#fafaf9]/30'
+                )}
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div
+                        className={cn(
+                          'w-10 h-10 rounded-[12px] flex items-center justify-center flex-shrink-0 border',
+                          rt.accentClass
+                        )}
+                      >
+                        <rt.icon className="w-5 h-5" aria-hidden="true" />
+                      </div>
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] truncate">
+                          {rt.title}
+                        </h3>
+                        <p className="text-[11px] font-semibold text-[#52525b] dark:text-[#a1a1aa]">
+                          Analytics Template
+                        </p>
+                      </div>
+                    </div>
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-[#fafaf9] dark:bg-[#18181b] text-[#52525b] dark:text-[#a1a1aa] border border-[#e4e4e7] dark:border-[#27272a] flex-shrink-0">
+                      {rt.tag}
+                    </span>
+                  </div>
+
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium leading-relaxed">
+                    {rt.desc}
+                  </p>
+                </div>
+
+                {/* Format Export Buttons */}
+                <div className="pt-3.5 mt-4 border-t border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                  <span className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]">
+                    Compile as:
+                  </span>
+                  <div className="flex items-center flex-wrap gap-2">
+                    {EXPORT_FORMATS.map((fmt) => {
+                      const isThisLoading =
+                        pendingRequest?.id === rt.id && pendingRequest?.format === fmt.key;
+                      const isDisabled = isEmptyOrg || pendingRequest !== null;
+                      const FmtIcon = fmt.icon;
+
+                      return (
+                        <button
+                          key={fmt.key}
+                          type="button"
+                          onClick={() => handleGenerate(rt.id, fmt.key)}
+                          disabled={isDisabled}
+                          aria-busy={isThisLoading}
+                          aria-label={`Generate ${rt.title} as ${fmt.label}`}
+                          title={
+                            isEmptyOrg
+                              ? 'Upload a dataset to compile reports'
+                              : isThisLoading
+                              ? `Compiling ${rt.title} (${fmt.label})...`
+                              : `Compile ${rt.title} (${fmt.description})`
+                          }
+                          className={cn(
+                            'min-h-[44px] sm:min-h-[34px] px-3 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-1.5 transition-all duration-150 cursor-pointer',
+                            'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
+                            isThisLoading
+                              ? 'bg-[#eff6ff] dark:bg-[#1e3fc8]/20 border-[#1e3fc8] text-[#1e3fc8] dark:text-[#60a5fa]'
+                              : 'bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] border-[#e4e4e7] dark:border-[#27272a]',
+                            !isDisabled && fmt.hoverClass,
+                            'disabled:opacity-50 disabled:cursor-not-allowed'
+                          )}
+                        >
+                          {isThisLoading ? (
+                            <>
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                              <span>Compiling...</span>
+                            </>
+                          ) : (
+                            <>
+                              <FmtIcon className={cn('w-3.5 h-3.5', fmt.iconColor)} aria-hidden="true" />
+                              <span>{fmt.label}</span>
+                            </>
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ── 5. Recent Reports & Generation Log ───────────────────────── */}
+      <section
+        aria-label="Recent Reports and Generation Log"
+        className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden"
       >
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2.5">
+        <div className="px-5 py-4 border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9]/70 dark:bg-[#18181b]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
           <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
                 Recent Reports &amp; Generation Log
-              </h3>
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+              </h2>
+              <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white dark:bg-[#111113] text-[#52525b] dark:text-[#a1a1aa] border border-[#e4e4e7] dark:border-[#27272a]">
                 Retention: 50 records
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-              Historical exports archive and database compilation telemetry
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+              Logged compilation metadata. Physical file downloads remain disabled while archival storage is deferred.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold">
-              <Layers className="w-3 h-3 text-slate-500 dark:text-slate-400" />
-              {recentReports.length} {recentReports.length === 1 ? 'record' : 'records'}
-            </span>
-          </div>
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[8px] bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold font-mono tabular-nums self-start sm:self-center">
+            {recentReports.length} {recentReports.length === 1 ? 'record' : 'records'}
+          </span>
         </div>
 
-        {recentReports.length === 0 ? (
+        {isLoadingReports ? (
+          <div className="p-4" aria-busy="true" aria-label="Loading report history">
+            <SkeletonTable rows={4} />
+          </div>
+        ) : recentReports.length === 0 ? (
           <div className="p-10 text-center flex flex-col items-center justify-center">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mb-3 border border-indigo-100 dark:border-indigo-900/40">
-              <FileText className="w-6 h-6" />
+            <div className="w-11 h-11 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] text-[#52525b] dark:text-[#a1a1aa] flex items-center justify-center mb-3 border border-[#e4e4e7] dark:border-[#27272a]">
+              <FileText className="w-5 h-5" aria-hidden="true" />
             </div>
-            <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-1">
-              No Reports Generated Yet
-            </h4>
-            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm">
-              Select any report configuration above to queue and compile your first export dataset.
+            <h3 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] mb-1">
+              No Reports Logged Yet
+            </h3>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] max-w-sm">
+              Select any template and format above to compile your first report record.
             </p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left min-w-[760px]">
-              <thead>
-                <tr className="border-b border-slate-100 dark:border-ds-border/60 bg-slate-50/70 dark:bg-ds-surface-sunken/40">
-                  {['Report Name', 'Type', 'Format', 'Size', 'Generated', 'Status', 'Action'].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-[11px] font-bold text-slate-500 dark:text-ds-text-secondary uppercase tracking-wider"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-ds-border/40">
-                {recentReports.map((r, i) => {
-                  const isStorageDeferred = !r.size || r.size === 'N/A' || r.status === 'completed';
-                  const isGenerating = r.status === 'generating';
-                  const isFailed = r.status === 'failed';
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b]/60">
+                    {['Report Name', 'Type', 'Format', 'Size', 'Generated', 'Status', 'Archive File'].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        className="px-4 py-3 text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+                  {recentReports.map((r) => {
+                    const isStorageDeferred = !r.size || r.size === 'N/A' || r.status === 'completed';
+                    const isGenerating = r.status === 'generating';
+                    const isFailed = r.status === 'failed';
 
-                  return (
-                    <motion.tr
-                      key={r.id}
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      transition={{ delay: 0.35 + i * 0.03 }}
-                      className="hover:bg-slate-50/60 dark:hover:bg-ds-surface-sunken/30 transition-colors"
-                    >
-                      {/* Report Name */}
-                      <td className="px-4 py-3 text-sm font-bold text-slate-900 dark:text-ds-text">
-                        <div className="flex items-center gap-2">
-                          <FileText className="w-4 h-4 text-slate-400 dark:text-slate-500 flex-shrink-0" />
-                          <span className="truncate max-w-[240px] sm:max-w-[320px]" title={r.name}>
-                            {r.name}
-                          </span>
-                        </div>
-                      </td>
-
-                      {/* Type Badge */}
-                      <td className="px-4 py-3">
-                        <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-950/30 dark:text-indigo-300 dark:border-indigo-800/40 uppercase">
-                          {r.type}
-                        </span>
-                      </td>
-
-                      {/* Format Badge */}
-                      <td className="px-4 py-3 text-xs font-semibold text-slate-600 dark:text-slate-300">
-                        <span
-                          className={cn(
-                            'inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-bold uppercase border shadow-2xs',
-                            r.format.toLowerCase() === 'csv' && 'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40',
-                            r.format.toLowerCase() === 'excel' && 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40',
-                            r.format.toLowerCase() === 'pdf' && 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40'
-                          )}
-                        >
-                          {r.format}
-                        </span>
-                      </td>
-
-                      {/* Size */}
-                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-ds-text-secondary font-mono tabular-nums">
-                        {r.size && r.size !== 'N/A' ? (
-                          r.size
-                        ) : (
-                          <span
-                            className="inline-flex items-center gap-1 text-slate-400 dark:text-slate-500 cursor-help"
-                            title="Physical file size is unassigned — file artifact storage is deferred in v1.0"
-                          >
-                            <span>N/A</span>
-                            <Info className="w-3 h-3 text-slate-400" />
-                          </span>
-                        )}
-                      </td>
-
-                      {/* Generated Date */}
-                      <td className="px-4 py-3 text-xs text-slate-600 dark:text-ds-text-secondary font-sans tabular-nums whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <Calendar className="w-3.5 h-3.5 text-slate-400 dark:text-slate-500" />
-                          <span>{r.date || '—'}</span>
-                        </div>
-                      </td>
-
-                      {/* Status */}
-                      <td className="px-4 py-3">
-                        {isGenerating ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40">
-                            <Loader2 className="w-3 h-3 animate-spin text-amber-600 dark:text-amber-400" />
-                            Generating...
-                          </span>
-                        ) : isFailed ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40">
-                            <AlertCircle className="w-3 h-3 text-rose-600 dark:text-rose-400" />
-                            Failed
-                          </span>
-                        ) : isStorageDeferred ? (
-                          <div className="group/status relative inline-block">
-                            <span
-                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-[11px] font-medium bg-slate-100 text-slate-600 border border-slate-200/90 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700 cursor-help transition-colors hover:bg-slate-200/70 dark:hover:bg-slate-700"
-                              title="Report metadata logged in database. Persistent file storage is deferred in v1.0."
-                            >
-                              <Clock className="w-3 h-3 text-slate-400 dark:text-slate-400" />
-                              <span>Storage Deferred</span>
-                              <Info className="w-3 h-3 text-slate-400" />
+                    return (
+                      <tr
+                        key={r.id}
+                        className="hover:bg-[#fafaf9] dark:hover:bg-[#18181b]/40 transition-colors duration-150"
+                      >
+                        <td className="px-4 py-3.5 text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                          <div className="flex items-center gap-2">
+                            <FileText className="w-4 h-4 text-[#52525b] dark:text-[#a1a1aa] flex-shrink-0" aria-hidden="true" />
+                            <span className="truncate max-w-[260px]" title={r.name}>
+                              {r.name}
                             </span>
                           </div>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/40">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
-                            Ready
-                          </span>
-                        )}
-                      </td>
+                        </td>
 
-                      {/* Action */}
-                      <td className="px-4 py-3">
-                        <div className="relative group/action inline-block">
-                          <button
-                            disabled={true}
-                            aria-label={`Download ${r.name} (Storage deferred in current release)`}
+                        <td className="px-4 py-3.5">
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] uppercase">
+                            {r.type}
+                          </span>
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <span
                             className={cn(
-                              'inline-flex items-center gap-1.5 text-[11px] h-7 px-2.5 rounded-lg border font-medium shadow-2xs transition-all duration-150',
-                              'border-slate-200 bg-slate-50 text-slate-400 dark:bg-slate-800/60 dark:border-slate-700 dark:text-slate-500 opacity-70 cursor-not-allowed'
+                              'inline-flex items-center px-2 py-0.5 rounded text-[11px] font-bold uppercase border',
+                              r.format.toLowerCase() === 'csv' && 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
+                              r.format.toLowerCase() === 'excel' && 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50',
+                              r.format.toLowerCase() === 'pdf' && 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50'
                             )}
                           >
-                            <Download className="w-3 h-3" />
-                            <span>Deferred</span>
-                          </button>
+                            {r.format}
+                          </span>
+                        </td>
 
-                          {/* Hover explanation tooltip */}
-                          <div className="absolute right-0 bottom-full mb-1.5 hidden group-hover/action:block z-30 w-56 p-2 rounded-xl bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 text-[11px] leading-tight font-normal shadow-lg pointer-events-none">
-                            <p className="font-semibold mb-0.5 flex items-center gap-1">
-                              <Info className="w-3 h-3" /> File Artifact Storage Deferred
-                            </p>
-                            <span>
-                              Report metadata is preserved in the database. Physical file download will become available once persistent object storage is configured.
+                        <td className="px-4 py-3.5 text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums">
+                          {r.size && r.size !== 'N/A' ? (
+                            r.size
+                          ) : (
+                            <span
+                              className="inline-flex items-center gap-1 cursor-help"
+                              title="No binary file size recorded because physical file storage is deferred"
+                            >
+                              <span>N/A</span>
+                              <Info className="w-3 h-3" aria-hidden="true" />
                             </span>
-                          </div>
-                        </div>
-                      </td>
-                    </motion.tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3.5 text-xs text-[#52525b] dark:text-[#a1a1aa] tabular-nums whitespace-nowrap">
+                          {r.date || '—'}
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          {isGenerating ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50">
+                              <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                              Generating
+                            </span>
+                          ) : isFailed ? (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50">
+                              <AlertCircle className="w-3 h-3" aria-hidden="true" />
+                              Failed
+                            </span>
+                          ) : isStorageDeferred ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-medium bg-[#fafaf9] text-[#52525b] border border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a] cursor-help"
+                              title="Metadata logged in database; persistent file storage is deferred"
+                            >
+                              <Clock className="w-3 h-3" aria-hidden="true" />
+                              Storage Deferred
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50">
+                              <CheckCircle2 className="w-3 h-3" aria-hidden="true" />
+                              Ready
+                            </span>
+                          )}
+                        </td>
+
+                        <td className="px-4 py-3.5">
+                          <button
+                            type="button"
+                            disabled={true}
+                            aria-label={`Download ${r.name} unavailable: file archival storage is deferred`}
+                            title="File download unavailable — persistent object storage is deferred"
+                            className="inline-flex items-center gap-1.5 text-[11px] h-8 px-2.5 rounded-[8px] border font-medium border-[#e4e4e7] bg-[#fafaf9] text-[#52525b] dark:bg-[#18181b] dark:border-[#27272a] dark:text-[#a1a1aa] opacity-65 cursor-not-allowed"
+                          >
+                            <Download className="w-3 h-3" aria-hidden="true" />
+                            <span>Unavailable</span>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Cards (<768px) */}
+            <div className="md:hidden divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+              {recentReports.map((r) => {
+                const isGenerating = r.status === 'generating';
+                const isFailed = r.status === 'failed';
+
+                return (
+                  <div key={r.id} className="p-4 space-y-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] break-words">
+                          {r.name}
+                        </p>
+                        <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5 tabular-nums">
+                          {r.date || '—'} · Size: {r.size && r.size !== 'N/A' ? r.size : 'N/A'}
+                        </p>
+                      </div>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] flex-shrink-0">
+                        {r.format}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center justify-between gap-2 pt-1">
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-[#52525b] dark:text-[#a1a1aa]">
+                        {isGenerating ? 'Generating' : isFailed ? 'Failed' : 'Storage Deferred'}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={true}
+                        aria-label={`Download ${r.name} unavailable: file archival storage is deferred`}
+                        className="inline-flex items-center gap-1.5 text-[11px] min-h-[36px] px-3 rounded-[8px] border font-medium border-[#e4e4e7] bg-[#fafaf9] text-[#52525b] dark:bg-[#18181b] dark:border-[#27272a] dark:text-[#a1a1aa] opacity-65 cursor-not-allowed"
+                      >
+                        <Download className="w-3 h-3" aria-hidden="true" />
+                        <span>Download Deferred</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
         )}
-      </motion.div>
+      </section>
     </div>
   );
 }

@@ -1,0 +1,96 @@
+.titan-startup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  overflow: auto;
+  background: var(--ds-canvas);
+  color: var(--ds-text-primary);
+}
+
+.titan-startup-error { z-index: 1002; }
+
+.titan-startup-content {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width: min(100%, 24rem);
+  text-align: center;
+}
+
+.titan-startup-mark {
+  display: grid;
+  place-items: center;
+  width: 72px;
+  height: 72px;
+  margin-bottom: 1.25rem;
+}
+
+.titan-startup-logo {
+  color: var(--ds-text-primary);
+  width: 72px;
+  height: 72px;
+}
+
+.titan-startup-name {
+  font-size: 1.125rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+}
+
+.titan-startup-status {
+  margin-top: 0.75rem;
+  color: var(--ds-text-secondary);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.titan-startup-retry {
+  margin-top: 1.25rem;
+  padding: 0.5625rem 1.125rem;
+  border-radius: 0.625rem;
+  background: var(--ds-blue-action);
+  color: white;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.titan-startup-retry:hover {
+  background: var(--ds-blue-strong);
+}
+
+.titan-startup-retry:focus-visible {
+  outline: 2px solid var(--ds-blue);
+  outline-offset: 2px;
+}
+
+.titan-app-starting {
+  opacity: 0;
+}
+
+.titan-app-ready {
+  animation: titan-app-reveal 180ms ease-out both;
+}
+
+@keyframes titan-app-reveal {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (max-width: 600px) {
+  .titan-startup-mark,
+  .titan-startup-logo {
+    width: 64px;
+    height: 64px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .titan-app-ready { animation: none; }
+}

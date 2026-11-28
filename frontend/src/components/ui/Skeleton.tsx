@@ -52,19 +52,21 @@ export function SkeletonTable({ rows = 5 }: { rows?: number }) {
   );
 }
 
+const CHART_BAR_HEIGHTS = [45, 72, 58, 88, 64, 92, 52, 78, 84, 60, 74, 48];
+
 export function SkeletonChart() {
   return (
-    <div className="p-6 rounded-2xl bg-ds-surface border border-ds-hairline shadow-[var(--ds-raise-1)] space-y-4">
+    <div className="p-5 sm:p-6 rounded-[12px] bg-ds-surface border border-ds-hairline space-y-4">
       <div className="flex items-center justify-between">
         <Skeleton className="h-5 w-32" />
         <Skeleton className="h-8 w-24 rounded-full" />
       </div>
       <div className="flex items-end gap-2 h-48">
-        {Array.from({ length: 12 }).map((_, i) => (
+        {CHART_BAR_HEIGHTS.map((height, i) => (
           <Skeleton
             key={i}
             className="flex-1 rounded-t-lg"
-            style={{ height: `${30 + Math.random() * 70}%` } as React.CSSProperties}
+            style={{ height: `${height}%` } as React.CSSProperties}
           />
         ))}
       </div>

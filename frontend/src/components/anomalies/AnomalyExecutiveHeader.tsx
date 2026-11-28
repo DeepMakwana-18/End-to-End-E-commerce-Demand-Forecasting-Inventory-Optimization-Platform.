@@ -1,22 +1,11 @@
 /**
  * AnomalyExecutiveHeader — Section 1
- * 8-metric executive KPI strip with semantic color treatments and zero-data handling.
- *
- * Metrics:
- *  - Critical (restrained red)
- *  - Medium (amber)
- *  - Low (blue/indigo)
- *  - Total Active (slate)
- *  - Detection Confidence (indigo)
- *  - Avg Severity (teal where appropriate)
- *  - Deviation Exposure (amber/slate)
- *  - Forecast Reliability (green when supported by actual data)
+ * 8-metric executive KPI strip with accurate units, metric definitions, and Titan AI surfaces.
  */
 
-import { motion } from 'framer-motion';
 import {
   Flame, AlertTriangle, Info, Activity,
-  Shield, Gauge, DollarSign, Target,
+  Shield, Gauge, Layers, Target,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Skeleton } from '@/components/ui/Skeleton';
@@ -26,11 +15,9 @@ import type { AnomalySummary, Anomaly } from '@/types/anomaly';
 
 function deriveMetrics(summary: AnomalySummary, anomalies: Anomaly[]) {
   const activeAnoms = anomalies.filter((a) => !a.is_resolved);
-
-  // Check if baseline scan evaluation has occurred
   const hasEvaluated = summary.latest_detected_at !== null || anomalies.length > 0;
 
-  // ── Detection Confidence ─────────────────────────────────────────────
+  // Detection Confidence: derived from active z-scores (or severity ratio if z-scores absent)
   const zScores = activeAnoms.map((a) => Math.abs(a.z_score ?? 0)).filter((z) => z > 0);
   let detectionConfidence: number | null;
   if (zScores.length > 0) {
@@ -41,20 +28,18 @@ function deriveMetrics(summary: AnomalySummary, anomalies: Anomaly[]) {
     const medFrac = summary.medium_count / summary.total_active;
     detectionConfidence = Math.min(95, Math.round(60 + criticalFrac * 30 + medFrac * 10));
   } else if (hasEvaluated) {
-    // Verified 0 active anomalies after scan
     detectionConfidence = 98;
   } else {
-    // Awaiting baseline evaluation
     detectionConfidence = null;
   }
 
-  // ── Avg Severity Score ───────────────────────────────────────────────
+  // Avg Severity Score: weighted index (Critical=3, Medium=2, Low=1) normalized to 100%
   const weightedSum = summary.critical_count * 3 + summary.medium_count * 2 + summary.low_count * 1;
   const avgSeverityScore: number | null = summary.total_active > 0
     ? Math.round((weightedSum / (summary.total_active * 3)) * 100)
     : hasEvaluated ? 0 : null;
 
-  // ── Deviation Exposure ───────────────────────────────────────────────
+  // Deviation Exposure: severity-weighted unit volume deviation across active anomalies
   const deviationExposure = activeAnoms.length > 0
     ? activeAnoms.reduce((s, a) => {
         const devFraction = Math.abs(a.deviation_pct ?? 0) / 100;
@@ -66,13 +51,12 @@ function deriveMetrics(summary: AnomalySummary, anomalies: Anomaly[]) {
       ? 0
       : null;
 
-  // ── Forecast Reliability ─────────────────────────────────────────────
-  // Zero-data handling: do not turn unverified data into a 100% guarantee.
+  // Forecast Reliability: 100% minus forecast-miss rate and severity penalties
   let forecastReliability: number | null;
   if (!hasEvaluated && summary.total_active === 0) {
-    forecastReliability = null; // Awaiting baseline data
+    forecastReliability = null;
   } else if (summary.total_active === 0) {
-    forecastReliability = 100; // Scanned data verified 0 active misses
+    forecastReliability = 100;
   } else {
     const forecastMissRate = summary.forecast_misses / summary.total_active;
     const sevFactor = avgSeverityScore != null ? avgSeverityScore / 100 : 0;
@@ -88,53 +72,42 @@ interface KpiCardProps {
   label: string;
   value: React.ReactNode;
   sub?: string;
+  tooltip?: string;
   icon: React.ComponentType<{ className?: string }>;
   color: string;
   bgIcon: string;
-  cardBg: string;
-  border: string;
-  delay?: number;
-  pulse?: boolean;
+  cardBorder?: string;
 }
 
-function KpiCard({ label, value, sub, icon: Icon, color, bgIcon, cardBg, border, delay = 0, pulse }: KpiCardProps) {
+function KpiCard({ label, value, sub, tooltip, icon: Icon, color, bgIcon, cardBorder }: KpiCardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.3 }}
+    <div
+      title={tooltip}
       className={cn(
-        'p-4 sm:p-5 rounded-2xl flex flex-col justify-between gap-3 border relative overflow-hidden transition-all duration-200 shadow-2xs hover:shadow-xs hover:-translate-y-0.5',
-        'bg-white dark:bg-ds-surface border-slate-200/90 dark:border-ds-border',
-        cardBg
+        'p-4 sm:p-5 rounded-[16px] flex flex-col justify-between gap-3 border bg-white dark:bg-[#111113] transition-colors duration-150',
+        cardBorder ?? 'border-[#e4e4e7] dark:border-[#27272a]'
       )}
     >
-      <div className="flex items-start justify-between relative">
-        <div className={cn('w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs', bgIcon)}>
-          <Icon className="w-4.5 h-4.5" />
+      <div className="flex items-start justify-between">
+        <div className={cn('w-9 h-9 rounded-[10px] flex items-center justify-center flex-shrink-0 border', bgIcon)} aria-hidden="true">
+          <Icon className="w-4 h-4" />
         </div>
-        {pulse && (
-          <span className="flex h-2.5 w-2.5 mt-0.5">
-            <span className="animate-ping absolute inline-flex h-2.5 w-2.5 rounded-full opacity-75 bg-rose-400" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500" />
-          </span>
-        )}
       </div>
 
-      <div className="relative">
-        <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 dark:text-ds-text-secondary mb-1 leading-none">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-[0.06em] text-[#52525b] dark:text-[#a1a1aa] mb-1 leading-none">
           {label}
         </p>
-        <div className={cn('text-2xl sm:text-3xl font-extrabold font-sans tabular-nums tracking-tight leading-tight', color)}>
+        <div className={cn('text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-tight', color)}>
           {value}
         </div>
         {sub && (
-          <p className="text-xs text-slate-400 dark:text-ds-text-muted mt-1 leading-tight line-clamp-1">
+          <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 leading-tight line-clamp-1 font-medium">
             {sub}
           </p>
         )}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
@@ -152,7 +125,7 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
     return (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="card-apple p-5 h-32 skeleton rounded-2xl bg-slate-100 dark:bg-ds-surface-sunken" />
+          <div key={i} className="p-5 h-32 skeleton rounded-[16px] bg-[#f1f1f3] dark:bg-[#18181b]" />
         ))}
       </div>
     );
@@ -163,118 +136,99 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
   const { detectionConfidence, avgSeverityScore, deviationExposure, forecastReliability, hasEvaluated } = deriveMetrics(summary, anomalies);
   const exposureLoading = isLoadingAnomalies && deviationExposure === null && summary.total_active > 0;
 
+  const lastDetectedLabel = summary.latest_detected_at
+    ? `Latest record: ${new Date(summary.latest_detected_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+    : hasEvaluated ? 'Zero anomalies' : 'Awaiting initial scan';
+
   const cards: KpiCardProps[] = [
     {
       label: 'Critical',
       value: summary.critical_count,
       sub: summary.critical_count > 0 ? 'Immediate action required' : 'Zero active critical',
+      tooltip: 'Unresolved anomalies exceeding the critical z-score threshold.',
       icon: Flame,
-      color: 'text-rose-600 dark:text-rose-400',
-      bgIcon: 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40',
-      cardBg: 'hover:border-rose-300 dark:hover:border-rose-700/50',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      pulse: summary.critical_count > 0,
-      delay: 0,
+      color: 'text-rose-700 dark:text-rose-400',
+      bgIcon: 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-400 dark:border-rose-800/50',
+      cardBorder: summary.critical_count > 0
+        ? 'border-rose-300 dark:border-rose-700/60'
+        : 'border-[#e4e4e7] dark:border-[#27272a]',
     },
     {
       label: 'Medium',
       value: summary.medium_count,
       sub: summary.medium_count > 0 ? 'Review & investigate' : 'No medium risk',
+      tooltip: 'Unresolved anomalies between medium and critical z-score thresholds.',
       icon: AlertTriangle,
-      color: 'text-amber-600 dark:text-amber-400',
-      bgIcon: 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40',
-      cardBg: 'hover:border-amber-300 dark:hover:border-amber-700/50',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.04,
+      color: 'text-amber-700 dark:text-amber-400',
+      bgIcon: 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:border-amber-800/50',
     },
     {
       label: 'Low',
       value: summary.low_count,
       sub: summary.low_count > 0 ? 'Track trend drift' : 'No low variance',
+      tooltip: 'Unresolved anomalies between low and medium z-score thresholds.',
       icon: Info,
-      color: 'text-blue-600 dark:text-blue-400',
-      bgIcon: 'bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-400 border border-blue-200/60 dark:border-blue-800/40',
-      cardBg: 'hover:border-blue-300 dark:hover:border-blue-700/50',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.08,
+      color: 'text-[#1e3fc8] dark:text-[#60a5fa]',
+      bgIcon: 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
     },
     {
       label: 'Total Active',
       value: summary.total_active,
-      sub: summary.latest_detected_at
-        ? `Last scan: ${new Date(summary.latest_detected_at).toLocaleDateString()}`
-        : hasEvaluated ? 'Zero anomalies' : 'Awaiting initial scan',
+      sub: lastDetectedLabel,
+      tooltip: 'Total unresolved anomalies across all severities. Date shows latest detected anomaly record.',
       icon: Activity,
-      color: 'text-slate-900 dark:text-ds-text-heading',
-      bgIcon: 'bg-slate-100 text-slate-700 dark:bg-ds-surface-sunken dark:text-ds-text-primary border border-slate-200 dark:border-ds-hairline',
-      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.12,
+      color: 'text-[#0a0a0a] dark:text-[#fafaf9]',
+      bgIcon: 'bg-[#fafaf9] text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#fafaf9] dark:border-[#27272a]',
     },
     {
       label: 'Detection Confidence',
       value: detectionConfidence != null ? `${detectionConfidence}%` : '—',
       sub: detectionConfidence != null
-        ? (detectionConfidence > 85 ? 'High confidence detection' : detectionConfidence > 70 ? 'Moderate confidence' : 'Low confidence')
+        ? 'Derived from active |z-score| mean'
         : 'Awaiting scan evaluation',
+      tooltip: 'Confidence index scaled from the mean absolute z-score of active anomalies (50–99%).',
       icon: Shield,
-      color: 'text-indigo-600 dark:text-indigo-400',
-      bgIcon: 'bg-indigo-50 text-indigo-600 dark:bg-indigo-950/40 dark:text-indigo-400 border border-indigo-200/60 dark:border-indigo-800/40',
-      cardBg: 'hover:border-indigo-300 dark:hover:border-indigo-700/50',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.16,
+      color: 'text-[#1e3fc8] dark:text-[#60a5fa]',
+      bgIcon: 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40',
     },
     {
       label: 'Average Severity',
       value: avgSeverityScore != null ? `${avgSeverityScore}%` : '—',
       sub: avgSeverityScore != null
-        ? (avgSeverityScore > 60 ? 'Critical bias' : avgSeverityScore > 30 ? 'Moderate severity' : 'Low severity bias')
+        ? 'Weighted index (Crit 3 · Med 2 · Low 1)'
         : 'No baseline data',
+      tooltip: 'Weighted severity score across active anomalies: (3×Critical + 2×Medium + 1×Low) / (3×Total).',
       icon: Gauge,
       color: avgSeverityScore != null && avgSeverityScore > 60
-        ? 'text-rose-600 dark:text-rose-400'
+        ? 'text-rose-700 dark:text-rose-400'
         : avgSeverityScore != null && avgSeverityScore > 30
-          ? 'text-amber-600 dark:text-amber-400'
-          : 'text-teal-600 dark:text-teal-400',
-      bgIcon: avgSeverityScore != null && avgSeverityScore > 60
-        ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
-        : avgSeverityScore != null && avgSeverityScore > 30
-          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
-          : 'bg-teal-50 text-teal-600 dark:bg-teal-950/40 dark:text-teal-400 border border-teal-200/60 dark:border-teal-800/40',
-      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.20,
+          ? 'text-amber-700 dark:text-amber-400'
+          : 'text-teal-700 dark:text-teal-400',
+      bgIcon: 'bg-[#fafaf9] text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#fafaf9] dark:border-[#27272a]',
     },
     {
       label: 'Deviation Exposure',
       value: exposureLoading ? (
         <Skeleton className="h-7 w-20 my-0.5 rounded" />
       ) : deviationExposure != null && deviationExposure > 0 ? (
-        `${(deviationExposure / 1000).toFixed(1)}k`
+        <>
+          {(deviationExposure / 1000).toFixed(1)}k{' '}
+          <span className="text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa]">units</span>
+        </>
       ) : deviationExposure === 0 ? (
-        '0'
+        '0 units'
       ) : (
         '—'
       ),
       sub: deviationExposure != null && deviationExposure > 0
-        ? 'Weighted volume exposure'
+        ? 'Severity-weighted unit volume exposure'
         : deviationExposure === 0
           ? 'No active deviation'
           : 'Awaiting scan',
-      icon: DollarSign,
-      color: deviationExposure != null && deviationExposure > 50000
-        ? 'text-rose-600 dark:text-rose-400'
-        : deviationExposure != null && deviationExposure > 5000
-          ? 'text-amber-600 dark:text-amber-400'
-          : 'text-slate-800 dark:text-ds-text-heading',
-      bgIcon: deviationExposure != null && deviationExposure > 50000
-        ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
-        : deviationExposure != null && deviationExposure > 5000
-          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
-          : 'bg-slate-100 text-slate-700 dark:bg-ds-surface-sunken dark:text-ds-text-primary border border-slate-200 dark:border-ds-hairline',
-      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.24,
+      tooltip: 'Sum of (|deviation %| × actual units × severity weight) across active anomalies.',
+      icon: Layers,
+      color: 'text-[#0a0a0a] dark:text-[#fafaf9]',
+      bgIcon: 'bg-[#fafaf9] text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#fafaf9] dark:border-[#27272a]',
     },
     {
       label: 'Forecast Reliability',
@@ -282,30 +236,18 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
       sub: forecastReliability != null
         ? (summary.total_active === 0
             ? '0 active forecast misses'
-            : forecastReliability > 80
-              ? 'Forecast models on target'
-              : forecastReliability > 60
-                ? 'Model drift detected'
-                : 'Attention required')
+            : `${summary.forecast_misses} forecast miss${summary.forecast_misses !== 1 ? 'es' : ''} in active set`)
         : 'Awaiting baseline',
+      tooltip: 'Reliability score = 100% minus penalties for active forecast-miss share and average severity.',
       icon: Target,
       color: forecastReliability != null && forecastReliability > 80
-        ? 'text-emerald-600 dark:text-emerald-400'
+        ? 'text-emerald-700 dark:text-emerald-400'
         : forecastReliability != null && forecastReliability > 60
-          ? 'text-amber-600 dark:text-amber-400'
+          ? 'text-amber-700 dark:text-amber-400'
           : forecastReliability != null
-            ? 'text-rose-600 dark:text-rose-400'
-            : 'text-slate-500 dark:text-ds-text-muted',
-      bgIcon: forecastReliability != null && forecastReliability > 80
-        ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200/60 dark:border-emerald-800/40'
-        : forecastReliability != null && forecastReliability > 60
-          ? 'bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400 border border-amber-200/60 dark:border-amber-800/40'
-          : forecastReliability != null
-            ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/40 dark:text-rose-400 border border-rose-200/60 dark:border-rose-800/40'
-            : 'bg-slate-100 text-slate-500 dark:bg-ds-surface-sunken dark:text-ds-text-muted border border-slate-200 dark:border-ds-hairline',
-      cardBg: 'hover:border-slate-300 dark:hover:border-slate-600',
-      border: 'border-slate-200/90 dark:border-ds-border',
-      delay: 0.28,
+            ? 'text-rose-700 dark:text-rose-400'
+            : 'text-[#52525b] dark:text-[#a1a1aa]',
+      bgIcon: 'bg-[#fafaf9] text-[#0a0a0a] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#fafaf9] dark:border-[#27272a]',
     },
   ];
 
@@ -317,4 +259,3 @@ export function AnomalyExecutiveHeader({ summary, anomalies, isLoading, isLoadin
     </div>
   );
 }
-

@@ -1,19 +1,18 @@
 /**
- * Alert Center Page — Phase 5E-C Rule-Driven Alerts
+ * Titan AI — Alert Center Page (/app/alerts)
  *
- * Frontend Refinements:
- * 1. Compact, high-density incident cards without losing operational metrics.
- * 2. Clearly differentiated actions: Acknowledge (secondary outline), Resolve (primary success), and Dismiss (safeguarded with confirmation).
- * 3. Fixed KPI description truncation with multi-line wrapping and consistent card min-height.
- * 4. Multi-facet filter drawer: filter by Severity, Alert Type, Lifecycle status, and Search by SKU/name.
- * 5. Safe Dismiss action: inline confirmation preventing accidental destructive deletion of alert records.
- * 6. Generous bottom clearance (pb-28 sm:pb-32) preventing floating AI assistant from obscuring controls.
- * 7. Design system harmony in both Light Mode and Dark Mode.
+ * Refined with Titan AI editorial design system:
+ * - Warm paper / near-black surfaces, editorial header, blue primary actions, semantic severity hierarchy.
+ * - Scannable compact alert rows with expandable detail state (stock/reorder/safety, full message, rule ID).
+ * - Distinguishes total active alert records from unique affected products and highlights multi-rule SKUs.
+ * - Clear separation of Acknowledge, Resolve, and Dismiss (soft-delete) with explicit accessible labels and confirmation.
+ * - Fixes WebSocket subscription lifecycle (useEffect with cleanup) and filter popover outside-click dismissal.
+ * - Restrained 150-220ms transitions with prefers-reduced-motion support and 44px-class mobile touch targets.
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Bell,
   AlertTriangle,
@@ -21,7 +20,6 @@ import {
   Info,
   CheckCircle2,
   Filter,
-  XCircle,
   X,
   RefreshCw,
   BrainCircuit,
@@ -32,12 +30,19 @@ import {
   Search,
   HelpCircle,
   RotateCcw,
+  ChevronDown,
+  ChevronUp,
+  Layers,
+  Loader2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { alertsApi } from '@/services/api';
 import { useWebSocket } from '@/hooks/useWebSocket';
 import { toast } from '@/hooks/useToast';
+import { PageHeader } from '@/components/ui/PageHeader';
+import { SkeletonTable } from '@/components/ui/Skeleton';
 import type { Alert } from '@/types';
+import '@/styles/titan-dashboard.css';
 
 // ── Icon + label helpers ─────────────────────────────────────────────
 
@@ -81,9 +86,43 @@ const getTypeLabel = (type: string) => {
   }
 };
 
-const severityLevels = ['all', 'critical', 'high', 'medium', 'low'] as const;
+const getProductGroupKey = (alert: Alert): string | null => {
+  const sku = alert.extra_data?.sku ? String(alert.extra_data.sku).trim() : '';
+  if (sku) return `sku:${sku}`;
+  if (alert.product_id !== undefined && alert.product_id !== null) {
+    return `prod:${alert.product_id}`;
+  }
+  return null;
+};
 
-const alertTypeFilters = [
+/**
+ * Produce a concise, scannable 1-line summary preserving exact units without
+ * repeating severity, product name, and SKU multiple times in the compact view.
+ */
+const getConciseKeyFact = (alert: Alert): string => {
+  const ed = alert.extra_data;
+  if (ed) {
+    if (ed.current_stock !== undefined && ed.reorder_point !== undefined) {
+      const current = Number(ed.current_stock);
+      const rop = Number(ed.reorder_point);
+      const deficit = rop - current;
+      const deficitText = deficit > 0 ? ` (${deficit} units below ROP)` : '';
+      return `Stock: ${current} units · Reorder point: ${rop} units${deficitText}`;
+    }
+    if (ed.z_score !== undefined) {
+      const anomType = ed.anomaly_type ? String(ed.anomaly_type).replace(/_/g, ' ') : 'deviation';
+      return `${anomType} · Z-score: ${Number(ed.z_score).toFixed(2)}`;
+    }
+    if (ed.accuracy !== undefined) {
+      return `Model accuracy: ${(Number(ed.accuracy) * 100).toFixed(1)}%`;
+    }
+  }
+  return alert.message;
+};
+
+const SEVERITY_LEVELS = ['all', 'critical', 'high', 'medium', 'low'] as const;
+
+const ALERT_TYPE_FILTERS = [
   { id: 'all', label: 'All Types' },
   { id: 'stockout', label: 'Stockout Risk' },
   { id: 'low_stock', label: 'Low Stock' },
@@ -91,6 +130,7 @@ const alertTypeFilters = [
   { id: 'forecast_miss', label: 'Forecast Miss' },
   { id: 'overstock', label: 'Overstock' },
   { id: 'anomaly_detected', label: 'Anomaly' },
+  { id: 'model_accuracy_degraded', label: 'Model Degraded' },
 ] as const;
 
 // ── Custom Alert KPI Card ────────────────────────────────────────────
@@ -100,13 +140,10 @@ interface AlertKPICardProps {
   value: React.ReactNode;
   sub: string;
   icon: React.ElementType;
-  iconBg: string;
   iconColor: string;
-  cardBg: string;
-  borderColor: string;
-  valueColor: string;
-  tooltipText?: string;
-  delay?: number;
+  tooltipText: string;
+  emphasized?: boolean;
+  delayMs?: number;
 }
 
 function AlertKPICard({
@@ -114,85 +151,88 @@ function AlertKPICard({
   value,
   sub,
   icon: Icon,
-  iconBg,
   iconColor,
-  cardBg,
-  borderColor,
-  valueColor,
   tooltipText,
-  delay = 0,
+  emphasized = false,
+  delayMs = 0,
 }: AlertKPICardProps) {
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, delay, ease: [0.28, 0.11, 0.32, 1] }}
-      whileHover={{ y: -2, transition: { duration: 0.2 } }}
+    <div
+      style={{ '--reveal-delay': `${delayMs}ms` } as React.CSSProperties}
       className={cn(
-        'rounded-2xl p-5 border relative overflow-hidden group cursor-default h-full flex flex-col justify-between min-h-[156px] shadow-2xs hover:shadow-xs transition-all duration-200 dark:bg-none dark:bg-ds-surface',
-        cardBg,
-        borderColor
+        'titan-dash-reveal titan-kpi-wrap',
+        emphasized && 'titan-kpi-wrap--emphasized'
       )}
     >
-      <div className="flex items-start justify-between relative z-10 w-full gap-3">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5">
-            <p className="text-[11px] font-bold text-slate-500 dark:text-ds-text-muted uppercase tracking-wider truncate">
-              {title}
-            </p>
-            {tooltipText && (
+      <div className="titan-kpi-card rounded-[16px] p-5 border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] flex flex-col justify-between min-h-[144px]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 mb-2">
+              <p className="text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.08em] truncate">
+                {title}
+              </p>
               <span
-                className="text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 cursor-help"
+                className="text-[#52525b]/70 hover:text-[#0a0a0a] dark:text-[#a1a1aa]/70 dark:hover:text-[#fafaf9] cursor-help flex-shrink-0"
                 title={tooltipText}
+                aria-label={tooltipText}
               >
-                <HelpCircle className="w-3 h-3" />
+                <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
               </span>
-            )}
+            </div>
+            <p className="text-2xl sm:text-[28px] font-extrabold font-sans tabular-nums tracking-tight leading-none text-[#0a0a0a] dark:text-[#fafaf9]">
+              {value}
+            </p>
           </div>
-          <p className={cn('text-2xl sm:text-[28px] font-bold font-sans tabular-nums tracking-tight leading-none', valueColor)}>
-            {value}
-          </p>
-          <div className="mt-3 flex items-start gap-1.5">
-            <span className="w-1.5 h-1.5 rounded-full bg-slate-300 dark:bg-ds-border-control mt-1.5 flex-shrink-0" />
-            <span className="text-xs font-medium text-slate-500 dark:text-ds-text-muted leading-snug">
-              {sub}
-            </span>
+          <div className="w-10 h-10 rounded-[12px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] flex items-center justify-center flex-shrink-0">
+            <Icon className={cn('w-4.5 h-4.5', iconColor)} aria-hidden="true" />
           </div>
         </div>
-
-        <div
-          className={cn(
-            'w-11 h-11 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-2xs transition-transform duration-200 group-hover:scale-105 border',
-            iconBg
-          )}
-        >
-          <Icon className={cn('w-5 h-5', iconColor)} />
-        </div>
+        <p className="mt-3 text-xs font-medium text-[#52525b] dark:text-[#a1a1aa] leading-snug">
+          {sub}
+        </p>
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 // ── Main Page Component ──────────────────────────────────────────────
 
 export default function AlertsPage() {
+  const prefersReducedMotion = useReducedMotion();
   const queryClient = useQueryClient();
+
   const [severityFilter, setSeverityFilter] = useState<string>('all');
   const [typeFilter, setTypeFilter] = useState<string>('all');
   const [lifecycleFilter, setLifecycleFilter] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFilters, setShowFilters] = useState(false);
+  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
   const [confirmingDismissId, setConfirmingDismissId] = useState<number | null>(null);
+  const [actionErrorById, setActionErrorById] = useState<Record<number, string>>({});
+  const [lastScanResult, setLastScanResult] = useState<{
+    newAlerts: number;
+    timestamp: string;
+  } | null>(null);
+
+  const filterRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setShowFilters(false);
+      }
+    }
+    if (showFilters) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showFilters]);
 
   // ── Real API data ─────────────────────────────────────────────────
 
   const { data, isLoading } = useQuery({
-    queryKey: ['alerts', severityFilter],
-    queryFn: () =>
-      alertsApi.getAll({
-        severity: severityFilter === 'all' ? undefined : severityFilter,
-        limit: 100,
-      }).then((r) => r.data),
+    queryKey: ['alerts'],
+    queryFn: () => alertsApi.getAll({ limit: 100 }).then((r) => r.data),
     refetchInterval: 30_000,
   });
 
@@ -208,35 +248,58 @@ export default function AlertsPage() {
     queryClient.invalidateQueries({ queryKey: ['alerts'] });
     queryClient.invalidateQueries({ queryKey: ['alert-stats'] });
     queryClient.invalidateQueries({ queryKey: ['kpis'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-alerts'] });
   }, [queryClient]);
 
   const acknowledgeMutation = useMutation({
     mutationFn: (id: number) => alertsApi.acknowledge(id),
     onSuccess: (_, id) => {
-      toast.success('Alert acknowledged', `Alert #${id} marked as acknowledged by operator.`);
+      setActionErrorById((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      toast.success('Alert acknowledged', `Alert #${id} marked as acknowledged.`);
       invalidate();
     },
-    onError: () => toast.error('Error', 'Failed to acknowledge alert'),
+    onError: (_, id) => {
+      setActionErrorById((prev) => ({ ...prev, [id]: 'Failed to acknowledge alert. Try again.' }));
+      toast.error('Acknowledge failed', `Could not acknowledge alert #${id}`);
+    },
   });
 
   const resolveMutation = useMutation({
     mutationFn: (id: number) => alertsApi.resolve(id),
     onSuccess: (_, id) => {
-      toast.success('Alert resolved', `Alert #${id} resolved successfully.`);
+      setActionErrorById((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      toast.success('Alert resolved', `Alert #${id} resolved and closed.`);
       invalidate();
     },
-    onError: () => toast.error('Error', 'Failed to resolve alert'),
+    onError: (_, id) => {
+      setActionErrorById((prev) => ({ ...prev, [id]: 'Failed to resolve alert. Try again.' }));
+      toast.error('Resolve failed', `Could not resolve alert #${id}`);
+    },
   });
 
   const dismissMutation = useMutation({
     mutationFn: (id: number) => alertsApi.dismiss(id),
     onSuccess: (_, id) => {
-      toast.info('Alert Dismissed', `Alert #${id} removed from registry.`);
+      setActionErrorById((prev) => {
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+      toast.info('Alert dismissed', `Alert #${id} removed from active registry.`);
       setConfirmingDismissId(null);
       invalidate();
     },
-    onError: () => {
-      toast.error('Error', 'Failed to dismiss alert');
+    onError: (_, id) => {
+      setActionErrorById((prev) => ({ ...prev, [id]: 'Failed to dismiss alert. Try again.' }));
+      toast.error('Dismiss failed', `Could not dismiss alert #${id}`);
       setConfirmingDismissId(null);
     },
   });
@@ -245,10 +308,14 @@ export default function AlertsPage() {
     mutationFn: () => alertsApi.scanInventory(),
     onSuccess: (res) => {
       const count = res.data.new_alerts;
+      setLastScanResult({
+        newAlerts: count,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      });
       if (count > 0) {
         toast.warning(
           `${count} new alert${count > 1 ? 's' : ''} found`,
-          'Inventory rule scan complete.'
+          'Manual inventory rule scan complete.'
         );
       } else {
         toast.success('Scan complete', 'No new alerts — all inventory thresholds compliant.');
@@ -262,7 +329,7 @@ export default function AlertsPage() {
 
   const { subscribe } = useWebSocket();
 
-  useMemo(() => {
+  useEffect(() => {
     const unsub1 = subscribe('alert.triggered', () => { invalidate(); });
     const unsub2 = subscribe('alert.acknowledged', () => { invalidate(); });
     const unsub3 = subscribe('alert.resolved', () => { invalidate(); });
@@ -275,10 +342,9 @@ export default function AlertsPage() {
 
   // ── Derived data & Filtering ─────────────────────────────────────
 
-  const rawAlerts: Alert[] = data?.alerts ?? [];
-  const activeCount = statsData?.total_active ?? 0;
+  const rawAlerts: Alert[] = useMemo(() => data?.alerts ?? [], [data?.alerts]);
+  const activeCount = statsData?.total_active ?? rawAlerts.length;
 
-  // Read backend stats handling both lowercase and uppercase enum serialization
   const criticalCount =
     statsData?.by_severity?.critical ??
     statsData?.by_severity?.CRITICAL ??
@@ -289,31 +355,58 @@ export default function AlertsPage() {
     statsData?.by_severity?.HIGH ??
     0;
 
-  const acknowledgedCount = rawAlerts.filter((a) => a.lifecycle === 'acknowledged').length;
+  const acknowledgedCount = useMemo(
+    () => rawAlerts.filter((a) => a.lifecycle === 'acknowledged').length,
+    [rawAlerts]
+  );
+
+  // Count alerts per product/SKU so multi-rule SKUs are visually related without merging
+  const productRuleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const alert of rawAlerts) {
+      const key = getProductGroupKey(alert);
+      if (key) {
+        counts.set(key, (counts.get(key) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [rawAlerts]);
+
+  const uniqueAffectedProductsCount = productRuleCounts.size;
 
   // Multi-facet client filtering
   const filteredAlerts = useMemo(() => {
     return rawAlerts.filter((alert) => {
-      // Type filter
+      if (severityFilter !== 'all' && alert.severity?.toLowerCase() !== severityFilter.toLowerCase()) {
+        return false;
+      }
       if (typeFilter !== 'all' && alert.alert_type?.toLowerCase() !== typeFilter.toLowerCase()) {
         return false;
       }
-      // Lifecycle filter
       if (lifecycleFilter !== 'all' && alert.lifecycle?.toLowerCase() !== lifecycleFilter.toLowerCase()) {
         return false;
       }
-      // Search query filter (matches SKU or Product Name)
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const nameMatch = alert.product_name?.toLowerCase().includes(q);
         const skuMatch = String(alert.extra_data?.sku || '').toLowerCase().includes(q);
         const idMatch = String(alert.product_id || '').toLowerCase().includes(q);
         const msgMatch = alert.message?.toLowerCase().includes(q);
-        if (!nameMatch && !skuMatch && !idMatch && !msgMatch) return false;
+        const ruleMatch = String(alert.rule_key || '').toLowerCase().includes(q);
+        if (!nameMatch && !skuMatch && !idMatch && !msgMatch && !ruleMatch) return false;
       }
       return true;
     });
-  }, [rawAlerts, typeFilter, lifecycleFilter, searchQuery]);
+  }, [rawAlerts, severityFilter, typeFilter, lifecycleFilter, searchQuery]);
+
+  const filteredUniqueProductsCount = useMemo(() => {
+    const keys = new Set<string>();
+    for (const alert of filteredAlerts) {
+      const key = getProductGroupKey(alert);
+      if (key) keys.add(key);
+    }
+    return keys.size;
+  }, [filteredAlerts]);
 
   const activeFiltersCount =
     (severityFilter !== 'all' ? 1 : 0) +
@@ -328,124 +421,116 @@ export default function AlertsPage() {
     setSearchQuery('');
   };
 
+  const toggleExpand = (id: number) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
-    <div className="space-y-6 pb-28 sm:pb-32">
-      {/* ── 1. PAGE HEADER ───────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex flex-col sm:flex-row sm:items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden gap-4"
-      >
-        {/* Subtle decorative blue-to-indigo gradient glow */}
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Alert Center"
+        description="Operational incident registry, stockout threshold breaches, and automated rule signals"
+        actions={
+          <>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-ds-red-surface text-ds-red-text border border-ds-red/25 tabular-nums">
+              {activeCount} Active {activeCount === 1 ? 'Alert' : 'Alerts'}
+              {uniqueAffectedProductsCount > 0 && ` · ${uniqueAffectedProductsCount} SKUs`}
+            </span>
 
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <Bell className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2 flex-wrap">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 inline-block" />
-              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
-                Alert Center
-              </h1>
-              {/* Prominent Active Count Badge */}
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40 tabular-nums shadow-2xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
-                {activeCount} Active {activeCount === 1 ? 'Alert' : 'Alerts'}
-              </span>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              Operational incident registry, threshold breaches, and automated rule signals
-            </p>
-          </div>
-        </div>
-
-        {/* Action Controls (Scan Inventory + Filter) */}
-        <div className="relative flex items-center gap-2.5 self-start sm:self-center flex-wrap">
-          {/* Manual scan */}
-          <button
-            id="btn-scan-inventory"
-            onClick={() => scanMutation.mutate()}
-            disabled={scanMutation.isPending}
-            className="h-9 px-3.5 rounded-xl border text-xs font-semibold flex items-center gap-2 shadow-2xs transition-all duration-150 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 hover:border-slate-300 active:scale-95 disabled:opacity-50 disabled:cursor-wait cursor-pointer"
-          >
-            <RefreshCw
-              className={cn('w-3.5 h-3.5 text-blue-600 dark:text-blue-400', scanMutation.isPending && 'animate-spin')}
-            />
-            <span>{scanMutation.isPending ? 'Scanning...' : 'Scan Inventory'}</span>
-          </button>
-
-          {/* Filter Toggle */}
-          <div className="relative">
             <button
-              id="btn-filter-alerts"
-              onClick={() => setShowFilters(!showFilters)}
-              className={cn(
-                'h-9 px-3.5 rounded-xl border text-xs font-semibold flex items-center gap-2 shadow-2xs transition-all duration-150 cursor-pointer',
-                showFilters || activeFiltersCount > 0
-                  ? 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700 shadow-xs'
-                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 border-slate-200/90 dark:border-slate-700 hover:bg-slate-50 active:scale-95'
-              )}
+              id="btn-scan-inventory"
+              type="button"
+              onClick={() => scanMutation.mutate()}
+              disabled={scanMutation.isPending}
+              aria-busy={scanMutation.isPending}
+              className="min-h-[40px] sm:min-h-[36px] px-3.5 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors bg-ds-blue hover:bg-ds-blue-strong text-white border-ds-blue disabled:opacity-60 disabled:cursor-wait cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
             >
-              <Filter className="w-3.5 h-3.5" />
-              <span>
-                {activeFiltersCount === 0
-                  ? 'Filter'
-                  : `Filter (${activeFiltersCount})`}
-              </span>
+              <RefreshCw
+                className={cn('w-3.5 h-3.5', scanMutation.isPending && 'animate-spin')}
+                aria-hidden="true"
+              />
+              <span>{scanMutation.isPending ? 'Scanning Inventory...' : 'Scan Inventory'}</span>
             </button>
 
-            {/* Filter Dropdown Popover */}
+            {/* Filter Toggle */}
+            <div className="relative" ref={filterRef}>
+              <button
+                id="btn-filter-alerts"
+                type="button"
+                aria-expanded={showFilters}
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  'min-h-[40px] sm:min-h-[36px] px-3.5 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-2 transition-colors cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2',
+                  showFilters || activeFiltersCount > 0
+                    ? 'bg-ds-sidebar-active text-ds-sidebar-active-text border-ds-sidebar-active-border'
+                    : 'bg-ds-surface text-ds-text-primary border-ds-hairline hover:bg-ds-surface-sunken'
+                )}
+              >
+                <Filter className="w-3.5 h-3.5" aria-hidden="true" />
+                <span>
+                  {activeFiltersCount === 0 ? 'Filter' : `Filter (${activeFiltersCount})`}
+                </span>
+              </button>
+
             <AnimatePresence>
               {showFilters && (
                 <motion.div
-                  initial={{ opacity: 0, y: 5, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 5, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800 p-3 z-50 space-y-3 shadow-xl rounded-2xl backdrop-blur-xl"
+                  initial={prefersReducedMotion ? false : { opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={prefersReducedMotion ? undefined : { opacity: 0, y: 6 }}
+                  transition={{ duration: 0.16 }}
+                  className="absolute right-0 top-full mt-2 w-72 bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] p-3.5 z-50 space-y-3 shadow-xl rounded-[14px]"
                 >
-                  <div className="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-800">
-                    <span className="text-xs font-bold text-slate-900 dark:text-slate-100">
+                  <div className="flex items-center justify-between pb-2 border-b border-[#e4e4e7] dark:border-[#27272a]">
+                    <span className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
                       Filter Registry
                     </span>
                     <div className="flex items-center gap-2">
                       {activeFiltersCount > 0 && (
                         <button
+                          type="button"
                           onClick={handleResetFilters}
-                          className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 flex items-center gap-1"
+                          className="text-[11px] font-semibold text-[#1e3fc8] dark:text-[#60a5fa] inline-flex items-center gap-1 cursor-pointer"
                         >
-                          <RotateCcw className="w-3 h-3" /> Reset
+                          <RotateCcw className="w-3 h-3" aria-hidden="true" /> Reset
                         </button>
                       )}
                       <button
+                        type="button"
+                        aria-label="Close filter popover"
                         onClick={() => setShowFilters(false)}
-                        className="w-6 h-6 rounded-full flex items-center justify-center text-slate-400 hover:text-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 cursor-pointer"
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[#52525b] hover:text-[#0a0a0a] hover:bg-[#fafaf9] dark:text-[#a1a1aa] dark:hover:bg-[#18181b] cursor-pointer"
                       >
-                        <X className="w-3.5 h-3.5" />
+                        <X className="w-3.5 h-3.5" aria-hidden="true" />
                       </button>
                     </div>
                   </div>
 
                   {/* Severity Filter */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                    <label className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-wider block mb-1.5">
                       Severity
                     </label>
                     <div className="grid grid-cols-2 gap-1">
-                      {severityLevels.map((lvl) => (
+                      {SEVERITY_LEVELS.map((lvl) => (
                         <button
                           key={lvl}
+                          type="button"
                           onClick={() => setSeverityFilter(lvl)}
                           className={cn(
-                            'text-left px-2 py-1 rounded-lg text-xs font-semibold capitalize flex items-center justify-between transition-colors cursor-pointer',
+                            'text-left px-2.5 py-1.5 rounded-[8px] text-xs font-semibold capitalize flex items-center justify-between transition-colors cursor-pointer',
                             severityFilter === lvl
-                              ? 'bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-300'
-                              : 'text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                              ? 'bg-[#eff6ff] text-[#1e3fc8] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd]'
+                              : 'text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#fafaf9] dark:hover:bg-[#18181b]'
                           )}
                         >
                           <span>{lvl === 'all' ? 'All' : lvl}</span>
-                          {severityFilter === lvl && <Check className="w-3 h-3 text-blue-600" />}
+                          {severityFilter === lvl && <Check className="w-3 h-3" aria-hidden="true" />}
                         </button>
                       ))}
                     </div>
@@ -453,15 +538,19 @@ export default function AlertsPage() {
 
                   {/* Alert Type Filter */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
+                    <label
+                      htmlFor="alert-type-select"
+                      className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-wider block mb-1.5"
+                    >
                       Alert Type
                     </label>
                     <select
+                      id="alert-type-select"
                       value={typeFilter}
                       onChange={(e) => setTypeFilter(e.target.value)}
-                      className="w-full text-xs rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+                      className="w-full text-xs rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] px-2.5 py-2 focus:outline-none focus:ring-2 focus:ring-[#1e3fc8]/25"
                     >
-                      {alertTypeFilters.map((t) => (
+                      {ALERT_TYPE_FILTERS.map((t) => (
                         <option key={t.id} value={t.id}>
                           {t.label}
                         </option>
@@ -471,19 +560,20 @@ export default function AlertsPage() {
 
                   {/* Lifecycle Filter */}
                   <div>
-                    <label className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider block mb-1">
-                      Status
+                    <label className="text-[10px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-wider block mb-1.5">
+                      Lifecycle Status
                     </label>
                     <div className="flex items-center gap-1">
                       {['all', 'active', 'acknowledged'].map((st) => (
                         <button
                           key={st}
+                          type="button"
                           onClick={() => setLifecycleFilter(st)}
                           className={cn(
-                            'flex-1 text-center py-1 rounded-lg text-xs font-semibold capitalize transition-colors cursor-pointer',
+                            'flex-1 text-center py-1.5 rounded-[8px] text-xs font-semibold capitalize transition-colors cursor-pointer',
                             lifecycleFilter === st
-                              ? 'bg-blue-600 text-white'
-                              : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200/70'
+                              ? 'bg-[#1e3fc8] text-white'
+                              : 'bg-[#fafaf9] dark:bg-[#18181b] text-[#52525b] dark:text-[#a1a1aa] hover:bg-[#e4e4e7]/50'
                           )}
                         >
                           {st}
@@ -494,416 +584,451 @@ export default function AlertsPage() {
                 </motion.div>
               )}
             </AnimatePresence>
-          </div>
-        </div>
-      </motion.div>
+            </div>
+          </>
+        }
+      />
 
-      {/* ── 2. KPI CARDS (Blue, Red, Amber, Teal) ────────────────────── */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Active Alerts - Blue */}
+      {/* Manual Scan Feedback Banner (distinct from global Live socket status) */}
+      {lastScanResult && (
+        <div
+          role="status"
+          aria-live="polite"
+          className="px-4 py-3 rounded-[12px] border border-[#bfdbfe] dark:border-[#1e3fc8]/40 bg-[#eff6ff]/70 dark:bg-[#1e3fc8]/10 text-xs text-[#0a0a0a] dark:text-[#fafaf9] flex items-center justify-between gap-3"
+        >
+          <span className="font-medium">
+            Manual inventory scan completed at <span className="font-mono font-semibold">{lastScanResult.timestamp}</span>:{' '}
+            {lastScanResult.newAlerts > 0
+              ? `${lastScanResult.newAlerts} new alert${lastScanResult.newAlerts > 1 ? 's' : ''} created.`
+              : '0 new alerts — all inventory rules compliant.'}
+          </span>
+          <button
+            type="button"
+            onClick={() => setLastScanResult(null)}
+            className="text-[11px] font-semibold text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {/* ── 2. KPI Summary Strip ─────────────────────────────────────── */}
+      <section aria-label="Alert Telemetry Summary" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <AlertKPICard
           title="Active Alerts"
-          value={String(activeCount)}
-          sub={activeCount > 0 ? 'Pending operator triage and resolution' : 'Zero active breaches'}
+          value={isLoading ? '—' : String(activeCount)}
+          sub={
+            uniqueAffectedProductsCount > 0
+              ? `Across ${uniqueAffectedProductsCount} unique affected ${uniqueAffectedProductsCount === 1 ? 'product' : 'products'}`
+              : 'Unresolved operational alert records'
+          }
           icon={Bell}
-          cardBg="bg-gradient-to-b from-blue-50/70 via-blue-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-blue-200/80 dark:border-ds-border"
-          iconBg="bg-blue-100 text-blue-700 dark:bg-blue-500/20 dark:text-blue-400"
-          iconColor="text-blue-600 dark:text-blue-400"
-          valueColor="text-blue-950 dark:text-ds-text-primary"
-          tooltipText="Total unresolved operational alerts in database"
-          delay={0}
+          iconColor="text-[#1e3fc8] dark:text-[#60a5fa]"
+          tooltipText="Total unresolved alert records in database (distinct from unique affected SKUs when multiple rules fire)"
+          emphasized={true}
+          delayMs={30}
         />
 
-        {/* Critical - Red */}
         <AlertKPICard
           title="Critical"
-          value={String(criticalCount)}
-          sub={criticalCount > 0 ? 'Immediate action required for stockouts' : 'No critical stockouts'}
+          value={isLoading ? '—' : String(criticalCount)}
+          sub={criticalCount > 0 ? 'Immediate stockout or critical breaches' : 'No critical breaches'}
           icon={AlertOctagon}
-          cardBg="bg-gradient-to-b from-rose-50/70 via-rose-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-rose-200/80 dark:border-ds-border"
-          iconBg="bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400"
           iconColor="text-rose-600 dark:text-rose-400"
-          valueColor="text-rose-950 dark:text-ds-text-primary"
-          tooltipText="Critical alerts requiring immediate remediation"
-          delay={0.05}
+          tooltipText="Unresolved alerts classified with critical severity"
+          delayMs={60}
         />
 
-        {/* High - Amber */}
         <AlertKPICard
           title="High"
-          value={String(highCount)}
+          value={isLoading ? '—' : String(highCount)}
           sub={highCount > 0 ? 'Threshold breaches and reorder risks' : 'No elevated risks'}
           icon={AlertTriangle}
-          cardBg="bg-gradient-to-b from-amber-50/70 via-amber-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-amber-200/80 dark:border-ds-border"
-          iconBg="bg-amber-100 text-amber-700 dark:bg-amber-500/20 dark:text-amber-400"
           iconColor="text-amber-600 dark:text-amber-400"
-          valueColor="text-amber-950 dark:text-ds-text-primary"
-          tooltipText="High-priority inventory and forecast miss alerts"
-          delay={0.1}
+          tooltipText="Unresolved alerts classified with high severity"
+          delayMs={90}
         />
 
-        {/* Acknowledged - Teal */}
         <AlertKPICard
           title="Acknowledged"
-          value={String(acknowledgedCount)}
+          value={isLoading ? '—' : String(acknowledgedCount)}
           sub="Triaged by operators pending resolution"
           icon={Eye}
-          cardBg="bg-gradient-to-b from-teal-50/70 via-teal-50/30 to-white dark:bg-ds-surface"
-          borderColor="border-teal-200/80 dark:border-ds-border"
-          iconBg="bg-teal-100 text-teal-700 dark:bg-teal-500/20 dark:text-teal-400"
           iconColor="text-teal-600 dark:text-teal-400"
-          valueColor="text-teal-950 dark:text-ds-text-primary"
-          tooltipText="Alerts acknowledged by operators pending resolution"
-          delay={0.15}
+          tooltipText="Active alerts marked as acknowledged (not yet resolved)"
+          delayMs={120}
         />
-      </div>
+      </section>
 
-      {/* ── 3. SEARCH & QUICK FILTER BAR ─────────────────────────────── */}
+      {/* ── 3. Search & Registry Header Bar ──────────────────────────── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 inline-block" />
-          <h2 className="text-base font-bold text-slate-900 dark:text-ds-text tracking-tight">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <h2 className="text-base font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
             Active Alert Registry
           </h2>
-          <span className="text-xs text-slate-500 dark:text-ds-text-secondary font-medium ml-1">
+          <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium tabular-nums">
             Showing {filteredAlerts.length} of {rawAlerts.length} {rawAlerts.length === 1 ? 'alert' : 'alerts'}
+            {filteredUniqueProductsCount > 0 && ` (${filteredUniqueProductsCount} unique ${filteredUniqueProductsCount === 1 ? 'product' : 'products'})`}
           </span>
         </div>
 
-        {/* Quick Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <div className="relative w-full sm:w-72">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-[#52525b] dark:text-[#a1a1aa]" aria-hidden="true" />
           <input
             type="text"
+            aria-label="Search alerts by SKU, product, or rule"
             placeholder="Search by SKU, product, or rule..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-8 pr-7 py-1.5 rounded-xl text-xs bg-white dark:bg-slate-800/90 border border-slate-200/90 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full min-h-[44px] sm:min-h-[36px] pl-8 pr-8 py-1.5 rounded-[10px] text-xs bg-white dark:bg-[#111113] border border-[#e4e4e7] dark:border-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20"
           />
           {searchQuery && (
             <button
+              type="button"
+              aria-label="Clear search query"
               onClick={() => setSearchQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] cursor-pointer"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="w-3.5 h-3.5" aria-hidden="true" />
             </button>
           )}
         </div>
       </div>
 
-      {/* ── 4. ALERT LIST CARDS (Compact Incident Layout) ────────────── */}
+      {/* ── 4. Scannable Alert Registry List ─────────────────────────── */}
       <div className="space-y-3">
         {isLoading ? (
-          <div className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface p-12 text-center shadow-2xs">
-            <RefreshCw className="w-7 h-7 text-blue-600 animate-spin mx-auto mb-2" />
-            <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
-              Retrieving live alert feeds...
-            </p>
+          <div aria-busy="true" aria-label="Loading alert records">
+            <SkeletonTable rows={4} />
           </div>
         ) : filteredAlerts.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface p-10 text-center shadow-2xs"
-          >
-            <div className="w-12 h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-100 dark:border-emerald-900/40">
-              <CheckCircle2 className="w-6 h-6" />
+          <div className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-10 text-center">
+            <div className="w-11 h-11 rounded-[12px] bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto mb-3 border border-emerald-200 dark:border-emerald-800/50">
+              <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
             </div>
-            <p className="text-sm font-bold text-slate-900 dark:text-ds-text">
+            <p className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
               No alerts match the active filters
             </p>
-            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-1 max-w-sm mx-auto">
-              All inventory thresholds, forecast signals, and anomaly models are compliant under current criteria.
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 max-w-sm mx-auto">
+              All inventory thresholds, forecast signals, and anomaly rules are clear under the current filter criteria.
             </p>
             {activeFiltersCount > 0 && (
               <button
+                type="button"
                 onClick={handleResetFilters}
-                className="mt-3.5 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 transition-colors"
+                className="mt-3.5 inline-flex items-center gap-1.5 min-h-[40px] px-3.5 py-1.5 rounded-[10px] text-xs font-semibold bg-[#fafaf9] hover:bg-[#e4e4e7]/60 text-[#0a0a0a] dark:bg-[#18181b] dark:hover:bg-[#27272a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] transition-colors cursor-pointer"
               >
-                <RotateCcw className="w-3.5 h-3.5" />
+                <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                 Clear all filters
               </button>
             )}
-          </motion.div>
+          </div>
         ) : (
-          filteredAlerts.map((alert, i) => {
+          filteredAlerts.map((alert) => {
             const Icon = getAlertIcon(alert.alert_type);
             const isAck = alert.lifecycle === 'acknowledged';
-            const isPendingAck =
-              acknowledgeMutation.isPending && acknowledgeMutation.variables === alert.id;
-            const isPendingRes =
-              resolveMutation.isPending && resolveMutation.variables === alert.id;
+            const isPendingAck = acknowledgeMutation.isPending && acknowledgeMutation.variables === alert.id;
+            const isPendingRes = resolveMutation.isPending && resolveMutation.variables === alert.id;
+            const isPendingDismiss = dismissMutation.isPending && dismissMutation.variables === alert.id;
+            const isAnyPending = isPendingAck || isPendingRes || isPendingDismiss;
             const isConfirmingDismiss = confirmingDismissId === alert.id;
+            const isExpanded = expandedIds.has(alert.id);
+            const cardError = actionErrorById[alert.id];
 
             const sev = (alert.severity || '').toLowerCase();
-
-            // Semantic left accent strip & styling
             const isCritical = sev === 'critical';
             const isHigh = sev === 'high';
             const isMedium = sev === 'medium';
 
             const accentBorder = isCritical
-              ? 'border-l-4 border-l-rose-500 hover:border-rose-300/80'
+              ? 'border-l-4 border-l-rose-600 dark:border-l-rose-500'
               : isHigh
-              ? 'border-l-4 border-l-amber-500 hover:border-amber-300/80'
+              ? 'border-l-4 border-l-amber-500'
               : isMedium
-              ? 'border-l-4 border-l-blue-500 hover:border-blue-300/80'
-              : 'border-l-4 border-l-slate-400 hover:border-slate-300';
+              ? 'border-l-4 border-l-[#1e3fc8] dark:border-l-[#60a5fa]'
+              : 'border-l-4 border-l-slate-400';
 
             const severityBadgeStyle = isCritical
-              ? 'bg-rose-50 text-rose-700 border-rose-200/80 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/40'
+              ? 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50'
               : isHigh
-              ? 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40'
+              ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50'
               : isMedium
-              ? 'bg-blue-50 text-blue-700 border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-800/40'
-              : 'bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300';
+              ? 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40'
+              : 'bg-[#fafaf9] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]';
 
-            const iconContainerStyle = isCritical
-              ? 'bg-rose-50 text-rose-600 border-rose-100 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900/40'
-              : isHigh
-              ? 'bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-900/40'
-              : isMedium
-              ? 'bg-blue-50 text-blue-600 border-blue-100 dark:bg-blue-950/50 dark:text-blue-400 dark:border-blue-900/40'
-              : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300';
+            const groupKey = getProductGroupKey(alert);
+            const skuIdentifier = alert.extra_data?.sku ? String(alert.extra_data.sku) : null;
+            const relatedRuleCount = groupKey ? productRuleCounts.get(groupKey) ?? 1 : 1;
 
             return (
-              <motion.div
+              <article
                 key={alert.id}
                 id={`alert-card-${alert.id}`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, x: -100 }}
-                transition={{ delay: Math.min(0.03 * i, 0.3) }}
                 className={cn(
-                  'rounded-2xl p-4 sm:p-4.5 transition-all duration-150',
-                  'bg-white dark:bg-ds-surface border border-slate-200/90 dark:border-ds-border shadow-2xs hover:shadow-xs',
+                  'rounded-[12px] p-3.5 sm:p-4 transition-colors duration-150 bg-ds-surface border border-ds-hairline',
                   accentBorder,
-                  isAck && 'bg-amber-50/15 dark:bg-amber-950/10'
+                  isAck && 'bg-ds-orange-surface/30'
                 )}
               >
-                {/* ── TOP HEADER ROW: Icon + Title + SKU + Badges + Timestamp ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 border-b border-slate-100 dark:border-slate-800/60">
-                  <div className="flex items-center gap-2.5 flex-wrap">
-                    <div
-                      className={cn(
-                        'w-8 h-8 rounded-xl flex items-center justify-center flex-shrink-0 shadow-2xs border',
-                        iconContainerStyle
+                {/* ── COMPACT PRIMARY ROW: Product Identity, Severity, Type, Key Fact, Time ── */}
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5">
+                  <div className="min-w-0 flex-1 space-y-1.5">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Icon
+                        className={cn(
+                          'w-4 h-4 flex-shrink-0',
+                          isCritical
+                            ? 'text-rose-600 dark:text-rose-400'
+                            : isHigh
+                            ? 'text-amber-600 dark:text-amber-400'
+                            : isMedium
+                            ? 'text-[#1e3fc8] dark:text-[#60a5fa]'
+                            : 'text-[#52525b] dark:text-[#a1a1aa]'
+                        )}
+                        aria-hidden="true"
+                      />
+
+                      <h3 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                        {alert.product_name || 'System Alert'}
+                      </h3>
+
+                      {(skuIdentifier || alert.product_id) && (
+                        <span className="text-[11px] font-mono font-semibold text-[#52525b] dark:text-[#a1a1aa] bg-[#fafaf9] dark:bg-[#18181b] px-1.5 py-0.5 rounded border border-[#e4e4e7] dark:border-[#27272a]">
+                          {skuIdentifier || `Product #${alert.product_id}`}
+                        </span>
                       )}
-                    >
-                      <Icon className="w-4 h-4" />
-                    </div>
 
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-ds-text">
-                      {alert.product_name || 'System Alert'}
-                    </h4>
-
-                    {/* SKU indicator */}
-                    {(alert.extra_data?.sku || alert.product_id) && (
-                      <span className="text-[10px] font-mono font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded border border-slate-200/70 dark:border-slate-700/70">
-                        {String(alert.extra_data?.sku || `SKU #${alert.product_id}`)}
-                      </span>
-                    )}
-
-                    {/* Severity badge */}
-                    <span
-                      className={cn(
-                        'px-2 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider border shadow-2xs',
-                        severityBadgeStyle
-                      )}
-                    >
-                      {alert.severity}
-                    </span>
-
-                    {/* Type badge */}
-                    <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 shadow-2xs">
-                      {getTypeLabel(alert.alert_type)}
-                    </span>
-
-                    {/* Lifecycle badge */}
-                    {alert.lifecycle !== 'active' && (
                       <span
                         className={cn(
-                          'px-2 py-0.5 rounded-md text-[11px] font-bold border shadow-2xs flex items-center gap-1',
-                          alert.lifecycle === 'acknowledged'
-                            ? 'bg-amber-50 text-amber-700 border-amber-200/80 dark:bg-amber-950/40 dark:text-amber-300'
-                            : 'bg-emerald-50 text-emerald-700 border-emerald-200/80 dark:bg-emerald-950/40 dark:text-emerald-300'
+                          'px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wider border',
+                          severityBadgeStyle
                         )}
                       >
-                        {alert.lifecycle === 'acknowledged' ? (
-                          <Eye className="w-3 h-3" />
-                        ) : (
-                          <CheckCircle2 className="w-3 h-3" />
-                        )}
-                        {alert.lifecycle.charAt(0).toUpperCase() + alert.lifecycle.slice(1)}
+                        {alert.severity}
                       </span>
-                    )}
+
+                      <span className="px-2 py-0.5 rounded text-[11px] font-semibold bg-[#fafaf9] text-[#0a0a0a] border border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#fafaf9] dark:border-[#27272a]">
+                        {getTypeLabel(alert.alert_type)}
+                      </span>
+
+                      {relatedRuleCount > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const target = skuIdentifier || String(alert.product_id || '');
+                            if (target) setSearchQuery(target);
+                          }}
+                          title="Multiple active alert rules apply to this product. Click to filter all alerts for this SKU."
+                          className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40 cursor-pointer hover:underline"
+                        >
+                          <Layers className="w-3 h-3" aria-hidden="true" />
+                          {relatedRuleCount} alerts on product
+                        </button>
+                      )}
+
+                      {alert.lifecycle !== 'active' && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-50 text-amber-800 border border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50">
+                          <Eye className="w-3 h-3" aria-hidden="true" />
+                          Acknowledged
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Concise Key Fact (no redundant severity/SKU repetition) */}
+                    <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-medium leading-relaxed">
+                      {getConciseKeyFact(alert)}
+                    </p>
                   </div>
 
-                  {/* Triggered timestamp */}
-                  <div className="text-[11px] text-slate-400 dark:text-slate-500 font-sans tabular-nums whitespace-nowrap self-start sm:self-center">
-                    Triggered: {new Date(alert.created_at).toLocaleDateString()} · {new Date(alert.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {/* Right Side: Triggered Timestamp + Details Toggle */}
+                  <div className="flex items-center justify-between lg:justify-end gap-3 flex-shrink-0">
+                    <span className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] tabular-nums whitespace-nowrap">
+                      {new Date(alert.created_at).toLocaleDateString()} ·{' '}
+                      {new Date(alert.created_at).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                    <button
+                      type="button"
+                      aria-expanded={isExpanded}
+                      aria-controls={`alert-details-${alert.id}`}
+                      onClick={() => toggleExpand(alert.id)}
+                      className="min-h-[36px] px-2.5 rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] text-[11px] font-semibold text-[#0a0a0a] dark:text-[#fafaf9] inline-flex items-center gap-1 hover:border-[#1e3fc8] transition-colors cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
+                    >
+                      <span>{isExpanded ? 'Hide details' : 'Details'}</span>
+                      {isExpanded ? (
+                        <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
+                      )}
+                    </button>
                   </div>
                 </div>
 
-                {/* ── MIDDLE ROW: Concise Explanation & Structured Metrics ── */}
-                <div className="py-2.5 space-y-2">
-                  <p className="text-xs text-slate-600 dark:text-slate-300 font-medium leading-relaxed">
-                    {alert.message}
-                  </p>
+                {/* ── EXPANDABLE DETAILS DRAWER (Stock/Reorder/Safety, Full Message, Rule Key) ── */}
+                <AnimatePresence initial={false}>
+                  {isExpanded && (
+                    <motion.div
+                      id={`alert-details-${alert.id}`}
+                      initial={prefersReducedMotion ? false : { opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={prefersReducedMotion ? undefined : { opacity: 0, height: 0 }}
+                      transition={{ duration: 0.18 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="mt-3 pt-3 border-t border-[#e4e4e7] dark:border-[#27272a] space-y-2.5">
+                        {/* Original Server Message */}
+                        <p className="text-xs text-[#0a0a0a] dark:text-[#fafaf9] leading-relaxed bg-[#fafaf9] dark:bg-[#18181b] p-3 rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a]">
+                          {alert.message}
+                        </p>
 
-                  {/* Structured Operational Metrics Row */}
-                  {alert.extra_data && Object.keys(alert.extra_data).length > 0 && (
-                    <div className="p-2 rounded-xl bg-slate-50/90 dark:bg-ds-surface-sunken/60 border border-slate-200/70 dark:border-ds-border/60 flex items-center gap-3.5 flex-wrap text-xs">
-                      {/* Current Stock */}
-                      {alert.extra_data.current_stock !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                            Current Stock:
-                          </span>
-                          <span className="font-mono font-bold text-slate-900 dark:text-slate-100 px-1.5 py-0.5 rounded bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700 text-[11px]">
-                            {String(alert.extra_data.current_stock)} units
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Reorder Point */}
-                      {alert.extra_data.reorder_point !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                            Reorder Point:
-                          </span>
-                          <span className="font-mono font-bold text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded bg-amber-50/80 dark:bg-amber-950/40 border border-amber-200/80 dark:border-amber-800/40 text-[11px]">
-                            {String(alert.extra_data.reorder_point)} units
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Deficit */}
-                      {alert.extra_data.current_stock !== undefined &&
-                        alert.extra_data.reorder_point !== undefined &&
-                        Number(alert.extra_data.current_stock) <
-                          Number(alert.extra_data.reorder_point) && (
-                          <div className="flex items-center gap-1.5 text-[11px] font-semibold text-rose-600 dark:text-rose-400">
-                            <span>Deficit:</span>
-                            <span className="font-mono font-bold">
-                              {Number(alert.extra_data.reorder_point) -
-                                Number(alert.extra_data.current_stock)}{' '}
-                              units below threshold
-                            </span>
+                        {/* Structured Metrics */}
+                        {alert.extra_data && Object.keys(alert.extra_data).length > 0 && (
+                          <div className="flex flex-wrap items-center gap-3 text-xs">
+                            {alert.extra_data.current_stock !== undefined && (
+                              <span className="px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa]">Current Stock: </span>
+                                <strong className="font-mono text-[#0a0a0a] dark:text-[#fafaf9]">
+                                  {String(alert.extra_data.current_stock)} units
+                                </strong>
+                              </span>
+                            )}
+                            {alert.extra_data.reorder_point !== undefined && (
+                              <span className="px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa]">Reorder Point: </span>
+                                <strong className="font-mono text-[#0a0a0a] dark:text-[#fafaf9]">
+                                  {String(alert.extra_data.reorder_point)} units
+                                </strong>
+                              </span>
+                            )}
+                            {alert.extra_data.safety_stock !== undefined && (
+                              <span className="px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa]">Safety Stock: </span>
+                                <strong className="font-mono text-[#0a0a0a] dark:text-[#fafaf9]">
+                                  {String(alert.extra_data.safety_stock)} units
+                                </strong>
+                              </span>
+                            )}
+                            {alert.extra_data.health_score !== undefined && (
+                              <span className="px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa]">Snapshot Health Score: </span>
+                                <strong className="font-mono text-[#0a0a0a] dark:text-[#fafaf9]">
+                                  {String(alert.extra_data.health_score)}
+                                </strong>
+                              </span>
+                            )}
+                            {alert.extra_data.z_score !== undefined && (
+                              <span className="px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa]">Z-Score: </span>
+                                <strong className="font-mono text-[#0a0a0a] dark:text-[#fafaf9]">
+                                  {Number(alert.extra_data.z_score).toFixed(2)}
+                                </strong>
+                              </span>
+                            )}
+                            {alert.extra_data.accuracy !== undefined && (
+                              <span className="px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa]">Accuracy: </span>
+                                <strong className="font-mono text-[#0a0a0a] dark:text-[#fafaf9]">
+                                  {(Number(alert.extra_data.accuracy) * 100).toFixed(1)}%
+                                </strong>
+                              </span>
+                            )}
                           </div>
                         )}
 
-                      {/* Safety Stock */}
-                      {alert.extra_data.safety_stock !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                            Safety Stock:
-                          </span>
-                          <span className="font-mono font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
-                            {String(alert.extra_data.safety_stock)} units
-                          </span>
+                        {/* Rule & Audit Metadata */}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-[#52525b] dark:text-[#a1a1aa]">
+                          <span>Alert ID: <span className="font-mono">#{alert.id}</span></span>
+                          {alert.rule_key && (
+                            <span>Rule Key: <span className="font-mono">{alert.rule_key}</span></span>
+                          )}
+                          {alert.acknowledged_at && (
+                            <span>
+                              Acknowledged: {new Date(alert.acknowledged_at).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
+                            </span>
+                          )}
                         </div>
-                      )}
-
-                      {/* Z-score */}
-                      {alert.extra_data.z_score !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                            Z-Score:
-                          </span>
-                          <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-[11px]">
-                            {Number(alert.extra_data.z_score).toFixed(2)}
-                          </span>
-                        </div>
-                      )}
-
-                      {/* Accuracy */}
-                      {alert.extra_data.accuracy !== undefined && (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-slate-500 dark:text-slate-400 font-medium text-[11px]">
-                            Accuracy:
-                          </span>
-                          <span className="font-mono font-bold text-rose-600 dark:text-rose-400 text-[11px]">
-                            {(Number(alert.extra_data.accuracy) * 100).toFixed(1)}%
-                          </span>
-                        </div>
-                      )}
-                    </div>
+                      </div>
+                    </motion.div>
                   )}
-                </div>
+                </AnimatePresence>
 
-                {/* ── BOTTOM ACTION ROW: Operator Audit & Distinguishable Actions ── */}
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                  {/* Left: Audit / Acknowledged status */}
-                  <div className="text-[11px] text-slate-400 dark:text-slate-500 font-sans">
+                {/* Inline Error Feedback if a Server Action Failed */}
+                {cardError && (
+                  <p role="alert" className="mt-2.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
+                    {cardError}
+                  </p>
+                )}
+
+                {/* ── ACTION BAR: Acknowledge, Resolve, and Explicit Dismiss ── */}
+                <div className="mt-2.5 pt-2.5 border-t border-ds-hairline flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-medium">
                     {alert.acknowledged_at ? (
-                      <span className="text-amber-700 dark:text-amber-400 font-medium flex items-center gap-1">
-                        <Eye className="w-3 h-3" /> Acknowledged: {new Date(alert.acknowledged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </span>
-                    ) : alert.rule_key ? (
-                      <span className="font-mono text-slate-400 text-[10px]">
-                        Rule: {alert.rule_key.split(':')[0]}
+                      <span className="text-amber-700 dark:text-amber-400 inline-flex items-center gap-1">
+                        <Eye className="w-3 h-3" aria-hidden="true" />
+                        Acknowledged at {new Date(alert.acknowledged_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     ) : (
-                      <span>Pending operator review</span>
+                      <span>Awaiting operator triage</span>
                     )}
                   </div>
 
-                  {/* Right: Actions (Acknowledge, Resolve, and Dismiss with Confirmation) */}
-                  <div className="flex items-center gap-2 self-end sm:self-center">
-                    {/* Acknowledge (Secondary Outline Action) */}
+                  <div className="flex items-center flex-wrap gap-2 self-end sm:self-center">
                     {alert.lifecycle === 'active' && (
                       <button
                         id={`btn-ack-${alert.id}`}
+                        type="button"
                         onClick={() => acknowledgeMutation.mutate(alert.id)}
-                        disabled={isPendingAck}
-                        title="Mark alert as seen and accepted by an operator"
-                        className={cn(
-                          'h-7.5 px-3 rounded-xl border text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer',
-                          'bg-amber-50/90 text-amber-800 border-amber-200/90 hover:bg-amber-100 hover:text-amber-900 hover:border-amber-300 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/40',
-                          'focus:outline-none focus:ring-2 focus:ring-amber-500/30 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-wait'
-                        )}
+                        disabled={isAnyPending}
+                        aria-busy={isPendingAck}
+                        title="Acknowledge alert (keeps alert open while noting operator review)"
+                        className="min-h-[44px] sm:min-h-[34px] px-3 rounded-[10px] border text-xs font-semibold inline-flex items-center gap-1.5 transition-colors bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50 disabled:opacity-50 disabled:cursor-wait cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
                       >
-                        <Eye className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
-                        <span>{isPendingAck ? 'Updating...' : 'Acknowledge'}</span>
+                        {isPendingAck ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                        ) : (
+                          <Eye className="w-3.5 h-3.5" aria-hidden="true" />
+                        )}
+                        <span>{isPendingAck ? 'Acknowledging...' : 'Acknowledge'}</span>
                       </button>
                     )}
 
-                    {/* Resolve (Primary Success Action) */}
                     <button
                       id={`btn-resolve-${alert.id}`}
+                      type="button"
                       onClick={() => resolveMutation.mutate(alert.id)}
-                      disabled={isPendingRes}
-                      title="Mark alert as addressed and close the incident"
-                      className={cn(
-                        'h-7.5 px-3.5 rounded-xl text-xs font-semibold flex items-center gap-1.5 text-white shadow-2xs transition-all duration-150 active:scale-95 cursor-pointer',
-                        'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 shadow-xs',
-                        'focus:outline-none focus:ring-2 focus:ring-emerald-500/30 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-wait'
-                      )}
+                      disabled={isAnyPending}
+                      aria-busy={isPendingRes}
+                      title="Resolve alert and mark incident as closed"
+                      className="min-h-[40px] sm:min-h-[34px] px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 text-white bg-ds-green-strong hover:bg-[#166534] transition-colors disabled:opacity-50 disabled:cursor-wait cursor-pointer focus-visible:outline-2 focus-visible:outline-ds-blue focus-visible:outline-offset-2"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                      {isPendingRes ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5" aria-hidden="true" />
+                      )}
                       <span>{isPendingRes ? 'Resolving...' : 'Resolve'}</span>
                     </button>
 
-                    {/* Dismiss Action with Inline Safeguard Confirmation */}
                     {isConfirmingDismiss ? (
-                      <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 p-1 rounded-xl border border-rose-200 dark:border-rose-900/60 animate-in fade-in zoom-in-95">
-                        <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300 pl-1">
-                          Delete?
+                      <div className="flex items-center gap-1.5 bg-rose-50 dark:bg-rose-950/50 px-2 py-1 rounded-[10px] border border-rose-200 dark:border-rose-800/60">
+                        <span className="text-[11px] font-bold text-rose-700 dark:text-rose-300">
+                          Dismiss?
                         </span>
                         <button
+                          type="button"
                           onClick={() => dismissMutation.mutate(alert.id)}
-                          disabled={dismissMutation.isPending}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-rose-600 text-white hover:bg-rose-700 shadow-2xs cursor-pointer"
+                          disabled={isPendingDismiss}
+                          className="min-h-[32px] px-2.5 rounded-[6px] text-[11px] font-bold bg-rose-600 text-white hover:bg-rose-700 cursor-pointer disabled:opacity-50"
                         >
-                          Confirm
+                          {isPendingDismiss ? 'Removing...' : 'Confirm'}
                         </button>
                         <button
+                          type="button"
                           onClick={() => setConfirmingDismissId(null)}
-                          className="px-1.5 py-0.5 rounded-lg text-[10px] font-medium text-slate-500 hover:text-slate-800 dark:text-slate-400 cursor-pointer"
+                          disabled={isPendingDismiss}
+                          className="min-h-[32px] px-2 rounded-[6px] text-[11px] font-medium text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -911,17 +1036,20 @@ export default function AlertsPage() {
                     ) : (
                       <button
                         id={`btn-dismiss-${alert.id}`}
+                        type="button"
                         onClick={() => setConfirmingDismissId(alert.id)}
-                        aria-label={`Dismiss alert #${alert.id} (Permanently removes from database)`}
-                        title="Dismiss alert (Permanently removes from database)"
-                        className="w-7.5 h-7.5 rounded-xl flex items-center justify-center text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 border border-transparent hover:border-rose-200 dark:hover:border-rose-900/40 transition-colors focus:outline-none focus:ring-2 focus:ring-rose-500/30 cursor-pointer"
+                        disabled={isAnyPending}
+                        aria-label={`Dismiss alert #${alert.id} for ${alert.product_name || 'system'} (removes alert record without marking resolved)`}
+                        title="Dismiss alert (removes record from registry without marking resolved)"
+                        className="min-h-[44px] sm:min-h-[34px] px-2.5 rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] text-[#52525b] dark:text-[#a1a1aa] hover:text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:hover:text-rose-300 dark:hover:bg-rose-950/30 text-xs font-semibold inline-flex items-center gap-1 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8] cursor-pointer disabled:opacity-50"
                       >
-                        <XCircle className="w-4 h-4" />
+                        <X className="w-3.5 h-3.5" aria-hidden="true" />
+                        <span>Dismiss</span>
                       </button>
                     )}
                   </div>
                 </div>
-              </motion.div>
+              </article>
             );
           })
         )}

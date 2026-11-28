@@ -1,17 +1,17 @@
 /**
- * Admin - Data Upload Page with CSV ETL pipeline and live task progress.
+ * Titan AI — Upload Sales Data Page (/app/admin/upload)
  *
- * Titan AI Page 11 Final Refinements:
- * - Truthful auto-matching messaging (reflects actual candidate match count vs manual mapping notice)
- * - Dynamic required field progress feedback ("X of Y required fields mapped")
- * - Calm initial validation styling (neutral state until submit is attempted; clear green on valid mapped rows)
- * - Rich field requirement tooltips/popovers (? button) detailing expected data types, formats, examples, and pipeline role
- * - Duplicate source column assignment detection and short-CSV column warnings
- * - Preserved 6-step ETL stepper, 50 MB limit, and bottom AI assistant clearance (pb-28 sm:pb-32)
+ * Refined with Titan AI editorial design system:
+ * - Full-width Titan editorial header and grid alignment (no unexplained right-side gap).
+ * - Accessible drop zone (click, keyboard Enter/Space, drag-and-drop) with file replacement & inline validation feedback.
+ * - Explicit workflow clarity: local CSV header inspection first -> schema mapping confirmation -> server ETL & ML retraining.
+ * - Truthful 6-stage pipeline stepper driven strictly by client validation and real task progress (useTaskProgress).
+ * - Actionable error recovery (return to column mapping or choose another file) and live history invalidation.
+ * - Responsive desktop table + mobile stacked cards with reduced-motion support.
  */
 
-import { useState, useRef, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useState, useRef, useMemo, useEffect } from 'react';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   Upload,
   CheckCircle2,
@@ -23,7 +23,6 @@ import {
   ArrowRight,
   Link as LinkIcon,
   HardDrive,
-  FileUp,
   Sparkles,
   Check,
   RotateCcw,
@@ -35,9 +34,11 @@ import {
 import { cn } from '@/lib/utils';
 import { useDataStore } from '@/stores/dataStore';
 import { useTaskProgress } from '@/hooks/useTaskProgress';
+import { PageHeader } from '@/components/ui/PageHeader';
 import api from '@/services/api';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from '@/hooks/useToast';
+import '@/styles/titan-dashboard.css';
 
 type UploadStatus = 'idle' | 'uploading' | 'queued' | 'processing' | 'completed' | 'error';
 type StepVisualState = 'pending' | 'active' | 'action_required' | 'completed' | 'failed';
@@ -70,17 +71,16 @@ interface SystemColumnDefinition {
   purpose: string;
 }
 
-const pipelineSteps = [
-  { id: 'uploading', icon: Upload, label: 'Upload', desc: 'CSV received', stepIdx: 0 },
-  { id: 'validating', icon: FileSpreadsheet, label: 'Validate', desc: 'Check schema', stepIdx: 1 },
-  { id: 'mapping', icon: LinkIcon, label: 'Map Data', desc: 'Align columns', stepIdx: 2 },
+const PIPELINE_STEPS = [
+  { id: 'uploading', icon: Upload, label: 'Upload', desc: 'CSV selected', stepIdx: 0 },
+  { id: 'validating', icon: FileSpreadsheet, label: 'Validate', desc: 'Headers checked', stepIdx: 1 },
+  { id: 'mapping', icon: LinkIcon, label: 'Map Data', desc: 'Confirm columns', stepIdx: 2 },
   { id: 'processing', icon: Database, label: 'ETL', desc: 'Transform & load', stepIdx: 3 },
   { id: 'ml', icon: Cpu, label: 'ML', desc: 'Retrain models', stepIdx: 4 },
   { id: 'completed', icon: CheckCircle2, label: 'Done', desc: 'Data ready', stepIdx: 5 },
 ];
 
-// System target fields with explicit format specifications and pipeline roles
-const systemColumns: SystemColumnDefinition[] = [
+const SYSTEM_COLUMNS: SystemColumnDefinition[] = [
   {
     id: 'transaction_date',
     label: 'Transaction Date',
@@ -130,7 +130,6 @@ const systemColumns: SystemColumnDefinition[] = [
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB limit
 
-// Human-readable file size formatter
 function formatFileSize(bytes?: number, fallbackSize?: string): string {
   if (bytes && bytes > 0) {
     if (bytes < 1024) return `${bytes} B`;
@@ -143,6 +142,9 @@ function formatFileSize(bytes?: number, fallbackSize?: string): string {
 }
 
 export default function UploadPage() {
+  const prefersReducedMotion = useReducedMotion();
+  const queryClient = useQueryClient();
+
   const [state, setState] = useState<UploadState>({ file: null, status: 'idle', progress: 0 });
   const [mappings, setMappings] = useState<Record<string, string>>({});
   const [detectedColumns, setDetectedColumns] = useState<string[]>([]);
@@ -152,6 +154,10 @@ export default function UploadPage() {
   const [activeHelpColumn, setActiveHelpColumn] = useState<string | null>(null);
   const [taskId, setTaskId] = useState<string | null>(null);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [failedAtStep, setFailedAtStep] = useState<number>(3);
+
   const fileRef = useRef<HTMLInputElement>(null);
   const setRawCsvText = useDataStore((s) => s.setRawCsvText);
 
@@ -171,7 +177,13 @@ export default function UploadPage() {
     refetchInterval: taskId ? 5_000 : false,
   });
 
-  // Derive effective status & progress without triggering cascading renders
+  // Refresh upload history when background task completes or fails
+  useEffect(() => {
+    if (taskStatus?.state === 'completed' || taskStatus?.state === 'failed') {
+      queryClient.invalidateQueries({ queryKey: ['upload-history'] });
+    }
+  }, [taskStatus?.state, queryClient]);
+
   const effectiveStatus: UploadStatus = useMemo(() => {
     if (state.status === 'processing') {
       if (taskStatus?.state === 'completed') return 'completed';
@@ -190,20 +202,43 @@ export default function UploadPage() {
       ? taskStatus.progress
       : state.progress;
 
-  // Process uploaded CSV file, extract headers and sample values, propose auto-mappings
+  const resetAll = () => {
+    setState({ file: null, status: 'idle', progress: 0 });
+    setTaskId(null);
+    setMappings({});
+    setDetectedColumns([]);
+    setColumnSamples({});
+    setSuggestedMappings({});
+    setHasAttemptedSubmit(false);
+    setActiveHelpColumn(null);
+    setSelectionError(null);
+    setUploadError(null);
+    if (fileRef.current) fileRef.current.value = '';
+  };
+
+  // Process selected CSV locally (header inspection only — does NOT upload until confirmed)
   const processFileAndStart = (file: File) => {
+    setSelectionError(null);
+    setUploadError(null);
+
     if (!file.name.toLowerCase().endsWith('.csv')) {
+      const msg = `"${file.name}" is not a .csv file. Only comma-separated (.csv) files are supported.`;
+      setSelectionError(msg);
       toast.warning('Invalid file format', 'Only standard comma-separated (.csv) files are supported.');
       return;
     }
 
     if (file.size > MAX_FILE_SIZE) {
-      toast.error('File size exceeded', `File size (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the 50 MB limit.`);
+      const msg = `"${file.name}" (${(file.size / (1024 * 1024)).toFixed(1)} MB) exceeds the 50 MB limit.`;
+      setSelectionError(msg);
+      toast.error('File size exceeded', msg);
       return;
     }
 
     if (file.size === 0) {
-      toast.error('Empty file', 'The selected file is empty. Please choose a valid sales CSV.');
+      const msg = `"${file.name}" is empty (0 bytes). Choose a CSV file with headers and rows.`;
+      setSelectionError(msg);
+      toast.error('Empty file', msg);
       return;
     }
 
@@ -211,32 +246,46 @@ export default function UploadPage() {
     reader.onload = async (e) => {
       const text = e.target?.result as string;
       if (!text || text.trim().length === 0) {
-        toast.error('Empty file contents', 'The selected CSV file contains no readable records.');
+        const msg = 'The selected CSV file contains no readable text.';
+        setSelectionError(msg);
+        toast.error('Empty file contents', msg);
         return;
       }
       setRawCsvText(text);
 
       const lines = text.split(/\r?\n/).filter((l) => l.trim().length > 0);
       if (lines.length === 0) {
-        toast.error('Invalid CSV format', 'No valid rows detected in the CSV file.');
+        const msg = 'No valid rows detected in the CSV file.';
+        setSelectionError(msg);
+        toast.error('Invalid CSV format', msg);
         return;
       }
 
       const firstLine = lines[0] || '';
+      if (!firstLine.includes(',')) {
+        const msg = 'First row does not appear to be comma-separated headers.';
+        setSelectionError(msg);
+        toast.error('Invalid CSV delimiter', msg);
+        return;
+      }
+
       const headers = firstLine
         .split(',')
         .map((h) => h.trim().replace(/^["']|["']$/g, ''))
         .filter(Boolean);
 
       if (headers.length === 0) {
-        toast.error('Missing CSV headers', 'Could not detect column headers in the first row.');
+        const msg = 'Could not detect column headers in the first row.';
+        setSelectionError(msg);
+        toast.error('Missing CSV headers', msg);
         return;
       }
 
       setDetectedColumns(headers);
 
-      // Extract sample row for inline user preview
-      const sampleRow = lines[1] ? lines[1].split(',').map((s) => s.trim().replace(/^["']|["']$/g, '')) : [];
+      const sampleRow = lines[1]
+        ? lines[1].split(',').map((s) => s.trim().replace(/^["']|["']$/g, ''))
+        : [];
       const samples: Record<string, string> = {};
       headers.forEach((h, idx) => {
         const val = sampleRow[idx];
@@ -244,9 +293,8 @@ export default function UploadPage() {
       });
       setColumnSamples(samples);
 
-      // Intelligent column auto-matching heuristics
       const proposed: Record<string, string> = {};
-      systemColumns.forEach((sys) => {
+      SYSTEM_COLUMNS.forEach((sys) => {
         const match = headers.find((h) => {
           const norm = h.toLowerCase().replace(/[^a-z0-9]/g, '');
           switch (sys.id) {
@@ -264,38 +312,37 @@ export default function UploadPage() {
               return false;
           }
         });
-        if (match) {
-          proposed[sys.id] = match;
-        }
+        if (match) proposed[sys.id] = match;
       });
 
       setSuggestedMappings(proposed);
       setMappings(proposed);
       setHasAttemptedSubmit(false);
       setActiveHelpColumn(null);
-
-      // Transition to Step 3: Schema Alignment Required
-      setState({ file, status: 'queued', progress: 15 });
+      setState({ file, status: 'queued', progress: 0 });
     };
 
     reader.onerror = () => {
-      toast.error('File read error', 'Unable to parse the uploaded CSV file. Please verify file integrity.');
+      const msg = 'Unable to read the selected CSV file from disk.';
+      setSelectionError(msg);
+      toast.error('File read error', msg);
     };
 
     reader.readAsText(file);
   };
 
-  // resumePipeline — called after schema mapping confirmation
+  // Submit file + confirmed mappings to POST /upload
   const resumePipeline = async () => {
     if (!state.file) return;
 
     if (!allRequiredMapped) {
       setHasAttemptedSubmit(true);
-      toast.error('Required mappings missing', `Please map all 4 required fields (${missingRequired.join(', ')}) to continue.`);
+      toast.error('Required mappings missing', `Map all ${requiredCount} required fields (${missingRequired.join(', ')}) to continue.`);
       return;
     }
 
-    setState((s) => ({ ...s, status: 'uploading', progress: 25 }));
+    setUploadError(null);
+    setState((s) => ({ ...s, status: 'uploading', progress: 0 }));
 
     try {
       const formData = new FormData();
@@ -307,47 +354,41 @@ export default function UploadPage() {
       });
       const { task_id } = res.data as { task_id: string };
       setTaskId(task_id);
-      setState((s) => ({ ...s, status: 'processing', progress: 35 }));
-      toast.info('Upload initiated', 'Dataset sent to enterprise ETL pipeline.');
-    } catch {
+      setState((s) => ({ ...s, status: 'processing', progress: 0 }));
+      toast.info('Ingestion queued', 'Dataset uploaded and queued for ETL & ML retraining.');
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail;
+      const safeDetail =
+        status && status < 500 && typeof detail === 'string' && detail.trim()
+          ? detail
+          : 'The server could not queue this dataset. Verify your column mappings and retry.';
+      setFailedAtStep(3);
+      setUploadError(safeDetail);
       setState((s) => ({ ...s, status: 'error', progress: 0 }));
-      toast.error('Upload failed', 'Server could not process dataset. Please verify schema and retry.');
+      toast.error('Upload failed', safeDetail);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
+    if (effectiveStatus !== 'idle') return;
     const file = e.dataTransfer.files[0];
-    if (file) {
-      processFileAndStart(file);
-    }
+    if (file) processFileAndStart(file);
   };
 
   const handleMappingChange = (sysCol: string, csvCol: string) => {
     setMappings((prev) => ({ ...prev, [sysCol]: csvCol }));
   };
 
-  // Dynamic progress derivation
-  const requiredCount = useMemo(() => systemColumns.filter((c) => c.required).length, []);
-  const mappedRequiredCount = useMemo(
-    () => systemColumns.filter((c) => c.required && mappings[c.id]).length,
-    [mappings]
-  );
-
-  // Derive missing required fields for explicit user feedback
-  const missingRequired = useMemo(() => {
-    return systemColumns
-      .filter((c) => c.required && !mappings[c.id])
-      .map((c) => c.label);
-  }, [mappings]);
+  const requiredCount = SYSTEM_COLUMNS.filter((c) => c.required).length;
+  const mappedRequiredCount = SYSTEM_COLUMNS.filter((c) => c.required && mappings[c.id]).length;
+  const missingRequired = SYSTEM_COLUMNS.filter((c) => c.required && !mappings[c.id]).map((c) => c.label);
 
   const allRequiredMapped = missingRequired.length === 0;
+  const suggestedCount = Object.keys(suggestedMappings).length;
 
-  // Number of auto-suggested matches
-  const suggestedCount = useMemo(() => Object.keys(suggestedMappings).length, [suggestedMappings]);
-
-  // Duplicate source column assignment check
   const duplicateSourceColumns = useMemo(() => {
     const counts: Record<string, number> = {};
     Object.values(mappings).forEach((col) => {
@@ -356,19 +397,18 @@ export default function UploadPage() {
     return Object.keys(counts).filter((col) => counts[col] > 1);
   }, [mappings]);
 
-  // Derive visual state for each of the 6 ETL stepper stages
+  // Derive truthful visual state for each of the 6 pipeline stages
   const getStepVisualState = (stepIndex: number): StepVisualState => {
     if (effectiveStatus === 'idle') return 'pending';
 
     if (effectiveStatus === 'error') {
-      if (stepIndex === 3) return 'failed';
-      if (stepIndex < 3) return 'completed';
+      const failIdx = taskStatus?.state === 'failed' && (taskStatus.progress ?? 0) >= 75 ? 4 : failedAtStep;
+      if (stepIndex === failIdx) return 'failed';
+      if (stepIndex < failIdx) return 'completed';
       return 'pending';
     }
 
-    if (effectiveStatus === 'completed') {
-      return 'completed';
-    }
+    if (effectiveStatus === 'completed') return 'completed';
 
     if (effectiveStatus === 'queued') {
       if (stepIndex < 2) return 'completed';
@@ -388,238 +428,157 @@ export default function UploadPage() {
       if (p < 75) {
         if (stepIndex === 3) return 'active';
         return 'pending';
-      } else {
-        if (stepIndex === 3) return 'completed';
-        if (stepIndex === 4) return 'active';
-        return 'pending';
       }
+      if (stepIndex === 3) return 'completed';
+      if (stepIndex === 4) return 'active';
+      return 'pending';
     }
 
     return 'pending';
   };
 
-  // Header status indicator text
   const stepperHeaderText = useMemo(() => {
-    if (effectiveStatus === 'idle') return 'Standby • Awaiting CSV Upload';
-    if (effectiveStatus === 'queued') return 'Step 3 of 6 • Action Required: Align Columns';
-    if (effectiveStatus === 'uploading') return 'Step 4 of 6 • Submitting Dataset';
+    if (effectiveStatus === 'idle') return 'Standby · Awaiting CSV selection';
+    if (effectiveStatus === 'queued') return 'Step 3 of 6 · Confirm Column Mapping';
+    if (effectiveStatus === 'uploading') return 'Step 4 of 6 · Uploading CSV to Server';
     if (effectiveStatus === 'processing') {
       return (effectiveProgress ?? 0) < 75
-        ? 'Step 4 of 6 • ETL Ingestion in Progress'
-        : 'Step 5 of 6 • ML Retraining in Progress';
+        ? 'Step 4 of 6 · ETL Ingestion in Progress'
+        : 'Step 5 of 6 · ML Retraining in Progress';
     }
-    if (effectiveStatus === 'completed') return 'Completed • Pipeline Succeeded';
-    if (effectiveStatus === 'error') return 'Interrupted • Pipeline Failed';
+    if (effectiveStatus === 'completed') return 'Completed · Data Ingested & Models Retrained';
+    if (effectiveStatus === 'error') return 'Failed · Pipeline Interrupted';
     return 'Standby';
   }, [effectiveStatus, effectiveProgress]);
 
+  const historyUploads = historyData?.uploads ?? [];
+
   return (
-    <div className="space-y-6 max-w-5xl pb-28 sm:pb-32">
-      {/* ── 1. PAGE HEADER ───────────────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: -10 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative flex items-center justify-between p-5 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+    <div className="space-y-5 sm:space-y-6 pb-4">
+      <PageHeader
+        title="Upload Sales Data"
+        description="Inspect CSV headers, map required columns, and trigger ETL ingestion and model retraining"
+        actions={
+          <div
+            className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-ds-surface border border-ds-hairline text-xs font-semibold text-ds-text-primary"
+            title="Ingestion service endpoint is available; current workflow state is shown below"
+          >
+            <span className="w-2 h-2 rounded-full bg-ds-blue" aria-hidden="true" />
+            <span>Ingestion Service Ready</span>
+          </div>
+        }
+      />
+
+      {/* ── 2. Enterprise ETL Pipeline Stepper ───────────────────────── */}
+      <section
+        aria-label="ETL Pipeline Status"
+        className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] p-5 sm:p-6 overflow-hidden"
       >
-        <div className="absolute top-0 left-0 w-80 h-full bg-gradient-to-r from-blue-500/10 via-indigo-500/5 to-transparent pointer-events-none" />
-
-        <div className="relative flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-xs flex-shrink-0">
-            <FileUp className="w-5 h-5 text-white" />
-          </div>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6 pb-3.5 border-b border-[#e4e4e7] dark:border-[#27272a]">
           <div>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-4 rounded-full bg-gradient-to-b from-blue-500 to-indigo-600 inline-block" />
-              <h1 className="text-xl font-bold text-slate-900 dark:text-ds-text tracking-tight">
-                Upload Sales Data
-              </h1>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-ds-text-secondary mt-0.5 ml-3.5 font-medium">
-              Upload CSV telemetry to feed the demand forecasting pipeline and retrain ML models
-            </p>
-          </div>
-        </div>
-
-        <div className="relative flex items-center gap-2.5">
-          <div className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-blue-50/80 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60 text-xs font-semibold text-blue-700 dark:text-blue-300">
-            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            CSV Ingestion Engine
-          </div>
-        </div>
-      </motion.div>
-
-      {/* ── 2. ENTERPRISE ETL PIPELINE STEPPER ───────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.1 }}
-        className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface p-5 sm:p-6 shadow-2xs overflow-hidden"
-      >
-        <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100 dark:border-ds-border">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text tracking-tight">
+            <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
               Enterprise ETL Pipeline
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-              Automated end-to-end data transformation &amp; model synchronization
+            </h2>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+              Current run status — steps advance only as client validation and server task events confirm them
             </p>
           </div>
 
           <span
             className={cn(
-              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border transition-colors',
+              'inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border self-start sm:self-center',
               effectiveStatus === 'completed'
-                ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
+                ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
                 : effectiveStatus === 'error'
-                ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-800'
+                ? 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50'
                 : effectiveStatus === 'queued'
-                ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
+                ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50'
                 : effectiveStatus === 'processing' || effectiveStatus === 'uploading'
-                ? 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800'
-                : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800/80 dark:text-slate-300 dark:border-slate-700'
+                ? 'bg-[#eff6ff] text-[#1e3fc8] border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40'
+                : 'bg-[#fafaf9] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
             )}
           >
-            {effectiveStatus === 'queued' && <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />}
-            {(effectiveStatus === 'processing' || effectiveStatus === 'uploading') && (
-              <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-            )}
             {stepperHeaderText}
           </span>
         </div>
 
-        <div className="flex items-center justify-between relative px-2 sm:px-6">
-          {/* Background Connecting Line */}
-          <div className="absolute top-5 left-[6%] right-[6%] h-1 bg-slate-200 dark:bg-slate-800 rounded-full z-0" />
-
-          {/* Active Status Connecting Line */}
-          <div
-            className={cn(
-              'absolute top-5 left-[6%] h-1 rounded-full z-0 transition-all duration-500',
-              effectiveStatus === 'completed'
-                ? 'bg-emerald-500'
-                : effectiveStatus === 'error'
-                ? 'bg-rose-500'
-                : effectiveStatus === 'queued'
-                ? 'bg-amber-500'
-                : 'bg-blue-600'
-            )}
-            style={{
-              width:
-                effectiveStatus === 'completed'
-                  ? '88%'
-                  : effectiveStatus === 'queued'
-                  ? '36%'
-                  : effectiveStatus === 'uploading'
-                  ? '52%'
-                  : effectiveStatus === 'processing'
-                  ? `${Math.max(52, ((effectiveProgress ?? 0) / 100) * 88)}%`
-                  : '0%',
-            }}
-          />
-
-          {pipelineSteps.map((step, i) => {
+        <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 relative">
+          {PIPELINE_STEPS.map((step, i) => {
             const visualState = getStepVisualState(i);
+            const StepIcon = step.icon;
 
             return (
-              <div key={step.id} className="flex flex-col items-center z-10 relative">
-                {/* Step Icon Container */}
+              <div key={step.id} className="flex flex-col items-center text-center relative">
                 <div
                   className={cn(
-                    'w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-300 shadow-2xs border',
+                    'w-10 h-10 rounded-[12px] flex items-center justify-center transition-colors duration-150 border',
                     visualState === 'completed'
-                      ? 'bg-emerald-50 text-emerald-600 border-emerald-300/90 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-700'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
                       : visualState === 'action_required'
-                      ? 'bg-amber-50 text-amber-600 border-amber-300 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-700 ring-4 ring-amber-400/20 scale-105'
+                      ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-700'
                       : visualState === 'failed'
-                      ? 'bg-rose-50 text-rose-600 border-rose-300/90 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-700'
+                      ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-700'
                       : visualState === 'active'
-                      ? 'bg-blue-600 text-white border-blue-600 shadow-md shadow-blue-500/25 scale-105'
-                      : 'bg-slate-50 text-slate-400 border-slate-300 dark:bg-slate-800/80 dark:text-slate-400 dark:border-slate-700'
+                      ? 'bg-[#1e3fc8] text-white border-[#1e3fc8]'
+                      : 'bg-[#fafaf9] text-[#52525b] border-[#e4e4e7] dark:bg-[#18181b] dark:text-[#a1a1aa] dark:border-[#27272a]'
                   )}
                 >
                   {visualState === 'completed' ? (
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-300" />
+                    <CheckCircle2 className="w-5 h-5" aria-hidden="true" />
                   ) : visualState === 'action_required' ? (
-                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 animate-bounce" />
+                    <AlertTriangle className="w-5 h-5" aria-hidden="true" />
                   ) : visualState === 'failed' ? (
-                    <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-300" />
+                    <AlertTriangle className="w-5 h-5" aria-hidden="true" />
                   ) : visualState === 'active' ? (
-                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" aria-hidden="true" />
                   ) : (
-                    <step.icon className="w-5 h-5" />
+                    <StepIcon className="w-4.5 h-4.5" aria-hidden="true" />
                   )}
                 </div>
 
-                {/* Step Label */}
                 <p
                   className={cn(
-                    'text-xs mt-2.5 transition-colors text-center',
+                    'text-xs mt-2 font-bold',
                     visualState === 'completed'
-                      ? 'font-bold text-emerald-700 dark:text-emerald-300'
+                      ? 'text-emerald-700 dark:text-emerald-300'
                       : visualState === 'action_required'
-                      ? 'font-bold text-amber-700 dark:text-amber-300'
+                      ? 'text-amber-700 dark:text-amber-300'
                       : visualState === 'failed'
-                      ? 'font-bold text-rose-700 dark:text-rose-300'
+                      ? 'text-rose-700 dark:text-rose-300'
                       : visualState === 'active'
-                      ? 'font-bold text-blue-600 dark:text-blue-400'
-                      : 'font-semibold text-slate-600 dark:text-slate-300'
+                      ? 'text-[#1e3fc8] dark:text-[#60a5fa]'
+                      : 'text-[#0a0a0a] dark:text-[#fafaf9]'
                   )}
                 >
                   {step.label}
                 </p>
 
-                {/* Step Description */}
-                <p
-                  className={cn(
-                    'text-[10px] hidden md:block text-center mt-0.5',
-                    visualState === 'completed'
-                      ? 'text-emerald-600/80 dark:text-emerald-400/80 font-medium'
-                      : visualState === 'action_required'
-                      ? 'text-amber-600/90 dark:text-amber-400/90 font-medium'
-                      : visualState === 'active'
-                      ? 'text-blue-600/90 dark:text-blue-400/90 font-medium'
-                      : 'text-slate-500 dark:text-slate-400'
-                  )}
-                >
-                  {visualState === 'action_required' ? 'Action needed' : step.desc}
+                <p className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5">
+                  {visualState === 'action_required'
+                    ? 'Action needed'
+                    : visualState === 'failed'
+                    ? 'Failed'
+                    : visualState === 'active'
+                    ? 'In progress'
+                    : visualState === 'completed'
+                    ? 'Complete'
+                    : step.desc}
                 </p>
               </div>
             );
           })}
         </div>
-      </motion.div>
+      </section>
 
-      {/* ── 3 & 4. UPLOAD DROP ZONE & FEEDBACK ───────────────────────── */}
+      {/* ── 3 & 4. Drop Zone & Mapping Workspace ─────────────────────── */}
       <AnimatePresence mode="wait">
-        {/* Drop Zone: Shown when not paused in schema alignment */}
         {effectiveStatus !== 'queued' && (
           <motion.div
             key="dropzone"
-            initial={{ opacity: 0, y: 16 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            onDragOver={(e) => {
-              e.preventDefault();
-              setIsDragOver(true);
-            }}
-            onDragLeave={() => setIsDragOver(false)}
-            onDrop={handleDrop}
-            onClick={() => effectiveStatus === 'idle' && fileRef.current?.click()}
-            className={cn(
-              'rounded-3xl py-8 sm:py-9 px-6 border-2 border-dashed transition-all duration-200 text-center flex flex-col items-center justify-center relative overflow-hidden',
-              effectiveStatus === 'idle'
-                ? cn(
-                    'bg-gradient-to-b from-blue-50/70 via-indigo-50/30 to-white dark:bg-none dark:bg-ds-surface cursor-pointer group shadow-2xs',
-                    isDragOver
-                      ? 'border-blue-600 bg-blue-50/90 shadow-md scale-[1.01]'
-                      : 'border-blue-300 hover:border-blue-500 hover:shadow-md dark:border-blue-800 dark:hover:border-blue-600'
-                  )
-                : effectiveStatus === 'completed'
-                ? 'bg-emerald-50/40 dark:bg-emerald-950/20 border-emerald-300 dark:border-emerald-800 shadow-2xs'
-                : effectiveStatus === 'error'
-                ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800 shadow-2xs'
-                : 'bg-blue-50/30 dark:bg-blue-950/20 border-blue-300 dark:border-blue-800 shadow-2xs'
-            )}
+            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.18 }}
           >
             <input
               ref={fileRef}
@@ -629,224 +588,260 @@ export default function UploadPage() {
               onChange={(e) => {
                 const f = e.target.files?.[0];
                 if (f) processFileAndStart(f);
+                e.target.value = '';
               }}
             />
 
-            {/* State: Idle / Ready to Browse */}
             {effectiveStatus === 'idle' ? (
-              <>
-                <div className="w-14 h-14 rounded-2xl bg-blue-100/90 text-blue-600 dark:bg-blue-950/80 dark:text-blue-400 border border-blue-200 dark:border-blue-800 flex items-center justify-center mb-3 transition-transform group-hover:scale-105 shadow-2xs">
-                  <Upload className="w-7 h-7 text-blue-600 dark:text-blue-400" />
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Upload sales CSV file. Press Enter or Space to browse, or drag and drop a file here."
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragOver(true);
+                }}
+                onDragLeave={() => setIsDragOver(false)}
+                onDrop={handleDrop}
+                onClick={() => fileRef.current?.click()}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    fileRef.current?.click();
+                  }
+                }}
+                className={cn(
+                  'rounded-[16px] py-9 px-6 border-2 border-dashed transition-all duration-150 text-center flex flex-col items-center justify-center cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
+                  isDragOver
+                    ? 'border-[#1e3fc8] bg-[#eff6ff] dark:bg-[#1e3fc8]/15'
+                    : 'border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] hover:border-[#1e3fc8] dark:hover:border-[#60a5fa]'
+                )}
+              >
+                <div className="w-12 h-12 rounded-[14px] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 text-[#1e3fc8] dark:text-[#60a5fa] border border-[#bfdbfe] dark:border-[#1e3fc8]/40 flex items-center justify-center mb-3">
+                  <Upload className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-ds-text tracking-tight">
-                  Drag &amp; drop your sales CSV here
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">
-                  or <span className="text-blue-600 dark:text-blue-400 font-semibold underline underline-offset-2">click to browse</span> from your device
+                <h2 className="text-base font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
+                  Drag &amp; drop your sales CSV here, or click to browse
+                </h2>
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium max-w-xl">
+                  Selecting a file inspects headers locally in your browser first. Nothing is uploaded or retrained until you confirm column mappings.
                 </p>
 
-                {/* File constraints pills */}
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold bg-blue-50/90 text-blue-800 border border-blue-200/90 dark:bg-blue-950/50 dark:text-blue-300 dark:border-blue-800/60 mt-4 shadow-2xs">
-                  <HardDrive className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                  <span>Max file size: <strong>50 MB</strong></span>
-                  <span>•</span>
-                  <span>Accepted format: <strong>.CSV only</strong></span>
+                <div className="inline-flex flex-wrap items-center justify-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-semibold bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] mt-4">
+                  <HardDrive className="w-3.5 h-3.5 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+                  <span>Max size: 50 MB</span>
+                  <span aria-hidden="true">·</span>
+                  <span>Format: .CSV (UTF-8 / Latin-1)</span>
+                  <span aria-hidden="true">·</span>
+                  <span>4 required columns</span>
                 </div>
-              </>
+
+                {selectionError && (
+                  <div
+                    role="alert"
+                    onClick={(e) => e.stopPropagation()}
+                    className="mt-4 px-4 py-2.5 rounded-[10px] bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800/60 text-xs font-semibold text-rose-700 dark:text-rose-300 flex items-center gap-2 max-w-lg"
+                  >
+                    <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
+                    <span>{selectionError}</span>
+                  </div>
+                )}
+              </div>
             ) : effectiveStatus === 'completed' ? (
-              /* State: Pipeline Completed */
-              <>
-                <div className="w-14 h-14 rounded-2xl bg-emerald-100/90 text-emerald-600 dark:bg-emerald-950/80 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mb-3 shadow-2xs">
-                  <CheckCircle2 className="w-7 h-7 text-emerald-600 dark:text-emerald-400" />
+              <div className="rounded-[16px] py-9 px-6 border border-emerald-200 dark:border-emerald-800/60 bg-emerald-50/40 dark:bg-emerald-950/20 text-center flex flex-col items-center justify-center">
+                <div className="w-12 h-12 rounded-[14px] bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center mb-3">
+                  <CheckCircle2 className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-base font-bold text-emerald-700 dark:text-emerald-300 tracking-tight">
-                  Pipeline Execution Succeeded!
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-md">
-                  Dataset successfully ingested, schema validated, and demand forecasting models retrained with updated telemetry.
+                <h2 className="text-base font-bold text-emerald-800 dark:text-emerald-300">
+                  Pipeline Execution Succeeded
+                </h2>
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 font-medium max-w-md">
+                  {state.file?.name ? `${state.file.name} was ingested, validated, and models were retrained.` : 'Dataset ingested and models retrained.'}
                 </p>
                 <button
-                  onClick={() => {
-                    setState({ file: null, status: 'idle', progress: 0 });
-                    setTaskId(null);
-                    setMappings({});
-                    setDetectedColumns([]);
-                    setColumnSamples({});
-                    setHasAttemptedSubmit(false);
-                  }}
-                  className="mt-5 h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 text-xs font-semibold shadow-2xs transition-all active:scale-95 inline-flex items-center gap-1.5"
+                  type="button"
+                  onClick={resetAll}
+                  className="mt-5 min-h-[40px] px-4 rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a] bg-white hover:bg-[#fafaf9] dark:bg-[#111113] dark:hover:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold inline-flex items-center gap-1.5 cursor-pointer"
                 >
-                  <RotateCcw className="w-3.5 h-3.5" />
+                  <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>Upload Another File</span>
                 </button>
-              </>
+              </div>
             ) : effectiveStatus === 'error' ? (
-              /* State: Error */
-              <>
-                <div className="w-14 h-14 rounded-2xl bg-rose-100/90 text-rose-600 dark:bg-rose-950/80 dark:text-rose-400 border border-rose-200 dark:border-rose-800 flex items-center justify-center mb-3 shadow-2xs">
-                  <AlertTriangle className="w-7 h-7 text-rose-600 dark:text-rose-400" />
+              <div
+                role="alert"
+                className="rounded-[16px] py-9 px-6 border border-rose-200 dark:border-rose-800/60 bg-rose-50/50 dark:bg-rose-950/20 text-center flex flex-col items-center justify-center"
+              >
+                <div className="w-12 h-12 rounded-[14px] bg-rose-100 dark:bg-rose-900/50 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 flex items-center justify-center mb-3">
+                  <AlertTriangle className="w-6 h-6" aria-hidden="true" />
                 </div>
-                <h3 className="text-base font-bold text-rose-700 dark:text-rose-300 tracking-tight">
+                <h2 className="text-base font-bold text-rose-800 dark:text-rose-300">
                   Pipeline Processing Failed
-                </h3>
-                <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium max-w-md">
-                  {taskStatus?.error || 'An error occurred during dataset transformation. Please verify schema headers and retry.'}
+                </h2>
+                <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1.5 font-medium max-w-lg">
+                  {uploadError ||
+                    taskStatus?.error ||
+                    'An error occurred during ingestion or validation. Review your column mappings or select another CSV file.'}
                 </p>
-                <button
-                  onClick={() => {
-                    setState({ file: null, status: 'idle', progress: 0 });
-                    setTaskId(null);
-                  }}
-                  className="mt-5 h-9 px-4 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:border-rose-800 dark:text-rose-300 text-xs font-semibold shadow-2xs transition-all active:scale-95"
-                >
-                  Try Again
-                </button>
-              </>
+                <div className="mt-5 flex flex-wrap items-center justify-center gap-2.5">
+                  {state.file && detectedColumns.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUploadError(null);
+                        setTaskId(null);
+                        setState((s) => ({ ...s, status: 'queued', progress: 0 }));
+                      }}
+                      className="min-h-[40px] px-4 rounded-[10px] bg-[#1e3fc8] hover:bg-[#1935a8] text-white text-xs font-semibold cursor-pointer"
+                    >
+                      Review Column Mappings
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={resetAll}
+                    className="min-h-[40px] px-4 rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold cursor-pointer"
+                  >
+                    Choose Another File
+                  </button>
+                </div>
+              </div>
             ) : (
-              /* State: Uploading / Processing */
-              <>
+              <div className="rounded-[16px] py-9 px-6 border border-[#bfdbfe] dark:border-[#1e3fc8]/40 bg-[#eff6ff]/40 dark:bg-[#1e3fc8]/10 text-center flex flex-col items-center justify-center">
                 {state.file && (
-                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-blue-50 text-blue-800 border border-blue-200 dark:bg-blue-950/60 dark:text-blue-300 dark:border-blue-800 text-xs font-semibold mb-3 shadow-2xs">
-                    <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] text-xs font-semibold mb-3">
+                    <FileSpreadsheet className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
                     <span>{state.file.name}</span>
-                    <span className="text-slate-500 dark:text-slate-400 font-mono">
+                    <span className="text-[#52525b] dark:text-[#a1a1aa] font-mono">
                       ({formatFileSize(state.file.size)})
                     </span>
                   </div>
                 )}
 
-                <Loader2 className="w-8 h-8 text-blue-600 dark:text-blue-400 animate-spin mx-auto mb-2" />
-                <h4 className="text-sm font-bold text-slate-900 dark:text-ds-text">
+                <Loader2 className="w-7 h-7 text-[#1e3fc8] dark:text-[#60a5fa] animate-spin mb-2" aria-hidden="true" />
+                <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
                   {effectiveStatus === 'uploading'
-                    ? 'Submitting dataset to ETL worker...'
+                    ? 'Submitting CSV and mappings to server...'
                     : taskStatus?.message || 'Processing dataset & retraining models...'}
-                </h4>
-                <p className="text-xs font-mono font-semibold text-blue-600 dark:text-blue-400 mt-1">
-                  {effectiveProgress}% completed
+                </h2>
+                <p className="text-xs font-mono font-semibold text-[#1e3fc8] dark:text-[#60a5fa] mt-1 tabular-nums">
+                  {effectiveProgress}% reported by worker
                 </p>
 
-                {/* High contrast progress bar */}
-                <div className="w-64 sm:w-80 h-2 bg-slate-200 dark:bg-slate-800 rounded-full mx-auto mt-3 overflow-hidden border border-slate-300/60 dark:border-slate-700 shadow-inner">
+                <div className="w-64 sm:w-80 h-2 bg-[#e4e4e7] dark:bg-[#27272a] rounded-full mt-3 overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full transition-all duration-500"
+                    className="h-full bg-[#1e3fc8] dark:bg-[#60a5fa] rounded-full transition-all duration-300"
                     style={{ width: `${effectiveProgress}%` }}
                   />
                 </div>
 
                 {taskId && (
-                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-mono mt-2.5">
-                    ETL Task Reference: {taskId}
+                  <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] font-mono mt-2.5">
+                    Task ID: {taskId}
                   </p>
                 )}
-              </>
+              </div>
             )}
           </motion.div>
         )}
 
-        {/* State: Schema Alignment Confirmation Panel (Step 3) */}
+        {/* Step 3: Schema Alignment Confirmation Panel */}
         {effectiveStatus === 'queued' && (
           <motion.div
             key="mapping"
-            initial={{ opacity: 0, y: 16 }}
+            initial={prefersReducedMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            className="rounded-2xl border border-amber-300 dark:border-amber-700/60 bg-white dark:bg-ds-surface shadow-xs overflow-hidden"
+            exit={prefersReducedMotion ? undefined : { opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="rounded-[16px] border border-amber-300 dark:border-amber-700/60 bg-white dark:bg-[#111113] overflow-hidden"
           >
-            {/* Informative Guidance Header */}
-            <div className="p-5 bg-gradient-to-r from-amber-50/90 via-amber-50/40 to-blue-50/30 dark:from-amber-950/40 dark:via-ds-surface dark:to-blue-950/20 border-b border-amber-200 dark:border-amber-900/40 flex items-start justify-between gap-4 flex-wrap">
-              <div className="flex items-start gap-3.5">
-                <div className="w-10 h-10 rounded-2xl bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 flex items-center justify-center flex-shrink-0 border border-amber-200 dark:border-amber-800/60 shadow-2xs">
-                  <AlertTriangle className="w-5 h-5" />
+            <div className="p-5 bg-amber-50/60 dark:bg-amber-950/25 border-b border-amber-200 dark:border-amber-900/40 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-[12px] bg-amber-100 dark:bg-amber-900/50 text-amber-800 dark:text-amber-300 flex items-center justify-center flex-shrink-0 border border-amber-200 dark:border-amber-800/60">
+                  <AlertTriangle className="w-5 h-5" aria-hidden="true" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
                       Schema Alignment Required
-                    </h3>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-200/70 text-amber-900 dark:bg-amber-900/70 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
-                      Step 3: Action Needed
+                    </h2>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-200/70 text-amber-900 dark:bg-amber-900/70 dark:text-amber-200">
+                      Step 3: Confirm before upload
                     </span>
                   </div>
-                  <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 font-medium leading-relaxed max-w-2xl">
-                    CSV file <strong className="text-slate-900 dark:text-white">{state.file?.name}</strong> has been uploaded and schema checked. Align each system field to your CSV column headers before ETL transformation resumes.
+                  <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-1 font-medium leading-relaxed max-w-2xl">
+                    Selected file <strong className="text-[#0a0a0a] dark:text-[#fafaf9]">{state.file?.name}</strong> has been inspected locally. Confirming ingestion below will upload this dataset and queue ML model retraining.
                   </p>
                 </div>
               </div>
 
               {state.file && (
-                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/80 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 shadow-2xs">
-                  <FileSpreadsheet className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span>{detectedColumns.length} headers detected</span>
-                  <span>•</span>
-                  <span>{formatFileSize(state.file.size)}</span>
+                <div className="flex items-center gap-2 flex-wrap self-start lg:self-center">
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-[10px] bg-white dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] text-xs font-semibold text-[#0a0a0a] dark:text-[#fafaf9]">
+                    <FileSpreadsheet className="w-4 h-4 text-[#1e3fc8] dark:text-[#60a5fa]" aria-hidden="true" />
+                    <span>{detectedColumns.length} headers</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{formatFileSize(state.file.size)}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="min-h-[34px] px-3 rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#18181b] text-xs font-semibold text-[#1e3fc8] dark:text-[#60a5fa] hover:border-[#1e3fc8] cursor-pointer"
+                  >
+                    Replace File
+                  </button>
                 </div>
               )}
             </div>
 
-            {/* Mapping Field Alignment Rows */}
             <div className="p-5 sm:p-6 space-y-4">
-              {/* Header Action Bar: Dynamic Auto-Matching Notification & Mapping Progress */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 dark:border-ds-border pb-3">
-                {/* Dynamic Auto-Matching Feedback */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-[#e4e4e7] dark:border-[#27272a] pb-3">
                 <div className="flex items-center gap-2">
                   {suggestedCount > 0 ? (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2.5 py-1 rounded-lg border border-blue-200 dark:border-blue-800 shadow-2xs">
-                      <Sparkles className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
-                      <span>{suggestedCount} of {systemColumns.length} fields auto-suggested for review</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#1e3fc8] dark:text-[#93c5fd] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 px-2.5 py-1 rounded-[8px] border border-[#bfdbfe] dark:border-[#1e3fc8]/40">
+                      <Sparkles className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>{suggestedCount} of {SYSTEM_COLUMNS.length} fields auto-suggested</span>
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-                      <Info className="w-3.5 h-3.5 text-slate-400" />
-                      <span>No automatic column matches detected — select matching headers below</span>
+                    <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#52525b] dark:text-[#a1a1aa] bg-[#fafaf9] dark:bg-[#18181b] px-2.5 py-1 rounded-[8px] border border-[#e4e4e7] dark:border-[#27272a]">
+                      <Info className="w-3.5 h-3.5" aria-hidden="true" />
+                      <span>No automatic matches detected — select matching headers below</span>
                     </span>
                   )}
                 </div>
 
-                {/* Compact Mapping Progress Pill */}
-                <div className="flex items-center gap-2 self-start sm:self-center">
-                  <span
-                    className={cn(
-                      'inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold border transition-colors shadow-2xs',
-                      allRequiredMapped
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-300 dark:border-emerald-800'
-                        : mappedRequiredCount > 0
-                        ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/50 dark:text-amber-300 dark:border-amber-800'
-                        : 'bg-slate-100 text-slate-600 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
-                    )}
-                  >
-                    {allRequiredMapped ? (
-                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                    ) : (
-                      <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
-                    )}
-                    <span>{mappedRequiredCount} of {requiredCount} required fields mapped</span>
-                  </span>
-                </div>
+                <span
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-1 rounded-[8px] text-xs font-bold border self-start sm:self-center',
+                    allRequiredMapped
+                      ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
+                      : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50'
+                  )}
+                >
+                  <span>{mappedRequiredCount} of {requiredCount} required fields mapped</span>
+                </span>
               </div>
 
-              {/* Duplicate source column alert (if user mapped same column to multiple fields) */}
               {duplicateSourceColumns.length > 0 && (
-                <div className="p-3 rounded-xl bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-200">
-                  <AlertCircle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0" />
+                <div className="p-3 rounded-[10px] bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800/60 flex items-center gap-2.5 text-xs text-amber-800 dark:text-amber-200">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   <span>
-                    Warning: CSV column <strong>"{duplicateSourceColumns.join('", "')}"</strong> is mapped to multiple system fields. Each system field should ideally map to a distinct CSV column.
+                    CSV column <strong>"{duplicateSourceColumns.join('", "')}"</strong> is mapped to multiple system fields. Each field should map to a distinct column.
                   </span>
                 </div>
               )}
 
-              {/* Short CSV warning if file has fewer headers than required fields */}
               {detectedColumns.length < 4 && (
-                <div className="p-3 rounded-xl bg-rose-50/80 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 flex items-center gap-2.5 text-xs text-rose-800 dark:text-rose-200">
-                  <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 flex-shrink-0" />
+                <div className="p-3 rounded-[10px] bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800/60 flex items-center gap-2.5 text-xs text-rose-800 dark:text-rose-200">
+                  <AlertTriangle className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
                   <span>
-                    This CSV contains only <strong>{detectedColumns.length}</strong> column headers. Titan AI requires at least 4 distinct columns (Transaction Date, SKU, Quantity, and Unit Price) for valid forecasting.
+                    This CSV has only <strong>{detectedColumns.length}</strong> headers. At least 4 columns (Transaction Date, Product SKU, Quantity Sold, Unit Price) are required.
                   </span>
                 </div>
               )}
 
-              {/* Field Rows with Calm Initial State */}
               <div className="space-y-2.5">
-                {systemColumns.map((col) => {
+                {SYSTEM_COLUMNS.map((col) => {
                   const currentMappedVal = mappings[col.id] || '';
                   const isMapped = Boolean(currentMappedVal);
                   const sampleVal = currentMappedVal ? columnSamples[currentMappedVal] : null;
@@ -858,139 +853,115 @@ export default function UploadPage() {
                     <div
                       key={col.id}
                       className={cn(
-                        'p-3.5 rounded-xl border transition-all duration-150',
+                        'p-3.5 rounded-[12px] border transition-colors duration-150',
                         isMapped
-                          ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-200/90 dark:border-emerald-800/60 shadow-2xs'
+                          ? 'bg-emerald-50/20 dark:bg-emerald-950/10 border-emerald-200 dark:border-emerald-800/50'
                           : isMissingAfterSubmit
-                          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800/80 ring-2 ring-rose-400/20'
-                          : 'bg-white dark:bg-ds-surface border-slate-200 dark:border-ds-border hover:border-slate-300 dark:hover:border-slate-700'
+                          ? 'bg-rose-50/40 dark:bg-rose-950/20 border-rose-300 dark:border-rose-800'
+                          : 'bg-white dark:bg-[#111113] border-[#e4e4e7] dark:border-[#27272a]'
                       )}
                     >
-                      <div className="grid grid-cols-1 md:grid-cols-[230px_auto_1fr] items-center gap-3">
-                        {/* System Target Field Information & Interactive Help Button */}
+                      <div className="grid grid-cols-1 md:grid-cols-[240px_auto_1fr] items-center gap-3">
                         <div>
                           <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-slate-900 dark:text-ds-text">
+                            <label
+                              htmlFor={`map-select-${col.id}`}
+                              className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9]"
+                            >
                               {col.label}
-                            </span>
+                            </label>
                             {col.required ? (
                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300">
                                 Required
                               </span>
                             ) : (
-                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                              <span className="text-[10px] font-medium px-1.5 py-0.5 rounded bg-[#fafaf9] text-[#52525b] dark:bg-[#18181b] dark:text-[#a1a1aa]">
                                 Optional
                               </span>
                             )}
                             <button
                               type="button"
+                              aria-label={`Field specification for ${col.label}`}
+                              aria-expanded={isHelpOpen}
                               onClick={() => setActiveHelpColumn(isHelpOpen ? null : col.id)}
-                              title="Click for field requirements & format specification"
-                              className="text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors p-0.5 cursor-pointer"
+                              className="text-[#52525b] hover:text-[#1e3fc8] dark:text-[#a1a1aa] dark:hover:text-[#60a5fa] p-0.5 cursor-pointer"
                             >
-                              <HelpCircle className="w-3.5 h-3.5" />
+                              <HelpCircle className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                            {col.dataType} • {col.expectedFormat}
+                          <p className="text-[10px] text-[#52525b] dark:text-[#a1a1aa] mt-0.5">
+                            {col.dataType} · {col.expectedFormat}
                           </p>
                         </div>
 
-                        {/* Arrow separator */}
-                        <div className="hidden md:flex items-center justify-center text-slate-400">
-                          <ArrowRight className="w-4 h-4" />
+                        <div className="hidden md:flex items-center justify-center text-[#52525b] dark:text-[#a1a1aa]">
+                          <ArrowRight className="w-4 h-4" aria-hidden="true" />
                         </div>
 
-                        {/* CSV Column Selector & Sample Data Preview */}
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-                          <div className="relative flex-1">
-                            <select
-                              value={currentMappedVal}
-                              onChange={(e) => handleMappingChange(col.id, e.target.value)}
-                              className={cn(
-                                'w-full px-3 py-2 rounded-xl text-xs font-semibold focus:outline-none transition-all shadow-2xs border appearance-none pr-8 cursor-pointer',
-                                isMapped
-                                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 border-blue-400 dark:border-blue-600 focus:ring-2 focus:ring-blue-500/20'
-                                  : isMissingAfterSubmit
-                                  ? 'bg-rose-50/50 dark:bg-slate-800 text-rose-800 dark:text-rose-200 border-rose-300 dark:border-rose-700 focus:ring-2 focus:ring-rose-500/20'
-                                  : 'bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-300 dark:border-slate-700 focus:ring-2 focus:ring-blue-500/20'
-                              )}
-                            >
-                              <option value="" disabled>
-                                Select matching CSV column...
+                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                          <select
+                            id={`map-select-${col.id}`}
+                            value={currentMappedVal}
+                            onChange={(e) => handleMappingChange(col.id, e.target.value)}
+                            className="flex-1 min-h-[38px] px-3 py-1.5 rounded-[10px] text-xs font-semibold bg-white dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20 cursor-pointer"
+                          >
+                            <option value="" disabled>
+                              Select matching CSV column...
+                            </option>
+                            {detectedColumns.map((csvCol) => (
+                              <option key={csvCol} value={csvCol}>
+                                {csvCol} {columnSamples[csvCol] ? `(e.g. "${columnSamples[csvCol]}")` : ''}
                               </option>
-                              {detectedColumns.map((csvCol) => (
-                                <option key={csvCol} value={csvCol}>
-                                  {csvCol} {columnSamples[csvCol] ? `(e.g. "${columnSamples[csvCol]}")` : ''}
-                                </option>
-                              ))}
-                            </select>
-                            <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-slate-400">
-                              <ArrowRight className="w-3.5 h-3.5 rotate-90" />
-                            </div>
-                          </div>
+                            ))}
+                          </select>
 
-                          {/* Sample Value & Status Tag */}
                           <div className="flex items-center gap-2 flex-shrink-0">
                             {isMapped && sampleVal && (
-                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-[11px] font-mono border border-slate-200 dark:border-slate-700">
-                                <span className="text-slate-400 font-sans text-[10px]">Sample:</span>
-                                <span className="font-semibold truncate max-w-[130px]">"{sampleVal}"</span>
+                              <div className="inline-flex items-center gap-1 px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] text-[11px] font-mono border border-[#e4e4e7] dark:border-[#27272a]">
+                                <span className="text-[#52525b] dark:text-[#a1a1aa] font-sans text-[10px]">Sample:</span>
+                                <span className="font-semibold truncate max-w-[120px]">"{sampleVal}"</span>
                               </div>
                             )}
 
                             {isSuggested && (
-                              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-blue-700 dark:text-blue-300 bg-blue-50 dark:bg-blue-950/50 px-2 py-0.5 rounded-md border border-blue-200 dark:border-blue-800">
-                                <Sparkles className="w-3 h-3 text-blue-500" />
+                              <span className="text-[10px] font-semibold text-[#1e3fc8] dark:text-[#93c5fd] bg-[#eff6ff] dark:bg-[#1e3fc8]/20 px-2 py-0.5 rounded border border-[#bfdbfe] dark:border-[#1e3fc8]/40">
                                 Suggested
                               </span>
                             )}
 
-                            {isMapped ? (
-                              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center flex-shrink-0" title="Valid mapped column">
-                                <Check className="w-3.5 h-3.5" />
-                              </div>
-                            ) : (
-                              <div
-                                className={cn(
-                                  'w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-bold',
-                                  isMissingAfterSubmit
-                                    ? 'bg-rose-100 text-rose-600 dark:bg-rose-950/80 dark:text-rose-300'
-                                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400'
-                                )}
-                                title={col.required ? 'Field required for ingestion' : 'Optional field'}
-                              >
-                                {col.required ? '!' : '—'}
+                            {isMapped && (
+                              <div className="w-6 h-6 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center flex-shrink-0">
+                                <Check className="w-3.5 h-3.5" aria-hidden="true" />
                               </div>
                             )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Interactive Field Help Specification Card */}
                       {isHelpOpen && (
-                        <div className="mt-3 p-3.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/80 dark:border-blue-800/60 text-xs space-y-1.5">
-                          <div className="flex items-center justify-between font-bold text-blue-900 dark:text-blue-200">
-                            <span>{col.label} — Specification &amp; Pipeline Requirements</span>
+                        <div className="mt-3 p-3.5 rounded-[10px] bg-[#eff6ff]/70 dark:bg-[#1e3fc8]/10 border border-[#bfdbfe] dark:border-[#1e3fc8]/30 text-xs space-y-1.5">
+                          <div className="flex items-center justify-between font-bold text-[#0a0a0a] dark:text-[#fafaf9]">
+                            <span>{col.label} — Specification</span>
                             <button
                               type="button"
+                              aria-label="Close field specification"
                               onClick={() => setActiveHelpColumn(null)}
-                              className="text-blue-500 hover:text-blue-700 dark:hover:text-blue-300 cursor-pointer"
+                              className="text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] cursor-pointer"
                             >
-                              <X className="w-3.5 h-3.5" />
+                              <X className="w-3.5 h-3.5" aria-hidden="true" />
                             </button>
                           </div>
-                          <p className="text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed">
+                          <p className="text-[#52525b] dark:text-[#a1a1aa] text-[11px] leading-relaxed">
                             {col.purpose}
                           </p>
                           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1 font-mono text-[11px]">
                             <div>
-                              <span className="text-slate-400 font-sans">Expected format: </span>
-                              <strong className="text-slate-800 dark:text-slate-200">{col.expectedFormat}</strong>
+                              <span className="text-[#52525b] dark:text-[#a1a1aa] font-sans">Format: </span>
+                              <strong className="text-[#0a0a0a] dark:text-[#fafaf9]">{col.expectedFormat}</strong>
                             </div>
                             <div>
-                              <span className="text-slate-400 font-sans">Example accepted value: </span>
-                              <strong className="text-slate-800 dark:text-slate-200">"{col.example}"</strong>
+                              <span className="text-[#52525b] dark:text-[#a1a1aa] font-sans">Example: </span>
+                              <strong className="text-[#0a0a0a] dark:text-[#fafaf9]">"{col.example}"</strong>
                             </div>
                           </div>
                         </div>
@@ -1000,45 +971,38 @@ export default function UploadPage() {
                 })}
               </div>
 
-              {/* Validation Status & Action Buttons */}
-              <div className="mt-6 pt-4 border-t border-slate-100 dark:border-ds-border flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="mt-5 pt-4 border-t border-[#e4e4e7] dark:border-[#27272a] flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-xs">
                   {allRequiredMapped ? (
-                    <div className="flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                      <span>All 4 required system fields successfully mapped</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-emerald-700 dark:text-emerald-300 font-semibold">
+                      <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+                      All {requiredCount} required fields mapped — ready to upload and retrain
+                    </span>
                   ) : (
-                    <div className="flex items-center gap-1.5 text-slate-600 dark:text-slate-300 font-medium">
-                      <Info className="w-4 h-4 text-amber-500" />
-                      <span>{missingRequired.length} required {missingRequired.length === 1 ? 'field' : 'fields'} remaining: {missingRequired.join(', ')}</span>
-                    </div>
+                    <span className="inline-flex items-center gap-1.5 text-[#52525b] dark:text-[#a1a1aa] font-medium">
+                      <Info className="w-4 h-4 text-amber-600" aria-hidden="true" />
+                      Remaining required: {missingRequired.join(', ')}
+                    </span>
                   )}
                 </div>
 
-                <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                <div className="flex items-center gap-2.5 justify-end">
                   <button
-                    onClick={() => {
-                      setState({ file: null, status: 'idle', progress: 0 });
-                      setMappings({});
-                      setDetectedColumns([]);
-                      setColumnSamples({});
-                      setHasAttemptedSubmit(false);
-                      setActiveHelpColumn(null);
-                    }}
-                    className="h-9 px-4 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300 text-xs font-semibold shadow-2xs transition-all active:scale-95 cursor-pointer"
+                    type="button"
+                    onClick={resetAll}
+                    className="min-h-[40px] px-4 rounded-[10px] border border-[#e4e4e7] dark:border-[#27272a] bg-white hover:bg-[#fafaf9] dark:bg-[#18181b] dark:hover:bg-[#27272a] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold cursor-pointer"
                   >
                     Cancel Upload
                   </button>
 
                   <button
+                    type="button"
                     onClick={resumePipeline}
                     disabled={!allRequiredMapped}
-                    title={!allRequiredMapped ? `Please map: ${missingRequired.join(', ')}` : undefined}
-                    className="h-9 px-5 rounded-xl text-xs font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-2xs transition-all duration-150 active:scale-95 flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                    className="min-h-[40px] px-5 rounded-[10px] text-xs font-semibold text-white bg-[#1e3fc8] hover:bg-[#1935a8] transition-colors inline-flex items-center justify-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
                   >
-                    <span>Confirm Mapping &amp; Ingest ({mappedRequiredCount}/{requiredCount} Required Mapped)</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    <span>Confirm Mapping &amp; Ingest ({mappedRequiredCount}/{requiredCount})</span>
+                    <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
                   </button>
                 </div>
               </div>
@@ -1047,109 +1011,123 @@ export default function UploadPage() {
         )}
       </AnimatePresence>
 
-      {/* ── 5. RECENT UPLOADS TABLE ──────────────────────────────────── */}
-      <motion.div
-        initial={{ opacity: 0, y: 16 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.25 }}
-        className="rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs overflow-hidden"
+      {/* ── 5. Historic Ingestion Logs ───────────────────────────────── */}
+      <section
+        aria-label="Recent Ingestion Logs"
+        className="rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] overflow-hidden"
       >
-        <div className="px-5 py-4 border-b border-slate-100 dark:border-ds-border bg-gradient-to-r from-slate-50/70 via-white to-white dark:bg-none dark:from-ds-surface-sunken/40 dark:via-ds-surface dark:to-ds-surface flex items-center justify-between flex-wrap gap-2">
+        <div className="px-5 py-4 border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9]/70 dark:bg-[#18181b]/40 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div>
-            <h3 className="text-sm font-bold text-slate-900 dark:text-ds-text-primary tracking-tight">
+            <h2 className="text-sm font-bold text-[#0a0a0a] dark:text-[#fafaf9] tracking-tight">
               Recent Ingestion Logs
-            </h3>
-            <p className="text-xs text-slate-500 dark:text-ds-text-muted mt-0.5 font-medium">
-              Audit log of historical CSV uploads and ETL pipeline outcomes
+            </h2>
+            <p className="text-xs text-[#52525b] dark:text-[#a1a1aa] mt-0.5 font-medium">
+              Historical upload runs from database (independent of the current pipeline state above)
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 text-xs font-semibold border border-slate-200/60 dark:border-slate-700">
-            {(historyData?.uploads ?? []).length} recorded
+          <span className="inline-flex items-center px-2.5 py-1 rounded-[8px] bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] text-xs font-semibold border border-[#e4e4e7] dark:border-[#27272a] font-mono tabular-nums self-start sm:self-center">
+            {historyUploads.length} recorded
           </span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left min-w-[640px]">
-            <thead>
-              <tr className="border-b border-slate-200/80 dark:border-ds-border bg-slate-50/80 dark:bg-ds-surface-sunken/50">
-                {['Run ID & File Name', 'Rows Processed', 'File Size', 'Upload Date & Time', 'Pipeline Status'].map((h) => (
-                  <th
-                    key={h}
-                    className="px-5 py-3 text-[11px] font-bold text-slate-600 dark:text-ds-text-secondary uppercase tracking-wider"
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {(historyData?.uploads ?? []).map((f, i) => (
-                <motion.tr
-                  key={f.id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.2 + i * 0.02 }}
-                  className="border-b border-slate-100/80 dark:border-ds-border/40 hover:bg-slate-50/70 dark:hover:bg-ds-surface-sunken/40 transition-colors"
-                >
-                  <td className="px-5 py-3.5 text-sm font-bold text-slate-900 dark:text-ds-text">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200/80 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-900/60 flex items-center justify-center flex-shrink-0 shadow-2xs">
-                        <FileSpreadsheet className="w-4 h-4" />
-                      </div>
-                      <div className="flex flex-col">
-                        <span className="font-bold text-xs text-slate-900 dark:text-slate-100">{f.filename}</span>
-                        <span className="text-[10px] font-mono text-slate-600 dark:text-slate-300">Run #{f.id}</span>
-                      </div>
-                    </div>
-                  </td>
-
-                  <td className="px-5 py-3.5 text-xs text-slate-700 dark:text-slate-300 font-semibold tabular-nums">
-                    {(f.rows_processed ?? 0).toLocaleString()} rows
-                  </td>
-
-                  <td className="px-5 py-3.5 text-xs text-slate-700 dark:text-slate-300 font-mono font-medium">
-                    {formatFileSize(f.file_size_bytes, f.size)}
-                  </td>
-
-                  <td className="px-5 py-3.5 text-xs text-slate-600 dark:text-slate-300 tabular-nums font-medium">
-                    {f.date} {f.time ? `• ${f.time}` : ''}
-                  </td>
-
-                  <td className="px-5 py-3.5">
-                    <span
-                      className={cn(
-                        'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shadow-2xs',
-                        f.status === 'completed'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800'
-                          : f.status === 'queued' || f.status === 'processing'
-                          ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800'
-                          : 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800'
-                      )}
+        {historyUploads.length === 0 ? (
+          <div className="px-5 py-10 text-center text-xs text-[#52525b] dark:text-[#a1a1aa]">
+            No upload telemetry recorded yet. Select and confirm a CSV dataset above.
+          </div>
+        ) : (
+          <>
+            {/* Desktop Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left">
+                <thead>
+                  <tr className="border-b border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b]/60">
+                    {['Run ID & File Name', 'Rows Processed', 'File Size', 'Upload Date & Time', 'Pipeline Status'].map((h) => (
+                      <th
+                        key={h}
+                        scope="col"
+                        className="px-5 py-3 text-[11px] font-bold text-[#52525b] dark:text-[#a1a1aa] uppercase tracking-[0.06em]"
+                      >
+                        {h}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+                  {historyUploads.map((f) => (
+                    <tr
+                      key={f.id}
+                      className="hover:bg-[#fafaf9] dark:hover:bg-[#18181b]/40 transition-colors duration-150"
                     >
-                      {f.status === 'completed' ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
-                      ) : f.status === 'queued' || f.status === 'processing' ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-600 dark:text-amber-400" />
-                      ) : (
-                        <AlertTriangle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
-                      )}
-                      <span>{f.status.charAt(0).toUpperCase() + f.status.slice(1)}</span>
-                    </span>
-                  </td>
-                </motion.tr>
-              ))}
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-[10px] bg-[#eff6ff] text-[#1e3fc8] border border-[#bfdbfe] dark:bg-[#1e3fc8]/20 dark:text-[#93c5fd] dark:border-[#1e3fc8]/40 flex items-center justify-center flex-shrink-0">
+                            <FileSpreadsheet className="w-4 h-4" aria-hidden="true" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-xs text-[#0a0a0a] dark:text-[#fafaf9]">{f.filename}</p>
+                            <p className="text-[10px] font-mono text-[#52525b] dark:text-[#a1a1aa]">Run #{f.id}</p>
+                          </div>
+                        </div>
+                      </td>
 
-              {(historyData?.uploads ?? []).length === 0 && (
-                <tr>
-                  <td colSpan={5} className="px-5 py-10 text-center text-xs text-slate-400 dark:text-slate-500">
-                    No upload telemetry recorded yet. Ingest your first dataset above.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </motion.div>
+                      <td className="px-5 py-3.5 text-xs text-[#0a0a0a] dark:text-[#fafaf9] font-semibold tabular-nums">
+                        {(f.rows_processed ?? 0).toLocaleString()} rows
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono tabular-nums">
+                        {formatFileSize(f.file_size_bytes, f.size)}
+                      </td>
+
+                      <td className="px-5 py-3.5 text-xs text-[#52525b] dark:text-[#a1a1aa] tabular-nums">
+                        {f.date} {f.time ? `· ${f.time}` : ''}
+                      </td>
+
+                      <td className="px-5 py-3.5">
+                        <span
+                          className={cn(
+                            'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded text-xs font-semibold border',
+                            f.status === 'completed'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800/50'
+                              : f.status === 'queued' || f.status === 'processing'
+                              ? 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50'
+                              : 'bg-rose-50 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-800/50'
+                          )}
+                        >
+                          {f.status.charAt(0).toUpperCase() + f.status.slice(1)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Mobile Stacked Cards (<768px) */}
+            <div className="md:hidden divide-y divide-[#e4e4e7] dark:divide-[#27272a]">
+              {historyUploads.map((f) => (
+                <div key={f.id} className="p-4 space-y-1.5">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-[#0a0a0a] dark:text-[#fafaf9] break-words">
+                        {f.filename}
+                      </p>
+                      <p className="text-[11px] font-mono text-[#52525b] dark:text-[#a1a1aa]">
+                        Run #{f.id} · {formatFileSize(f.file_size_bytes, f.size)}
+                      </p>
+                    </div>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold border border-[#e4e4e7] dark:border-[#27272a] bg-[#fafaf9] dark:bg-[#18181b] text-[#0a0a0a] dark:text-[#fafaf9] capitalize flex-shrink-0">
+                      {f.status}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#52525b] dark:text-[#a1a1aa] tabular-nums">
+                    {(f.rows_processed ?? 0).toLocaleString()} rows · {f.date} {f.time ? `· ${f.time}` : ''}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
+      </section>
     </div>
   );
 }

@@ -14,11 +14,24 @@
   const railEl = productSection.querySelector('.tab-rail');
   const autoplayBtn = productSection.querySelector('#pvAutoplayBtn');
   const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const mobileMQ = window.matchMedia('(max-width: 799px)');
   const AUTOPLAY_MS = 9000;
   let currentModule = 'forecast';
   let autoplayRaf = 0;
   let autoplayStart = 0;
   let demoCtrl = null;
+
+  const scrollTabIntoViewX = (btn) => {
+    if (!railEl || !btn) return;
+    if (railEl.scrollWidth <= railEl.clientWidth + 2) return;
+    const railRect = railEl.getBoundingClientRect();
+    const btnRect = btn.getBoundingClientRect();
+    const targetLeft = railEl.scrollLeft + (btnRect.left - railRect.left) - (railRect.width - btnRect.width) / 2;
+    railEl.scrollTo({
+      left: Math.max(0, targetLeft),
+      behavior: prefersReduced ? 'auto' : 'smooth'
+    });
+  };
 
   // Hydrate TabRail metrics from demoScenario
   if (window.demoScenario) {
@@ -140,6 +153,7 @@
       if (demoCtrl) demoCtrl.stopByUser();
       updateAutoplayBtn(true);
       switchView(btn.dataset.module);
+      scrollTabIntoViewX(btn);
     });
     btn.addEventListener('keydown', e => {
       let nextIdx = null;
@@ -154,8 +168,24 @@
       const next = navItems[nextIdx];
       next.focus();
       switchView(next.dataset.module);
+      scrollTabIntoViewX(next);
     });
   });
+
+  if (railEl) {
+    const syncOrientation = () => {
+      railEl.setAttribute('aria-orientation', mobileMQ.matches ? 'horizontal' : 'vertical');
+    };
+    syncOrientation();
+    mobileMQ.addEventListener('change', e => {
+      syncOrientation();
+      if (e.matches) {
+        stopAutoplayLoop();
+        if (demoCtrl) demoCtrl.stopByUser();
+        updateAutoplayBtn(true);
+      }
+    });
+  }
 
   function updateAutoplayBtn(paused) {
     if (!autoplayBtn) return;
@@ -168,7 +198,7 @@
   }
 
   function startAutoplayLoop() {
-    if (prefersReduced || autoplayRaf) return;
+    if (prefersReduced || mobileMQ.matches || autoplayRaf) return;
     autoplayStart = performance.now();
     const tick = (now) => {
       if (document.hidden || !demoCtrl || demoCtrl.paused || demoCtrl.userStopped) {
@@ -190,7 +220,7 @@
     autoplayRaf = requestAnimationFrame(tick);
   }
 
-  if (window.TitanMotion && !prefersReduced) {
+  if (window.TitanMotion && !prefersReduced && !mobileMQ.matches) {
     demoCtrl = window.TitanMotion.registerDemo('product-rail', productSection, {
       start: () => { updateAutoplayBtn(false); startAutoplayLoop(); },
       pause: () => { stopAutoplayLoop(); }

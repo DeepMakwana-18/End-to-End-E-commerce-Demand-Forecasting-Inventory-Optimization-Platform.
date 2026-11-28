@@ -1,11 +1,8 @@
 /**
  * AnomalyFilterBar — Investigation toolbar
- * Redesigned for seamless desktop alignment without awkward wrapping:
- *  - Left: Search field + Severity filter + Type filter
- *  - Right: Show resolved toggle + Result count + Clear action + Refresh action
+ * Spacious responsive layout so Search, Severity, Type, Show resolved, Count, and Refresh never clip.
  */
 
-import { motion } from 'framer-motion';
 import { Search, X, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { AnomalyFilters, AnomalyType, AnomalySeverity } from '@/types/anomaly';
@@ -44,31 +41,33 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
     onChange({ severity: 'all', anomaly_type: 'all', include_resolved: false, search: '' });
 
   return (
-    <div className="p-2.5 sm:p-3 rounded-2xl border border-slate-200/90 dark:border-ds-border bg-white dark:bg-ds-surface shadow-2xs flex flex-wrap xl:flex-nowrap items-center justify-between gap-2.5">
+    <div className="p-3 sm:p-4 rounded-[16px] border border-[#e4e4e7] dark:border-[#27272a] bg-white dark:bg-[#111113] flex flex-col lg:flex-row lg:items-center justify-between gap-3">
       {/* Left group: Search + Filters */}
-      <div className="flex items-center gap-2 flex-1 min-w-[280px]">
+      <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 flex-1 min-w-0">
         {/* Search */}
-        <div className="relative flex-1 min-w-[140px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400 dark:text-ds-text-muted pointer-events-none" />
+        <div className="relative flex-1 min-w-[200px] w-full sm:w-auto">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#52525b] dark:text-[#a1a1aa] pointer-events-none" aria-hidden="true" />
           <input
             id="anomaly-search"
             type="text"
             value={filters.search}
             onChange={(e) => onChange({ ...filters, search: e.target.value })}
-            placeholder="Search explanations or dates…"
+            placeholder="Search explanations, types, or dates…"
+            aria-label="Search anomalies"
             className={cn(
-              'w-full pl-8.5 pr-7 py-1.5 sm:py-2 bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border rounded-xl',
-              'text-xs sm:text-sm text-slate-900 dark:text-ds-text-heading placeholder:text-slate-400 dark:placeholder:text-ds-text-muted',
-              'focus:outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20',
-              'transition-all duration-200 shadow-2xs'
+              'w-full pl-9 pr-8 py-2 bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[10px]',
+              'text-xs sm:text-sm text-[#0a0a0a] dark:text-[#fafaf9] placeholder:text-[#52525b] dark:placeholder:text-[#a1a1aa]',
+              'focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20 transition-colors duration-150'
             )}
           />
           {filters.search && (
             <button
+              type="button"
               onClick={() => onChange({ ...filters, search: '' })}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-ds-text-secondary"
+              aria-label="Clear search"
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#52525b] hover:text-[#0a0a0a] dark:text-[#a1a1aa] dark:hover:text-[#fafaf9] cursor-pointer"
             >
-              <X className="w-3 h-3" />
+              <X className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
@@ -76,12 +75,13 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
         {/* Severity filter */}
         <select
           id="filter-severity"
+          aria-label="Filter by severity"
           value={filters.severity}
-          onChange={(e) => onChange({ ...filters, severity: e.target.value as any })}
+          onChange={(e) => onChange({ ...filters, severity: e.target.value as AnomalySeverity | 'all' })}
           className={cn(
-            'px-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border rounded-xl',
-            'text-xs text-slate-800 dark:text-ds-text-secondary focus:outline-none focus:border-indigo-500',
-            'transition-all duration-200 cursor-pointer shadow-2xs font-medium whitespace-nowrap'
+            'px-3 py-2 bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[10px]',
+            'text-xs text-[#0a0a0a] dark:text-[#fafaf9] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20',
+            'cursor-pointer font-semibold whitespace-nowrap'
           )}
         >
           {SEVERITY_OPTIONS.map((o) => (
@@ -92,12 +92,13 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
         {/* Type filter */}
         <select
           id="filter-type"
+          aria-label="Filter by anomaly type"
           value={filters.anomaly_type}
-          onChange={(e) => onChange({ ...filters, anomaly_type: e.target.value as any })}
+          onChange={(e) => onChange({ ...filters, anomaly_type: e.target.value as AnomalyType | 'all' })}
           className={cn(
-            'px-2.5 py-1.5 sm:py-2 bg-slate-50 dark:bg-ds-surface-sunken border border-slate-200/90 dark:border-ds-border rounded-xl',
-            'text-xs text-slate-800 dark:text-ds-text-secondary focus:outline-none focus:border-indigo-500',
-            'transition-all duration-200 cursor-pointer shadow-2xs font-medium whitespace-nowrap'
+            'px-3 py-2 bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] rounded-[10px]',
+            'text-xs text-[#0a0a0a] dark:text-[#fafaf9] focus:outline-none focus:border-[#1e3fc8] focus:ring-2 focus:ring-[#1e3fc8]/20',
+            'cursor-pointer font-semibold whitespace-nowrap'
           )}
         >
           {TYPE_OPTIONS.map((o) => (
@@ -107,62 +108,58 @@ export function AnomalyFilterBar({ filters, onChange, isLoading, onRefresh, tota
       </div>
 
       {/* Right group: Toggle + Count + Clear + Refresh */}
-      <div className="flex items-center gap-2.5 flex-shrink-0">
+      <div className="flex flex-wrap items-center justify-between sm:justify-end gap-3 flex-shrink-0">
         {/* Show resolved toggle */}
-        <label className="flex items-center gap-2 cursor-pointer select-none group" htmlFor="toggle-resolved">
-          <div
+        <label className="flex items-center gap-2 cursor-pointer select-none" htmlFor="toggle-resolved">
+          <button
             id="toggle-resolved"
+            type="button"
             role="switch"
             aria-checked={filters.include_resolved}
             onClick={() => onChange({ ...filters, include_resolved: !filters.include_resolved })}
             className={cn(
-              'relative w-9 h-5 rounded-full border transition-all duration-200 cursor-pointer flex-shrink-0',
+              'relative w-9 h-5 rounded-full border transition-colors duration-150 cursor-pointer flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]',
               filters.include_resolved
-                ? 'bg-indigo-600 border-indigo-600'
-                : 'bg-slate-200 dark:bg-ds-surface-sunken border-slate-300 dark:border-ds-border'
+                ? 'bg-[#1e3fc8] border-[#1e3fc8]'
+                : 'bg-[#e4e4e7] dark:bg-[#27272a] border-[#d4d4d8] dark:border-[#3f3f46]'
             )}
           >
-            <div
+            <span
               className={cn(
-                'absolute top-0.5 w-3.5 h-3.5 rounded-full transition-all duration-200 shadow-xs bg-white',
-                filters.include_resolved
-                  ? 'left-4.5'
-                  : 'left-0.5'
+                'block w-3.5 h-3.5 rounded-full transition-transform duration-150 bg-white shadow-xs',
+                filters.include_resolved ? 'translate-x-4' : 'translate-x-0.5'
               )}
             />
-          </div>
-          <span className="text-xs text-slate-600 dark:text-ds-text-secondary group-hover:text-slate-900 dark:group-hover:text-ds-text-heading transition-colors whitespace-nowrap font-medium">
+          </button>
+          <span className="text-xs text-[#0a0a0a] dark:text-[#fafaf9] whitespace-nowrap font-semibold">
             Show resolved
           </span>
         </label>
 
-        {/* Clear filter button */}
         {isDirty && (
-          <motion.button
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
+          <button
             id="reset-filters"
+            type="button"
             onClick={handleReset}
-            className="flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-lg text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors font-medium"
+            className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 rounded-[8px] text-rose-700 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors font-semibold cursor-pointer"
           >
-            <X className="w-3.5 h-3.5" />
-            Clear
-          </motion.button>
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
+            <span>Clear</span>
+          </button>
         )}
 
-        {/* Result count */}
-        <span className="text-xs text-slate-500 dark:text-ds-text-muted font-mono font-medium px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-ds-surface-sunken border border-slate-200/60 dark:border-ds-border whitespace-nowrap">
+        <span className="text-xs text-[#52525b] dark:text-[#a1a1aa] font-mono font-semibold px-2.5 py-1 rounded-[8px] bg-[#fafaf9] dark:bg-[#18181b] border border-[#e4e4e7] dark:border-[#27272a] whitespace-nowrap tabular-nums">
           {total} result{total !== 1 ? 's' : ''}
         </span>
 
-        {/* Refresh button */}
         <button
           id="refresh-anomalies"
+          type="button"
           onClick={onRefresh}
           disabled={isLoading}
-          className="btn-apple btn-apple-soft text-xs h-9 px-3.5 flex items-center gap-1.5 shadow-2xs border border-slate-200 dark:border-ds-border rounded-xl whitespace-nowrap"
+          className="h-9 px-3.5 rounded-[10px] text-xs font-semibold inline-flex items-center gap-1.5 bg-white dark:bg-[#111113] text-[#0a0a0a] dark:text-[#fafaf9] border border-[#e4e4e7] dark:border-[#27272a] hover:bg-[#fafaf9] dark:hover:bg-[#18181b] transition-colors whitespace-nowrap cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#1e3fc8]"
         >
-          <RefreshCw className={cn('w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400', isLoading && 'animate-spin')} />
+          <RefreshCw className={cn('w-3.5 h-3.5 text-[#1e3fc8] dark:text-[#60a5fa]', isLoading && 'animate-spin')} aria-hidden="true" />
           <span>Refresh</span>
         </button>
       </div>
