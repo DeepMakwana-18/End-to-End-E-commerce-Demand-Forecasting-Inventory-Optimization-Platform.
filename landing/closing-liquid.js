@@ -9,7 +9,8 @@
   const header = document.querySelector('[data-header]');
   const media = matchMedia('(prefers-reduced-motion: reduce)');
   const coarseMQ = matchMedia('(pointer: coarse)');
-  const isUnpinned = () => media.matches;
+  const mobileMQ = matchMedia('(max-width: 799px)');
+  const isUnpinned = () => media.matches || mobileMQ.matches;
 
   const glass = window.TitanGlass;
   const qualityMon = glass ? glass.createQualityMonitor() : null;
@@ -224,7 +225,9 @@
     section.classList.toggle('liquid-ready', !unpinned);
     measure();
     if (unpinned) {
+      if (springRaf) { cancelAnimationFrame(springRaf); springRaf = 0; }
       if (lensObj) lensObj.update(-9999);
+      if (veil) veil.style.transform = '';
       if (title) title.style.transform = 'none';
       settleTargets.forEach(el => { el.style.opacity = '1'; el.style.transform = 'none'; el.inert = false; });
       section.dataset.arcDark = 'true';
@@ -278,6 +281,7 @@
 
   document.addEventListener('visibilitychange', syncActiveState);
   media.addEventListener('change', configure);
+  mobileMQ.addEventListener('change', configure);
 
   // Pointer-following specular highlight on fine pointers only
   const actions = section.querySelector('.closing-actions');

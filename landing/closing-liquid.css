@@ -279,30 +279,41 @@ body {
   z-index: 6;
 }
 
-@media (max-width: 767px) {
+@media (max-width: 799px) {
+  #closing,
   #closing.liquid-ready {
-    height: 150svh !important;
+    height: auto !important;
+    min-height: 0 !important;
   }
 
-  #closing .closing-stage {
-    padding: 84px 20px 20px;
+  #closing .closing-stage,
+  #closing.liquid-ready .closing-stage {
+    position: relative !important;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 56px 16px 28px;
+  }
+
+  #closing .closing-veil,
+  #closing .lens {
+    display: none !important;
   }
 
   #closing .closing-inner {
-    padding-top: 16px;
+    padding-top: 8px;
   }
 
   #closing .closing-orbit-slot,
   #closing .closing-orbit-mark {
-    width: 72px;
-    height: 72px;
+    width: 64px;
+    height: 64px;
   }
 
   #closing footer {
     flex-direction: column;
     justify-content: center;
     text-align: center;
-    margin-top: 20px;
+    margin-top: 24px;
   }
 }
 

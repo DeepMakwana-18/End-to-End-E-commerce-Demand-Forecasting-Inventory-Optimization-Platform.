@@ -281,7 +281,23 @@ html {
   color: #fafaf9 !important;
 }
 
-.site-header.on-dark .nav-toggle span {
+.site-header:not(.on-dark) .nav-toggle {
+  color: #0b0b0c;
+  background-color: rgba(10, 10, 10, 0.07);
+}
+
+.site-header:not(.on-dark) .nav-toggle span {
+  background: #0b0b0c !important;
+}
+
+.site-header.on-dark .nav-toggle,
+.site-header.closing-nav-dark .nav-toggle {
+  color: #fafaf9;
+  background-color: rgba(255, 255, 255, 0.14);
+}
+
+.site-header.on-dark .nav-toggle span,
+.site-header.closing-nav-dark .nav-toggle span {
   background: #fafaf9 !important;
 }
 
@@ -589,17 +605,36 @@ html {
 }
 
 @media (max-width: 799px) {
-  .site-header .nav-links,
-  .site-header .word {
+  .site-header,
+  .site-header.scrolled,
+  .site-header.on-dark,
+  .site-header.on-dark.scrolled {
+    left: 16px !important;
+    right: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+    transform: none !important;
+    padding: 0 8px 0 14px !important;
+  }
+
+  .site-header .nav-links {
     display: none !important;
+  }
+
+  .site-header .word {
+    display: inline-block !important;
+    font-size: 13px !important;
+    white-space: nowrap;
   }
 
   .site-header .nav-toggle {
     display: inline-flex !important;
     width: 44px !important;
     height: 44px !important;
+    margin-left: auto;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
   }
 
   .mobile-nav {
@@ -608,7 +643,9 @@ html {
     right: 16px !important;
     width: auto !important;
     top: calc(74px + env(safe-area-inset-top, 0px)) !important;
-    max-height: calc(100dvh - 90px - env(safe-area-inset-top, 0px)) !important;
+    max-height: calc(100dvh - 86px - env(safe-area-inset-top, 0px)) !important;
+    overflow-y: auto !important;
+    overscroll-behavior: contain;
     z-index: var(--z-nav) !important;
   }
 }
@@ -637,25 +674,6 @@ html {
   #titan-overview .titan-overview__questions-grid:has(.titan-overview__question-card:hover) .titan-overview__question-card:not(:hover) {
     opacity: 1 !important;
   }
-
-  /* Coarse-pointer slow 8s idle shimmer on primary dark CTA (transform/opacity only) */
-  #closing.is-active .closing-actions .button-dark::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(110deg, transparent 25%, rgba(255, 255, 255, 0.22) 50%, transparent 75%);
-    transform: translateX(-100%);
-    opacity: 0;
-    pointer-events: none;
-    animation: titan-idle-shimmer 8s var(--ease-in-out) infinite;
-  }
-}
-
-@keyframes titan-idle-shimmer {
-  0%, 70% { transform: translateX(-100%); opacity: 0; }
-  80% { opacity: 0.9; }
-  95%, 100% { transform: translateX(100%); opacity: 0; }
 }
 
 /* Touch :active press state (translate back 2px, smaller shadow, 80ms) */
@@ -672,7 +690,7 @@ html {
 }
 
 /* 44x44px minimum tap targets on interactive controls */
-.hero-compare__toggle button,
+#top .hero-compare__tab,
 .pill-toggle__btn,
 #product .product-nav .nav-item,
 #decision-trail .calc-stepper-btn,
@@ -799,11 +817,6 @@ html {
     scroll-snap-align: start !important;
     white-space: nowrap !important;
   }
-
-  /* Shorter CTA arc stage on tablet/mobile */
-  #closing.liquid-ready {
-    height: 150svh !important;
-  }
 }
 
 /* Below 600px: thin out chart labels & odd ticks */
@@ -817,17 +830,19 @@ html {
   }
 }
 
-/* Below 480px: unpin CTA stage so mobile scrolling stays effortless */
-@media (max-width: 479px) {
+/* Below 800px: unpin CTA stage so mobile scrolling stays natural */
+@media (max-width: 799px) {
+  #closing,
   #closing.liquid-ready {
     height: auto !important;
-    min-height: 100svh !important;
+    min-height: 0 !important;
   }
 
+  #closing .closing-stage,
   #closing.liquid-ready .closing-stage {
     position: relative !important;
     height: auto !important;
-    min-height: 100svh !important;
+    min-height: 0 !important;
   }
 }
 

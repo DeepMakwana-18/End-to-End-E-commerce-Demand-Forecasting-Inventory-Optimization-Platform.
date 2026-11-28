@@ -447,13 +447,45 @@ if (toast) {
   const menu = document.querySelector("#mobile-menu");
   if (!toggle || !menu) return;
 
+  const bgTargets = [document.getElementById("main"), document.getElementById("ov")].filter(Boolean);
+  const mobileMQ = matchMedia("(min-width: 800px)");
+  let lockedScrollY = 0;
+  let scrollLocked = false;
+
   const getFocusables = () => [...menu.querySelectorAll('a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])')];
 
-  const close = ({ returnFocus = false } = {}) => {
+  const lockBgScroll = () => {
+    if (scrollLocked) return;
+    scrollLocked = true;
+    lockedScrollY = window.scrollY;
+    document.documentElement.style.overflow = "hidden";
+    document.body.classList.add("menu-open");
+  };
+
+  const unlockBgScroll = () => {
+    if (!scrollLocked) return;
+    scrollLocked = false;
+    document.documentElement.style.removeProperty("overflow");
+    document.body.classList.remove("menu-open");
+    if (Math.abs(window.scrollY - lockedScrollY) > 2) {
+      window.scrollTo(0, lockedScrollY);
+    }
+  };
+
+  const close = ({ returnFocus = false, restoreScroll = true } = {}) => {
     toggle.setAttribute("aria-expanded", "false");
     toggle.setAttribute("aria-label", "Open navigation");
     menu.hidden = true;
-    document.body.classList.remove("menu-open");
+    menu.removeAttribute("role");
+    menu.removeAttribute("aria-modal");
+    bgTargets.forEach(el => el.removeAttribute("inert"));
+    if (restoreScroll) {
+      unlockBgScroll();
+    } else {
+      scrollLocked = false;
+      document.documentElement.style.removeProperty("overflow");
+      document.body.classList.remove("menu-open");
+    }
     if (returnFocus) toggle.focus();
   };
 
@@ -461,15 +493,18 @@ if (toast) {
     toggle.setAttribute("aria-expanded", "true");
     toggle.setAttribute("aria-label", "Close navigation");
     menu.hidden = false;
-    document.body.classList.add("menu-open");
+    menu.setAttribute("role", "dialog");
+    menu.setAttribute("aria-modal", "true");
+    bgTargets.forEach(el => el.setAttribute("inert", ""));
+    lockBgScroll();
     const first = getFocusables()[0];
     if (first) first.focus();
   };
 
   toggle.addEventListener("click", () => {
-    toggle.getAttribute("aria-expanded") === "true" ? close() : open();
+    toggle.getAttribute("aria-expanded") === "true" ? close({ returnFocus: true }) : open();
   });
-  menu.querySelectorAll("a").forEach(link => link.addEventListener("click", () => close()));
+  menu.querySelectorAll("a").forEach(link => link.addEventListener("click", () => close({ restoreScroll: false })));
   document.addEventListener("keydown", event => {
     if (menu.hidden) return;
     if (event.key === "Escape") {
@@ -477,7 +512,7 @@ if (toast) {
       return;
     }
     if (event.key === "Tab") {
-      const focusables = getFocusables();
+      const focusables = [toggle, ...getFocusables()];
       if (!focusables.length) return;
       const first = focusables[0];
       const last = focusables[focusables.length - 1];
@@ -493,8 +528,8 @@ if (toast) {
   document.addEventListener("click", event => {
     if (!menu.hidden && !event.target.closest(".site-header")) close();
   });
-  matchMedia("(min-width: 800px)").addEventListener("change", event => {
-    if (event.matches) close();
+  mobileMQ.addEventListener("change", event => {
+    if (event.matches && !menu.hidden) close();
   });
 })();
 
@@ -748,9 +783,68 @@ if (toast) {
   const wipe = document.querySelector("[data-wipe]");
   if (wipe) {
     const range = wipe.querySelector(".wipe-range");
+    const beforeLayer = wipe.querySelector(".wipe-before");
+    const afterLayer = wipe.querySelector(".wipe-after");
+    const mobileSwitch = document.querySelector(".how-mobile-switch");
+    const ledeDesktop = document.querySelector("#how .how-lede-desktop");
+    const ledeMobile = document.querySelector("#how .how-lede-mobile");
+    const mobileBtns = [...document.querySelectorAll(".how-mobile-btn[data-how-view]")];
+    const mobileMQ = window.matchMedia("(max-width: 799px)");
     let touched = false;
     let isDragging = false;
     let currentPos = 50;
+
+    const syncMobileLayers = () => {
+      const isMobile = mobileMQ.matches;
+      if (mobileSwitch) {
+        mobileSwitch.hidden = !isMobile;
+        mobileSwitch.inert = !isMobile;
+      }
+      if (ledeDesktop) ledeDesktop.hidden = isMobile;
+      if (ledeMobile) ledeMobile.hidden = !isMobile;
+      if (isMobile) {
+        const view = wipe.dataset.mobileView === "after" ? "after" : "before";
+        const showBefore = view === "before";
+        if (beforeLayer) {
+          beforeLayer.hidden = !showBefore;
+          beforeLayer.inert = !showBefore;
+          beforeLayer.setAttribute("aria-hidden", String(!showBefore));
+        }
+        if (afterLayer) {
+          afterLayer.hidden = showBefore;
+          afterLayer.inert = showBefore;
+          afterLayer.setAttribute("aria-hidden", String(showBefore));
+        }
+        wipe.removeAttribute("role");
+        wipe.removeAttribute("tabindex");
+      } else {
+        [beforeLayer, afterLayer].forEach(layer => {
+          if (!layer) return;
+          layer.hidden = false;
+          layer.inert = false;
+          layer.removeAttribute("aria-hidden");
+        });
+        wipe.setAttribute("role", "slider");
+        wipe.setAttribute("tabindex", "0");
+      }
+    };
+
+    const setMobileView = view => {
+      const next = view === "after" ? "after" : "before";
+      wipe.dataset.mobileView = next;
+      mobileBtns.forEach(btn => {
+        const active = btn.dataset.howView === next;
+        btn.classList.toggle("is-active", active);
+        btn.setAttribute("aria-pressed", String(active));
+      });
+      syncMobileLayers();
+    };
+
+    mobileBtns.forEach(btn => {
+      btn.addEventListener("click", () => setMobileView(btn.dataset.howView));
+    });
+    mobileMQ.addEventListener("change", syncMobileLayers);
+    syncMobileLayers();
 
     const set = v => {
       const clamped = Math.max(4, Math.min(96, v));

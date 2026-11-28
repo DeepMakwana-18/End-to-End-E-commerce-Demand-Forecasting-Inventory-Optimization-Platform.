@@ -37,6 +37,13 @@
   const root = document.documentElement;
   const params = new URLSearchParams(location.search);
   const reducedMQ = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const mobileMQ = window.matchMedia('(max-width: 799px)');
+  const shouldBypassIntro = () =>
+    params.get('intro') === '0' ||
+    reducedMQ.matches ||
+    mobileMQ.matches ||
+    root.dataset.introMode === 'off' ||
+    Boolean(location.hash && location.hash.length > 1);
   const ov = document.getElementById('ov');
   const ribbon = ov?.querySelector('.ov-blue-ribbon');
   const introMark = document.getElementById('intro-mark');
@@ -125,7 +132,6 @@
   function resetForReplay() {
     cancelAll();
     introEnded = false;
-    window.scrollTo({ top: 0, behavior: 'instant' });
     [ov, ribbon, whiteMark, header, wordmark, tabsEl, ...lineSpans, dekEl, ctaEl, stageEl, ...sheetCells].forEach(el => {
       if (!el) return;
       el.style.removeProperty('transform');
@@ -247,7 +253,7 @@
   }
 
   async function playIntro() {
-    if (params.get('intro') === '0') {
+    if (shouldBypassIntro()) {
       finishIntro();
       return;
     }
@@ -256,11 +262,6 @@
     const alive = () => my === token;
 
     resetForReplay();
-
-    if (reducedMQ.matches || root.dataset.introMode === 'reduced') {
-      await quickFade(TIMING.reducedFadeMs);
-      return;
-    }
 
     lockScroll();
     setWillChange(true);
@@ -387,10 +388,12 @@
     }, { passive: true })
   );
 
-  // Replay on bfcache restore
+  // Replay on bfcache restore only when intro isn't bypassed and page is at top
   window.addEventListener('pageshow', (event) => {
-    if (event.persisted) {
+    if (event.persisted && !shouldBypassIntro() && window.scrollY < 4) {
       playIntro();
+    } else if (event.persisted && shouldBypassIntro()) {
+      finishIntro();
     }
   });
 

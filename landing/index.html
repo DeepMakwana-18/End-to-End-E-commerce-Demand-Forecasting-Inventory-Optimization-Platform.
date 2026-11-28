@@ -3,19 +3,21 @@
 
 <head>
   <script>(function () {
-    try {
-      var params = new URLSearchParams(location.search);
-      var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      history.scrollRestoration = 'manual';
-      scrollTo(0, 0);
-      if (params.get('intro') === '0') {
+      try {
+        var params = new URLSearchParams(location.search);
+        var reduced = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var mobile = window.matchMedia && window.matchMedia('(max-width: 799px)').matches;
+        var hasHash = Boolean(location.hash && location.hash.length > 1);
+        if (params.get('intro') === '0' || mobile || reduced || hasHash) {
+          document.documentElement.classList.remove('intro-nav', 'intro-hero', 'playing');
+          document.documentElement.dataset.introMode = 'off';
+        } else {
+          document.documentElement.dataset.introMode = 'full';
+        }
+      } catch (e) {
         document.documentElement.classList.remove('intro-nav', 'intro-hero', 'playing');
-        document.documentElement.dataset.introMode = 'off';
-      } else {
-        document.documentElement.dataset.introMode = reduced ? 'reduced' : 'full';
       }
-    } catch (e) { }
-  })();</script>
+    })();</script>
   <style id="intro-critical">
     :root {
       --big: clamp(140px, 14vw, 220px);
@@ -95,8 +97,13 @@
     }
 
     @keyframes ov-aurora-breathe {
-      0% { transform: translate3d(-12px, -8px, 0) scale(0.95); }
-      100% { transform: translate3d(14px, 10px, 0) scale(1.06); }
+      0% {
+        transform: translate3d(-12px, -8px, 0) scale(0.95);
+      }
+
+      100% {
+        transform: translate3d(14px, 10px, 0) scale(1.06);
+      }
     }
 
     #intro-mark,
@@ -286,10 +293,10 @@
   <link rel="stylesheet" href="./refinements.css?v=v15_01" />
   <link rel="stylesheet" href="./v11-risk.css?v=v15_01" />
   <link rel="stylesheet" href="./v12-scenario.css?v=v15_01" />
-  <link rel="stylesheet" href="./datavision-product.css?v=v15_01" />
+  <link rel="stylesheet" href="./datavision-product.css?v=2026_11_28_02" />
   <link rel="stylesheet" href="./titan-overview.css?v=v15_01" />
   <link rel="stylesheet" href="./titan-datavision-inspired.css?v=2026_11_24_14" />
-  <link rel="stylesheet" href="./titan-theme.css" />
+  <link rel="stylesheet" href="./titan-theme.css?v=2026_11_28_02" />
   <style>
     #top.hero.hero-v3 {
       position: relative;
@@ -436,7 +443,7 @@
       padding-bottom: 0.08em;
     }
 
-    #top .hero-line > span {
+    #top .hero-line>span {
       display: block;
     }
 
@@ -1312,28 +1319,53 @@
     /* Mobile (~25% scaled down vertical spacing) */
     @media(max-width:799px) {
       #top.hero.hero-v3 {
-        padding: 94px 16px 72px
+        padding: 92px 16px 56px
+      }
+
+      #top .hero-compare__tab {
+        min-height: 44px;
+        padding: 10px 18px
       }
 
       #top .hero-compare__copy {
-        margin-top: 24px
+        margin-top: 20px
       }
 
       #top .hero-compare__heading {
-        font-size: clamp(34px, 8vw, 64px)
+        font-size: clamp(32px, 8.5vw, 56px);
+        line-height: 1.06;
+        text-wrap: balance
       }
 
       #top .hero-compare__dek {
-        margin-top: 16px;
-        font-size: 16px
+        max-width: 34ch;
+        margin: 14px auto 0;
+        font-size: 16px;
+        line-height: 1.55
       }
 
       #top .hero-compare__cta {
-        margin-top: 24px
+        margin-top: 22px;
+        min-height: 48px
       }
 
       #top .hero-compare__stage {
-        margin-top: 40px
+        height: auto;
+        transition: none;
+        margin-top: 32px
+      }
+
+      #top .hero-compare__visual {
+        transition: opacity 200ms cubic-bezier(.22, 1, .36, 1)
+      }
+
+      #top .hero-compare__visual:not([data-active=true]) {
+        display: none
+      }
+
+      #top .hero-compare__visual[data-visual="with"].is-entering {
+        opacity: 0;
+        transform: none
       }
 
       #top .hero-compare__sheet {
@@ -1377,19 +1409,34 @@
       }
 
       #top .hero-compare__decision {
-        padding: 20px
+        padding: 20px 18px
       }
 
       #top .hero-decision-copy h2 {
-        font-size: 20px
-      }
-
-      #top .hero-runway-bot-mid {
-        transform: translateX(-85%)
+        font-size: 20px;
+        line-height: 1.25
       }
 
       #top .hero-runway-ticks .hero-tick-mid {
         display: none
+      }
+
+      #top .hero-runway-bottom-labels {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
+        height: auto;
+        font-size: 12px;
+        line-height: 1.35
+      }
+
+      #top .hero-runway-bot-left,
+      #top .hero-runway-bot-mid,
+      #top .hero-runway-bot-right {
+        position: static;
+        transform: none
       }
 
       #top .hero-lbl-full {
@@ -1401,19 +1448,24 @@
       }
 
       #top .hero-compare__stats {
-        gap: 6px
+        gap: 8px
       }
 
       #top .hero-compare__stat {
-        padding: 8px 6px;
-        font-size: 11px
+        padding: 9px 8px;
+        font-size: 12px
+      }
+
+      #top .hero-btn-primary,
+      #top .hero-btn-secondary {
+        min-height: 44px
       }
 
       #top .hero-before-after {
         grid-template-columns: 1fr;
         gap: 10px;
         padding: 12px 16px;
-        margin-top: 40px
+        margin-top: 32px
       }
 
       #top .hero-outcome-col {
@@ -1434,12 +1486,25 @@
 
     @media(max-width:420px) {
       #top .hero-compare__tab {
-        padding-inline: 13px;
+        padding-inline: 14px;
         font-size: 13px
       }
 
       #top .hero-decision-copy p {
         font-size: 14px
+      }
+
+      #top .hero-compare__stats {
+        grid-template-columns: 1fr;
+        gap: 6px
+      }
+
+      #top .hero-compare__stat {
+        justify-content: flex-start;
+        text-align: left;
+        padding: 8px 12px;
+        font-size: 13px;
+        border-radius: 8px
       }
 
       #top .hero-btn-primary,
@@ -1699,8 +1764,9 @@
                       class="hero-compare__cell">82</span><span class="hero-compare__cell">540</span>
                     <span class="hero-compare__cell">715</span><span class="hero-compare__cell">260</span><span
                       class="hero-compare__cell">1,190</span><span class="hero-compare__cell">430</span><span
-                      class="hero-compare__cell is-warning">#VALUE!</span><span class="hero-compare__cell">580</span><span
-                      class="hero-compare__cell">195</span><span class="hero-compare__cell">840</span>
+                      class="hero-compare__cell is-warning">#VALUE!</span><span
+                      class="hero-compare__cell">580</span><span class="hero-compare__cell">195</span><span
+                      class="hero-compare__cell">840</span>
                     <span class="hero-compare__cell">290</span><span class="hero-compare__cell">1,540</span><span
                       class="hero-compare__cell">615</span><span class="hero-compare__cell">92</span><span
                       class="hero-compare__cell">410</span><span class="hero-compare__cell">1,080</span><span
@@ -1924,7 +1990,7 @@
           };
 
           const animateHeadline = (prevState, nextState) => {
-            copyAnims.forEach(a => { try { a.cancel() } catch (_) {} });
+            copyAnims.forEach(a => { try { a.cancel() } catch (_) { } });
             copyAnims = [];
             const prevCopy = headingSwaps.find(c => c.dataset.copy === prevState);
             const nextCopy = headingSwaps.find(c => c.dataset.copy === nextState);
@@ -1947,7 +2013,7 @@
                 { duration: 320, easing: "cubic-bezier(.22,1,.36,1)", fill: "forwards" }
               );
               copyAnims.push(a);
-              a.finished.then(() => { if (prevCopy.dataset.active !== "true") prevCopy.style.visibility = "hidden"; }).catch(() => {});
+              a.finished.then(() => { if (prevCopy.dataset.active !== "true") prevCopy.style.visibility = "hidden"; }).catch(() => { });
             });
             inLines.forEach((el, idx) => {
               const a = el.animate(
@@ -2399,11 +2465,19 @@
             <h2 id="how-title">From spreadsheet<br /><strong>to decision.</strong></h2>
           </div>
           <p class="how-lede">Upload a sales CSV. Titan maps your columns, forecasts demand, explains what drives it,
-            and turns it into reorder actions. Drag the handle to compare.</p>
+            and turns it into reorder actions. <span class="how-lede-desktop">Drag the handle to compare.</span><span
+              class="how-lede-mobile" hidden>Switch views to compare your spreadsheet with Titan’s recommendation.</span></p>
         </div>
 
-        <div class="wipe reveal" data-wipe tabindex="0" role="slider" aria-label="Compare spreadsheet and Titan’s view"
-          aria-valuemin="4" aria-valuemax="96" aria-valuenow="50" style="--pos: 50%">
+        <div class="how-mobile-switch" role="group" aria-label="Switch comparison view" hidden>
+          <button type="button" class="how-mobile-btn is-active" data-how-view="before" aria-pressed="true">Your
+            spreadsheet</button>
+          <button type="button" class="how-mobile-btn" data-how-view="after" aria-pressed="false">Titan’s view</button>
+        </div>
+
+        <div class="wipe reveal" data-wipe data-mobile-view="before" tabindex="0" role="slider"
+          aria-label="Compare spreadsheet and Titan’s view" aria-valuemin="4" aria-valuemax="96" aria-valuenow="50"
+          style="--pos: 50%">
           <div class="wipe-layer wipe-before">
             <div class="wipe-top">
               <div class="wipe-top-stack">
@@ -2534,11 +2608,12 @@
 
         <div class="product-split">
           <!-- Left Navigation: TabRail (340px desktop, fills right card height) -->
-          <nav class="product-nav tab-rail" role="tablist" aria-orientation="vertical" aria-label="Explore Intelligence views">
+          <nav class="product-nav tab-rail" role="tablist" aria-orientation="vertical"
+            aria-label="Explore Intelligence views">
             <div class="tab-rail__track" aria-hidden="true"><span class="tab-rail__fill"></span></div>
 
-            <button role="tab" class="nav-item tab-rail__item is-selected" aria-selected="true" aria-controls="preview-panel"
-              id="tab-forecast" data-module="forecast" data-step="1" tabindex="0">
+            <button role="tab" class="nav-item tab-rail__item is-selected" aria-selected="true"
+              aria-controls="preview-panel" id="tab-forecast" data-module="forecast" data-step="1" tabindex="0">
               <span class="tab-rail__col-rail" aria-hidden="true">
                 <span class="tab-rail__node">01</span>
               </span>
@@ -2557,15 +2632,16 @@
                 <div class="tab-rail__row-foot">
                   <span class="tab-rail__metric" data-rail-metric="forecast">+30% peak in week 10</span>
                   <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
-                    <path d="M2 22 C18 20, 32 18, 46 14 C62 10, 76 6, 94 9" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+                    <path d="M2 22 C18 20, 32 18, 46 14 C62 10, 76 6, 94 9" fill="none" stroke="currentColor"
+                      stroke-width="2" stroke-linecap="round" />
                   </svg>
                 </div>
               </div>
               <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
 
-            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel" id="tab-inventory"
-              data-module="inventory" data-step="2" tabindex="-1">
+            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel"
+              id="tab-inventory" data-module="inventory" data-step="2" tabindex="-1">
               <span class="tab-rail__col-rail" aria-hidden="true">
                 <span class="tab-rail__node">02</span>
               </span>
@@ -2595,8 +2671,8 @@
               <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
 
-            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel" id="tab-risk"
-              data-module="risk" data-step="3" tabindex="-1">
+            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel"
+              id="tab-risk" data-module="risk" data-step="3" tabindex="-1">
               <span class="tab-rail__col-rail" aria-hidden="true">
                 <span class="tab-rail__node">03</span>
               </span>
@@ -2615,7 +2691,8 @@
                 <div class="tab-rail__row-foot">
                   <span class="tab-rail__metric" data-rail-metric="risk">+48% spike on day 14</span>
                   <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
-                    <path d="M2 20 L26 19 L40 21 L52 5 L64 20 L94 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    <path d="M2 20 L26 19 L40 21 L52 5 L64 20 L94 18" fill="none" stroke="currentColor" stroke-width="2"
+                      stroke-linecap="round" stroke-linejoin="round" />
                     <circle cx="52" cy="5" r="3" fill="#f59e0b" />
                   </svg>
                 </div>
@@ -2623,8 +2700,8 @@
               <span class="tab-rail__progress" aria-hidden="true"></span>
             </button>
 
-            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel" id="tab-scenario"
-              data-module="scenario" data-step="4" tabindex="-1">
+            <button role="tab" class="nav-item tab-rail__item" aria-selected="false" aria-controls="preview-panel"
+              id="tab-scenario" data-module="scenario" data-step="4" tabindex="-1">
               <span class="tab-rail__col-rail" aria-hidden="true">
                 <span class="tab-rail__node">04</span>
               </span>
@@ -2642,10 +2719,13 @@
                 </div>
                 <p class="nav-desc">Test a change before acting.</p>
                 <div class="tab-rail__row-foot">
-                  <span class="tab-rail__metric" data-rail-metric="scenario">9.2 days of cover with a +20% promotion</span>
+                  <span class="tab-rail__metric" data-rail-metric="scenario">9.2 days of cover with a +20%
+                    promotion</span>
                   <svg class="tab-rail__spark" width="96" height="28" viewBox="0 0 96 28" aria-hidden="true">
-                    <path d="M2 22 L44 14 L94 8" fill="none" stroke="currentColor" stroke-width="1.5" stroke-dasharray="3 3" opacity="0.55" />
-                    <path d="M2 22 L44 16 L94 20" fill="none" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" />
+                    <path d="M2 22 L44 14 L94 8" fill="none" stroke="currentColor" stroke-width="1.5"
+                      stroke-dasharray="3 3" opacity="0.55" />
+                    <path d="M2 22 L44 16 L94 20" fill="none" stroke="#f59e0b" stroke-width="2"
+                      stroke-linecap="round" />
                   </svg>
                 </div>
               </div>
@@ -2658,348 +2738,353 @@
             aria-labelledby="tab-forecast" data-active-view="forecast">
             <div class="pv-card-meta-bar">
               <span class="pv-step-label" id="pvStepLabel">STEP 1 OF 4</span>
-              <button type="button" class="autoplay-toggle-btn pv-autoplay-btn" id="pvAutoplayBtn" aria-pressed="false">Pause</button>
+              <button type="button" class="autoplay-toggle-btn pv-autoplay-btn" id="pvAutoplayBtn"
+                aria-pressed="false">Pause</button>
             </div>
             <div class="pv-views-stack">
 
-            <!-- VIEW 1: FORECAST PREVIEW -->
-            <div class="pv-view panel pv-view-forecast" data-view="forecast" data-active="true" aria-hidden="false">
-              <header class="pv-view-header">
-                <h3 class="pv-view-title">See demand ahead.</h3>
-              </header>
+              <!-- VIEW 1: FORECAST PREVIEW -->
+              <div class="pv-view panel pv-view-forecast" data-view="forecast" data-active="true" aria-hidden="false">
+                <header class="pv-view-header">
+                  <h3 class="pv-view-title">See demand ahead.</h3>
+                </header>
 
-              <!-- One Large Forecast Chart directly on surface (No nested card border) -->
-              <div class="pv-chart-stage">
-                <svg class="pv-forecast-svg" viewBox="0 0 760 260" preserveAspectRatio="none" role="img"
-                  aria-label="12-week demand forecast curve with 95% confidence interval and week 10 predicted peak">
-                  <!-- Subtle Horizontal Gridlines -->
-                  <line x1="48" y1="45" x2="730" y2="45" class="pv-grid-line" />
-                  <line x1="48" y1="100" x2="730" y2="100" class="pv-grid-line" />
-                  <line x1="48" y1="155" x2="730" y2="155" class="pv-grid-line" />
-                  <line x1="48" y1="210" x2="730" y2="210" class="pv-grid-line" />
+                <!-- One Large Forecast Chart directly on surface (No nested card border) -->
+                <div class="pv-chart-stage">
+                  <svg class="pv-forecast-svg" viewBox="0 0 760 260" preserveAspectRatio="none" role="img"
+                    aria-label="12-week demand forecast curve with 95% confidence interval and week 10 predicted peak">
+                    <!-- Subtle Horizontal Gridlines -->
+                    <line x1="48" y1="45" x2="730" y2="45" class="pv-grid-line" />
+                    <line x1="48" y1="100" x2="730" y2="100" class="pv-grid-line" />
+                    <line x1="48" y1="155" x2="730" y2="155" class="pv-grid-line" />
+                    <line x1="48" y1="210" x2="730" y2="210" class="pv-grid-line" />
 
-                  <!-- Y-Axis Labels -->
-                  <text x="38" y="49" class="pv-axis-text" text-anchor="end">2,000</text>
-                  <text x="38" y="104" class="pv-axis-text" text-anchor="end">1,500</text>
-                  <text x="38" y="159" class="pv-axis-text" text-anchor="end">1,000</text>
-                  <text x="38" y="214" class="pv-axis-text" text-anchor="end">500</text>
+                    <!-- Y-Axis Labels -->
+                    <text x="38" y="49" class="pv-axis-text" text-anchor="end">2,000</text>
+                    <text x="38" y="104" class="pv-axis-text" text-anchor="end">1,500</text>
+                    <text x="38" y="159" class="pv-axis-text" text-anchor="end">1,000</text>
+                    <text x="38" y="214" class="pv-axis-text" text-anchor="end">500</text>
 
-                  <!-- Today Boundary (x = 390) -->
-                  <line x1="390" y1="24" x2="390" y2="220" class="pv-cutoff-line" />
-                  <text x="390" y="16" class="pv-cutoff-label" text-anchor="middle">TODAY</text>
+                    <!-- Today Boundary (x = 390) -->
+                    <line x1="390" y1="24" x2="390" y2="220" class="pv-cutoff-line" />
+                    <text x="390" y="16" class="pv-cutoff-label" text-anchor="middle">TODAY</text>
 
-                  <!-- 95% Confidence Interval Band (Forecast zone) -->
-                  <path class="pv-ci-area" fill="#F3F4F6"
-                    d="M390 106 C435 94 495 50 560 38 C625 26 675 42 730 32 L730 114 C675 126 625 110 560 102 C495 114 435 122 390 106 Z" />
-                  <path class="pv-ci-border" fill="none" stroke="#E5E7EB" stroke-opacity="1" stroke-dasharray="3 3"
-                    d="M390 106 C435 94 495 50 560 38 C625 26 675 42 730 32" />
-                  <path class="pv-ci-border" fill="none" stroke="#E5E7EB" stroke-opacity="1" stroke-dasharray="3 3"
-                    d="M390 106 C435 122 495 114 560 102 C625 110 675 126 730 114" />
+                    <!-- 95% Confidence Interval Band (Forecast zone) -->
+                    <path class="pv-ci-area" fill="#F3F4F6"
+                      d="M390 106 C435 94 495 50 560 38 C625 26 675 42 730 32 L730 114 C675 126 625 110 560 102 C495 114 435 122 390 106 Z" />
+                    <path class="pv-ci-border" fill="none" stroke="#E5E7EB" stroke-opacity="1" stroke-dasharray="3 3"
+                      d="M390 106 C435 94 495 50 560 38 C625 26 675 42 730 32" />
+                    <path class="pv-ci-border" fill="none" stroke="#E5E7EB" stroke-opacity="1" stroke-dasharray="3 3"
+                      d="M390 106 C435 122 495 114 560 102 C625 110 675 126 730 114" />
 
-                  <!-- Historical Actuals in Slate (x: 48 to 390) -->
-                  <path class="pv-history-line" fill="none"
-                    d="M48 180 C95 166 135 196 185 154 C235 112 270 170 315 144 C355 120 370 144 390 106" />
+                    <!-- Historical Actuals in Slate (x: 48 to 390) -->
+                    <path class="pv-history-line" fill="none"
+                      d="M48 180 C95 166 135 196 185 154 C235 112 270 170 315 144 C355 120 370 144 390 106" />
 
-                  <!-- Forecast Line in Cobalt (x: 390 to 730) -->
-                  <path class="pv-forecast-line" fill="none" d="M390 106 C435 96 495 72 560 64 C625 58 675 68 730 62" />
+                    <!-- Forecast Line in Cobalt (x: 390 to 730) -->
+                    <path class="pv-forecast-line" fill="none"
+                      d="M390 106 C435 96 495 72 560 64 C625 58 675 68 730 62" />
 
-                  <!-- Today Point -->
-                  <circle cx="390" cy="106" r="4.5" class="pv-point-today" />
+                    <!-- Today Point -->
+                    <circle cx="390" cy="106" r="4.5" class="pv-point-today" />
 
-                  <!-- Peak Point on Curve (Week 10: x = 560, y = 64) -->
-                  <circle cx="560" cy="64" r="9" class="pv-peak-pulse" />
-                  <circle cx="560" cy="64" r="4.5" class="pv-peak-dot" />
+                    <!-- Peak Point on Curve (Week 10: x = 560, y = 64) -->
+                    <circle cx="560" cy="64" r="9" class="pv-peak-pulse" />
+                    <circle cx="560" cy="64" r="4.5" class="pv-peak-dot" />
 
-                  <!-- Single Integrated Peak Annotation (No duplicate badges elsewhere) -->
-                  <g transform="translate(560, 30)">
-                    <rect x="-70" y="-14" width="140" height="24" rx="6" class="pv-peak-badge-bg" />
-                    <text x="0" y="2" text-anchor="middle" class="pv-peak-badge-text">Week 10 · 1,840 units</text>
-                  </g>
-
-                  <!-- X-Axis Labels -->
-                  <text x="48" y="238" class="pv-axis-text">−12W (Actuals)</text>
-                  <text x="215" y="238" class="pv-axis-text">−6W</text>
-                  <text x="390" y="238" class="pv-axis-text pv-axis-bold" text-anchor="middle">Today</text>
-                  <text x="560" y="238" class="pv-axis-text pv-axis-blue" text-anchor="middle">Week 10 (Peak)</text>
-                  <text x="730" y="238" class="pv-axis-text" text-anchor="end">+12W (Forecast)</text>
-                </svg>
-              </div>
-
-            </div>
-
-            <!-- VIEW 2: INVENTORY PREVIEW -->
-            <div class="pv-view panel pv-view-inventory" data-view="inventory" data-active="false" aria-hidden="true" inert>
-              <header class="pv-view-header">
-                <h3 class="pv-view-title">Know what to replenish.</h3>
-              </header>
-
-              <!-- One aligned list with subtle row dividers (No independently rounded cards) -->
-              <div class="pv-inv-list" role="listbox" aria-label="Inventory products and stock cover">
-                <!-- Row 1: Apex Sprint Footwear (Lead item, shortfall, amber indicator) -->
-                <div class="pv-inv-item is-selected is-shortfall" role="option" aria-selected="true" tabindex="0"
-                  data-inv-idx="0">
-                  <div class="pv-inv-main">
-                    <span class="pv-inv-name">Apex Sprint Footwear</span>
-                    <span class="pv-inv-status tag-amber-text">Below 18d target</span>
-                  </div>
-                  <div class="pv-inv-metric">
-                    <strong class="pv-inv-cover-val tag-amber-text">11.0 days</strong>
-                    <span class="pv-inv-target-lbl">Target: 18.0d</span>
-                  </div>
-                  <div class="pv-inv-bar-track">
-                    <!-- Scale: 0 to 40 days. 11d = 27.5%, 18d target pin = 45% -->
-                    <div class="pv-inv-bar-fill fill-amber" style="width: 27.5%;"></div>
-                    <div class="pv-inv-bar-pin" style="left: 45%;" title="Target: 18.0 days">
-                      <span class="pv-pin-bubble">18d Target</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Row 2: Merino Active Layer -->
-                <div class="pv-inv-item" role="option" aria-selected="false" tabindex="-1" data-inv-idx="1">
-                  <div class="pv-inv-main">
-                    <span class="pv-inv-name">Merino Active Layer</span>
-                    <span class="pv-inv-status">On track</span>
-                  </div>
-                  <div class="pv-inv-metric">
-                    <strong class="pv-inv-cover-val">28.0 days</strong>
-                    <span class="pv-inv-target-lbl">Target: 20.0d</span>
-                  </div>
-                  <div class="pv-inv-bar-track">
-                    <!-- 28d = 70%, 20d target pin = 50% -->
-                    <div class="pv-inv-bar-fill fill-blue" style="width: 70%;"></div>
-                    <div class="pv-inv-bar-pin" style="left: 50%;" title="Target: 20.0 days">
-                      <span class="pv-pin-bubble">20d Target</span>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Row 3: Ergonomic Commute Pack -->
-                <div class="pv-inv-item" role="option" aria-selected="false" tabindex="-1" data-inv-idx="2">
-                  <div class="pv-inv-main">
-                    <span class="pv-inv-name">Ergonomic Commute Pack</span>
-                    <span class="pv-inv-status">Surplus stock</span>
-                  </div>
-                  <div class="pv-inv-metric">
-                    <strong class="pv-inv-cover-val">34.0 days</strong>
-                    <span class="pv-inv-target-lbl">Target: 25.0d</span>
-                  </div>
-                  <div class="pv-inv-bar-track">
-                    <!-- 34d = 85%, 25d target pin = 62.5% -->
-                    <div class="pv-inv-bar-fill fill-blue" style="width: 85%;"></div>
-                    <div class="pv-inv-bar-pin" style="left: 62.5%;" title="Target: 25.0 days">
-                      <span class="pv-pin-bubble">25d Target</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Single Concise Action Line Below List (Plain aligned text, unboxed) -->
-              <div class="pv-inv-action-row">
-                <p class="pv-inv-action-text" id="pvInvActionText">
-                  Order 900 units today to restore 18 days of cover upon Day 8 arrival (180 units remain at delivery).
-                </p>
-              </div>
-
-            </div>
-
-            <!-- VIEW 3: RISK RADAR PREVIEW -->
-            <div class="pv-view panel pv-view-risk" data-view="risk" data-active="false" aria-hidden="true" inert>
-              <header class="pv-view-header pv-risk-header">
-                <h3 class="pv-view-title">Spot a change in demand.</h3>
-                <!-- Compact Day Controls Placed Near Title -->
-                <div class="pv-event-selector" role="group" aria-label="Select an observed event day">
-                  <button type="button" class="pv-event-btn" data-pv-risk="steady" aria-pressed="false">
-                    Day 08
-                  </button>
-                  <button type="button" class="pv-event-btn is-active" data-pv-risk="surge" aria-pressed="true">
-                    Day 14
-                  </button>
-                  <button type="button" class="pv-event-btn" data-pv-risk="drop" aria-pressed="false">
-                    Day 23
-                  </button>
-                </div>
-              </header>
-
-              <!-- Selected Result as Plain Text (No banners, no sigma badge) -->
-              <div class="pv-risk-statement">
-                <strong class="pv-risk-headline" id="pvRiskHeadline">Demand jumped 48%</strong>
-                <span class="pv-risk-subtext" id="pvRiskSubtext">89 units vs 60 expected.</span>
-              </div>
-
-              <!-- Spacious 30-Day Timeline directly on surface (No nested chart border) -->
-              <div class="pv-chart-stage pv-timeline-stage">
-                <svg class="pv-timeline-svg" viewBox="0 0 760 170" preserveAspectRatio="none" role="img"
-                  aria-label="Daily demand timeline showing 30 days, baseline 60 units/day, expected range, and selected event marker">
-                  <defs>
-                    <linearGradient id="pvTimelineBand" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stop-color="#2454D6" stop-opacity="0.08" />
-                      <stop offset="100%" stop-color="#2454D6" stop-opacity="0.02" />
-                    </linearGradient>
-                  </defs>
-
-                  <!-- Gridlines -->
-                  <line x1="48" y1="145" x2="730" y2="145" class="pv-grid-line" />
-                  <line x1="48" y1="110" x2="730" y2="110" class="pv-grid-line" />
-                  <line x1="48" y1="75" x2="730" y2="75" class="pv-grid-line" />
-                  <line x1="48" y1="40" x2="730" y2="40" class="pv-grid-line" />
-
-                  <!-- Y-Axis labels -->
-                  <text x="38" y="149" class="pv-axis-text" text-anchor="end">0</text>
-                  <text x="38" y="114" class="pv-axis-text" text-anchor="end">40</text>
-                  <text x="38" y="79" class="pv-axis-text" text-anchor="end">60</text>
-                  <text x="38" y="44" class="pv-axis-text" text-anchor="end">100</text>
-
-                  <!-- Quiet Expected-Range Corridor (42u to 78u: y=106 to y=65) -->
-                  <rect x="48" y="65" width="682" height="41" fill="url(#pvTimelineBand)"
-                    stroke="rgba(36, 84, 214, 0.15)" stroke-dasharray="3 3" />
-                  <text x="726" y="74" class="pv-range-text" text-anchor="end">Expected range (42–78 u/d)</text>
-
-                  <!-- 60u Baseline Line -->
-                  <line x1="48" y1="86" x2="730" y2="86" stroke="#64748B" stroke-width="1.2" stroke-dasharray="4 3" />
-                  <text x="54" y="82" class="pv-base-label">Baseline 60 u/d</text>
-
-                  <!-- 30-Day Observed Series in Slate -->
-                  <path class="pv-timeline-line" fill="none"
-                    d="M48 88 L72 85 L96 87 L120 82 L144 90 L168 86 L192 88 L216 85 L240 87 L264 84 L288 88 L312 85 L336 77 L360 48 L384 66 L408 79 L432 85 L456 87 L480 84 L504 89 L528 86 L552 88 L576 116 L600 99 L624 90 L648 85 L672 87 L696 86 L718 88 L730 85" />
-
-                  <!-- X-Axis Labels -->
-                  <text x="48" y="160" class="pv-axis-text">Day 01</text>
-                  <text x="216" y="160" class="pv-axis-text pv-axis-key">Day 08</text>
-                  <text x="360" y="160" class="pv-axis-text pv-axis-key pv-axis-bold">Day 14</text>
-                  <text x="576" y="160" class="pv-axis-text pv-axis-key">Day 23</text>
-                  <text x="730" y="160" class="pv-axis-text" text-anchor="end">Day 30</text>
-
-                  <!-- Selected Event Highlight Marker (Defaults to Day 14: x=360, y=48) -->
-                  <g id="pvRiskMarker" transform="translate(360, 48)">
-                    <line id="pvRiskStem" x1="0" y1="0" x2="0" y2="97" class="pv-marker-stem stem-amber" />
-                    <circle id="pvRiskPulse" cx="0" cy="0" r="10" class="pv-marker-pulse pulse-amber" />
-                    <circle id="pvRiskDot" cx="0" cy="0" r="4.5" class="pv-marker-dot dot-amber" />
-                    <g id="pvRiskBadgeCallout" transform="translate(0, -14)">
-                      <rect x="-34" y="-11" width="68" height="18" rx="4" class="pv-badge-bg bg-amber" />
-                      <text id="pvRiskBadgeText" x="0" y="2" text-anchor="middle" class="pv-badge-text">89 units</text>
+                    <!-- Single Integrated Peak Annotation (No duplicate badges elsewhere) -->
+                    <g transform="translate(560, 30)">
+                      <rect x="-70" y="-14" width="140" height="24" rx="6" class="pv-peak-badge-bg" />
+                      <text x="0" y="2" text-anchor="middle" class="pv-peak-badge-text">Week 10 · 1,840 units</text>
                     </g>
-                  </g>
-                </svg>
-              </div>
 
-              <!-- One Short Unboxed Interpretation Below Chart -->
-              <div class="pv-risk-interp">
-                <p class="pv-interp-plain" id="pvRiskInterpText">Review promotions and large orders.</p>
-              </div>
-
-            </div>
-
-            <!-- VIEW 4: SCENARIO LAB PREVIEW -->
-            <div class="pv-view panel pv-view-scenario" data-view="scenario" data-active="false" aria-hidden="true" inert>
-              <header class="pv-view-header">
-                <h3 class="pv-view-title">Test your next move.</h3>
-              </header>
-
-              <!-- Compact Scenario Choices Below Title -->
-              <div class="pv-scenario-tabs" role="group" aria-label="Select simulation scenario">
-                <button type="button" class="pv-scen-btn is-active" data-pv-scenario="promo" aria-pressed="true">
-                  Promotion
-                </button>
-                <button type="button" class="pv-scen-btn" data-pv-scenario="price" aria-pressed="false">
-                  Price
-                </button>
-                <button type="button" class="pv-scen-btn" data-pv-scenario="delay" aria-pressed="false">
-                  Delivery delay
-                </button>
-              </div>
-
-              <!-- Compact Labelled Control Row: Parameter + Slider + Reset -->
-              <div class="pv-scen-control-row">
-                <div class="pv-scen-control-label">
-                  <span class="pv-control-title" id="pvCtrlName">Demand increase</span>
-                  <strong class="pv-control-value" id="pvCtrlValReadout">+20%</strong>
+                    <!-- X-Axis Labels -->
+                    <text x="48" y="238" class="pv-axis-text">−12W (Actuals)</text>
+                    <text x="215" y="238" class="pv-axis-text">−6W</text>
+                    <text x="390" y="238" class="pv-axis-text pv-axis-bold" text-anchor="middle">Today</text>
+                    <text x="560" y="238" class="pv-axis-text pv-axis-blue" text-anchor="middle">Week 10 (Peak)</text>
+                    <text x="730" y="238" class="pv-axis-text" text-anchor="end">+12W (Forecast)</text>
+                  </svg>
                 </div>
-                <div class="pv-scen-slider-wrap">
-                  <label class="sr-only" for="pvScenarioSlider">Adjust simulation value</label>
-                  <input id="pvScenarioSlider" class="pv-clean-slider" type="range" min="5" max="35" step="1"
-                    value="20" />
-                </div>
-                <button type="button" class="pv-scen-reset-btn" id="pvResetBtn" title="Reset to baseline value">
-                  Reset
-                </button>
+
               </div>
 
-              <!-- Integrated Comparison Visual (Active for Promo & Price) -->
-              <div class="pv-integrated-comparison" id="pvComparisonWrap">
-                <div class="pv-comp-bars-layout">
-                  <!-- Row 1: Current Baseline -->
-                  <div class="pv-bar-row">
-                    <div class="pv-bar-meta">
-                      <span class="pv-bar-state-lbl">Current</span>
-                      <strong class="pv-bar-state-val" id="pvBaValA">11.0 days</strong>
+              <!-- VIEW 2: INVENTORY PREVIEW -->
+              <div class="pv-view panel pv-view-inventory" data-view="inventory" data-active="false" aria-hidden="true"
+                inert>
+                <header class="pv-view-header">
+                  <h3 class="pv-view-title">Know what to replenish.</h3>
+                </header>
+
+                <!-- One aligned list with subtle row dividers (No independently rounded cards) -->
+                <div class="pv-inv-list" role="listbox" aria-label="Inventory products and stock cover">
+                  <!-- Row 1: Apex Sprint Footwear (Lead item, shortfall, amber indicator) -->
+                  <div class="pv-inv-item is-selected is-shortfall" role="option" aria-selected="true" tabindex="0"
+                    data-inv-idx="0">
+                    <div class="pv-inv-main">
+                      <span class="pv-inv-name">Apex Sprint Footwear</span>
+                      <span class="pv-inv-status tag-amber-text">Below 18d target</span>
                     </div>
-                    <div class="pv-bar-track-area">
-                      <!-- Bar scale: 0 to 16 days. 11d = 68.75%, 13d target pin = 81.25% -->
-                      <div class="pv-bar-visual bar-slate" style="width: 68.75%;"></div>
-                      <div class="pv-target-datum-line" style="left: 81.25%;" title="13.0d Target">
-                        <span class="pv-target-datum-tag">13d Target</span>
+                    <div class="pv-inv-metric">
+                      <strong class="pv-inv-cover-val tag-amber-text">11.0 days</strong>
+                      <span class="pv-inv-target-lbl">Target: 18.0d</span>
+                    </div>
+                    <div class="pv-inv-bar-track">
+                      <!-- Scale: 0 to 40 days. 11d = 27.5%, 18d target pin = 45% -->
+                      <div class="pv-inv-bar-fill fill-amber" style="width: 27.5%;"></div>
+                      <div class="pv-inv-bar-pin" style="left: 45%;" title="Target: 18.0 days">
+                        <span class="pv-pin-bubble">18d Target</span>
                       </div>
                     </div>
                   </div>
 
-                  <!-- Row 2: Simulated Outcome -->
-                  <div class="pv-bar-row">
-                    <div class="pv-bar-meta">
-                      <span class="pv-bar-state-lbl" id="pvBaLabelB">With promotion</span>
-                      <strong class="pv-bar-state-val val-blue" id="pvBaValB">9.2 days</strong>
+                  <!-- Row 2: Merino Active Layer -->
+                  <div class="pv-inv-item" role="option" aria-selected="false" tabindex="-1" data-inv-idx="1">
+                    <div class="pv-inv-main">
+                      <span class="pv-inv-name">Merino Active Layer</span>
+                      <span class="pv-inv-status">On track</span>
                     </div>
-                    <div class="pv-bar-track-area">
-                      <!-- 9.17d = 57.3% -->
-                      <div class="pv-bar-visual bar-blue" id="pvSimBarVisual" style="width: 57.3%;"></div>
-                      <div class="pv-target-datum-line" style="left: 81.25%;"></div>
+                    <div class="pv-inv-metric">
+                      <strong class="pv-inv-cover-val">28.0 days</strong>
+                      <span class="pv-inv-target-lbl">Target: 20.0d</span>
+                    </div>
+                    <div class="pv-inv-bar-track">
+                      <!-- 28d = 70%, 20d target pin = 50% -->
+                      <div class="pv-inv-bar-fill fill-blue" style="width: 70%;"></div>
+                      <div class="pv-inv-bar-pin" style="left: 50%;" title="Target: 20.0 days">
+                        <span class="pv-pin-bubble">20d Target</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Row 3: Ergonomic Commute Pack -->
+                  <div class="pv-inv-item" role="option" aria-selected="false" tabindex="-1" data-inv-idx="2">
+                    <div class="pv-inv-main">
+                      <span class="pv-inv-name">Ergonomic Commute Pack</span>
+                      <span class="pv-inv-status">Surplus stock</span>
+                    </div>
+                    <div class="pv-inv-metric">
+                      <strong class="pv-inv-cover-val">34.0 days</strong>
+                      <span class="pv-inv-target-lbl">Target: 25.0d</span>
+                    </div>
+                    <div class="pv-inv-bar-track">
+                      <!-- 34d = 85%, 25d target pin = 62.5% -->
+                      <div class="pv-inv-bar-fill fill-blue" style="width: 85%;"></div>
+                      <div class="pv-inv-bar-pin" style="left: 62.5%;" title="Target: 25.0 days">
+                        <span class="pv-pin-bubble">25d Target</span>
+                      </div>
                     </div>
                   </div>
                 </div>
+
+                <!-- Single Concise Action Line Below List (Plain aligned text, unboxed) -->
+                <div class="pv-inv-action-row">
+                  <p class="pv-inv-action-text" id="pvInvActionText">
+                    Order 900 units today to restore 18 days of cover upon Day 8 arrival (180 units remain at delivery).
+                  </p>
+                </div>
+
               </div>
 
-              <!-- Delivery Delay Supply Timeline (Active only when Delivery delay is selected) -->
-              <div class="pv-delay-stage" id="pvDelayTimeline" hidden>
-                <svg class="pv-timeline-svg" viewBox="0 0 760 90" preserveAspectRatio="none" role="img"
-                  aria-label="Supply arrival timeline showing stock depletion and delayed inbound delivery">
-                  <!-- Base Track -->
-                  <line x1="48" y1="45" x2="720" y2="45" stroke="#E2E5EA" stroke-width="4" stroke-linecap="round" />
-                  <!-- Covered interval (Day 0 to Day 11: 48 to 418) -->
-                  <line x1="48" y1="45" x2="418" y2="45" stroke="#2454D6" stroke-width="4" />
-                  <!-- Uncovered Window (Day 11 to Day 18: 418 to 650) -->
-                  <rect id="pvDelayExposeRect" x="418" y="28" width="232" height="34" rx="6"
-                    fill="rgba(217, 119, 6, 0.12)" stroke="#D97706" stroke-width="1.5" stroke-dasharray="3 3" />
-                  <text id="pvDelayExposeText" x="534" y="49" text-anchor="middle" class="pv-expose-label">7 DAYS
-                    WITHOUT STOCK COVER</text>
+              <!-- VIEW 3: RISK RADAR PREVIEW -->
+              <div class="pv-view panel pv-view-risk" data-view="risk" data-active="false" aria-hidden="true" inert>
+                <header class="pv-view-header pv-risk-header">
+                  <h3 class="pv-view-title">Spot a change in demand.</h3>
+                  <!-- Compact Day Controls Placed Near Title -->
+                  <div class="pv-event-selector" role="group" aria-label="Select an observed event day">
+                    <button type="button" class="pv-event-btn" data-pv-risk="steady" aria-pressed="false">
+                      Day 08
+                    </button>
+                    <button type="button" class="pv-event-btn is-active" data-pv-risk="surge" aria-pressed="true">
+                      Day 14
+                    </button>
+                    <button type="button" class="pv-event-btn" data-pv-risk="drop" aria-pressed="false">
+                      Day 23
+                    </button>
+                  </div>
+                </header>
 
-                  <!-- Today Node -->
-                  <circle cx="48" cy="45" r="5.5" fill="#181B22" />
-                  <text x="48" y="24" text-anchor="middle" class="pv-node-title">Today</text>
-                  <text x="48" y="68" text-anchor="middle" class="pv-node-sub">Day 0</text>
+                <!-- Selected Result as Plain Text (No banners, no sigma badge) -->
+                <div class="pv-risk-statement">
+                  <strong class="pv-risk-headline" id="pvRiskHeadline">Demand jumped 48%</strong>
+                  <span class="pv-risk-subtext" id="pvRiskSubtext">89 units vs 60 expected.</span>
+                </div>
 
-                  <!-- Stockout Node -->
-                  <circle cx="418" cy="45" r="5.5" fill="#D97706" stroke="#fff" stroke-width="1.5" />
-                  <text x="418" y="24" text-anchor="middle" class="pv-node-title tag-amber-text">Stockout</text>
-                  <text x="418" y="68" text-anchor="middle" class="pv-node-sub">Day 11</text>
+                <!-- Spacious 30-Day Timeline directly on surface (No nested chart border) -->
+                <div class="pv-chart-stage pv-timeline-stage">
+                  <svg class="pv-timeline-svg" viewBox="0 0 760 170" preserveAspectRatio="none" role="img"
+                    aria-label="Daily demand timeline showing 30 days, baseline 60 units/day, expected range, and selected event marker">
+                    <defs>
+                      <linearGradient id="pvTimelineBand" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2454D6" stop-opacity="0.08" />
+                        <stop offset="100%" stop-color="#2454D6" stop-opacity="0.02" />
+                      </linearGradient>
+                    </defs>
 
-                  <!-- Delayed PO Arrival Node -->
-                  <g id="pvDelayedPOGroup" transform="translate(650, 45)">
-                    <circle cx="0" cy="0" r="6.5" fill="#DC2626" stroke="#fff" stroke-width="2" />
-                    <text x="0" y="-21" text-anchor="middle" class="pv-node-title tag-red-text"
-                      id="pvDelayNodeLbl">Delayed arrival (Day 18)</text>
-                    <text x="0" y="23" text-anchor="middle" class="pv-node-sub">+10d delay</text>
-                  </g>
-                </svg>
+                    <!-- Gridlines -->
+                    <line x1="48" y1="145" x2="730" y2="145" class="pv-grid-line" />
+                    <line x1="48" y1="110" x2="730" y2="110" class="pv-grid-line" />
+                    <line x1="48" y1="75" x2="730" y2="75" class="pv-grid-line" />
+                    <line x1="48" y1="40" x2="730" y2="40" class="pv-grid-line" />
+
+                    <!-- Y-Axis labels -->
+                    <text x="38" y="149" class="pv-axis-text" text-anchor="end">0</text>
+                    <text x="38" y="114" class="pv-axis-text" text-anchor="end">40</text>
+                    <text x="38" y="79" class="pv-axis-text" text-anchor="end">60</text>
+                    <text x="38" y="44" class="pv-axis-text" text-anchor="end">100</text>
+
+                    <!-- Quiet Expected-Range Corridor (42u to 78u: y=106 to y=65) -->
+                    <rect x="48" y="65" width="682" height="41" fill="url(#pvTimelineBand)"
+                      stroke="rgba(36, 84, 214, 0.15)" stroke-dasharray="3 3" />
+                    <text x="726" y="74" class="pv-range-text" text-anchor="end">Expected range (42–78 u/d)</text>
+
+                    <!-- 60u Baseline Line -->
+                    <line x1="48" y1="86" x2="730" y2="86" stroke="#64748B" stroke-width="1.2" stroke-dasharray="4 3" />
+                    <text x="54" y="82" class="pv-base-label">Baseline 60 u/d</text>
+
+                    <!-- 30-Day Observed Series in Slate -->
+                    <path class="pv-timeline-line" fill="none"
+                      d="M48 88 L72 85 L96 87 L120 82 L144 90 L168 86 L192 88 L216 85 L240 87 L264 84 L288 88 L312 85 L336 77 L360 48 L384 66 L408 79 L432 85 L456 87 L480 84 L504 89 L528 86 L552 88 L576 116 L600 99 L624 90 L648 85 L672 87 L696 86 L718 88 L730 85" />
+
+                    <!-- X-Axis Labels -->
+                    <text x="48" y="160" class="pv-axis-text">Day 01</text>
+                    <text x="216" y="160" class="pv-axis-text pv-axis-key">Day 08</text>
+                    <text x="360" y="160" class="pv-axis-text pv-axis-key pv-axis-bold">Day 14</text>
+                    <text x="576" y="160" class="pv-axis-text pv-axis-key">Day 23</text>
+                    <text x="730" y="160" class="pv-axis-text" text-anchor="end">Day 30</text>
+
+                    <!-- Selected Event Highlight Marker (Defaults to Day 14: x=360, y=48) -->
+                    <g id="pvRiskMarker" transform="translate(360, 48)">
+                      <line id="pvRiskStem" x1="0" y1="0" x2="0" y2="97" class="pv-marker-stem stem-amber" />
+                      <circle id="pvRiskPulse" cx="0" cy="0" r="10" class="pv-marker-pulse pulse-amber" />
+                      <circle id="pvRiskDot" cx="0" cy="0" r="4.5" class="pv-marker-dot dot-amber" />
+                      <g id="pvRiskBadgeCallout" transform="translate(0, -14)">
+                        <rect x="-34" y="-11" width="68" height="18" rx="4" class="pv-badge-bg bg-amber" />
+                        <text id="pvRiskBadgeText" x="0" y="2" text-anchor="middle" class="pv-badge-text">89
+                          units</text>
+                      </g>
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- One Short Unboxed Interpretation Below Chart -->
+                <div class="pv-risk-interp">
+                  <p class="pv-interp-plain" id="pvRiskInterpText">Review promotions and large orders.</p>
+                </div>
+
               </div>
 
-              <!-- One Plain-Text Conclusion Below Visual -->
-              <div class="pv-scen-conclusion">
-                <p class="pv-conclusion-text" id="pvScenarioSentence">
-                  Add 276 units to reach 13 days of cover.
-                </p>
-              </div>
+              <!-- VIEW 4: SCENARIO LAB PREVIEW -->
+              <div class="pv-view panel pv-view-scenario" data-view="scenario" data-active="false" aria-hidden="true"
+                inert>
+                <header class="pv-view-header">
+                  <h3 class="pv-view-title">Test your next move.</h3>
+                </header>
 
-            </div>
+                <!-- Compact Scenario Choices Below Title -->
+                <div class="pv-scenario-tabs" role="group" aria-label="Select simulation scenario">
+                  <button type="button" class="pv-scen-btn is-active" data-pv-scenario="promo" aria-pressed="true">
+                    Promotion
+                  </button>
+                  <button type="button" class="pv-scen-btn" data-pv-scenario="price" aria-pressed="false">
+                    Price
+                  </button>
+                  <button type="button" class="pv-scen-btn" data-pv-scenario="delay" aria-pressed="false">
+                    Delivery delay
+                  </button>
+                </div>
+
+                <!-- Compact Labelled Control Row: Parameter + Slider + Reset -->
+                <div class="pv-scen-control-row">
+                  <div class="pv-scen-control-label">
+                    <span class="pv-control-title" id="pvCtrlName">Demand increase</span>
+                    <strong class="pv-control-value" id="pvCtrlValReadout">+20%</strong>
+                  </div>
+                  <div class="pv-scen-slider-wrap">
+                    <label class="sr-only" for="pvScenarioSlider">Adjust simulation value</label>
+                    <input id="pvScenarioSlider" class="pv-clean-slider" type="range" min="5" max="35" step="1"
+                      value="20" />
+                  </div>
+                  <button type="button" class="pv-scen-reset-btn" id="pvResetBtn" title="Reset to baseline value">
+                    Reset
+                  </button>
+                </div>
+
+                <!-- Integrated Comparison Visual (Active for Promo & Price) -->
+                <div class="pv-integrated-comparison" id="pvComparisonWrap">
+                  <div class="pv-comp-bars-layout">
+                    <!-- Row 1: Current Baseline -->
+                    <div class="pv-bar-row">
+                      <div class="pv-bar-meta">
+                        <span class="pv-bar-state-lbl">Current</span>
+                        <strong class="pv-bar-state-val" id="pvBaValA">11.0 days</strong>
+                      </div>
+                      <div class="pv-bar-track-area">
+                        <!-- Bar scale: 0 to 16 days. 11d = 68.75%, 13d target pin = 81.25% -->
+                        <div class="pv-bar-visual bar-slate" style="width: 68.75%;"></div>
+                        <div class="pv-target-datum-line" style="left: 81.25%;" title="13.0d Target">
+                          <span class="pv-target-datum-tag">13d Target</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Row 2: Simulated Outcome -->
+                    <div class="pv-bar-row">
+                      <div class="pv-bar-meta">
+                        <span class="pv-bar-state-lbl" id="pvBaLabelB">With promotion</span>
+                        <strong class="pv-bar-state-val val-blue" id="pvBaValB">9.2 days</strong>
+                      </div>
+                      <div class="pv-bar-track-area">
+                        <!-- 9.17d = 57.3% -->
+                        <div class="pv-bar-visual bar-blue" id="pvSimBarVisual" style="width: 57.3%;"></div>
+                        <div class="pv-target-datum-line" style="left: 81.25%;"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Delivery Delay Supply Timeline (Active only when Delivery delay is selected) -->
+                <div class="pv-delay-stage" id="pvDelayTimeline" hidden>
+                  <svg class="pv-timeline-svg" viewBox="0 0 760 90" preserveAspectRatio="none" role="img"
+                    aria-label="Supply arrival timeline showing stock depletion and delayed inbound delivery">
+                    <!-- Base Track -->
+                    <line x1="48" y1="45" x2="720" y2="45" stroke="#E2E5EA" stroke-width="4" stroke-linecap="round" />
+                    <!-- Covered interval (Day 0 to Day 11: 48 to 418) -->
+                    <line x1="48" y1="45" x2="418" y2="45" stroke="#2454D6" stroke-width="4" />
+                    <!-- Uncovered Window (Day 11 to Day 18: 418 to 650) -->
+                    <rect id="pvDelayExposeRect" x="418" y="28" width="232" height="34" rx="6"
+                      fill="rgba(217, 119, 6, 0.12)" stroke="#D97706" stroke-width="1.5" stroke-dasharray="3 3" />
+                    <text id="pvDelayExposeText" x="534" y="49" text-anchor="middle" class="pv-expose-label">7 DAYS
+                      WITHOUT STOCK COVER</text>
+
+                    <!-- Today Node -->
+                    <circle cx="48" cy="45" r="5.5" fill="#181B22" />
+                    <text x="48" y="24" text-anchor="middle" class="pv-node-title">Today</text>
+                    <text x="48" y="68" text-anchor="middle" class="pv-node-sub">Day 0</text>
+
+                    <!-- Stockout Node -->
+                    <circle cx="418" cy="45" r="5.5" fill="#D97706" stroke="#fff" stroke-width="1.5" />
+                    <text x="418" y="24" text-anchor="middle" class="pv-node-title tag-amber-text">Stockout</text>
+                    <text x="418" y="68" text-anchor="middle" class="pv-node-sub">Day 11</text>
+
+                    <!-- Delayed PO Arrival Node -->
+                    <g id="pvDelayedPOGroup" transform="translate(650, 45)">
+                      <circle cx="0" cy="0" r="6.5" fill="#DC2626" stroke="#fff" stroke-width="2" />
+                      <text x="0" y="-21" text-anchor="middle" class="pv-node-title tag-red-text"
+                        id="pvDelayNodeLbl">Delayed arrival (Day 18)</text>
+                      <text x="0" y="23" text-anchor="middle" class="pv-node-sub">+10d delay</text>
+                    </g>
+                  </svg>
+                </div>
+
+                <!-- One Plain-Text Conclusion Below Visual -->
+                <div class="pv-scen-conclusion">
+                  <p class="pv-conclusion-text" id="pvScenarioSentence">
+                    Add 276 units to reach 13 days of cover.
+                  </p>
+                </div>
+
+              </div>
             </div>
 
             <!-- Single Shared Card Footer -->
@@ -3017,7 +3102,8 @@
                 </button>
               </div>
               <div class="pv-assumptions-panel" id="pvSharedAssumptions" hidden>
-                <p id="pvAssumptionsText">12-week horizon modeled with XGBoost regressors and SHAP seasonal decomposition.
+                <p id="pvAssumptionsText">12-week horizon modeled with XGBoost regressors and SHAP seasonal
+                  decomposition.
                   Baseline demand is calculated from the prior 12-week moving average (1,554 units mean). Shaded band
                   represents the 95% confidence interval (±1.96σ residual variance).</p>
               </div>
@@ -3883,7 +3969,8 @@
         <div class="closing-aurora" aria-hidden="true"></div>
         <div class="closing-inner">
           <div class="closing-orbit-slot" aria-hidden="true">
-            <span data-titan-mark data-size="96" data-mode="still" data-decorative="true" data-class="closing-orbit-mark"></span>
+            <span data-titan-mark data-size="96" data-mode="still" data-decorative="true"
+              data-class="closing-orbit-mark"></span>
           </div>
           <p class="eyebrow"><span></span> The next move is visible</p>
           <h2 id="closing-title"><span class="closing-line"><span>Make your next order</span></span> <strong
@@ -3920,15 +4007,15 @@
   <script defer src="./motion.js"></script>
   <script defer src="./glass-module.js"></script>
   <script defer src="./titan-mark.js"></script>
-  <script defer src="./intro.js"></script>
-  <script defer src="./script.js?v=v15_04"></script>
-  <script defer src="./datavision.js?v=v15_01"></script>
+  <script defer src="./intro.js?v=2026_11_28_02"></script>
+  <script defer src="./script.js?v=2026_11_28_02"></script>
+  <script defer src="./datavision.js?v=2026_11_28_02"></script>
   <script defer src="./titan-theme.js"></script>
   <link rel="stylesheet" href="./glass-module.css" />
-  <link rel="stylesheet" href="./motion.css" />
+  <link rel="stylesheet" href="./motion.css?v=2026_11_28_02" />
   <link rel="stylesheet" href="./intro-liquid.css" />
-  <link rel="stylesheet" href="./closing-liquid.css?v=3" />
-  <script defer src="./closing-liquid.js"></script>
+  <link rel="stylesheet" href="./closing-liquid.css?v=2026_11_28_02" />
+  <script defer src="./closing-liquid.js?v=2026_11_28_02"></script>
 </body>
 
 </html>
